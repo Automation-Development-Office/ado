@@ -1,0 +1,243 @@
+name: Ansible Collection CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  NAMESPACE: ado
+  COLLECTION_DIR: ${{ github.workspace }}
+
+jobs:
+  # Quality stage
+  linting:
+    name: Ansible Lint
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'pull_request') || 
+      (github.event_name == 'push' && github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/'))
+    container:
+      image: registry.gitlab.com/pipeline-components/ansible-lint:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apk add --no-cache curl bash
+          curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/bin/yq
+          chmod +x /usr/bin/yq
+          yq --version
+
+      - name: Update galaxy.yml with version
+        run: |
+          yq -i '.version = strenv(VERSION)' galaxy.yml
+          yq -i '.namespace = strenv(NAMESPACE)' galaxy.yml
+        env:
+          VERSION: ${{ github.ref_name }}
+
+      - name: Run ansible-lint
+        run: |
+          ansible --version
+          ansible-lint --version
+          ansible-lint -v --offline --show-relpath ${{ github.workspace }} -p | ansible-lint-junit -o ansible-lint.xml
+        continue-on-error: true
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ansible-lint-report
+          path: ansible-lint.xml
+
+  # Building stage
+  prepare:
+    name: Prepare Build Variables
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    outputs:
+      version: ${{ steps.vars.outputs.version }}
+      name: ${{ steps.vars.outputs.name }}
+      namespace: ${{ steps.vars.outputs.namespace }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yq
+
+      - name: Extract variables from galaxy.yml
+        id: vars
+        run: |
+          VERSION=$(grep '^\bversion\b' galaxy.yml | awk -F: '{print $2}' | xargs)
+          NAME=$(grep '^\bname\b' galaxy.yml | awk -F: '{print $2}' | xargs)
+          NAMESPACE=$(grep '^\bnamespace\b' galaxy.yml | awk -F: '{print $2}' | xargs)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build Collection
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: pip install ansible-core
+
+      - name: Build collection
+        run: ansible-galaxy collection build --force --output-path .
+        env:
+          COLLECTION_DIR: ${{ github.workspace }}
+
+      - name: Upload collection artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: collection-build
+          path: ${{ needs.prepare.outputs.namespace }}-${{ needs.prepare.outputs.name }}-*.tar.gz
+          retention-days: 90
+
+  # Galaxy publish stage
+  dev-publish:
+    name: Publish to Dev Galaxy
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    if: startsWith(github.ref, 'refs/tags/')
+    environment:
+      name: dev-galaxy
+    steps:
+      - name: Download collection artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: collection-build
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: pip install ansible-core
+
+      - name: Publish to Dev Galaxy
+        run: |
+          ARTIFACT_FILE=$(ls *.tar.gz | head -1)
+          ansible-galaxy collection publish "$ARTIFACT_FILE" \
+            --api-key ${{ secrets.CC_24_HUB_KEY }} \
+            --server https://${{ secrets.CC_24_HUB }}/api/galaxy/ \
+            --ignore-certs
+        continue-on-error: true
+
+  cl-publish:
+    name: Publish to CL Galaxy
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    if: startsWith(github.ref, 'refs/tags/')
+    environment:
+      name: cl-galaxy
+    steps:
+      - name: Download collection artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: collection-build
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: pip install ansible-core
+
+      - name: Publish to CL Galaxy
+        run: |
+          ARTIFACT_FILE=$(ls *.tar.gz | head -1)
+          ansible-galaxy collection publish "$ARTIFACT_FILE" \
+            --api-key ${{ secrets.CHADS_HUB_KEY }} \
+            --server http://${{ secrets.CHADS_HUB }}/api/galaxy/ \
+            --ignore-certs
+        continue-on-error: true
+
+  cl-os-publish:
+    name: Publish to CL-OS Galaxy
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    if: startsWith(github.ref, 'refs/tags/')
+    environment:
+      name: cl-os-galaxy
+    steps:
+      - name: Download collection artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: collection-build
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: pip install ansible-core
+
+      - name: Configure hosts file
+        run: |
+          echo "${{ secrets.CHADS_OCP_PROD_HUB_IP }} ${{ secrets.CHADS_OCP_PROD_HUB_HOSTNAME }}" | sudo tee -a /etc/hosts
+          echo "Hosts entry added:"
+          grep ${{ secrets.CHADS_OCP_PROD_HUB_HOSTNAME }} /etc/hosts || echo "Hostname not found"
+
+      - name: Publish to CL-OS Galaxy
+        run: |
+          ARTIFACT_FILE=$(ls *.tar.gz | head -1)
+          ansible-galaxy collection publish "$ARTIFACT_FILE" \
+            --api-key ${{ secrets.CHADS_OCP_PROD_HUB_KEY }} \
+            --server https://${{ secrets.CHADS_OCP_PROD_HUB_HOSTNAME }}:8443/api/galaxy/ \
+            --ignore-certs
+        continue-on-error: true
+
+  # Release stage
+  final-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download collection artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: collection-build
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ needs.prepare.outputs.namespace }}-${{ needs.prepare.outputs.name }}-*.tar.gz
+          body: |
+            Ansible Collection ${{ needs.prepare.outputs.namespace }}-${{ needs.prepare.outputs.name }} version ${{ needs.prepare.outputs.version }}
+            
+            This release contains the built collection artifact.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
