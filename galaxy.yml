@@ -5,7 +5,7 @@
 
 namespace: "infra"
 name: "ado"
-version: 1.0.0
+version: 1.0.0 # TO-DO: update the version based on your release process
 readme: README.md
 authors:
   - your name <example@domain.com>
