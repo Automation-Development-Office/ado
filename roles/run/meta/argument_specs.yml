@@ -1,0 +1,11 @@
+---
+# argument spec file for infra.ado.run
+
+argument_specs:
+  main:
+    short_description: Role description.
+    options:
+      run_my_variable:
+        type: str
+        description: A simple string argument for demonstration.
+        default: "default_value"
