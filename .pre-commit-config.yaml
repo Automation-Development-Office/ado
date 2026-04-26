@@ -5,6 +5,12 @@ repos:
     hooks:
       - id: update-docs
 
+  - repo: https://github.com/ansible/ansible-lint.git
+    rev: v6.20.0
+    hooks:
+      - id: ansible-lint
+        entry: ansible-lint --offline
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
