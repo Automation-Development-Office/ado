@@ -1,4 +1,5 @@
 <!--# cspell: ignore SSOT CMDB -->
+
 # AGENTS.md
 
 Ensure that all practices and instructions described by
