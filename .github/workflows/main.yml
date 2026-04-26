@@ -17,7 +17,7 @@ jobs:
       github.event_name == 'pull_request' ||
       (github.event_name == 'push' && 
        github.ref != 'refs/heads/main' && 
-       github.ref != 'refs/heads/develop' && 
+       github.ref != 'refs/heads/Dev' && 
        !startsWith(github.ref, 'refs/tags/'))
     container:
       image: registry.gitlab.com/pipeline-components/ansible-lint:latest
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/develop' ||
+      github.ref == 'refs/heads/Dev' ||
       startsWith(github.ref, 'refs/tags/')
     outputs:
       version: ${{ steps.vars.outputs.version }}
@@ -90,7 +90,7 @@ jobs:
     needs: prepare
     if: |
       github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/develop' ||
+      github.ref == 'refs/heads/Dev' ||
       startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout code
@@ -116,120 +116,12 @@ jobs:
           path: ${{ needs.prepare.outputs.namespace }}-${{ needs.prepare.outputs.name }}-*.tar.gz
           retention-days: 90
 
-  # Galaxy publish stage
-  dev-publish:
-    name: Publish to Dev Galaxy
+  update-docs:
+    name: Update Documentation
     runs-on: ubuntu-latest
-    needs: [prepare, build]
     if: |
       github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/develop' ||
-      startsWith(github.ref, 'refs/tags/')
-    environment:
-      name: dev-galaxy
-    steps:
-      - name: Download collection artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: collection-build
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Ansible
-        run: pip install ansible-core
-
-      - name: Publish to Dev Galaxy
-        run: |
-          ARTIFACT_FILE=$(ls *.tar.gz | head -1)
-          ansible-galaxy collection publish "$ARTIFACT_FILE" \
-            --api-key ${{ secrets.CC_24_HUB_KEY }} \
-            --server https://${{ secrets.CC_24_HUB }}/api/galaxy/ \
-            --ignore-certs
-        continue-on-error: true
-
-  cl-publish:
-    name: Publish to CL Galaxy
-    runs-on: ubuntu-latest
-    needs: [prepare, build]
-    if: |
-      github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/develop' ||
-      startsWith(github.ref, 'refs/tags/')
-    environment:
-      name: cl-galaxy
-    steps:
-      - name: Download collection artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: collection-build
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Ansible
-        run: pip install ansible-core
-
-      - name: Publish to CL Galaxy
-        run: |
-          ARTIFACT_FILE=$(ls *.tar.gz | head -1)
-          ansible-galaxy collection publish "$ARTIFACT_FILE" \
-            --api-key ${{ secrets.CHADS_HUB_KEY }} \
-            --server http://${{ secrets.CHADS_HUB }}/api/galaxy/ \
-            --ignore-certs
-        continue-on-error: true
-
-  cl-os-publish:
-    name: Publish to CL-OS Galaxy
-    runs-on: ubuntu-latest
-    needs: [prepare, build]
-    if: |
-      github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/develop' ||
-      startsWith(github.ref, 'refs/tags/')
-    environment:
-      name: cl-os-galaxy
-    steps:
-      - name: Download collection artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: collection-build
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Ansible
-        run: pip install ansible-core
-
-      - name: Configure hosts file
-        run: |
-          echo "${{ secrets.CHADS_OCP_PROD_HUB_IP }} ${{ secrets.CHADS_OCP_PROD_HUB_HOSTNAME }}" | sudo tee -a /etc/hosts
-          echo "Hosts entry added:"
-          grep ${{ secrets.CHADS_OCP_PROD_HUB_HOSTNAME }} /etc/hosts || echo "Hostname not found"
-
-      - name: Publish to CL-OS Galaxy
-        run: |
-          ARTIFACT_FILE=$(ls *.tar.gz | head -1)
-          ansible-galaxy collection publish "$ARTIFACT_FILE" \
-            --api-key ${{ secrets.CHADS_OCP_PROD_HUB_KEY }} \
-            --server https://${{ secrets.CHADS_OCP_PROD_HUB_HOSTNAME }}:8443/api/galaxy/ \
-            --ignore-certs
-        continue-on-error: true
-
-  # Release stage
-  final-release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: [prepare, build]
-    if: |
-      github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/develop' ||
+      github.ref == 'refs/heads/Dev' ||
       startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
@@ -237,20 +129,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download collection artifact
-        uses: actions/download-artifact@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          name: collection-build
+          python-version: '3.11'
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{ needs.prepare.outputs.namespace }}-${{ needs.prepare.outputs.name }}-*.tar.gz
-          body: |
-            Ansible Collection ${{ needs.prepare.outputs.namespace }}-${{ needs.prepare.outputs.name }} version ${{ needs.prepare.outputs.version }}
-            
-            This release contains the built collection artifact.
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ansible-core ansible-lint pyyaml
+          pip install 'ansible-network/collection_prep@1.1.1'
+
+      - name: Update documentation
+        run: collection_prep_add_docs
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push documentation changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: auto-update documentation"
+          git push
+
+
