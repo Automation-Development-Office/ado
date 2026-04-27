@@ -142,7 +142,7 @@ jobs:
           pip install git+https://github.com/ansible-network/collection_prep.git
 
       - name: Update documentation
-        run: collection_prep_add_docs
+        run: collection_prep_add_docs -p ${{ github.workspace }}
 
       - name: Check for changes
         id: changes
