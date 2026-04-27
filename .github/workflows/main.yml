@@ -139,7 +139,7 @@ jobs:
           pip install --upgrade pip
           pip install ansible-core ansible-lint pyyaml
           # pip install 'ansible-network/collection_prep@1.1.1'
-          pip install git+https://github.com/ansible-network/collection_prep.git@v1.1.1
+          pip install git+https://github.com/ansible-network/collection_prep.git
 
       - name: Update documentation
         run: collection_prep_add_docs
