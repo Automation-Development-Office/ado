@@ -161,5 +161,7 @@ jobs:
           git add -A
           git commit -m "docs: auto-update documentation"
           git push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
