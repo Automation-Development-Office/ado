@@ -140,9 +140,15 @@ jobs:
           pip install ansible-core ansible-lint pyyaml
           pip install antsibull-docs
 
-      # 
+      - name: Prepare collection structure for antsibull-docs
+        run: |
+          mkdir -p /tmp/ansible_collections/infra
+          ln -s ${{ github.workspace }} /tmp/ansible_collections/infra/ado
+
       - name: Update documentation
         run: antsibull-docs collection --use-current --dest-dir ./docs infra.ado
+        env:
+          ANSIBLE_COLLECTIONS_PATH: /tmp/ansible_collections
 
       - name: Check for changes
         id: changes
