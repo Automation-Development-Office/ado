@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: MIT-0
+---
+# tasks file for vm_image role
+
+
+# - name: Checking that all required variables are specified
+#   ansible.builtin.import_tasks: assertions.yml
+
+# - name: Performing prerequisite tasks
+#   ansible.builtin.import_tasks: pre_reqs.yml
+
+
+- name: Performing Prerequisite tasks
+  ansible.builtin.import_tasks: pre_reqs.yml
+
+- name: Creating Qcow image from base file
+  ansible.builtin.import_tasks: create_qcow_from_base.yml
+  when:
+    - not vm_image_download
+
+
+# ToDo - Add option to resize image after creation if vm_image_resize is true.
+
+# ToDo - Add option to download base image if URL is provided and vm_image_download
+#  is true. Task file already exists but is not being called. Need to add logic to
+# handle when base image is provided as URL vs local file path and when download is
+# requested or not.
+
+# - name: Download base image
+#   ansible.builtin.import_tasks: download_base_image.yml
+#   when:
+#     - vm_image_download
+#     - vm_image_base is match("http")

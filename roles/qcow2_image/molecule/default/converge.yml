@@ -1,0 +1,38 @@
+---
+- name: Converge - create a qcow image from a local base image
+  hosts: all
+  gather_facts: false
+  become: false
+
+  vars:
+    vm_image_test_root: /tmp/vm_image_molecule
+    vm_image_action: create
+    vm_image_dest_path: "{{ vm_image_test_root }}"
+    vm_image_dest_name: cloned-test.qcow2
+    vm_image_base_path: "{{ vm_image_test_root }}"
+    vm_image_base_name: base-test.qcow2
+    vm_image_format: qcow2
+    vm_image_download: false
+
+  tasks:
+    - name: Ensure qemu-img is available
+      ansible.builtin.command: qemu-img --version
+      changed_when: false
+
+    - name: Ensure Molecule test directory exists
+      ansible.builtin.file:
+        path: "{{ vm_image_test_root }}"
+        state: directory
+        mode: "0755"
+
+    - name: Create base qcow2 image for the role to clone
+      ansible.builtin.command: >
+        qemu-img create -f qcow2
+        {{ vm_image_test_root }}/{{ vm_image_base_name }}
+        64M
+      args:
+        creates: "{{ vm_image_test_root }}/{{ vm_image_base_name }}"
+
+    - name: Include role under test
+      ansible.builtin.include_role:
+        name: "{{ playbook_dir | dirname | dirname }}"
