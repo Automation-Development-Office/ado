@@ -35,8 +35,8 @@ def load_role_meta(role_path: Path) -> Optional[Dict[str, Any]]:
             print(f"Error parsing {meta_file}: {e}", file=sys.stderr)
             return None
 
-def generate_role_rst(role_name: str, role_path: Path, collection_name: str) -> Optional[str]:
-    """Generate RST documentation for a single role."""
+def generate_role_md(role_name: str, role_path: Path, collection_name: str) -> Optional[str]:
+    """Generate Markdown documentation for a single role."""
     specs = load_argument_specs(role_path)
     meta = load_role_meta(role_path)
     
@@ -64,13 +64,12 @@ def generate_role_rst(role_name: str, role_path: Path, collection_name: str) -> 
     license_val = galaxy_info.get("license", "Unknown")
     min_ansible = galaxy_info.get("min_ansible_version", "2.9")
     
-    # Build RST content
+    # Build Markdown content
     lines = []
     
     # Title
     role_title = f"{collection_name}.{role_name}"
-    lines.append(role_title)
-    lines.append("=" * len(role_title))
+    lines.append(f"# {role_title}")
     lines.append("")
     
     # Description
@@ -79,25 +78,19 @@ def generate_role_rst(role_name: str, role_path: Path, collection_name: str) -> 
         lines.append("")
     
     # Metadata table
-    lines.append("Role Information")
-    lines.append("-" * 16)
+    lines.append("## Role Information")
     lines.append("")
-    lines.append(".. list-table::")
-    lines.append("   :widths: 30 70")
-    lines.append("")
-    lines.append(f"   * - Author")
-    lines.append(f"     - {author}")
-    lines.append(f"   * - License")
-    lines.append(f"     - {license_val}")
-    lines.append(f"   * - Minimum Ansible Version")
-    lines.append(f"     - {min_ansible}")
+    lines.append("| Property | Value |")
+    lines.append("|----------|-------|")
+    lines.append(f"| Author | {author} |")
+    lines.append(f"| License | {license_val} |")
+    lines.append(f"| Minimum Ansible Version | {min_ansible} |")
     lines.append("")
     
     # Arguments/Options
     options = main_spec.get("options", {})
     if options:
-        lines.append("Options")
-        lines.append("-------")
+        lines.append("## Options")
         lines.append("")
         
         for option_name, option_info in options.items():
@@ -109,34 +102,32 @@ def generate_role_rst(role_name: str, role_path: Path, collection_name: str) -> 
             
             # Option header
             req_str = " (required)" if required else ""
-            lines.append(f"``{option_name}`` ({option_type}){req_str}")
-            lines.append("  " + "~" * (len(option_name) + len(option_type) + 14 + len(req_str)))
+            lines.append(f"### `{option_name}` ({option_type}){req_str}")
             lines.append("")
             
             # Option description
             if option_desc:
-                lines.append(f"  {option_desc}")
+                lines.append(option_desc)
                 lines.append("")
             
             # Default value
             if default is not None:
-                lines.append(f"  Default: ``{default}``")
+                lines.append(f"**Default:** `{default}`")
                 lines.append("")
             
             # Choices
             if choices:
-                lines.append(f"  Choices:")
+                lines.append("**Choices:**")
                 for choice in choices:
-                    lines.append(f"    - {choice}")
+                    lines.append(f"- `{choice}`")
                 lines.append("")
     
     # Examples from role
     readme_path = role_path / "README.md"
     if readme_path.exists():
-        lines.append("See Also")
-        lines.append("--------")
+        lines.append("## See Also")
         lines.append("")
-        lines.append(f"See the role `README.md <../../roles/{role_name}/README.md>`_ for more details.")
+        lines.append(f"See the role [README.md](../../roles/{role_name}/README.md) for more details.")
         lines.append("")
     
     return "\n".join(lines)
@@ -183,31 +174,26 @@ def main():
         role_name = role_path.name
         print(f"Generating documentation for role: {role_name}")
         
-        rst_content = generate_role_rst(role_name, role_path, collection_name)
-        if rst_content:
-            output_file = roles_docs_dir / f"{role_name}_role.rst"
+        md_content = generate_role_md(role_name, role_path, collection_name)
+        if md_content:
+            output_file = roles_docs_dir / f"{role_name}_role.md"
             with open(output_file, 'w') as f:
-                f.write(rst_content)
+                f.write(md_content)
             print(f"  → {output_file}")
             generated_docs.append((role_name, role_path))
     
     # Generate index
     if generated_docs:
         index_lines = []
-        index_lines.append("Roles")
-        index_lines.append("=" * 5)
-        index_lines.append("")
-        
-        index_lines.append(".. toctree::")
-        index_lines.append("   :maxdepth: 2")
+        index_lines.append("# Roles")
         index_lines.append("")
         
         for role_name, _ in generated_docs:
-            index_lines.append(f"   roles/{role_name}_role")
+            index_lines.append(f"- [{role_name}](roles/{role_name}_role.md)")
         
         index_lines.append("")
         
-        index_file = docs_dir / "roles.rst"
+        index_file = docs_dir / "roles.md"
         with open(index_file, 'w') as f:
             f.write("\n".join(index_lines))
         print(f"Generated role index: {index_file}")
