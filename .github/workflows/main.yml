@@ -119,10 +119,10 @@ jobs:
   update-docs:
     name: Update Documentation
     runs-on: ubuntu-latest
-    if: |
-      github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/Dev' ||
-      startsWith(github.ref, 'refs/tags/')
+    # if: |
+    #   github.ref == 'refs/heads/main' ||
+    #   github.ref == 'refs/heads/Dev' ||
+    #   startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
     steps:
@@ -137,12 +137,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install ansible-core ansible-lint pyyaml
-          # pip install 'ansible-network/collection_prep@1.1.1'
-          pip install git+https://github.com/ansible-network/collection_prep.git
+          pip install pyyaml
 
-      - name: Update documentation
-        run: collection_prep_add_docs -p ${{ github.workspace }}
+      - name: Generate role documentation
+        run: python scripts/generate_role_docs.py
 
       - name: Check for changes
         id: changes
@@ -161,7 +159,5 @@ jobs:
           git add -A
           git commit -m "docs: auto-update documentation"
           git push
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 

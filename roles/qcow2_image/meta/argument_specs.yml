@@ -1,0 +1,59 @@
+---
+# argument spec file for ado.qcow2_image
+
+argument_specs:
+  main:
+    short_description: Create a qcow2 virtual machine image from an existing base image.
+    description: |
+      This Ansible role creates a qcow2 virtual machine image from an existing base image.
+      It runs prerequisite setup, validates paths, inspects the base image with qemu-img info,
+      and creates the output image with qemu-img convert.
+    options:
+      vm_image_action:
+        type: str
+        description: Action selector used by the prerequisite and assertion tasks. The active workflow expects 'create'.
+        required: true
+      vm_image_dest_path:
+        type: str
+        description: Destination path for the output image. In prerequisites, this is expanded to the final output image path by appending vm_image_dest_name.
+        required: true
+      vm_image_dest_name:
+        type: str
+        description: Output image file name appended to vm_image_dest_path in prerequisites.
+        required: true
+      vm_image_base_path:
+        type: str
+        description: Base image directory input. In prerequisites, this is expanded to the final base image path by appending vm_image_base_name.
+        required: true
+      vm_image_base_name:
+        type: str
+        description: Base image file name appended to vm_image_base_path in prerequisites.
+        required: true
+      vm_image_format:
+        type: str
+        description: Output image format passed to qemu-img convert -O.
+        default: qcow2
+      vm_image_download:
+        type: bool
+        description: When false, the current create workflow runs. Download flow remains present but commented out in main.yml.
+        default: false
+      vm_image_path:
+        type: str
+        description: Reserved default variable for a full destination path. It is defined in defaults but is not used by the current task flow.
+        default: null
+      vm_image_size:
+        type: str
+        description: Reserved for future image sizing workflows. Not used by the current task flow.
+        default: null
+      vm_image_force:
+        type: bool
+        description: Reserved for future replacement behavior. Not used by the current task flow.
+        default: false
+      vm_image_resize:
+        type: bool
+        description: Reserved for a future post-create resize workflow. main.yml currently includes a TODO for this feature.
+        default: false
+      vm_image_backing:
+        type: bool
+        description: Legacy variable from the earlier workflow. Not used by the current task flow.
+        default: true

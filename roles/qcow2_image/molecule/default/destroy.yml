@@ -1,0 +1,14 @@
+---
+- name: Destroy - clean up Molecule test artifacts
+  hosts: all
+  gather_facts: false
+  become: false
+
+  vars:
+    vm_image_test_root: /tmp/vm_image_molecule
+
+  tasks:
+    - name: Remove Molecule image test directory
+      ansible.builtin.file:
+        path: "{{ vm_image_test_root }}"
+        state: absent
