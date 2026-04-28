@@ -4,6 +4,10 @@
 argument_specs:
   main:
     short_description: Create a qcow2 virtual machine image from an existing base image.
+    description: |
+      This Ansible role creates a qcow2 virtual machine image from an existing base image.
+      It runs prerequisite setup, validates paths, inspects the base image with qemu-img info,
+      and creates the output image with qemu-img convert.
     options:
       vm_image_action:
         type: str

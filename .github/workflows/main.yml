@@ -138,11 +138,11 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install ansible-core ansible-lint pyyaml
-          # pip install 'ansible-network/collection_prep@1.1.1'
-          pip install git+https://github.com/ansible-network/collection_prep.git
+          pip install antsibull-docs
 
+      # 
       - name: Update documentation
-        run: collection_prep_add_docs -p ${{ github.workspace }}
+        run: antsibull-docs collection --use-current --dest-dir ./docs infra.ado
 
       - name: Check for changes
         id: changes
