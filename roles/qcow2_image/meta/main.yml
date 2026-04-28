@@ -1,0 +1,13 @@
+---
+namespace: ado
+name: qcow2_image
+version: 1.0.0
+authors:
+  - Automation Development Office
+description: Create a qcow2 virtual machine image from an existing base image.
+license:
+  - GPL-3.0-or-later
+repository: https://github.com/Automation-Development-Office/ado
+documentation: https://github.com/Automation-Development-Office/ado
+homepage: https://github.com/Automation-Development-Office/ado
+issues: https://github.com/Automation-Development-Office/ado/issues
