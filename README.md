@@ -3,6 +3,13 @@
 This repository contains the `infra.ado` Ansible Collection.
 
 <!--start requires_ansible-->
+## Ansible version compatibility
+
+This collection has been tested against the following Ansible versions: **>=2.15.0**.
+
+Plugins and modules within a collection may be tested with only specific Ansible versions.
+A collection may contain metadata that identifies these versions.
+PEP440 is the schema used to describe the versions of Ansible.
 <!--end requires_ansible-->
 
 ## External requirements
@@ -14,6 +21,27 @@ which requirements are needed.
 ## Included content
 
 <!--start collection content-->
+### Filter plugins
+Name | Description
+--- | ---
+[infra.ado.sample_filter](http://example.com/repository/blob/main/docs/infra.ado.sample_filter_filter.rst)|A custom filter plugin for Ansible.
+
+### Lookup plugins
+Name | Description
+--- | ---
+[infra.ado.sample_lookup](http://example.com/repository/blob/main/docs/infra.ado.sample_lookup_lookup.rst)|A custom lookup plugin for Ansible.
+
+### Modules
+Name | Description
+--- | ---
+[infra.ado.sample_action](http://example.com/repository/blob/main/docs/infra.ado.sample_action_module.rst)|A custom action plugin for Ansible.
+[infra.ado.sample_module](http://example.com/repository/blob/main/docs/infra.ado.sample_module_module.rst)|A custom module plugin for Ansible.
+
+### Test plugins
+Name | Description
+--- | ---
+[infra.ado.sample_test](http://example.com/repository/blob/main/docs/infra.ado.sample_test_test.rst)|A custom test plugin for Ansible.
+
 <!--end collection content-->
 
 ## Using this collection
