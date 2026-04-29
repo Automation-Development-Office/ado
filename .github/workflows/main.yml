@@ -3,6 +3,13 @@ name: Ansible Collection CI/CD
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      update_docs:
+        description: 'Update documentation'
+        required: false
+        default: false
+        type: boolean
 
 env:
   NAMESPACE: ado
@@ -15,9 +22,9 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'pull_request' ||
-      (github.event_name == 'push' && 
-       github.ref != 'refs/heads/main' && 
-       github.ref != 'refs/heads/Dev' && 
+      (github.event_name == 'push' &&
+       github.ref != 'refs/heads/main' &&
+       github.ref != 'refs/heads/Dev' &&
        !startsWith(github.ref, 'refs/tags/'))
     container:
       image: registry.gitlab.com/pipeline-components/ansible-lint:latest
@@ -119,10 +126,10 @@ jobs:
   update-docs:
     name: Update Documentation
     runs-on: ubuntu-latest
-    # if: |
-    #   github.ref == 'refs/heads/main' ||
-    #   github.ref == 'refs/heads/Dev' ||
-    #   startsWith(github.ref, 'refs/tags/')
+    if: |
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/Dev' ||
+      startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
     steps:
@@ -159,5 +166,3 @@ jobs:
           git add -A
           git commit -m "docs: auto-update documentation"
           git push
-
-
