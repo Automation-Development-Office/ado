@@ -8,4 +8,4 @@ vm_image_force: false
 vm_image_format: qcow2
 vm_image_resize: false
 # vm_image_convert: false
-vm_image_backing: true       # use backing file or full clone
+vm_image_backing: true # use backing file or full clone

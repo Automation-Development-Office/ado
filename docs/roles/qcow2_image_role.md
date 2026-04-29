@@ -4,14 +4,13 @@ This Ansible role creates a qcow2 virtual machine image from an existing base im
 It runs prerequisite setup, validates paths, inspects the base image with qemu-img info,
 and creates the output image with qemu-img convert.
 
-
 ## Role Information
 
-| Property | Value |
-|----------|-------|
-| Author | Automation Development Office |
-| License | GPL-3.0-or-later |
-| Minimum Ansible Version | 2.14 |
+| Property                | Value                         |
+| ----------------------- | ----------------------------- |
+| Author                  | Automation Development Office |
+| License                 | GPL-3.0-or-later              |
+| Minimum Ansible Version | 2.14                          |
 
 ## Options
 

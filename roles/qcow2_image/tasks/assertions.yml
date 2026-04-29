@@ -1,5 +1,4 @@
 ---
-
 - name: Assert that vm_image_base_path is not blank
   ansible.builtin.assert:
     that:
