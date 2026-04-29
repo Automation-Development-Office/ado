@@ -1,8 +1,0 @@
-# - id: generate-role-docs
-#   name: Generate Role Documentation
-#   entry: python scripts/generate_role_docs.py
-#   language: python
-#   files: ^roles/.*/(meta/|tasks/|defaults/|vars/)
-#   stages: [commit]
-#   pass_filenames: false
-#   additional_dependencies: ["pyyaml"]
