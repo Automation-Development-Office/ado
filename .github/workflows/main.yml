@@ -54,33 +54,6 @@ jobs:
           name: ansible-lint-report
           path: ansible-lint.xml
 
-  # Testing stage
-  molecule:
-    name: Molecule Tests
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install ansible-core docker
-
-      - name: Run Molecule tests
-        uses: onaio/molecule-action@master
-        with:
-          molecule_command: test
-          molecule_args: --scenario-name default
-        env:
-          MOLECULE_PROJECT_DIRECTORY: roles/qcow2_image
-
   # Building stage
   prepare:
     name: Prepare Build Variables

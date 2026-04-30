@@ -1,0 +1,41 @@
+name: Molecule Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'Molecule scenario to run'
+        required: false
+        default: 'default'
+        type: string
+      role:
+        description: 'Role to test (leave empty for all roles)'
+        required: false
+        default: 'qcow2_image'
+        type: string
+
+jobs:
+  molecule:
+    name: Run Molecule Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ansible-core docker
+
+      - name: Run Molecule tests
+        uses: onaio/molecule-action@master
+        with:
+          molecule_command: test
+          molecule_args: --scenario-name ${{ inputs.scenario }}
+        env:
+          MOLECULE_PROJECT_DIRECTORY: roles/${{ inputs.role }}
