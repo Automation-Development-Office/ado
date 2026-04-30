@@ -14,59 +14,59 @@ and creates the output image with qemu-img convert.
 
 ## Options
 
-### `vm_image_action` (str) (required)
+### `manage_vm_image_action` (str) (required)
 
 Action selector used by the prerequisite and assertion tasks. The active workflow expects 'create'.
 
-### `vm_image_dest_path` (str) (required)
+### `manage_vm_image_dest_path` (str) (required)
 
-Destination path for the output image. In prerequisites, this is expanded to the final output image path by appending vm_image_dest_name.
+Destination path for the output image. In prerequisites, this is expanded to the final output image path by appending manage_vm_image_dest_name.
 
-### `vm_image_dest_name` (str) (required)
+### `manage_vm_image_dest_name` (str) (required)
 
-Output image file name appended to vm_image_dest_path in prerequisites.
+Output image file name appended to manage_vm_image_dest_path in prerequisites.
 
-### `vm_image_base_path` (str) (required)
+### `manage_vm_image_base_path` (str) (required)
 
-Base image directory input. In prerequisites, this is expanded to the final base image path by appending vm_image_base_name.
+Base image directory input. In prerequisites, this is expanded to the final base image path by appending manage_vm_image_base_name.
 
-### `vm_image_base_name` (str) (required)
+### `manage_vm_image_base_name` (str) (required)
 
-Base image file name appended to vm_image_base_path in prerequisites.
+Base image file name appended to manage_vm_image_base_path in prerequisites.
 
-### `vm_image_format` (str)
+### `manage_vm_image_format` (str)
 
 Output image format passed to qemu-img convert -O.
 
 **Default:** `qcow2`
 
-### `vm_image_download` (bool)
+### `manage_vm_image_download` (bool)
 
 When false, the current create workflow runs. Download flow remains present but commented out in main.yml.
 
 **Default:** `False`
 
-### `vm_image_path` (str)
+### `manage_vm_image_path` (str)
 
 Reserved default variable for a full destination path. It is defined in defaults but is not used by the current task flow.
 
-### `vm_image_size` (str)
+### `manage_vm_image_size` (str)
 
 Reserved for future image sizing workflows. Not used by the current task flow.
 
-### `vm_image_force` (bool)
+### `manage_vm_image_force` (bool)
 
 Reserved for future replacement behavior. Not used by the current task flow.
 
 **Default:** `False`
 
-### `vm_image_resize` (bool)
+### `manage_vm_image_resize` (bool)
 
 Reserved for a future post-create resize workflow. main.yml currently includes a TODO for this feature.
 
 **Default:** `False`
 
-### `vm_image_backing` (bool)
+### `manage_vm_image_backing` (bool)
 
 Legacy variable from the earlier workflow. Not used by the current task flow.
 

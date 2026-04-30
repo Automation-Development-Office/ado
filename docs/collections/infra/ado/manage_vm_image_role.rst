@@ -11,7 +11,7 @@
 
 .. Anchors
 
-.. _ansible_collections.infra.ado.manage_vm_image_role:
+.. _ansible_collections.infra.ado.manage_manage_vm_image_role:
 
 .. Title
 
@@ -34,7 +34,7 @@ infra.ado.manage_vm_image role -- Create a qcow2 virtual machine image from an e
    :local:
    :depth: 2
 
-.. _ansible_collections.infra.ado.manage_vm_image_role__entrypoint-main:
+.. _ansible_collections.infra.ado.manage_manage_vm_image_role__entrypoint-main:
 
 .. Entry point title
 
@@ -78,17 +78,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_action"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_action"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_action:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_action:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_action**
+      **manage_vm_image_action**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_action" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_action" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 
@@ -115,17 +115,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_backing"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_backing"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_backing:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_backing:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_backing**
+      **manage_vm_image_backing**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_backing" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_backing" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 
@@ -160,17 +160,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_base_name"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_base_name"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_base_name:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_base_name:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_base_name**
+      **manage_vm_image_base_name**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_base_name" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_base_name" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 
@@ -197,17 +197,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_base_path"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_base_path"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_base_path:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_base_path:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_base_path**
+      **manage_vm_image_base_path**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_base_path" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_base_path" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 
@@ -234,17 +234,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_dest_name"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_dest_name"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_dest_name:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_dest_name:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_dest_name**
+      **manage_vm_image_dest_name**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_dest_name" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_dest_name" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 
@@ -271,17 +271,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_dest_path"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_dest_path"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_dest_path:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_dest_path:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_dest_path**
+      **manage_vm_image_dest_path**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_dest_path" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_dest_path" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 
@@ -308,17 +308,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_download"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_download"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_download:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_download:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_download**
+      **manage_vm_image_download**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_download" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_download" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 
@@ -353,17 +353,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_force"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_force"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_force:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_force:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_force**
+      **manage_vm_image_force**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_force" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_force" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 
@@ -398,17 +398,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_format"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_format"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_format:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_format:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_format**
+      **manage_vm_image_format**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_format" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_format" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 
@@ -439,17 +439,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_path"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_path"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_path:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_path:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_path**
+      **manage_vm_image_path**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_path" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_path" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 
@@ -476,17 +476,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_resize"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_resize"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_resize:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_resize:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_resize**
+      **manage_vm_image_resize**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_resize" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_resize" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 
@@ -521,17 +521,17 @@ Parameters
   * - .. raw:: html
 
         <div class="ansible-option-cell">
-        <div class="ansibleOptionAnchor" id="parameter-main--vm_image_size"></div>
+        <div class="ansibleOptionAnchor" id="parameter-main--manage_vm_image_size"></div>
 
-      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_size:
+      .. _ansible_collections.infra.ado.manage_manage_vm_image_role__parameter-main__manage_vm_image_size:
 
       .. rst-class:: ansible-option-title
 
-      **vm_image_size**
+      **manage_vm_image_size**
 
       .. raw:: html
 
-        <a class="ansibleOptionLink" href="#parameter-main--vm_image_size" title="Permalink to this option"></a>
+        <a class="ansibleOptionLink" href="#parameter-main--manage_vm_image_size" title="Permalink to this option"></a>
 
       .. ansible-option-type-line::
 

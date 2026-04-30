@@ -123,7 +123,7 @@ These are the roles in the infra.ado collection:
     :maxdepth: 1
     :hidden:
 
-    manage_vm_image_role
+    manage_manage_vm_image_role
     run_role
 
 
