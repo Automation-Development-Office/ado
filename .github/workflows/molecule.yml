@@ -13,6 +13,9 @@ on:
         required: false
         default: 'qcow2_image'
         type: string
+  push:
+    branches:
+      - never-trigger-this-branch
 
 jobs:
   molecule:
