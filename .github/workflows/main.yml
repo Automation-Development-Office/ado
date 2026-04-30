@@ -3,6 +3,7 @@ name: Ansible Collection CI/CD
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 env:
   NAMESPACE: ado
@@ -57,10 +58,7 @@ jobs:
   molecule:
     name: Molecule Tests
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'pull_request' ||
-      github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/Dev'
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
