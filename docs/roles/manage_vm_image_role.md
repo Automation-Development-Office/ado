@@ -1,4 +1,4 @@
-# infra.ado.qcow2_image
+# infra.ado.manage_vm_image
 
 This Ansible role creates a qcow2 virtual machine image from an existing base image.
 It runs prerequisite setup, validates paths, inspects the base image with qemu-img info,
@@ -74,4 +74,4 @@ Legacy variable from the earlier workflow. Not used by the current task flow.
 
 ## See Also
 
-See the role [README.md](../../roles/qcow2_image/README.md) for more details.
+See the role [README.md](../../roles/manage_vm_image/README.md) for more details.

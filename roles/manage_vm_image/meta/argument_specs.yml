@@ -1,5 +1,5 @@
 ---
-# argument spec file for ado.qcow2_image
+# argument spec file for ado.manage_vm_image
 
 argument_specs:
   main:

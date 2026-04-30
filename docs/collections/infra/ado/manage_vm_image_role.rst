@@ -1,7 +1,7 @@
 .. Document meta
 
 :orphan:
-:github_url: https://github.com/ansible-collections/infra.ado/edit/main/roles/qcow2_image/meta/argument_specs.yml?description=%23%23%23%23%23%20SUMMARY%0A%3C!---%20Your%20description%20here%20--%3E%0A%0A%0A%23%23%23%23%23%20ISSUE%20TYPE%0A-%20Docs%20Pull%20Request%0A%0A%2Blabel:%20docsite_pr
+:github_url: https://github.com/ansible-collections/infra.ado/edit/main/roles/manage_vm_image/meta/argument_specs.yml?description=%23%23%23%23%23%20SUMMARY%0A%3C!---%20Your%20description%20here%20--%3E%0A%0A%0A%23%23%23%23%23%20ISSUE%20TYPE%0A-%20Docs%20Pull%20Request%0A%0A%2Blabel:%20docsite_pr
 
 .. |antsibull-internal-nbsp| unicode:: 0xA0
     :trim:
@@ -11,11 +11,11 @@
 
 .. Anchors
 
-.. _ansible_collections.infra.ado.qcow2_image_role:
+.. _ansible_collections.infra.ado.manage_vm_image_role:
 
 .. Title
 
-infra.ado.qcow2_image role -- Create a qcow2 virtual machine image from an existing base image.
+infra.ado.manage_vm_image role -- Create a qcow2 virtual machine image from an existing base image.
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. Collection note
@@ -28,13 +28,13 @@ infra.ado.qcow2_image role -- Create a qcow2 virtual machine image from an exist
 
     To install it use: :code:`ansible\-galaxy collection install infra.ado`.
 
-    To use it in a playbook, specify: :code:`infra.ado.qcow2_image`.
+    To use it in a playbook, specify: :code:`infra.ado.manage_vm_image`.
 
 .. contents::
    :local:
    :depth: 2
 
-.. _ansible_collections.infra.ado.qcow2_image_role__entrypoint-main:
+.. _ansible_collections.infra.ado.manage_vm_image_role__entrypoint-main:
 
 .. Entry point title
 
@@ -80,7 +80,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_action"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_action:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_action:
 
       .. rst-class:: ansible-option-title
 
@@ -117,7 +117,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_backing"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_backing:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_backing:
 
       .. rst-class:: ansible-option-title
 
@@ -162,7 +162,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_base_name"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_base_name:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_base_name:
 
       .. rst-class:: ansible-option-title
 
@@ -199,7 +199,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_base_path"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_base_path:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_base_path:
 
       .. rst-class:: ansible-option-title
 
@@ -236,7 +236,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_dest_name"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_dest_name:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_dest_name:
 
       .. rst-class:: ansible-option-title
 
@@ -273,7 +273,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_dest_path"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_dest_path:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_dest_path:
 
       .. rst-class:: ansible-option-title
 
@@ -310,7 +310,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_download"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_download:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_download:
 
       .. rst-class:: ansible-option-title
 
@@ -355,7 +355,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_force"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_force:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_force:
 
       .. rst-class:: ansible-option-title
 
@@ -400,7 +400,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_format"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_format:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_format:
 
       .. rst-class:: ansible-option-title
 
@@ -441,7 +441,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_path"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_path:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_path:
 
       .. rst-class:: ansible-option-title
 
@@ -478,7 +478,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_resize"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_resize:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_resize:
 
       .. rst-class:: ansible-option-title
 
@@ -523,7 +523,7 @@ Parameters
         <div class="ansible-option-cell">
         <div class="ansibleOptionAnchor" id="parameter-main--vm_image_size"></div>
 
-      .. _ansible_collections.infra.ado.qcow2_image_role__parameter-main__vm_image_size:
+      .. _ansible_collections.infra.ado.manage_vm_image_role__parameter-main__vm_image_size:
 
       .. rst-class:: ansible-option-title
 

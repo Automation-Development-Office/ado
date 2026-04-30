@@ -65,7 +65,7 @@ jobs:
           molecule_command: test
           molecule_args: --scenario-name default
         env:
-          MOLECULE_PROJECT_DIRECTORY: roles/qcow2_image
+          MOLECULE_PROJECT_DIRECTORY: roles/manage_vm_image
 
   # Building stage
   prepare:

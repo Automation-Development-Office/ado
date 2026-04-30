@@ -1,3 +1,3 @@
 # Roles
 
-- [qcow2_image](roles/qcow2_image_role.md)
+- [manage_vm_image](roles/manage_vm_image_role.md)

@@ -11,7 +11,7 @@ on:
       role:
         description: 'Role to test (leave empty for all roles)'
         required: false
-        default: 'qcow2_image'
+        default: 'manage_vm_image'
         type: string
   push:
     branches:
