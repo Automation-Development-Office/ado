@@ -4,7 +4,7 @@ This Ansible role creates a qcow2 virtual machine image from an existing base im
 
 In its current form, the role runs prerequisite setup, validates the source and destination paths, expands the base and destination paths from directory and file name components, inspects the base image with `qemu-img info`, and creates the output image with `qemu-img convert`.
 
-> **⚠️ Note:**  
+> **⚠️ Note:**
 > This role expects `qemu-img` to be installed on the target host. The base image must already exist on the managed host for the active create workflow.
 
 ## ✅ Role Requirements
@@ -31,10 +31,10 @@ In its current form, the role runs prerequisite setup, validates the source and 
 | `vm_image_resize` | Reserved for a future post-create resize workflow. `main.yml` currently includes a TODO for this feature. | ❌ | `false` |
 | `vm_image_backing` | Legacy variable from the earlier workflow. Not used by the current task flow. | ❌ | `true` |
 
-> **Notes:**  
-> The role currently expands both source and destination paths inside `pre_reqs.yml`.  
-> `vm_image_action` is required by the current task guards even though it is not defined in `defaults/main.yml`.  
-> The expanded `vm_image_dest_path` becomes the final output file path used by the create task.  
+> **Notes:**
+> The role currently expands both source and destination paths inside `pre_reqs.yml`.
+> `vm_image_action` is required by the current task guards even though it is not defined in `defaults/main.yml`.
+> The expanded `vm_image_dest_path` becomes the final output file path used by the create task.
 > Several variables still exist in `defaults/main.yml`, but only a subset is used by the current implementation.
 
 See `defaults/main.yml` for the current defaulted variable set.

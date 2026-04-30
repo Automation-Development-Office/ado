@@ -3,13 +3,6 @@ name: Ansible Collection CI/CD
 on:
   push:
   pull_request:
-  workflow_dispatch:
-    inputs:
-      update_docs:
-        description: 'Update documentation'
-        required: false
-        default: false
-        type: boolean
 
 env:
   NAMESPACE: ado
@@ -59,6 +52,36 @@ jobs:
         with:
           name: ansible-lint-report
           path: ansible-lint.xml
+
+  # Testing stage
+  molecule:
+    name: Molecule Tests
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' ||
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/Dev'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ansible-core docker
+
+      - name: Run Molecule tests
+        uses: onaio/molecule-action@master
+        with:
+          molecule_command: test
+          molecule_args: --scenario-name default
+        env:
+          MOLECULE_PROJECT_DIRECTORY: roles/qcow2_image
 
   # Building stage
   prepare:
@@ -122,47 +145,3 @@ jobs:
           name: collection-build
           path: ${{ needs.prepare.outputs.namespace }}-${{ needs.prepare.outputs.name }}-*.tar.gz
           retention-days: 90
-
-  update-docs:
-    name: Update Documentation
-    runs-on: ubuntu-latest
-    if: |
-      github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/Dev' ||
-      startsWith(github.ref, 'refs/tags/')
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install pyyaml
-
-      - name: Generate role documentation
-        run: python scripts/generate_role_docs.py
-
-      - name: Check for changes
-        id: changes
-        run: |
-          if git diff --quiet; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-          else
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Commit and push documentation changes
-        if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "docs: auto-update documentation"
-          git push
