@@ -1,0 +1,9 @@
+exclude_paths:
+    - .gitlab-ci.yml
+    - .ansible-lint
+    - "**/.ansible/**"
+    - "**/molecule/**"     # exclude any molecule dir anywhere
+    - "**/meta/**"         # exclude any meta dir anywhere
+    - galaxy.yml
+    - "**/changelogs/**"
+    - devfile.yaml

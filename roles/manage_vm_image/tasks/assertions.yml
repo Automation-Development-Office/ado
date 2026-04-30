@@ -1,0 +1,20 @@
+---
+- name: Assert that manage_vm_image_base_path is not blank
+  ansible.builtin.assert:
+    that:
+      - manage_vm_image_base_path != ""
+    fail_msg: "{{ manage_vm_image_base_path }} is empty"
+    success_msg: "Your new image will be based on {{ manage_vm_image_base_path }}"
+  when:
+    - not manage_vm_image_download
+    - manage_vm_image_action == "create"
+
+- name: Assert that manage_vm_image_dest_path is not blank
+  ansible.builtin.assert:
+    that:
+      - manage_vm_image_dest_path != ""
+    fail_msg: "{{ manage_vm_image_dest_path }} is empty"
+    success_msg: "Your new image will be created at {{ manage_vm_image_dest_path }}"
+  when:
+    - manage_vm_image_action == "create"
+    - not manage_vm_image_download

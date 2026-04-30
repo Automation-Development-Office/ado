@@ -1,0 +1,11 @@
+manage_vm_image_path: null # needs to be full path and name
+manage_vm_image_size: null
+
+# Optional features
+# manage_vm_image_base: null            # full path and name or URL
+manage_vm_image_download: false
+manage_vm_image_force: false
+manage_vm_image_format: qcow2
+manage_vm_image_resize: false
+# manage_vm_image_convert: false
+manage_vm_image_backing: true # use backing file or full clone

@@ -1,0 +1,57 @@
+---
+- name: Setting variables for image creation
+  ansible.builtin.set_fact:
+    manage_vm_image_dest_path: "{{ manage_vm_image_dest_path }}/{{ manage_vm_image_dest_name }}"
+    manage_vm_image_base_path: "{{ manage_vm_image_base_path }}/{{ manage_vm_image_base_name }}"
+  changed_when: false
+  when:
+    - not manage_vm_image_download
+    - manage_vm_image_action == "create"
+
+- name: Checking that all required variables are specified
+  ansible.builtin.import_tasks: assertions.yml
+# - name: Install cockpit HA tools
+#   ansible.builtin.dnf:
+#     name:
+#       - cockpit
+#       - cockpit-ha-cluster
+#       - libvirt
+#       - qemu-kvm
+#       - virt-install
+#       - pcs
+#       - fence-agents-all
+#       - resource-agents
+#       - corosync
+#       - pacemaker
+#       - nfs-utils
+#       - libvirt
+#     state: present
+
+# - name: Enable services
+#   ansible.builtin.service:
+#     name: "{{ item }}"
+#     state: started
+#     enabled: true
+#   loop:
+#     - cockpit.socket
+#     - libvirtd
+#     - pcsd
+#     - corosync
+
+# - name: Set hacluster password
+#   ansible.builtin.user:
+#     name: hacluster
+#     password: "{{ hacluster_password | password_hash('sha512') }}"
+
+# - name: Authorize node with hacluster
+#   sap.sap_operations.pcs_auth:
+#     node_name: "{{ hostvars[item]['ansible_hostname'] }}"
+#     password: "your-password"
+#   with_items: "{{ play_hosts }}"
+
+#       -
+
+#  name: Authenticate hacluster user on all nodes
+#   become: true
+#   command: pcs cluster auth {{ item }} -u {{ pcsd_user }} -p "{{ hacluster_password }}"
+#   loop: "{{ nodes }}"

@@ -1,0 +1,37 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+
+platforms:
+  - name: molecule-localhost
+
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      all:
+        hosts:
+          molecule-localhost:
+            ansible_connection: local
+            ansible_python_interpreter: /usr/bin/python3
+  playbooks:
+    converge: converge.yml
+    destroy: destroy.yml
+  env:
+    ANSIBLE_STDOUT_CALLBACK: default
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/.."
+
+scenario:
+  name: default
+  test_sequence:
+    - dependency
+    - converge
+    - idempotence
+    - verify
+    - destroy
+
+verifier:
+  name: ansible
