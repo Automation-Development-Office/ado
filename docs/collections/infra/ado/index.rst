@@ -116,14 +116,14 @@ Role Index
 
 These are the roles in the infra.ado collection:
 
-* :ansplugin:`qcow2_image role <infra.ado.qcow2_image#role>` -- Create a qcow2 virtual machine image from an existing base image.
+* :ansplugin:`manage_vm_image role <infra.ado.manage_vm_image#role>` -- Create a qcow2 virtual machine image from an existing base image.
 * :ansplugin:`run role <infra.ado.run#role>` -- Role description.
 
 .. toctree::
     :maxdepth: 1
     :hidden:
 
-    qcow2_image_role
+    manage_manage_vm_image_role
     run_role
 
 

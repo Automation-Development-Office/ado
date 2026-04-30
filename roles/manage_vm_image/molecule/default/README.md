@@ -14,10 +14,10 @@ This scenario validates the current `vm_image` role workflow by creating a tempo
 - `molecule.yml`: Scenario configuration and test sequence.
 - `converge.yml`: Creates a temporary base image and applies the role.
 - `verify.yml`: Validates the created image.
-- `destroy.yml`: Removes the temporary test artifacts under `/tmp/vm_image_molecule`.
+- `destroy.yml`: Removes the temporary test artifacts under `/tmp/manage_vm_image_molecule`.
 
 ## Notes
 
 - This scenario uses `ansible_connection: local` and runs against `molecule-localhost`.
 - It requires `qemu-img` to be installed on the test host.
-- Temporary test files are created under `/tmp/vm_image_molecule` and removed during `destroy`.
+- Temporary test files are created under `/tmp/manage_vm_image_molecule` and removed during `destroy`.

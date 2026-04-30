@@ -4,12 +4,6 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-    inputs:
-      update_docs:
-        description: 'Update documentation'
-        required: false
-        default: false
-        type: boolean
 
 env:
   NAMESPACE: ado
@@ -32,25 +26,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          apk add --no-cache curl bash
-          curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/bin/yq
-          chmod +x /usr/bin/yq
-          yq --version
-
-      - name: Update galaxy.yml with version
-        run: |
-          yq -i '.version = strenv(VERSION)' galaxy.yml
-          yq -i '.namespace = strenv(NAMESPACE)' galaxy.yml
-        env:
-          VERSION: ${{ github.ref_name }}
-
       - name: Run ansible-lint
         run: |
           ansible --version
           ansible-lint --version
-          ansible-lint -v --offline --show-relpath ${{ github.workspace }} -p | ansible-lint-junit -o ansible-lint.xml
+          ansible-lint -v --offline --show-relpath -p | ansible-lint-junit -o ansible-lint.xml
         continue-on-error: true
 
       - name: Upload lint report
@@ -59,6 +39,33 @@ jobs:
         with:
           name: ansible-lint-report
           path: ansible-lint.xml
+
+  # Testing stage - manual trigger only, available on all branches
+  molecule:
+    name: Molecule Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ansible-core docker
+
+      - name: Run Molecule tests
+        uses: onaio/molecule-action@master
+        with:
+          molecule_command: test
+          molecule_args: --scenario-name default
+        env:
+          MOLECULE_PROJECT_DIRECTORY: roles/manage_vm_image
 
   # Building stage
   prepare:
@@ -108,6 +115,16 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Update galaxy.yml version for release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq yq
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          yq -i ".version = \"$VERSION\"" galaxy.yml
+          yq -i '.namespace = strenv(NAMESPACE)' galaxy.yml
+
       - name: Install Ansible
         run: pip install ansible-core
 
@@ -122,47 +139,3 @@ jobs:
           name: collection-build
           path: ${{ needs.prepare.outputs.namespace }}-${{ needs.prepare.outputs.name }}-*.tar.gz
           retention-days: 90
-
-  update-docs:
-    name: Update Documentation
-    runs-on: ubuntu-latest
-    if: |
-      github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/Dev' ||
-      startsWith(github.ref, 'refs/tags/')
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install pyyaml
-
-      - name: Generate role documentation
-        run: python scripts/generate_role_docs.py
-
-      - name: Check for changes
-        id: changes
-        run: |
-          if git diff --quiet; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-          else
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Commit and push documentation changes
-        if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "docs: auto-update documentation"
-          git push

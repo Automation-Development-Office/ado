@@ -1,0 +1,8 @@
+- name: Download base image if requested
+  ansible.builtin.get_url:
+    url: "{{ manage_vm_image_base }}"
+    dest: "/var/lib/libvirt/images/{{ manage_vm_image_base | basename }}"
+    mode: "0644"
+  when:
+    - manage_vm_image_download
+    - manage_vm_image_base is match("http")

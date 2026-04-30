@@ -11,5 +11,5 @@ Index of all Roles
 infra.ado
 ---------
 
-* :ansplugin:`infra.ado.qcow2_image#role` -- Create a qcow2 virtual machine image from an existing base image.
+* :ansplugin:`infra.ado.manage_vm_image#role` -- Create a qcow2 virtual machine image from an existing base image.
 * :ansplugin:`infra.ado.run#role` -- Role description.
