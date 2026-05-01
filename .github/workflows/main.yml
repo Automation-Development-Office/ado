@@ -100,11 +100,17 @@ jobs:
           pwd
           ls -la
 
+      - name: Compute scenario metadata
+        id: scenario_meta
+        run: |
+          scenario_name="$(basename "${{ matrix.scenario_dir }}")"
+          echo "scenario_name=$scenario_name" >> "$GITHUB_OUTPUT"
+
       - name: Run Molecule tests
         working-directory: extensions/molecule
         run: |
           set -euo pipefail
-          scenario_name="$(basename "${{ matrix.scenario_dir }}")"
+          scenario_name="${{ steps.scenario_meta.outputs.scenario_name }}"
           mkdir -p "$GITHUB_WORKSPACE/molecule-reports"
           ln -sfn . molecule
           trap 'rm -f molecule' EXIT
@@ -126,7 +132,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: molecule-report-${{ matrix.scenario_dir }}
+          name: molecule-report-${{ steps.scenario_meta.outputs.scenario_name }}
           path: molecule-reports/
           if-no-files-found: error
 
