@@ -8,15 +8,16 @@ provisioner:
     # cleanup: ../utils/playbooks/noop.yml
     converge: ../utils/playbooks/manage_vm_image_converge.yml
     destroy: ../utils/playbooks/manage_vm_image_destroy.yml
-    # verify: ../utils/playbook/manage_image_verify.yml
+    verify: ../utils/playbook/manage_image_verify.yml
     # prepare: ../utils/playbooks/noop.yml
   config_options:
     defaults:
       collections_path: ${ANSIBLE_COLLECTIONS_PATH}
 scenario:
   test_sequence:
-    - prepare
+    # - prepare
     - converge
-    # - verify
+    - idempotence
+    - verify
   destroy_sequence:
     - destroy
