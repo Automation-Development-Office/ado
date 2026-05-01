@@ -1,0 +1,43 @@
+---
+- name: Verify - confirm the image was created
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    manage_vm_image_test_root: /tmp/manage_vm_image_molecule
+    manage_vm_image_output_path: "{{ manage_vm_image_test_root }}/cloned-test.qcow2"
+
+  tasks:
+    - name: Check created qcow image
+      ansible.builtin.stat:
+        path: "{{ manage_vm_image_output_path }}"
+      register: manage_vm_image_output_stat
+
+    - name: Assert created qcow image exists
+      ansible.builtin.assert:
+        that:
+          - manage_vm_image_output_stat.stat.exists
+          - manage_vm_image_output_stat.stat.isreg
+          - manage_vm_image_output_stat.stat.size > 0
+        fail_msg: "Expected created image at {{ manage_vm_image_output_path }}"
+        success_msg: "Created image exists at {{ manage_vm_image_output_path }}"
+
+    - name: Read created image metadata
+      ansible.builtin.command: >
+        qemu-img info --output=json {{ manage_vm_image_output_path }}
+      register: manage_vm_image_created_info
+      changed_when: false
+
+    - name: Parse created image metadata
+      ansible.builtin.set_fact:
+        manage_vm_image_created_info_json: "{{ manage_vm_image_created_info.stdout | from_json }}"
+      changed_when: false
+
+    - name: Assert created image metadata is correct
+      ansible.builtin.assert:
+        that:
+          - manage_vm_image_created_info_json.format == "qcow2"
+          - (manage_vm_image_created_info_json["virtual-size"] | int) > 0
+        fail_msg: "Created image metadata did not match expectations"
+        success_msg: "Created image metadata is valid"
