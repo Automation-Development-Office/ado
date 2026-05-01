@@ -105,9 +105,30 @@ jobs:
         run: |
           set -euo pipefail
           scenario_name="$(basename "${{ matrix.scenario_dir }}")"
+          mkdir -p "$GITHUB_WORKSPACE/molecule-reports"
           ln -sfn . molecule
           trap 'rm -f molecule' EXIT
-          molecule test -s "$scenario_name"
+          summary_file="$GITHUB_WORKSPACE/molecule-reports/${scenario_name}.summary.txt"
+          log_file="$GITHUB_WORKSPACE/molecule-reports/${scenario_name}.log"
+          {
+            echo "scenario: $scenario_name"
+            echo "directory: ${{ matrix.scenario_dir }}"
+            echo "started_at_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > "$summary_file"
+          if molecule test -s "$scenario_name" 2>&1 | tee "$log_file"; then
+            echo "status: passed" >> "$summary_file"
+          else
+            echo "status: failed" >> "$summary_file"
+            exit 1
+          fi
+
+      - name: Upload Molecule report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: molecule-report-${{ matrix.scenario_dir }}
+          path: molecule-reports/
+          if-no-files-found: error
 
   # Building stage
   prepare:
