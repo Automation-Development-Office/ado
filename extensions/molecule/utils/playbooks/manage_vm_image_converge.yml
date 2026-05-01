@@ -14,25 +14,24 @@
     manage_vm_image_format: qcow2
     manage_vm_image_download: false
 
-  tasks:
-    - name: Ensure qemu-img is available
-      ansible.builtin.command: qemu-img --version
-      changed_when: false
+  # tasks:
+  # - name: Ensure qemu-img is available
+  #   ansible.builtin.command: qemu-img --version
+  #   changed_when: false
 
-    - name: Ensure Molecule test directory exists
-      ansible.builtin.file:
-        path: "{{ manage_vm_image_test_root }}"
-        state: directory
-        mode: "0755"
+  # - name: Ensure Molecule test directory exists
+  #   ansible.builtin.file:
+  #     path: "{{ manage_vm_image_test_root }}"
+  #     state: directory
+  #     mode: "0755"
 
-    - name: Create base qcow2 image for the role to clone
-      ansible.builtin.command: >
-        qemu-img create -f qcow2
-        {{ manage_vm_image_test_root }}/{{ manage_vm_image_base_name }}
-        64M
-      args:
-        creates: "{{ manage_vm_image_test_root }}/{{ manage_vm_image_base_name }}"
+  # - name: Create base qcow2 image for the role to clone
+  #   ansible.builtin.command: >
+  #     qemu-img create -f qcow2
+  #     {{ manage_vm_image_test_root }}/{{ manage_vm_image_base_name }}
+  #     64M
+  #   args:
+  #     creates: "{{ manage_vm_image_test_root }}/{{ manage_vm_image_base_name }}"
 
-    - name: Include role under test
-      ansible.builtin.include_role:
-        name: "{{ playbook_dir | dirname | dirname }}"
+  roles:
+    - role: ado.utilities.vm_image
