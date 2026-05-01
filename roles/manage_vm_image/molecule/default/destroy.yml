@@ -1,6 +1,6 @@
 ---
 - name: Destroy - clean up Molecule test artifacts
-  hosts: all
+  hosts: localhost
   gather_facts: false
   become: false
 

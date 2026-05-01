@@ -1,6 +1,6 @@
 ---
 - name: Converge - create a qcow image from a local base image
-  hosts: all
+  hosts: localhost
   gather_facts: false
   become: false
 
