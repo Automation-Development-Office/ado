@@ -41,10 +41,43 @@ jobs:
           path: ansible-lint.xml
 
   # Testing stage - manual trigger only, available on all branches
-  molecule:
-    name: Molecule Tests
+  discover-molecule-scenarios:
+    name: Discover Molecule Scenarios
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
+    outputs:
+      scenarios: ${{ steps.discover.outputs.scenarios }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Discover scenario directories
+        id: discover
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t dirs < <(find extensions/molecule -type f -name molecule.yml -printf '%h\n' | sort)
+          if [ ${#dirs[@]} -eq 0 ]; then
+            echo "No Molecule scenarios found under extensions/molecule"
+            echo "scenarios=[]" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          json=$(printf '%s\n' "${dirs[@]}" | jq -Rsc 'split("\n")[:-1]')
+          echo "Discovered scenarios: $json"
+          echo "scenarios=$json" >> "$GITHUB_OUTPUT"
+
+  molecule:
+    name: Molecule - ${{ matrix.scenario_dir }}
+    runs-on: ubuntu-latest
+    needs: discover-molecule-scenarios
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      needs.discover-molecule-scenarios.outputs.scenarios != '[]'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        scenario_dir: ${{ fromJson(needs.discover-molecule-scenarios.outputs.scenarios) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -56,16 +89,61 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-utils
           pip install --upgrade pip
-          pip install ansible-core docker
+          pip install ansible-core molecule[docker] docker
+
+      - name: Install collection from local source
+        run: |
+          ansible-galaxy collection install . --force -p ~/.ansible/collections
+        env:
+          ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
+
+      - name: Set ANSIBLE_COLLECTIONS_PATH for subsequent steps
+        run: echo "ANSIBLE_COLLECTIONS_PATH=$HOME/.ansible/collections" >> "$GITHUB_ENV"
+
+      - name: Debug scenario directory
+        working-directory: ${{ matrix.scenario_dir }}
+        run: |
+          pwd
+          ls -la
+
+      - name: Compute scenario metadata
+        id: scenario_meta
+        run: |
+          scenario_name="$(basename "${{ matrix.scenario_dir }}")"
+          echo "scenario_name=$scenario_name" >> "$GITHUB_OUTPUT"
 
       - name: Run Molecule tests
-        uses: onaio/molecule-action@master
+        working-directory: extensions/molecule
+        run: |
+          set -euo pipefail
+          scenario_name="${{ steps.scenario_meta.outputs.scenario_name }}"
+          mkdir -p "$GITHUB_WORKSPACE/molecule-reports"
+          ln -sfn . molecule
+          trap 'rm -f molecule' EXIT
+          summary_file="$GITHUB_WORKSPACE/molecule-reports/${scenario_name}.summary.txt"
+          log_file="$GITHUB_WORKSPACE/molecule-reports/${scenario_name}.log"
+          {
+            echo "scenario: $scenario_name"
+            echo "directory: ${{ matrix.scenario_dir }}"
+            echo "started_at_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > "$summary_file"
+          if molecule test -s "$scenario_name" 2>&1 | tee "$log_file"; then
+            echo "status: passed" >> "$summary_file"
+          else
+            echo "status: failed" >> "$summary_file"
+            exit 1
+          fi
+
+      - name: Upload Molecule report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          molecule_command: test
-          molecule_args: --scenario-name default
-        env:
-          MOLECULE_PROJECT_DIRECTORY: roles/manage_vm_image
+          name: molecule-report-${{ steps.scenario_meta.outputs.scenario_name }}
+          path: molecule-reports/
+          if-no-files-found: error
 
   # Building stage
   prepare:
