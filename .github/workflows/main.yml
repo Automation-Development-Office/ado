@@ -97,6 +97,11 @@ jobs:
       - name: Install collection from local source
         run: |
           ansible-galaxy collection install . --force -p ~/.ansible/collections
+        env:
+          ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
+
+      - name: Set ANSIBLE_COLLECTIONS_PATH for subsequent steps
+        run: echo "ANSIBLE_COLLECTIONS_PATH=$HOME/.ansible/collections" >> "$GITHUB_ENV"
 
       - name: Debug scenario directory
         working-directory: ${{ matrix.scenario_dir }}
