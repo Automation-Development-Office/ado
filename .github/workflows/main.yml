@@ -58,10 +58,12 @@ jobs:
           set -euo pipefail
           mapfile -t dirs < <(find extensions/molecule -type f -name molecule.yml -printf '%h\n' | sort)
           if [ ${#dirs[@]} -eq 0 ]; then
+            echo "No Molecule scenarios found under extensions/molecule"
             echo "scenarios=[]" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          json=$(printf '%s\n' "${dirs[@]}" | jq -R . | jq -s .)
+          json=$(printf '%s\n' "${dirs[@]}" | jq -Rsc 'split("\n")[:-1]')
+          echo "Discovered scenarios: $json"
           echo "scenarios=$json" >> "$GITHUB_OUTPUT"
 
   molecule:
