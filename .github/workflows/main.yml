@@ -81,8 +81,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          path: ${{ github.repository }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -92,14 +90,17 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install ansible-core docker
+          pip install ansible-core molecule[docker] docker
+
+      - name: Debug scenario directory
+        working-directory: ${{ matrix.scenario_dir }}
+        run: |
+          pwd
+          ls -la
 
       - name: Run Molecule tests
-        uses: onaio/molecule-action@master
-        with:
-          molecule_options: --base-config ${{ matrix.scenario_dir }}/molecule.yml
-          molecule_command: test
-          molecule_args: --scenario-name default
+        working-directory: ${{ matrix.scenario_dir }}
+        run: molecule test --scenario-name default
 
   # Building stage
   prepare:
