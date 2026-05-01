@@ -99,8 +99,13 @@ jobs:
           ls -la
 
       - name: Run Molecule tests
-        working-directory: ${{ matrix.scenario_dir }}
-        run: molecule test --scenario-name default
+        working-directory: extensions/molecule
+        run: |
+          set -euo pipefail
+          scenario_name="$(basename "${{ matrix.scenario_dir }}")"
+          ln -sfn . molecule
+          trap 'rm -f molecule' EXIT
+          molecule test -s "$scenario_name"
 
   # Building stage
   prepare:
