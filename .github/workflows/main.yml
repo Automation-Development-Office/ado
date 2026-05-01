@@ -81,6 +81,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          path: ${{ github.repository }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -95,10 +97,9 @@ jobs:
       - name: Run Molecule tests
         uses: onaio/molecule-action@master
         with:
+          molecule_options: --base-config ${{ matrix.scenario_dir }}/molecule.yml
           molecule_command: test
           molecule_args: --scenario-name default
-        env:
-          MOLECULE_PROJECT_DIRECTORY: ${{ matrix.scenario_dir }}
 
   # Building stage
   prepare:
