@@ -1,5 +1,5 @@
 ---
-- name: Converge - create a qcow image from a local base image
+- name: Preparing molecule - create a qcow image from a local base image
   hosts: localhost
   gather_facts: false
   become: false
@@ -32,7 +32,3 @@
         64M
       args:
         creates: "{{ manage_vm_image_test_root }}/{{ manage_vm_image_base_name }}"
-
-    - name: Include role under test
-      ansible.builtin.include_role:
-        name: "{{ playbook_dir | dirname | dirname }}"
