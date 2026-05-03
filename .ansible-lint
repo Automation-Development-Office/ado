@@ -1,5 +1,5 @@
 exclude_paths:
-    - .gitlab-ci.yml
+    - "**/.github/**"
     - .ansible-lint
     - "**/.ansible/**"
     - "**/molecule/**"     # exclude any molecule dir anywhere
