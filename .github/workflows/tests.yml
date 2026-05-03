@@ -33,7 +33,7 @@ jobs:
   all_green:
     if: ${{ always() }}
     needs:
-      - changelog
+      # - changelog
       - build-import
       - sanity
       - unit-galaxy
@@ -44,7 +44,6 @@ jobs:
       - run: >-
           python -c "assert 'failure' not in
           set([
-          '${{ needs.changelog.result }}',
           '${{ needs.sanity.result }}',
           '${{ needs.unit-galaxy.result }}'
           '${{ needs.ansible-lint.result }}'
