@@ -141,7 +141,7 @@ Shared playbooks are located in `extensions/molecule/utils/playbooks/` and inclu
 Run from the collection root:
 
 ```bash
-cd /home/jeff/ado
+cd /path/to/cloned/ado
 molecule test -s integration_manage_mounts_mount_auto_detect
 molecule test -s integration_manage_mounts_mount_explicit_fstype
 molecule test -s integration_manage_mounts_unmount_filesystem
