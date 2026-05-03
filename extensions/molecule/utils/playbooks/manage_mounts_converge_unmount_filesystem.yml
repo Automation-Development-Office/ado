@@ -1,0 +1,17 @@
+---
+- name: Converge - manage_mounts unmount filesystem scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  vars:
+    manage_mounts_test_root: /tmp/manage_mounts_molecule_unmount_filesystem
+    manage_mounts_mount_path: "{{ manage_mounts_test_root }}/mnt"
+
+  tasks:
+    - name: Include manage_mounts role for unmount # noqa: var-naming[no-role-prefix]
+      ansible.builtin.include_role:
+        name: infra.ado.manage_mounts
+      vars:
+        mount_action: unmounted
+        mount_path: "{{ manage_mounts_mount_path }}"

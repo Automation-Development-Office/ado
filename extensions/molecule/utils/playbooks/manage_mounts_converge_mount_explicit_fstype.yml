@@ -1,0 +1,20 @@
+---
+- name: Converge - manage_mounts mount explicit fstype scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  vars:
+    manage_mounts_test_root: /tmp/manage_mounts_molecule_mount_explicit_fstype
+    manage_mounts_image_path: "{{ manage_mounts_test_root }}/device.img"
+    manage_mounts_mount_path: "{{ manage_mounts_test_root }}/mnt"
+
+  tasks:
+    - name: Include manage_mounts role for explicit fstype mount # noqa: var-naming[no-role-prefix]
+      ansible.builtin.include_role:
+        name: infra.ado.manage_mounts
+      vars:
+        mount_action: mounted
+        mount_path: "{{ manage_mounts_mount_path }}"
+        target_device: "{{ manage_mounts_image_path }}"
+        mount_fstype: ext4

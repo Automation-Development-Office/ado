@@ -97,6 +97,7 @@ jobs:
       - name: Install collection from local source
         run: |
           ansible-galaxy collection install . --force -p ~/.ansible/collections
+          ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
         env:
           ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
 
