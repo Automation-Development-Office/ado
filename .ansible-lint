@@ -2,6 +2,8 @@ exclude_paths:
     - "**/.github/**"
     - .ansible-lint
     - "**/.ansible/**"
+    - "**/defaults/**"      # exclude any defaults dir anywhere
+    - "**/vars/**"          # exclude any vars dir anywhere
     - "**/molecule/**"     # exclude any molecule dir anywhere
     - "**/meta/**"         # exclude any meta dir anywhere
     - galaxy.yml
