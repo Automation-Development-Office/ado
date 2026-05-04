@@ -1,79 +1,94 @@
-# Role: ado.openshift_infrastructure_automation.cert_manager_rootca
+# Role: openshift_tools_update_pull_secrets
 
-This role injects a Root Certificate Authority (CA) into OpenShift's cert-manager and configures it as a ClusterIssuer or namespaced Issuer. It enables cert-manager to issue certificates signed by your internal CA across the OpenShift cluster.
-
-**Author**: Chad Elliott
+Add or remove a registry authentication entry inside the cluster pull secret.
 
 ---
 
-## ✅ Role Requirements
+## Requirements
 
-- Requires a working cert-manager deployment in the specified namespace (typically `cert-manager`).
-- Assumes `kubernetes.core` collection is installed.
-- Requires valid TLS cert and key content provided as Ansible variables.
-- You must have sufficient RBAC permissions to create Secrets and Issuers/ClusterIssuers.
-
----
-
-## 📦 Role Variables
-
-| Variable                                | Description                                                                 | Required | Default              |
-|-----------------------------------------|-----------------------------------------------------------------------------|----------|----------------------|
-| `name_space`                            | Namespace to place the root CA secret and/or namespaced Issuer              | ✅       | —                    |
-| `state`                                 | Whether to create (`present`) or delete (`absent`) the resources            | ✅       | `present`            |
-| `tls_crt`                               | Root CA certificate (PEM format, multiline string)                          | ✅       | —                    |
-| `tls_key`                               | Root CA private key (PEM format, multiline string)                          | ✅       | —                    |
-| `cert_manager_root_ca_secret_name`      | Name of the secret that will store the CA certificate and key               | ❌       | `root-ca-secret`     |
-| `cert_manager_root_ca_issuer_name`      | Name of the cert-manager issuer or clusterissuer to create                  | ❌       | `root-ca-issuer`     |
-| `cert_manager_root_ca_is_cluster_issuer`| Whether to create a ClusterIssuer (`true`) or namespaced Issuer (`false`)   | ❌       | `true`               |
+- OpenShift/Kubernetes API access.
+- `kubernetes.core` collection installed.
+- Access to the `openshift-config/pull-secret` secret or an alternate target provided by variables.
 
 ---
 
-## 🚀 Example Usage
+## Variables
+
+| Variable | Description |
+|---------|-------------|
+| `state` | Desired state: `present` or `absent`. Required. |
+| `update_pull_secret_name / update_pull_secret_namespace` | Target pull secret name and namespace. Defaults to `pull-secret` in `openshift-config`. |
+| `registry_host` | Registry host to add or remove. Required. |
+| `registry_username / registry_password` | Registry credentials required when `state: present`. |
+| `registry_email` | Optional email stored with the registry auth entry. |
+
+---
+
+## Examples
 
 ```yaml
-- name: Configure cert-manager with custom root CA
-  hosts: localhost
+- hosts: localhost
   gather_facts: false
-  vars_files:
-    - vault.yml
-  vars:
-    name_space: cert-manager
-    state: present
-    cert_manager_root_ca_secret_name: root-ca-secret
-    cert_manager_root_ca_issuer_name: root-ca-issuer
-    cert_manager_root_ca_is_cluster_issuer: true
-    tls_crt: "{{ vault_cert }}"
-    tls_key: "{{ vault_key }}"
   roles:
-    - role: ado.openshift_infrastructure_automation.cert_manager_rootca
-
-
-**Structure:**
-```
-cert-manager/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/main.yml
-├── templates/
-├── handlers/main.yml
-├── files/
-├── tests/
-│   ├── inventory
-│   └── test.yml
-└── README.md
+    - role: openshift_tools_update_pull_secrets
+      vars:
+        state: present
+        registry_host: registry.example.com
+        registry_username: svc-account
+        registry_password: "{{ vault_registry_password }}"
+        registry_email: ops@example.com
 ```
 
-**Example vault.yml**
+---
+
+## Behavior Notes
+
+- Reads, decodes, updates, and patches the `.dockerconfigjson` content in place.
+- Only writes the secret back when the rendered auth document actually changes.
+
+---
+
+## Molecule
+
+Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
+
 ```
-vault_cert: |
-  -----BEGIN CERTIFICATE-----
-  ...
-  -----END CERTIFICATE-----
+dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```
 
-vault_key: |
-  -----BEGIN PRIVATE KEY-----
-  ...
-  -----END PRIVATE KEY-----
+---
 
+## License
+
+GPL-3.0-or-later
+
+---
+
+## Author
+
+Chad Elliott
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+`-- openshift_tools_update_pull_secrets/
+    |-- README.md
+    |-- defaults/
+    |   `-- main.yml
+    |-- tasks/
+    |   `-- main.yml
+    |-- vars/
+    |   `-- main.yml
+    |-- handlers/
+    |   `-- main.yml
+    |-- meta/
+    |   `-- main.yml
+    |-- templates/                # optional
+    |-- files/                    # optional
+    `-- tests/
+        |-- inventory
+        `-- test.yml               # optional
 ```

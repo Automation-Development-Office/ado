@@ -1,67 +1,96 @@
-# Role: ado.openshift_infrastructure_automation.rhbk
+# Role: openshift_install_oadp
 
-This role deploys the Red Hat Build of Keycloak (RHBK) on OpenShift, including the PostgreSQL backend, required Kubernetes Secrets, TLS, and the Keycloak Custom Resource. It is intended to be used as part of a modular OpenShift automation workflow.
-
-## ✅ Role Requirements
-
-- Red Hat OpenShift 4.x cluster with cluster-admin access
-- Keycloak Operator (`rhbk-operator`) installed in the target namespace
-- The following collections installed:
-  - `kubernetes.core`
-- The following components created ahead of this role:
-  - Namespace where RHBK will be deployed
-  - OperatorGroup and Subscription for the Keycloak Operator
-  - TLS certificate and key (self-signed or signed by internal CA)
-
-## 📦 Role Variables
-
-| Variable             | Description                                                        | Required | Default |
-|----------------------|--------------------------------------------------------------------|----------|---------|
-| `name_space`         | Target OpenShift namespace where Keycloak will be deployed         | ✅       | —       |
-| `rhbk_hostname`      | Public route hostname for Keycloak                                 | ✅       | —       |
-| `tls_crt`            | TLS certificate for Keycloak ingress                               | ✅       | —       |
-| `tls_key`            | TLS private key for Keycloak ingress                               | ✅       | —       |
-| `rhbk_db_user`       | Username for PostgreSQL database (in the secret)                   | ✅       | —       |
-| `rhbk_db_password`   | Password for PostgreSQL database (in the secret)                   | ✅       | —       |
-| `storage`            | Storage class for the PostgreSQL StatefulSet                       | ✅       | —       |
-| `postgres_image`     | Optional PostgreSQL image (defaults to RHEL9 PostgreSQL 15 image)  | ❌       | `registry.redhat.io/rhel9/postgresql-15:latest` |
+Configure an OADP `DataProtectionApplication` and related STS-backed backup resources.
 
 ---
 
-## 📘 Example Usage
+## Requirements
+
+- OpenShift/Kubernetes API access.
+- `kubernetes.core` collection installed.
+- OADP operator installed before this role runs.
+- AWS bucket and region values available when configuring backups.
+
+---
+
+## Variables
+
+| Variable | Description |
+|---------|-------------|
+| `oadp_configure` | Boolean toggle for the configuration workflow. |
+| `name_space` | Namespace where OADP resources are managed. |
+| `cluster_id` | Cluster identifier used to name the DataProtectionApplication and backup prefix. |
+| `aws_backup_bucket / aws_region` | S3 bucket and region for backup storage. |
+| `oadp_iam_role_arn` | Optional STS IAM role ARN used for cloud credentials and service account annotation. |
+
+---
+
+## Examples
 
 ```yaml
-- name: Deploy Red Hat Build of Keycloak
-  hosts: localhost
+- hosts: localhost
   gather_facts: false
-  vars_files:
-    - vault.yaml
-  vars:
-    name_space: keycloak
-    rhbk_hostname: keycloak.apps.ocp.server.lab
-    tls_crt: "{{ lookup('file', 'certs/keycloak.crt') }}"
-    tls_key: "{{ lookup('file', 'certs/keycloak.key') }}"
-    rhbk_db_user: postgres
-    rhbk_db_password: postgres
-    storage: synology-iscsi-storage
   roles:
-    - role: ado.openshift_infrastructure_automation.rhbk
-
+    - role: openshift_install_oadp
+      vars:
+        oadp_configure: true
+        name_space: openshift-adp
+        cluster_id: prod-cluster
+        aws_backup_bucket: my-oadp-backups
+        aws_region: us-east-1
+        oadp_iam_role_arn: arn:aws:iam::123456789012:role/oadp-role
 ```
 
-**Structure**
-rhbk/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/
-│   ├── main.yml
-│   ├── secrets.yml
-│   ├── postgres.yml
-│   └── keycloak_cr.yml
-├── handlers/main.yml
-├── files/
-├── templates/
-├── tests/
-│   ├── inventory
-│   └── test.yml
-└── README.md
+---
+
+## Behavior Notes
+
+- Creates a `DataProtectionApplication` and optional STS secret/annotation when configuration is enabled.
+- Waits for Velero, node-agent, and backup storage location readiness.
+
+---
+
+## Molecule
+
+Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
+
+```
+dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```
+
+---
+
+## License
+
+GPL-3.0-or-later
+
+---
+
+## Author
+
+Chad Elliott
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+`-- openshift_install_oadp/
+    |-- README.md
+    |-- defaults/
+    |   `-- main.yml
+    |-- tasks/
+    |   `-- main.yml
+    |-- vars/
+    |   `-- main.yml
+    |-- handlers/
+    |   `-- main.yml
+    |-- meta/
+    |   `-- main.yml
+    |-- templates/                # optional
+    |-- files/                    # optional
+    `-- tests/
+        |-- inventory
+        `-- test.yml               # optional
+```

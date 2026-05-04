@@ -1,38 +1,94 @@
-Role Name
-=========
+# Role: openshift_configure_complicance_profile_manager
 
-A brief description of the role goes here.
+Create or delete a Compliance Operator `ComplianceProfile` resource.
 
-Requirements
-------------
+---
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+## Requirements
 
-Role Variables
---------------
+- OpenShift/Kubernetes API access.
+- `kubernetes.core` collection installed.
+- Compliance Operator CRDs installed in the target cluster.
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+---
 
-Dependencies
-------------
+## Variables
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+| Variable | Description |
+|---------|-------------|
+| `manage_profile` | Action selector. Use `create` or `delete`. |
+| `compliance_profile` | Profile resource name. |
+| `compliance_profile_title` | Human-readable title used when creating the profile. |
+| `compliance_profile_description` | Description used when creating the profile. |
+| `compliance_operator_namespace` | Namespace for the ComplianceProfile resource. Defaults to `openshift-compliance`. |
 
-Example Playbook
-----------------
+---
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+## Examples
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: openshift_configure_complicance_profile_manager
+      vars:
+        manage_profile: create
+        compliance_profile: custom-hardening
+        compliance_profile_title: Custom Hardening Profile
+        compliance_profile_description: Site-specific compliance profile
+        compliance_operator_namespace: openshift-compliance
+```
 
-License
--------
+---
 
-BSD
+## Behavior Notes
 
-Author Information
-------------------
+- Creates a profile when `manage_profile` is `create`.
+- Deletes the named profile when `manage_profile` is `delete`.
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+---
+
+## Molecule
+
+Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
+
+```
+dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```
+
+---
+
+## License
+
+GPL-3.0-or-later
+
+---
+
+## Author
+
+Chad Elliott
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+`-- openshift_configure_complicance_profile_manager/
+    |-- README.md
+    |-- defaults/
+    |   `-- main.yml
+    |-- tasks/
+    |   `-- main.yml
+    |-- vars/
+    |   `-- main.yml
+    |-- handlers/
+    |   `-- main.yml
+    |-- meta/
+    |   `-- main.yml
+    |-- templates/                # optional
+    |-- files/                    # optional
+    `-- tests/
+        |-- inventory
+        `-- test.yml               # optional
+```

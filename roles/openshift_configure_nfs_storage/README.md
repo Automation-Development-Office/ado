@@ -1,35 +1,92 @@
+# Role: openshift_configure_nfs_storage
+
+Configure NFS-backed storage resources for OpenShift.
+
 ---
 
-## `iscsi-storage`
+## Requirements
 
-**Example Usage:**
+- OpenShift/Kubernetes API access.
+- Any manifest files or external resources referenced by the role must exist before execution.
+
+---
+
+## Variables
+
+| Variable | Description |
+|---------|-------------|
+| `state` | Desired state for the NFS storage workflow. |
+| `name_space` | Namespace used by the storage resources when applicable. |
+| `storage_class_name` | Storage class name when creating NFS-backed storage objects. |
+| `nfs_server / nfs_path` | Typical caller-provided NFS endpoint values for the backing export. |
+
+---
+
+## Examples
 
 ```yaml
-- name: Execute the iscsi-storage role
-  hosts: localhost
+- hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift_infrastructure_automation.iscsi-storage
+    - role: openshift_configure_nfs_storage
       vars:
-        example_variable: example_value
+        state: present
+        name_space: openshift-storage
+        storage_class_name: nfs-storage
+        nfs_server: nfs.example.com
+        nfs_path: /exports/ocp
 ```
 
-> Replace `example_variable` and `example_value` with the appropriate parameters defined in `defaults/main.yml` for the role.
+---
 
+## Behavior Notes
 
-**Description**: Configures default iSCSI storage class
+- Use this README format as the role contract even if the implementation is still evolving.
+- Keep the example variables aligned with the live task files as the role grows.
 
-**Structure:**
+---
+
+## Molecule
+
+Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
+
 ```
-iscsi-storage/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/main.yml
-├── templates/
-├── handlers/main.yml
-├── files/
-├── tests/
-│   ├── inventory
-│   └── test.yml
-└── README.md
+dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```
+
+---
+
+## License
+
+GPL-3.0-or-later
+
+---
+
+## Author
+
+Chad Elliott
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+`-- openshift_configure_nfs_storage/
+    |-- README.md
+    |-- defaults/
+    |   `-- main.yml
+    |-- tasks/
+    |   `-- main.yml
+    |-- vars/
+    |   `-- main.yml
+    |-- handlers/
+    |   `-- main.yml
+    |-- meta/
+    |   `-- main.yml
+    |-- templates/                # optional
+    |-- files/                    # optional
+    `-- tests/
+        |-- inventory
+        `-- test.yml               # optional
 ```

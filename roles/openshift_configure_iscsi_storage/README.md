@@ -1,35 +1,91 @@
+# Role: openshift_configure_iscsi_storage
+
+Configure Synology-backed iSCSI storage resources when no default storage class is already present.
+
 ---
 
-## `iscsi-storage`
+## Requirements
 
-**Example Usage:**
+- Cluster access through `community.kubernetes` modules.
+- The files referenced by `synology_dir` and `deploy_dir` must exist on the control node.
+
+---
+
+## Variables
+
+| Variable | Description |
+|---------|-------------|
+| `kubeconfig_tmp` | Kubeconfig path used by the role. Required. |
+| `synology_dir` | Directory containing Synology storage manifests and `client-info.yml`. Required. |
+| `deploy_dir` | Directory containing CSI deployment manifests. Required. |
+| `state` | This role currently implements the create path for storage resources. |
+
+---
+
+## Examples
 
 ```yaml
-- name: Execute the iscsi-storage role
-  hosts: localhost
+- hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift_infrastructure_automation.iscsi-storage
+    - role: openshift_configure_iscsi_storage
       vars:
-        example_variable: example_value
+        kubeconfig_tmp: /tmp/kubeconfig
+        synology_dir: /opt/synology
+        deploy_dir: /opt/synology/deploy
+        state: present
 ```
 
-> Replace `example_variable` and `example_value` with the appropriate parameters defined in `defaults/main.yml` for the role.
+---
 
+## Behavior Notes
 
-**Description**: Configures default iSCSI storage class
+- Checks for an existing default storage class before applying Synology manifests.
+- Applies namespace, secret, driver, and snapshot manifests when provisioning is needed.
 
-**Structure:**
+---
+
+## Molecule
+
+Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
+
 ```
-iscsi-storage/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/main.yml
-├── templates/
-├── handlers/main.yml
-├── files/
-├── tests/
-│   ├── inventory
-│   └── test.yml
-└── README.md
+dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```
+
+---
+
+## License
+
+GPL-3.0-or-later
+
+---
+
+## Author
+
+Chad Elliott
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+`-- openshift_configure_iscsi_storage/
+    |-- README.md
+    |-- defaults/
+    |   `-- main.yml
+    |-- tasks/
+    |   `-- main.yml
+    |-- vars/
+    |   `-- main.yml
+    |-- handlers/
+    |   `-- main.yml
+    |-- meta/
+    |   `-- main.yml
+    |-- templates/                # optional
+    |-- files/                    # optional
+    `-- tests/
+        |-- inventory
+        `-- test.yml               # optional
 ```

@@ -1,89 +1,99 @@
+# Role: openshift_configure_logging
+
+Configure an OpenShift `ClusterLogForwarder` and optional Splunk secret for cluster logging.
+
 ---
 
-## `Openshift Logging  Role`
-**Description**: Configures a Cluster Forwarder object for Openshift Logging
+## Requirements
 
-**Example Usage:**
+- OpenShift/Kubernetes API access.
+- `kubernetes.core` collection installed.
+- OpenShift Logging operator installed before this role runs.
 
-```yaml
-- name: Deploy Openshift Cluster Forwarder
-  hosts: localhost
-  gather_facts: false
-  vars:
-    cluster_forwarder_state: present
-    cluster_forwarder_name: instance
-    cluster_forwarder_secret_key: name-of-secret-key
-    cluster_forwarder_secret: vector-splunk-secret
-    splunk_url: https://fake-splunk.fqdn
-    splunk_logging_name: splunk-aud
-    splunk_secret: test123
-  roles:
-    - role: ado.openshift.openshift-logging
-
-```
-
-**Openshift Logging must be installed, an example install playbook is as follows:**
-
-> To run this playbook, you will need access to the Openshift ADO collections
-
-```yaml
 ---
-- name: Deploy Openshift Logging
-  hosts: localhost
+
+## Variables
+
+| Variable | Description |
+|---------|-------------|
+| `state` | Outer guard used by the role. Use `present` for the current create path. |
+| `cluster_forwarder_state` | State applied to the secret and ClusterLogForwarder resources. |
+| `name_space` | Namespace where the log forwarder is managed. Required. |
+| `cluster_forwarder_name` | Name of the ClusterLogForwarder resource. |
+| `cluster_forwarder_secret / cluster_forwarder_secret_key` | Secret name and key used for Splunk token authentication. |
+| `splunk_url / splunk_logging_name / splunk_secret` | Splunk endpoint configuration and optional HEC token secret content. |
+
+---
+
+## Examples
+
+```yaml
+- hosts: localhost
   gather_facts: false
-  collections: ado:openshift
-
-  vars_files:
-     - vault.yml
-
-  vars:
-    # namespace vars
-    name_space: openshift-logging
-    all_namespaces_install: true
-    state: present
-    # operator OperatorGroup
-    operatorgroup: global-operators
-    # subscript_operator
-    operator_name: cluster-logging
-    operator_channel: stable-6.3
-    operator_source: redhat-operators
-    operator_source_namespace: openshift-marketplace
-
   roles:
-    - role: ado.openshift.namespace
-    - role: ado.openshift.operatorgroup  
-    - role: ado.openshift.subscription_operator
-    - role: ado.openshift.wait_for_pods_running
+    - role: openshift_configure_logging
+      vars:
+        state: present
+        cluster_forwarder_state: present
+        name_space: openshift-logging
+        cluster_forwarder_name: instance
+        cluster_forwarder_secret: vector-splunk-secret
+        cluster_forwarder_secret_key: hecToken
+        splunk_url: https://splunk.example.com
+        splunk_logging_name: splunk-audit
+        splunk_secret: "{{ vault_splunk_hec_token }}
 ```
 
-**Required Variables**
+---
+
+## Behavior Notes
+
+- Creates the Splunk secret when `splunk_secret` is provided.
+- Applies a `ClusterLogForwarder` configured to ship audit logs to Splunk.
+
+---
+
+## Molecule
+
+Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
+
 ```
-    cluster_forwarder_state: (present or absent) ## Specifies if you want to install the cluster forwarder
-    cluster_forwarder_name: (string) ## Specifies the name of your Cluster Forwarder instance.
-    cluster_forwarder_secret_key: (string) ## Name of the secret key value in your secret
-    cluster_forwarder_secret: (string) ## Name of your Openshift secret object
-    splunk_url: (url) ## Specifies what splunk server you want to forward logs too
-    splunk_logging_name: (string) ## Name of your Splunk logging 
+dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
 ```
 
-**Required Environmentals**
-> You must specify the cluster_forwarder_secret to reference the name of the secret you want to utilize, but if you haven't defined a secret, you can define the splunk_secret variable with the appropriate secret value, and the playbook will create the secret for you.
+---
 
- 
+## License
 
-**Structure:**
-```
-openshift-logging/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/
-│   ├── main.yml
-│   ├── cluster-forwarder.yml
-├── templates/
-├── handlers/main.yml
-├── files/
-├── meta/main.yaml
-├── tests/
-│   ├── inventory
-└── README.md
+GPL-3.0-or-later
+
+---
+
+## Author
+
+Chad Elliott
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+`-- openshift_configure_logging/
+    |-- README.md
+    |-- defaults/
+    |   `-- main.yml
+    |-- tasks/
+    |   `-- main.yml
+    |-- vars/
+    |   `-- main.yml
+    |-- handlers/
+    |   `-- main.yml
+    |-- meta/
+    |   `-- main.yml
+    |-- templates/                # optional
+    |-- files/                    # optional
+    `-- tests/
+        |-- inventory
+        `-- test.yml               # optional
 ```

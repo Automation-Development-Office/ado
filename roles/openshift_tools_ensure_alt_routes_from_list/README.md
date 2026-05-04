@@ -1,67 +1,93 @@
-# Role: ado.openshift_infrastructure_automation.rhbk
+# Role: openshift_tools_ensure_alt_routes_from_list
 
-This role deploys the Red Hat Build of Keycloak (RHBK) on OpenShift, including the PostgreSQL backend, required Kubernetes Secrets, TLS, and the Keycloak Custom Resource. It is intended to be used as part of a modular OpenShift automation workflow.
-
-## ✅ Role Requirements
-
-- Red Hat OpenShift 4.x cluster with cluster-admin access
-- Keycloak Operator (`rhbk-operator`) installed in the target namespace
-- The following collections installed:
-  - `kubernetes.core`
-- The following components created ahead of this role:
-  - Namespace where RHBK will be deployed
-  - OperatorGroup and Subscription for the Keycloak Operator
-  - TLS certificate and key (self-signed or signed by internal CA)
-
-## 📦 Role Variables
-
-| Variable             | Description                                                        | Required | Default |
-|----------------------|--------------------------------------------------------------------|----------|---------|
-| `name_space`         | Target OpenShift namespace where Keycloak will be deployed         | ✅       | —       |
-| `rhbk_hostname`      | Public route hostname for Keycloak                                 | ✅       | —       |
-| `tls_crt`            | TLS certificate for Keycloak ingress                               | ✅       | —       |
-| `tls_key`            | TLS private key for Keycloak ingress                               | ✅       | —       |
-| `rhbk_db_user`       | Username for PostgreSQL database (in the secret)                   | ✅       | —       |
-| `rhbk_db_password`   | Password for PostgreSQL database (in the secret)                   | ✅       | —       |
-| `storage`            | Storage class for the PostgreSQL StatefulSet                       | ✅       | —       |
-| `postgres_image`     | Optional PostgreSQL image (defaults to RHEL9 PostgreSQL 15 image)  | ❌       | `registry.redhat.io/rhel9/postgresql-15:latest` |
+Ensure alternate OpenShift routes exist for each route definition in a caller-provided list.
 
 ---
 
-## 📘 Example Usage
+## Requirements
+
+- OpenShift/Kubernetes API access.
+- `kubernetes.core` collection installed.
+
+---
+
+## Variables
+
+| Variable | Description |
+|---------|-------------|
+| `ensure_alt_routes_from_list_routes` | List of route definitions to process. Required. |
+| `ensure_alt_routes_from_list_default_tls_termination` | Default TLS termination used when a route item does not override it. |
+| `route_labels` | Optional labels applied to generated route resources. |
+
+---
+
+## Examples
 
 ```yaml
-- name: Deploy Red Hat Build of Keycloak
-  hosts: localhost
+- hosts: localhost
   gather_facts: false
-  vars_files:
-    - vault.yaml
-  vars:
-    name_space: keycloak
-    rhbk_hostname: keycloak.apps.ocp.server.lab
-    tls_crt: "{{ lookup('file', 'certs/keycloak.crt') }}"
-    tls_key: "{{ lookup('file', 'certs/keycloak.key') }}"
-    rhbk_db_user: postgres
-    rhbk_db_password: postgres
-    storage: synology-iscsi-storage
   roles:
-    - role: ado.openshift_infrastructure_automation.rhbk
-
+    - role: openshift_tools_ensure_alt_routes_from_list
+      vars:
+        ensure_alt_routes_from_list_routes:
+          - namespace: grafana
+            route_name: grafana
+            route_name_alt: grafana-alt
+            route_host_alt: grafana-alt.apps.example.com
+            backend_svc: grafana-service
+            backend_port: https
 ```
 
-**Structure**
-rhbk/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/
-│   ├── main.yml
-│   ├── secrets.yml
-│   ├── postgres.yml
-│   └── keycloak_cr.yml
-├── handlers/main.yml
-├── files/
-├── templates/
-├── tests/
-│   ├── inventory
-│   └── test.yml
-└── README.md
+---
+
+## Behavior Notes
+
+- Processes each route entry and creates or updates the alternate route when needed.
+- This role is typically paired with route-discovery workflows.
+
+---
+
+## Molecule
+
+Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
+
+```
+dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```
+
+---
+
+## License
+
+GPL-3.0-or-later
+
+---
+
+## Author
+
+Chad Elliott
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+`-- openshift_tools_ensure_alt_routes_from_list/
+    |-- README.md
+    |-- defaults/
+    |   `-- main.yml
+    |-- tasks/
+    |   `-- main.yml
+    |-- vars/
+    |   `-- main.yml
+    |-- handlers/
+    |   `-- main.yml
+    |-- meta/
+    |   `-- main.yml
+    |-- templates/                # optional
+    |-- files/                    # optional
+    `-- tests/
+        |-- inventory
+        `-- test.yml               # optional
+```

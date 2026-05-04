@@ -1,38 +1,96 @@
-Role Name
-=========
+# Role: openshift_configure_compliance_scan_schedular
 
-A brief description of the role goes here.
+Create Compliance Operator scan resources for scheduled or immediate scan execution.
 
-Requirements
-------------
+---
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+## Requirements
 
-Role Variables
---------------
+- OpenShift/Kubernetes API access.
+- `kubernetes.core` collection installed.
+- Compliance Operator CRDs installed in the target cluster.
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+---
 
-Dependencies
-------------
+## Variables
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+| Variable | Description |
+|---------|-------------|
+| `schedule_scan` | Boolean toggle to create a `ComplianceScan` resource. |
+| `run_scan` | Boolean toggle to create a `ComplianceSuite` resource. |
+| `compliance_scan_name` | Name of the `ComplianceScan` resource. |
+| `compliance_suite_name` | Name of the `ComplianceSuite` resource. |
+| `compliance_profile` | Compliance profile referenced by the scan. |
+| `compliance_operator_namespace` | Namespace for the Compliance Operator resources. Defaults to `openshift-compliance`. |
 
-Example Playbook
-----------------
+---
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+## Examples
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: openshift_configure_compliance_scan_schedular
+      vars:
+        schedule_scan: true
+        run_scan: true
+        compliance_scan_name: daily-node-scan
+        compliance_suite_name: daily-suite
+        compliance_profile: ocp4-cis
+        compliance_operator_namespace: openshift-compliance
+```
 
-License
--------
+---
 
-BSD
+## Behavior Notes
 
-Author Information
-------------------
+- Creates a `ComplianceScan` when `schedule_scan` is enabled.
+- Creates a `ComplianceSuite` when `run_scan` is enabled.
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+---
+
+## Molecule
+
+Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
+
+```
+dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```
+
+---
+
+## License
+
+GPL-3.0-or-later
+
+---
+
+## Author
+
+Chad Elliott
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+`-- openshift_configure_compliance_scan_schedular/
+    |-- README.md
+    |-- defaults/
+    |   `-- main.yml
+    |-- tasks/
+    |   `-- main.yml
+    |-- vars/
+    |   `-- main.yml
+    |-- handlers/
+    |   `-- main.yml
+    |-- meta/
+    |   `-- main.yml
+    |-- templates/                # optional
+    |-- files/                    # optional
+    `-- tests/
+        |-- inventory
+        `-- test.yml               # optional
+```

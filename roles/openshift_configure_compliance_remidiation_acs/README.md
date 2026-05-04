@@ -1,38 +1,93 @@
-Role Name
-=========
+# Role: openshift_configure_compliance_remidiation_acs
 
-A brief description of the role goes here.
+Trigger an ACS remediation request by calling the ACS API when remediation is enabled.
 
-Requirements
-------------
+---
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+## Requirements
 
-Role Variables
---------------
+- Network access from the automation controller to the ACS API endpoint.
+- A valid ACS bearer token.
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+---
 
-Dependencies
-------------
+## Variables
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+| Variable | Description |
+|---------|-------------|
+| `remediation` | Boolean toggle. When `true`, the API call is made. |
+| `acs_api_url` | ACS API host name or endpoint used to build the remediation URL. Required when remediation is enabled. |
+| `acs_token` | Bearer token used for ACS authentication. Required when remediation is enabled. |
+| `compliance_profile` | Compliance profile value sent in the request body. |
+| `scan_id` | Scan identifier sent in the request body. |
 
-Example Playbook
-----------------
+---
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+## Examples
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: openshift_configure_compliance_remidiation_acs
+      vars:
+        remediation: true
+        acs_api_url: acs.example.com
+        acs_token: "{{ vault_acs_token }}"
+        compliance_profile: ocp4-cis
+        scan_id: latest-scan
+```
 
-License
--------
+---
 
-BSD
+## Behavior Notes
 
-Author Information
-------------------
+- Uses `ansible.builtin.uri` to post to the ACS remediation endpoint.
+- When `remediation` is false, the role performs no API change.
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+---
+
+## Molecule
+
+Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
+
+```
+dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```
+
+---
+
+## License
+
+GPL-3.0-or-later
+
+---
+
+## Author
+
+Chad Elliott
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+`-- openshift_configure_compliance_remidiation_acs/
+    |-- README.md
+    |-- defaults/
+    |   `-- main.yml
+    |-- tasks/
+    |   `-- main.yml
+    |-- vars/
+    |   `-- main.yml
+    |-- handlers/
+    |   `-- main.yml
+    |-- meta/
+    |   `-- main.yml
+    |-- templates/                # optional
+    |-- files/                    # optional
+    `-- tests/
+        |-- inventory
+        `-- test.yml               # optional
+```

@@ -3,7 +3,7 @@ galaxy_info:
   author: Chad Elliott
   description: Deploy GitLab Runner to OpenShift using a Kubernetes deployment.
   company: ADO Lab
-  license: MIT
+  license: GPL-3.0-or-later
 
   min_ansible_version: '2.16.0'
   # If the issue tracker for your role is not on github, uncomment the

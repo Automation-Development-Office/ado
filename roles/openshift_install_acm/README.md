@@ -1,35 +1,88 @@
+# Role: openshift_install_acm
+
+Install or configure Red Hat Advanced Cluster Management by applying a `MultiClusterHub` resource.
+
 ---
 
-## `advanced-cluster-management`
+## Requirements
 
-**Example Usage:**
+- OpenShift/Kubernetes API access.
+- `kubernetes.core` collection installed.
+- ACM operator installed before this role runs.
+
+---
+
+## Variables
+
+| Variable | Description |
+|---------|-------------|
+| `state` | Desired state. The current task file applies the install path when `state: present`. |
+| `name_space` | Namespace where the `MultiClusterHub` resource is created. Required. |
+
+---
+
+## Examples
 
 ```yaml
-- name: Execute the advanced-cluster-management role
-  hosts: localhost
+- hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift_infrastructure_automation.advanced-cluster-management
+    - role: openshift_install_acm
       vars:
-        example_variable: example_value
+        state: present
+        name_space: open-cluster-management
 ```
 
-> Replace `example_variable` and `example_value` with the appropriate parameters defined in `defaults/main.yml` for the role.
+---
 
+## Behavior Notes
 
-**Description**: Installs and configures Red Hat ACM operator and CRDs
+- Imports `tasks/install-acm.yml` for the install workflow.
+- Creates a `MultiClusterHub` resource named `multiclusterhub` in the target namespace.
 
-**Structure:**
+---
+
+## Molecule
+
+Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
+
 ```
-advanced-cluster-management/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/main.yml
-├── templates/
-├── handlers/main.yml
-├── files/
-├── tests/
-│   ├── inventory
-│   └── test.yml
-└── README.md
+dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```
+
+---
+
+## License
+
+GPL-3.0-or-later
+
+---
+
+## Author
+
+Chad Elliott
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+`-- openshift_install_acm/
+    |-- README.md
+    |-- defaults/
+    |   `-- main.yml
+    |-- tasks/
+    |   `-- main.yml
+    |-- vars/
+    |   `-- main.yml
+    |-- handlers/
+    |   `-- main.yml
+    |-- meta/
+    |   `-- main.yml
+    |-- templates/                # optional
+    |-- files/                    # optional
+    `-- tests/
+        |-- inventory
+        `-- test.yml               # optional
 ```

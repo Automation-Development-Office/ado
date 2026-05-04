@@ -1,79 +1,96 @@
-# Role: ado.openshift_infrastructure_automation.cert_manager_rootca
+# Role: openshift_install_kafka
 
-This role injects a Root Certificate Authority (CA) into OpenShift's cert-manager and configures it as a ClusterIssuer or namespaced Issuer. It enables cert-manager to issue certificates signed by your internal CA across the OpenShift cluster.
-
-**Author**: Chad Elliott
+Complete Kafka operator installation flow and optionally create a Kafka custom resource.
 
 ---
 
-## ✅ Role Requirements
+## Requirements
 
-- Requires a working cert-manager deployment in the specified namespace (typically `cert-manager`).
-- Assumes `kubernetes.core` collection is installed.
-- Requires valid TLS cert and key content provided as Ansible variables.
-- You must have sufficient RBAC permissions to create Secrets and Issuers/ClusterIssuers.
-
----
-
-## 📦 Role Variables
-
-| Variable                                | Description                                                                 | Required | Default              |
-|-----------------------------------------|-----------------------------------------------------------------------------|----------|----------------------|
-| `name_space`                            | Namespace to place the root CA secret and/or namespaced Issuer              | ✅       | —                    |
-| `state`                                 | Whether to create (`present`) or delete (`absent`) the resources            | ✅       | `present`            |
-| `tls_crt`                               | Root CA certificate (PEM format, multiline string)                          | ✅       | —                    |
-| `tls_key`                               | Root CA private key (PEM format, multiline string)                          | ✅       | —                    |
-| `cert_manager_root_ca_secret_name`      | Name of the secret that will store the CA certificate and key               | ❌       | `root-ca-secret`     |
-| `cert_manager_root_ca_issuer_name`      | Name of the cert-manager issuer or clusterissuer to create                  | ❌       | `root-ca-issuer`     |
-| `cert_manager_root_ca_is_cluster_issuer`| Whether to create a ClusterIssuer (`true`) or namespaced Issuer (`false`)   | ❌       | `true`               |
+- OpenShift/Kubernetes API access.
+- `kubernetes.core` collection installed.
+- Operator catalog access for resolving the Kafka CSV.
 
 ---
 
-## 🚀 Example Usage
+## Variables
+
+| Variable | Description |
+|---------|-------------|
+| `operator_name / operator_channel / operator_source_namespace` | Inputs used to resolve the current CSV for the operator. |
+| `operator_subscription_namespace` | Namespace where the operator is installed. Defaults to `openshift-operators`. |
+| `name_space` | Operand namespace for Kafka resources. Defaults to `cfk-operator`. |
+| `kafka_create_cr` | Boolean toggle to create a minimal Kafka CR after operator readiness. |
+| `kafka_cluster_name / kafka_replicas / kafka_data_volume_capacity` | Optional settings for the Kafka CR. |
+
+---
+
+## Examples
 
 ```yaml
-- name: Configure cert-manager with custom root CA
-  hosts: localhost
+- hosts: localhost
   gather_facts: false
-  vars_files:
-    - vault.yml
-  vars:
-    name_space: cert-manager
-    state: present
-    cert_manager_root_ca_secret_name: root-ca-secret
-    cert_manager_root_ca_issuer_name: root-ca-issuer
-    cert_manager_root_ca_is_cluster_issuer: true
-    tls_crt: "{{ vault_cert }}"
-    tls_key: "{{ vault_key }}"
   roles:
-    - role: ado.openshift_infrastructure_automation.cert_manager_rootca
-
-
-**Structure:**
-```
-cert-manager/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/main.yml
-├── templates/
-├── handlers/main.yml
-├── files/
-├── tests/
-│   ├── inventory
-│   └── test.yml
-└── README.md
+    - role: openshift_install_kafka
+      vars:
+        operator_name: confluent-for-kubernetes
+        operator_channel: stable
+        operator_source_namespace: openshift-marketplace
+        operator_subscription_namespace: openshift-operators
+        name_space: cfk-operator
+        kafka_create_cr: true
+        kafka_cluster_name: kafka-cluster
 ```
 
-**Example vault.yml**
+---
+
+## Behavior Notes
+
+- Resolves the effective CSV, waits for operator readiness, and can optionally create a Kafka CR.
+- When the CR is created, the role also waits for operand pods to appear and become Running.
+
+---
+
+## Molecule
+
+Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
+
 ```
-vault_cert: |
-  -----BEGIN CERTIFICATE-----
-  ...
-  -----END CERTIFICATE-----
+dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```
 
-vault_key: |
-  -----BEGIN PRIVATE KEY-----
-  ...
-  -----END PRIVATE KEY-----
+---
 
+## License
+
+GPL-3.0-or-later
+
+---
+
+## Author
+
+Chad Elliott
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+`-- openshift_install_kafka/
+    |-- README.md
+    |-- defaults/
+    |   `-- main.yml
+    |-- tasks/
+    |   `-- main.yml
+    |-- vars/
+    |   `-- main.yml
+    |-- handlers/
+    |   `-- main.yml
+    |-- meta/
+    |   `-- main.yml
+    |-- templates/                # optional
+    |-- files/                    # optional
+    `-- tests/
+        |-- inventory
+        `-- test.yml               # optional
 ```
