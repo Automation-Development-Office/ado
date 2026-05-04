@@ -1,0 +1,2 @@
+wait_for_operator_ready_retries: 30
+wait_for_operator_ready_delay: 10

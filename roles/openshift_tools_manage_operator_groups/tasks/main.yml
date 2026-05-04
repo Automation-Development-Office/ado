@@ -1,0 +1,7 @@
+- name: Create operatorgroup
+  ansible.builtin.import_tasks: create_operatorgroup.yml
+  when: state == "present"
+
+- name: Deleting operatorgroup
+  ansible.builtin.import_tasks: delete_operatorgroup.yml
+  when: state == "absent"

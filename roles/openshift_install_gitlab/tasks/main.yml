@@ -1,0 +1,8 @@
+- name: Install Gitlab operator
+  ansible.builtin.import_tasks: install-gitlab-operator.yml
+  when: state == "present"
+
+
+- name: Delete Gitlab operator
+  ansible.builtin.import_tasks: delete-gitlab-operator.yml
+  when: state == "absent"

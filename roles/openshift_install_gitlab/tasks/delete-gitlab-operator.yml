@@ -1,0 +1,43 @@
+- name: Delete GitLab Custom Resource
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: apps.gitlab.com/v1beta1
+      kind: GitLab
+      metadata:
+        name: gitlab
+        namespace: "{{ name_space }}"
+
+- name: Delete PostgreSQL StatefulSet for GitLab
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: gitlab-postgresql
+        namespace: "{{ name_space }}"
+
+- name: Delete PostgreSQL Service for GitLab
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: gitlab-postgresql
+        namespace: "{{ name_space }}"
+
+- name: Delete GitLab TLS Secret
+  kubernetes.core.k8s:
+    state: absent
+    kind: Secret
+    name: gitlab-tls-secret
+    namespace: "{{ name_space }}"
+
+- name: Delete GitLab DB Secret
+  kubernetes.core.k8s:
+    state: absent
+    kind: Secret
+    name: gitlab-db-secret
+    namespace: "{{ name_space }}"

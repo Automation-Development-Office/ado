@@ -1,0 +1,2 @@
+- name: Lookup operator defaults
+  ansible.builtin.import_tasks: lookup_operator_defaults.yml

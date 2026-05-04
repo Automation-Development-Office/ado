@@ -1,0 +1,38 @@
+---
+# Namespace / pod selection
+dirsrv_search_target_namespace: dirsrv
+dirsrv_search_app_label: "app=dirsrv"
+dirsrv_search_container_name: "dirsrv-container"
+
+# LDAP connectivity inside the container
+dirsrv_search_ldap_port: 3389
+dirsrv_search_bind_dn: "cn=Directory Manager"
+dirsrv_search_suffix: ""
+
+# Behavior
+dirsrv_search_print_only: true          # prints output via debug
+dirsrv_search_fail_if_no_pod: true
+dirsrv_search_pretty_tables: true       # awk pretty output for the two built-ins
+
+# What to run: a list of "queries"
+# Each query:
+#  - name: label printed in output
+#  - base: base DN
+#  - filter: ldap filter
+#  - attrs: list of attrs to request
+#  - kind: users|groups|raw   (users/groups enable the pretty awk tables)
+#  - scope: base|one|sub      (defaults to sub)
+dirsrv_search_queries:
+  - name: "Users (inetOrgPerson)"
+    kind: users
+    base: "ou=people,{{ dirsrv_search_suffix }}"
+    filter: "(objectClass=inetOrgPerson)"
+    attrs: ["dn", "uid", "cn", "mail"]
+    scope: "sub"
+
+  - name: "Groups (posixGroup / groupOfNames)"
+    kind: groups
+    base: "ou=groups,{{ dirsrv_search_suffix }}"
+    filter: "(|(objectClass=posixGroup)(objectClass=groupOfNames))"
+    attrs: ["dn", "cn", "gidNumber", "member", "memberUid"]
+    scope: "sub"

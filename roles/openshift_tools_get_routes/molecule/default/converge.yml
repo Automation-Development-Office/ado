@@ -1,0 +1,68 @@
+- name: Converge — get_routes (uses namespace role as fixture)
+  hosts: localhost
+  gather_facts: false
+  vars:
+    name_space: test-routes-molecule
+    svc_name: echo-svc
+    route_name: echo
+    validate_certs: false     # flip to true if you provide a CA/kubeconfig
+    state: present
+  tasks:
+    # Use your namespace role instead of inline tasks
+    - name: Ensure namespace exists
+      ansible.builtin.include_role:
+        name: ado.openshift.namespace
+
+    # Minimal Service fixture (idempotent)
+    - name: Ensure Service exists
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: "{{ svc_name }}"
+            namespace: "{{ name_space }}"
+            labels: { app: echo }
+          spec:
+            selector: { app: echo }     # pods not required for the Route object
+            ports:
+              - name: http
+                port: 80
+                targetPort: 8080
+        validate_certs: "{{ validate_certs }}"
+
+    # Route fixture (idempotent)
+    - name: Ensure Route exists
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: route.openshift.io/v1
+          kind: Route
+          metadata:
+            name: "{{ route_name }}"
+            namespace: "{{ name_space }}"
+            labels: { app: echo, managed-by: molecule }
+          spec:
+            to:
+              kind: Service
+              name: "{{ svc_name }}"
+            port:
+              targetPort: http
+            tls:
+              termination: edge
+        validate_certs: "{{ validate_certs }}"
+
+    # Role under test (read-only)
+    - name: Use get_routes role to fetch the fixture route
+      ansible.builtin.include_role:
+        name: ado.openshift.get_routes
+      vars:
+        route_namespace: "{{ name_space }}"
+        route_name: "{{ route_name }}"
+        require_found: true
+        k8s_validate_certs: "{{ validate_certs }}"
+
+    #- name: Show found route host
+    #  ansible.builtin.debug:
+    #    var: primary_host

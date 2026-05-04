@@ -1,0 +1,58 @@
+- name: Converge — wait_for_pods (fixture + wait role)
+  hosts: localhost
+  gather_facts: false
+  vars:
+    name_space: test-wait-pods-molecule
+    app_name: hello
+    replicas: 2
+    validate_certs: false           # flip to true if you provide a trusted CA
+    fixture_image: registry.k8s.io/pause:3.9
+    state: present
+  tasks:
+    - name: Ensure namespace exists
+      ansible.builtin.include_role:
+        name: ado.openshift.namespace
+
+    - name: Ensure Deployment exists ({{ replicas }} replicas)
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: "{{ app_name }}"
+            namespace: "{{ name_space }}"
+            labels: { app: "{{ app_name }}" }
+          spec:
+            replicas: "{{ replicas }}"
+            selector:
+              matchLabels: { app: "{{ app_name }}" }
+            template:
+              metadata:
+                labels: { app: "{{ app_name }}" }
+              spec:
+                containers:
+                  - name: main
+                    image: "{{ fixture_image }}"
+                    imagePullPolicy: IfNotPresent
+        validate_certs: "{{ validate_certs }}"
+
+    # ✅ Use your wait role here (task-level include)
+    - name: Wait for pods to be Running/Ready (via role)
+      ansible.builtin.include_role:
+        name: ado.openshift.wait_for_pods_running
+
+    # Optional: show what we created
+    - name: Show Deployment
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: "{{ app_name }}"
+        namespace: "{{ name_space }}"
+        validate_certs: "{{ validate_certs }}"
+      register: dep_info
+
+    - name: Debug replicas and selector
+      ansible.builtin.debug:
+        msg: "Deployment '{{ dep_info.resources[0].metadata.name }}' selector={{ dep_info.resources[0].spec.selector.matchLabels | to_json }} replicas={{ dep_info.resources[0].spec.replicas }}"
+      when: dep_info.resources | length == 1

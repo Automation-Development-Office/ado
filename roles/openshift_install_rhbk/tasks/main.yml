@@ -1,0 +1,8 @@
+- name: Install RHBK operator
+  ansible.builtin.import_tasks: install-rhbk-operator.yml
+  when: state == "present"
+
+
+- name: Delete RHBK operator
+  ansible.builtin.import_tasks: delete-rhbk-operator.yml
+  when: state == "absent"

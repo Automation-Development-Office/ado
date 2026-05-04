@@ -1,0 +1,15 @@
+- name: Set default values for pod wait retries and delay (if not set)
+  ansible.builtin.set_fact:
+    wait_for_pods_running_pod_wait_retries: "{{ wait_for_pods_running_pod_wait_retries | default(20) }}"
+    wait_for_pods_running_pod_wait_delay: "{{ wait_for_pods_running_pod_wait_delay | default(10) }}"
+
+- name: Wait for all pods in namespace to be running
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ name_space }}"
+  register: wait_for_pods_running_pods
+  until: >-
+    wait_for_pods_running_pods.resources | length > 0 and
+    (wait_for_pods_running_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length == wait_for_pods_running_pods.resources | length)
+  retries: "{{ wait_for_pods_running_pod_wait_retries }}"
+  delay: "{{ wait_for_pods_running_pod_wait_delay }}"

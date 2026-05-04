@@ -1,0 +1,29 @@
+---
+# Namespace where the Secret lives (AWSPCAClusterIssuer is cluster-scoped)
+awspca_namespace: cert-manager
+
+# Secret holding AWS creds
+awspca_secret_name: awspca-creds
+
+# ClusterIssuer name
+awspca_issuer_name: awspca-clusterissuer
+
+# AWS PCA
+awspca_region: us-gov-west-1
+awspca_pca_arn: ""
+
+# Credentials (prefer vault vars). If not set, fall back to environment.
+awspca_access_key_id: ""
+awspca_secret_access_key: ""
+
+# Secret key names expected by the AWS PCA issuer
+awspca_secret_key_id_field: AWS_ACCESS_KEY_ID
+awspca_secret_secret_key_field: AWS_SECRET_ACCESS_KEY
+
+# Wait for Ready=True
+awspca_wait_ready: true
+awspca_wait_retries: 30
+awspca_wait_delay: 10
+
+# Safety
+awspca_no_log: true

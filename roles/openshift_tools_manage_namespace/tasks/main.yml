@@ -1,0 +1,7 @@
+- name: Importing namespace
+  ansible.builtin.import_tasks: create_namespace.yml
+  when: state == "present"
+
+- name: Delete namespace
+  ansible.builtin.import_tasks: delete_namespace.yml
+  when: state == "absent"

@@ -1,0 +1,15 @@
+apiVersion: operator.openshift.io/v1
+kind: KubeDescheduler
+metadata:
+  name: "{{ instance_name }}"
+  namespace: "{{ name_space }}"
+spec:
+  deschedulingIntervalSeconds: {{ scheduling_interval }}
+  logLevel: Normal
+  managementState: Managed
+  mode: Automatic
+  operatorLogLevel: Normal
+  profiles:
+    {% for item in descheduler_profiles %}
+    - {{ item }}
+    {% endfor %}

@@ -1,0 +1,9 @@
+- name: Delete Devspaces instance using Operator
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: devspaces.integreatly.org/v1beta1
+      kind: Devspaces
+      metadata:
+        name: devspaces
+        namespace: devspaces

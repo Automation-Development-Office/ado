@@ -1,0 +1,8 @@
+- name: Install Quay operator
+  ansible.builtin.import_tasks: install-quay-operator.yml
+  when: state == "present"
+
+
+- name: Delete Quay operator
+  ansible.builtin.import_tasks: delete-quay-operator.yml
+  when: state == "absent"

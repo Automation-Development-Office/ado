@@ -1,0 +1,55 @@
+---
+# Single namespace (existing behavior)
+- name: Get Routes for single namespace
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ name_space }}"
+  register: get_routes_routes
+  when: not multiple_routes | default(false)
+
+- name: Print all Route hostnames (single namespace)
+  ansible.builtin.debug:
+    msg: |
+      ✅ {{ message_title | default('Operation Status') }}
+      {{ custom_message_body | default('') }}
+
+      {% if get_routes_routes.resources is defined and get_routes_routes.resources | length > 0 %}
+      🌐 Routes:
+      {% for route in get_routes_routes.resources %}
+      - {{ route.metadata.name }}: http{{ 's' if route.spec.tls is defined else '' }}://{{ route.spec.host }}
+      {% endfor %}
+      {% elif show_no_routes_message | default(false) %}
+      No specific routes to display.
+      {% endif %}
+  when: not multiple_routes | default(false)
+
+# Multiple namespaces
+- name: Get Routes for each namespace in routes list
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ item }}"
+  loop: "{{ routes | default([]) }}"
+  register: get_routes_routes_multi
+  when: multiple_routes | default(false)
+
+- name: Print all Route hostnames (multiple namespaces)
+  ansible.builtin.debug:
+    msg: |
+      ✅ {{ message_title | default('Operation Status') }}
+      {{ custom_message_body | default('') }}
+
+      🌐 Routes:
+      {% for result in get_routes_routes_multi.results %}
+      {% set ns = result.invocation.module_args.namespace %}
+      {% if result.resources is defined and result.resources | length > 0 %}
+      {% for route in result.resources %}
+      - {{ ns }}: http{{ 's' if route.spec.tls is defined else '' }}://{{ route.spec.host }}
+      {% endfor %}
+      {% endif %}
+      {% endfor %}
+      {% if get_routes_routes_multi.results | map(attribute='resources') | sum(start=[]) | length == 0 and show_no_routes_message | default(false) %}
+      No specific routes to display.
+      {% endif %}
+  when: multiple_routes | default(false)

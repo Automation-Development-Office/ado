@@ -1,0 +1,56 @@
+---
+# Role: ensure_alt_routes_from_list
+#
+# Input (preferred):
+#   alt_routes_candidates: list of dicts from discover_routes (namespace/name/host required)
+#
+# Back-compat accepted input:
+#   route_alt_candidates: same as above
+#
+# Required:
+#   app_domain: primary apps domain (e.g. apps.ocp.prod.rhlab)
+#   app_domain_alt: alt apps domain (e.g. apps.ocp.server.lab)
+#
+# Optional knobs:
+#   alt_routes_suffix: "-alt"
+#   alt_routes_print_only: true/false (default true)
+#   alt_routes_force_replace: true/false (default false)
+
+- name: Ensure_alt_routes_from_list Normalize candidates input
+  ansible.builtin.set_fact:
+    ensure_alt_routes_from_list_alt_routes_candidates: >-
+      {{
+        alt_routes_candidates | default(route_alt_candidates, true) | default([])
+      }}
+
+- name: Ensure_alt_routes_from_list Set defaults
+  ansible.builtin.set_fact:
+    ensure_alt_routes_from_list_alt_routes_suffix: "{{ alt_routes_suffix | default('-alt') }}"
+    ensure_alt_routes_from_list_alt_routes_force_replace: "{{ alt_routes_force_replace | default(false) }}"
+    ensure_alt_routes_from_list_alt_routes_print_only: "{{ alt_routes_print_only | default(true) }}"
+
+- name: Ensure_alt_routes_from_list Validate required inputs
+  ansible.builtin.assert:
+    that:
+      - ensure_alt_routes_from_list_alt_routes_candidates is iterable
+      - (ensure_alt_routes_from_list_alt_routes_candidates  length) > 0
+      - app_domain is defined
+      - app_domain_alt is defined
+      - (app_domain  string  length) > 0
+      - (app_domain_alt  string  length) > 0
+    fail_msg: >-
+      ensure_alt_routes_from_list requires:
+        - ensure_alt_routes_from_list_alt_routes_candidates (or route_alt_candidates) as a non-empty list
+        - app_domain and app_domain_alt
+
+- name: Ensure_alt_routes_from_list Debug first candidate shape
+  ansible.builtin.debug:
+    var: ensure_alt_routes_from_list_alt_routes_candidates[0]
+
+- name: Ensure_alt_routes_from_list Iterate candidates
+  ansible.builtin.include_tasks: per_route.yml
+  loop: "{{ ensure_alt_routes_from_list_alt_routes_candidates }}"
+  loop_control:
+    label: "{{ item.namespace }}/{{ item.name }} -> {{ item.host }}"
+  vars:
+    _p: "{{ item }}"

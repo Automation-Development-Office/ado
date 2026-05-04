@@ -1,0 +1,128 @@
+---
+- name: Converge — add HTPasswd admin without touching other IdPs
+  hosts: all
+  gather_facts: false
+  vars_files:
+  vars:
+    state: present
+    validate_certs: false
+    htpasswd_idp: htpasswd-admin
+    htpasswd_secret: htpasswd-admin-secret
+    grant_admin: true
+    update_htpass: true
+    htpasswd_user: admin
+    htpasswd_pass: knuckle
+    # molecule only vars:
+    _oauth: "cluster"
+    _ns: "openshift-config"
+
+  pre_tasks:
+    - name: Read current OAuth (baseline)
+      kubernetes.core.k8s_info:
+        api_version: config.openshift.io/v1
+        kind: OAuth
+        name: "{{ _oauth }}"
+        validate_certs: "{{ validate_certs }}"
+      register: _oauth_before
+
+    - name: Snapshot IdP names (baseline)
+      ansible.builtin.set_fact:
+        _idps_before: >-
+          {{
+            _oauth_before.resources[0].spec.identityProviders | default([])
+            if (_oauth_before.resources | length > 0)
+            else []
+          }}
+        _idp_names_before: "{{ _idps_before | map(attribute='name') | list | default([]) }}"
+
+  tasks:
+    # Run the role under test
+    - name: Run role under test
+      ansible.builtin.include_role:
+        name: "{{ playbook_dir | dirname | dirname }}"
+
+  post_tasks:
+    - name: Re-read OAuth
+      kubernetes.core.k8s_info:
+        api_version: config.openshift.io/v1
+        kind: OAuth
+        name: "{{ _oauth }}"
+        validate_certs: "{{ validate_certs }}"
+      register: _oauth_after
+
+    # --- compute each fact in its own task ---
+    - name: Extract IdPs after
+      ansible.builtin.set_fact:
+        _idps_after: >-
+          {{
+            _oauth_after.resources[0].spec.identityProviders | default([])
+            if (_oauth_after.resources is defined and (_oauth_after.resources | length) > 0)
+            else []
+          }}
+
+    - name: Compute IdP name list after
+      ansible.builtin.set_fact:
+        _idp_names_after: "{{ _idps_after | map(attribute='name') | list | default([]) }}"
+
+    - name: Filter HTPasswd IdPs after
+      ansible.builtin.set_fact:
+        _htpasswd_idps_after: "{{ _idps_after | selectattr('type','equalto','HTPasswd') | list }}"
+      no_log: true
+
+    # 1) We did not remove anyone else’s IdP
+    - name: Assert no existing IdPs were removed
+      ansible.builtin.assert:
+        that:
+          - _idp_names_before | difference(_idp_names_after) | length == 0
+        fail_msg: "An existing IdP was removed. Before={{ _idp_names_before }} After={{ _idp_names_after }}"
+
+    # 2) Our HTPasswd IdP is present by Secret reference (name can vary)
+    - name: Collect HTPasswd Secret names after
+      ansible.builtin.set_fact:
+        _htpasswd_secret_names_after: >-
+          {{
+            _htpasswd_idps_after
+            | map(attribute='htpasswd') | map(attribute='fileData') | map(attribute='name')
+            | list | default([])
+          }}
+      no_log: true
+
+    - name: Assert HTPasswd IdP referencing our Secret exists
+      ansible.builtin.assert:
+        that:
+          - htpasswd_secret in _htpasswd_secret_names_after
+        fail_msg: "No HTPasswd IdP references Secret '{{ htpasswd_secret }}'. Found={{ _htpasswd_secret_names_after }}"
+
+    # 3) Secret exists
+    - name: Assert HTPasswd Secret exists
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        namespace: "{{ _ns }}"
+        name: "{{ htpasswd_secret }}"
+        validate_certs: "{{ validate_certs }}"
+      register: _htp_sec
+      no_log: true
+
+    - name: Secret is present
+      ansible.builtin.assert:
+        that:
+          - _htp_sec.resources | length == 1
+        fail_msg: "HTPasswd Secret '{{ htpasswd_secret }}' not found."
+
+    # 4) (Optional) CRB check for the user you created
+    # 4) (Optional) CRB check for the user you created
+    - name: Assert cluster-admin CRB exists (optional)
+      when: grant_admin | bool
+      kubernetes.core.k8s_info:
+        api_version: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        validate_certs: "{{ validate_certs }}"
+      register: _crbs
+
+    - name: CRB present
+      when: grant_admin | bool
+      ansible.builtin.assert:
+        that:
+          - ("cluster-admin-" ~ htpasswd_user) in (_crbs.resources | map(attribute='metadata.name') | list | default([]))
+        fail_msg: "ClusterRoleBinding {{ 'cluster-admin-' ~ htpasswd_user }} not found."

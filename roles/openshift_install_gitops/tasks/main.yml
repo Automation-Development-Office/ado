@@ -1,0 +1,61 @@
+---
+- name: Apply ArgoCD instance
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: argoproj.io/v1beta1
+      kind: ArgoCD
+      metadata:
+        name: "{{ argocd_name | default('openshift-gitops') }}"
+        namespace: "{{ argocd_namespace | default(app_namespace) }}"
+      spec:
+        dex:
+          openShiftOAuth: "{{ argocd_dex_openshift_oauth | default(true) | bool }}"
+        rbac:
+          defaultPolicy: "{{ argocd_rbac_default_policy | default('role:readonly') }}"
+        server:
+          route:
+            enabled: "{{ argocd_server_route_enabled | default(true) | bool }}"
+
+- name: Wait for ArgoCD pods to be running
+  ansible.builtin.include_role:
+    name: ado.openshift.wait_for_pods_running
+  vars:
+    name_space: "{{ app_namespace }}"
+    label_selector: "{{ pods_label_selector | default('app.kubernetes.io/part-of=argocd') }}"
+    timeout_seconds: "{{ wait_timeout_seconds | default(900) }}"
+
+- name: Enforce ArgoCD route if requested
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ name_space }}"
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: "{{ route_name | default('openshift-gitops-server') }}"
+      spec:
+        host: "{{ route_hostname | default('') }}"
+        to:
+          kind: Service
+          name: "{{ (argocd_name | default('openshift-gitops')) ~ '-server' }}"
+        port:
+          targetPort: https
+        tls:
+          termination: "{{ route_termination | default('passthrough') }}"
+  when: route_enforce | default(false) | bool
+
+- name: Get ArgoCD route
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ app_namespace | default(name_space) }}"
+    name: "{{ route_name | default('openshift-gitops-server') }}"
+  register: gitops_argocd_route
+
+- name: Print ArgoCD URL
+  ansible.builtin.debug:
+    msg:
+      - "Argo CD URL: https://{{ gitops_argocd_route.resources[0].spec.host }}"
+      - "Login: click LOG IN VIA OPENSHIFT"
+  when: gitops_argocd_route.resources | length > 0

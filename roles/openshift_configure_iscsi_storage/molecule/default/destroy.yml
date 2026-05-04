@@ -1,0 +1,10 @@
+- name: Destroy SAs and bindings
+  hosts: localhost
+  gather_facts: false
+  vars:
+    name_space: tools # use all for all namespaces 
+    service_accounts:
+      - { service_account: aap, state: absent, role: cluster-admin, role_kind: ClusterRole, bind_scope: cluster, scc_context: none, token: false }
+      - { service_account: cli-tool, state: absent, role: cluster-devel, role_kind: ClusterRole, bind_scope: cluster, scc_context: none, token: false }
+  roles:
+    - ado.openshift.service_accounts

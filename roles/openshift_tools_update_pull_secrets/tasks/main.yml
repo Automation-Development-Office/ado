@@ -1,0 +1,138 @@
+---
+# roles/update_pull_secret/tasks/main.yml
+
+- name: Assert state is provided via -e or AAP survey
+  ansible.builtin.assert:
+    that:
+      - state is defined
+      - state in ['present', 'absent']
+    fail_msg: >-
+      You must pass state=present or state=absent (via AAP survey or ansible-playbook -e)
+
+- name: Normalize state
+  ansible.builtin.set_fact:
+    update_pull_secret_state: "{{ state | lower }}"
+
+- name: Set defaults for pull secret target
+  ansible.builtin.set_fact:
+    update_pull_secret_name: "{{ update_pull_secret_name | default('pull-secret') }}"
+    update_pull_secret_namespace: "{{ update_pull_secret_namespace | default('openshift-config') }}"
+
+- name: Read current pull-secret
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ update_pull_secret_name }}"
+    namespace: "{{ update_pull_secret_namespace }}"
+  register: update_pull_secret_obj
+
+- name: Assert pull-secret exists
+  ansible.builtin.assert:
+    that:
+      - update_pull_secret_obj.resources | length == 1
+      - update_pull_secret_obj.resources[0].data is defined
+      - update_pull_secret_obj.resources[0].data['.dockerconfigjson'] is defined
+    fail_msg: "pull-secret {{ update_pull_secret_namespace }}/{{ update_pull_secret_name }} not found or missing .dockerconfigjson"
+
+- name: Decode existing dockerconfigjson to dict
+  ansible.builtin.set_fact:
+    update_pull_secret_dockerconfig_dict: >-
+      {{
+        (update_pull_secret_obj.resources[0].data['.dockerconfigjson'] | b64decode)
+        | from_json
+      }}
+
+# Require registry_host always (present/absent both need it)
+- name: Assert registry_host is provided
+  ansible.builtin.assert:
+    that:
+      - registry_host is defined
+      - registry_host | length > 0
+    fail_msg: "registry_host must be provided (via vars file, -e, or AAP survey)."
+
+# When adding, require creds
+- name: Assert registry creds provided when state=present
+  ansible.builtin.assert:
+    that:
+      - registry_username is defined
+      - registry_password is defined
+    fail_msg: "registry_username and registry_password must be provided when state=present."
+  when: update_pull_secret_state == 'present'
+
+# Build auth only when adding
+- name: Compute registry auth (base64 user:pass)
+  ansible.builtin.set_fact:
+    update_pull_secret_registry_auth_b64: "{{ (registry_username ~ ':' ~ registry_password) | b64encode }}"
+  when: update_pull_secret_state == 'present'
+
+- name: Add registry auth entry (merge, do not overwrite others)
+  ansible.builtin.set_fact:
+    update_pull_secret_dockerconfig_dict_updated: >-
+      {{
+        update_pull_secret_dockerconfig_dict
+        | combine(
+            {
+              'auths': (
+                update_pull_secret_dockerconfig_dict.auths | default({})
+                | combine(
+                    {
+                      (registry_host): {
+                        'auth': update_pull_secret_registry_auth_b64,
+                        'email': registry_email | default('')
+                      }
+                    },
+                    recursive=True
+                  )
+              )
+            },
+            recursive=True
+          )
+      }}
+  when: update_pull_secret_state == 'present'
+
+- name: Remove registry auth entry (leave others intact)
+  ansible.builtin.set_fact:
+    update_pull_secret_dockerconfig_dict_updated: >-
+      {{
+        update_pull_secret_dockerconfig_dict
+        | combine(
+            {
+              'auths': (
+                (update_pull_secret_dockerconfig_dict.auths | default({}))
+                | dict2items
+                | rejectattr('key', 'equalto', registry_host)
+                | items2dict
+              )
+            },
+            recursive=True
+          )
+      }}
+  when: update_pull_secret_state == 'absent'
+
+# Optional: compute if the update actually changes anything (idempotency guard)
+- name: Determine if dockerconfig changed
+  ansible.builtin.set_fact:
+    update_pull_secret_changed: "{{ update_pull_secret_dockerconfig_dict_updated | to_json != update_pull_secret_dockerconfig_dict | to_json }}"
+
+- name: Patch pull-secret with updated dockerconfigjson (only if changed)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ update_pull_secret_name }}"
+        namespace: "{{ update_pull_secret_namespace }}"
+      type: "{{ update_pull_secret_obj.resources[0].type | default('kubernetes.io/dockerconfigjson') }}"
+      data:
+        .dockerconfigjson: "{{ update_pull_secret_dockerconfig_dict_updated | to_json | b64encode }}"
+  when: update_pull_secret_changed | bool
+
+- name: Show whether entry is present after change
+  ansible.builtin.debug:
+    msg:
+      - "state={{ update_pull_secret_state }}"
+      - "changed={{ update_pull_secret_changed }}"
+      - "pull-secret={{ update_pull_secret_namespace }}/{{ update_pull_secret_name }}"
+      - "registry={{ registry_host }}"
+      - "entry_present={{ (update_pull_secret_dockerconfig_dict_updated.auths | default({})).get(registry_host) is not none }}"

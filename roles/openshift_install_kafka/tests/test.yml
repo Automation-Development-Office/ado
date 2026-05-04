@@ -1,0 +1,6 @@
+---
+- name: Test Kafka role
+  hosts: localhost
+  remote_user: root
+  roles:
+    - kafka

@@ -1,0 +1,92 @@
+---
+# Delete AutomationController CR (ignore NotFound)
+- name: Delete AutomationController CR
+  kubernetes.core.k8s:
+    state: absent
+    api_version: automationcontroller.ansible.com/v1beta1
+    kind: AutomationController
+    namespace: "{{ name_space }}"
+    name: "{{ controller_name }}"
+  register: aap26_ac_delete
+  failed_when: >
+    (aap26_ac_delete is failed) and
+    ('NotFound' not in (aap26_ac_delete.msg | default('')))
+
+# Delete likely route names (ignore NotFound)
+- name: Delete controller Route(s)
+  kubernetes.core.k8s:
+    state: absent
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ name_space }}"
+    name: "{{ item }}"
+  loop:
+    - "{{ controller_name }}"
+    - "{{ controller_name }}-route"
+    - "{{ controller_name }}-service"
+  register: aap26_route_delete
+  failed_when: >
+    (aap26_route_delete is failed) and
+    (
+      (aap26_route_delete.results | default([]))
+      | selectattr('failed', 'equalto', true)
+      | rejectattr('msg', 'search', 'NotFound')
+      | list
+      | length
+    ) > 0
+
+# List PVCs in the namespace (this is what you forgot to do)
+- name: List PVCs in namespace
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ name_space }}"
+  register: aap26_pvc_list
+
+# Delete ONLY the controller postgres PVC(s) (ignore NotFound)
+- name: Delete postgres PVCs for this controller (wipe DB)
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ name_space }}"
+    name: "{{ item.metadata.name }}"
+  loop: "{{ aap26_pvc_list.resources | default([]) }}"
+  when: item.metadata.name is search('postgres-15-' ~ controller_name)
+  register: aap26_pvc_delete
+  failed_when: >
+    (aap26_pvc_delete is failed) and
+    (
+      (aap26_pvc_delete.results | default([]))
+      | selectattr('failed', 'equalto', true)
+      | rejectattr('msg', 'search', 'NotFound')
+      | list
+      | length
+    ) > 0
+
+# Delete controller secrets (ignore NotFound)
+- name: Delete controller secrets (leave cert-manager revision secrets alone)
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Secret
+    namespace: "{{ name_space }}"
+    name: "{{ item }}"
+  loop:
+    - "{{ controller_name }}-admin-password"
+    - "{{ controller_name }}-broadcast-websocket"
+    - "{{ controller_name }}-postgres-configuration"
+    - "{{ controller_name }}-receptor-ca"
+    - "{{ controller_name }}-receptor-work-signing"
+    - "{{ controller_name }}-route-tls"
+    - "{{ controller_name }}-secret-key"
+  register: aap26_secret_delete
+  failed_when: >
+    (aap26_secret_delete is failed) and
+    (
+      (aap26_secret_delete.results | default([]))
+      | selectattr('failed', 'equalto', true)
+      | rejectattr('msg', 'search', 'NotFound')
+      | list
+      | length
+    ) > 0

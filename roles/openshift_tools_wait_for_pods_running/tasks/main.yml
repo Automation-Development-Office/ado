@@ -1,0 +1,3 @@
+- name: Importing namespace
+  ansible.builtin.import_tasks: wait_for_pods.yml
+  when: state == "present"

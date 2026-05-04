@@ -1,0 +1,249 @@
+---
+- name: Guard — required vars
+  ansible.builtin.assert:
+    that:
+      - name_space is defined and (name_space | string | length) > 0
+      - rhbk_hostname is defined and (rhbk_hostname | string | length) > 0
+    fail_msg: "name_space and rhbk_hostname are required."
+
+# -----------------------
+# Secrets: DB + Admin
+# -----------------------
+
+- name: Create Keycloak DB Secret
+  kubernetes.core.k8s:
+    state: "{{ state }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ postgres_secret_name }}"
+        namespace: "{{ name_space }}"
+      type: Opaque
+      stringData:
+        username: "{{ rhbk_db_user }}"
+        password: "{{ rhbk_db_password }}"
+
+- name: Create Keycloak bootstrap ADMIN Secret (used by spec.bootstrapAdmin.user.secret)
+  kubernetes.core.k8s:
+    state: "{{ state }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: keycloak-admin-creds
+        namespace: "{{ name_space }}"
+      type: Opaque
+      stringData:
+        username: "{{ rhbk_admin_user }}"
+        password: "{{ rhbk_admin_password }}"
+
+# -----------------------
+# TLS: cert-manager vs manual
+# -----------------------
+
+- name: Guard — cert-manager mode requires issuer name
+  ansible.builtin.assert:
+    that:
+      - rhbk_issuer_name is defined
+      - (rhbk_issuer_name | string | length) > 0
+      - rhbk_issuer_kind is defined
+      - rhbk_issuer_kind in ['Issuer', 'ClusterIssuer']
+    fail_msg: "cert_manager=true requires rhbk_issuer_name and rhbk_issuer_kind (Issuer or ClusterIssuer)."
+  when: cert_manager | default(false) | bool
+
+- name: Create cert-manager Certificate for Keycloak (cert_manager=true)
+  kubernetes.core.k8s:
+    state: "{{ state }}"
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      metadata:
+        name: "{{ rhbk_cert_name }}"
+        namespace: "{{ name_space }}"
+      spec:
+        secretName: "{{ rhbk_tls_secret_name }}"
+        dnsNames:
+          - "{{ rhbk_hostname }}"
+        issuerRef:
+          name: "{{ rhbk_issuer_name }}"
+          kind: "{{ rhbk_issuer_kind }}"
+  when: cert_manager | default(false) | bool
+
+- name: Guard — manual TLS requires tls_crt + tls_key
+  ansible.builtin.assert:
+    that:
+      - tls_crt is defined and (tls_crt | string | length) > 0
+      - tls_key is defined and (tls_key | string | length) > 0
+    fail_msg: "cert_manager=false requires tls_crt and tls_key."
+  when: not (cert_manager | default(false) | bool)
+
+- name: Create Keycloak TLS Secret (cert_manager=false)
+  kubernetes.core.k8s:
+    state: "{{ state }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ rhbk_tls_secret_name }}"
+        namespace: "{{ name_space }}"
+      type: kubernetes.io/tls
+      data:
+        tls.crt: "{{ tls_crt | b64encode }}"
+        tls.key: "{{ tls_key | b64encode }}"
+  when: not (cert_manager | default(false) | bool)
+
+# -----------------------
+# Postgres: handle immutable SS changes safely
+# -----------------------
+
+- name: Get existing PostgreSQL StatefulSet (if any)
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: StatefulSet
+    namespace: "{{ name_space }}"
+    name: "{{ postgres_statefulset_name }}"
+  register: rhbk_ss_info
+  failed_when: false
+
+- name: Decide if StatefulSet needs recreation due to immutable changes
+  ansible.builtin.set_fact:
+    rhbk_requires_ss_recreation: >-
+      {{
+        (rhbk_recreate_ss_on_immutable_change | bool) and
+        (rhbk_ss_info.resources | length > 0) and (
+          (
+            (rhbk_ss_info.resources[0].spec.volumeClaimTemplates[0].spec.storageClassName | default('')) != (postgres_storage_class | default(''))
+          )
+          or
+          (
+            (rhbk_ss_info.resources[0].spec.serviceName | default('')) != postgres_service_name
+          )
+        )
+      }}
+
+# - name: Delete StatefulSet if immutable fields changed
+#  kubernetes.core.k8s:
+#    api_version: apps/v1
+#    kind: StatefulSet
+#    namespace: "{{ name_space }}"
+#    name: "{{ postgres_statefulset_name }}"
+#    state: absent
+#  when:
+#    - state == 'present'
+#    - rhbk_requires_ss_recreation | bool
+
+# -----------------------
+# Postgres objects
+# -----------------------
+
+- name: Deploy PostgreSQL StatefulSet
+  kubernetes.core.k8s:
+    state: "{{ state }}"
+    definition:
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: "{{ postgres_statefulset_name }}"
+        namespace: "{{ name_space }}"
+      spec:
+        serviceName: "{{ postgres_service_name }}"
+        selector:
+          matchLabels:
+            app: "{{ postgres_statefulset_name }}"
+        replicas: 1
+        template:
+          metadata:
+            labels:
+              app: "{{ postgres_statefulset_name }}"
+          spec:
+            containers:
+              - name: postgresql-db
+                image: "{{ postgres_image }}"
+                ports:
+                  - containerPort: 5432
+                volumeMounts:
+                  - name: data-volume
+                    mountPath: /var/lib/pgsql/data
+                env:
+                  - name: POSTGRESQL_USER
+                    valueFrom:
+                      secretKeyRef:
+                        name: "{{ postgres_secret_name }}"
+                        key: username
+                  - name: POSTGRESQL_PASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: "{{ postgres_secret_name }}"
+                        key: password
+                  - name: POSTGRESQL_DATABASE
+                    value: "{{ postgres_db_name }}"
+                  - name: POSTGRES_DB
+                    value: "{{ postgres_db_name }}"
+        volumeClaimTemplates:
+          - metadata:
+              name: data-volume
+            spec:
+              accessModes: ['ReadWriteOnce']
+              resources:
+                requests:
+                  storage: "{{ postgres_storage_size }}"
+              storageClassName: "{{ storage }}"
+    wait: true
+
+- name: Deploy PostgreSQL Service
+  kubernetes.core.k8s:
+    state: "{{ state }}"
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ postgres_service_name }}"
+        namespace: "{{ name_space }}"
+      spec:
+        selector:
+          app: "{{ postgres_statefulset_name }}"
+        type: ClusterIP
+        ports:
+          - port: 5432
+            targetPort: 5432
+
+# -----------------------
+# Keycloak CR (RHBK) with bootstrapAdmin wired correctly
+# -----------------------
+
+- name: Deploy Keycloak Custom Resource
+  kubernetes.core.k8s:
+    state: "{{ state }}"
+    definition:
+      apiVersion: k8s.keycloak.org/v2alpha1
+      kind: Keycloak
+      metadata:
+        name: keycloak
+        namespace: "{{ name_space }}"
+      spec:
+        instances: 1
+
+        # IMPORTANT: This is what actually creates the real admin user at initial creation
+        bootstrapAdmin:
+          user:
+            secret: keycloak-admin-creds
+
+        db:
+          vendor: postgres
+          host: "{{ postgres_service_name }}"
+          usernameSecret:
+            name: "{{ postgres_secret_name }}"
+            key: username
+          passwordSecret:
+            name: "{{ postgres_secret_name }}"
+            key: password
+
+        http:
+          tlsSecret: "{{ rhbk_tls_secret_name }}"
+
+        hostname:
+          hostname: "{{ rhbk_hostname }}"
+
+        proxy:
+          headers: xforwarded

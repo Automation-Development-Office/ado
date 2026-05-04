@@ -1,0 +1,12 @@
+- name: Destroy — get_routes (teardown via namespace role)
+  hosts: localhost
+  gather_facts: false
+  vars:
+    name_space: test-routes-molecule
+    validate_certs: false
+    state: absent
+  tasks:
+    - name: Delete namespace (removes Route & Service)
+      ansible.builtin.include_role:
+        name: ado.openshift.namespace
+

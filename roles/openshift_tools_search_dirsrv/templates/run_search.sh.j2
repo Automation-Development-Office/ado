@@ -1,0 +1,74 @@
+set -euo pipefail
+
+LDAP_URI="ldap://localhost:{{ ds389_ldap_port | default(3389) }}"
+BIND_DN="{{ ds389_bind_dn }}"
+
+if [ -z "${DS_DM_PASSWORD:-}" ]; then
+  echo "ERROR: DS_DM_PASSWORD not set in container env" >&2
+  exit 2
+fi
+
+echo "=== Using DS_DM_PASSWORD for authenticated search ==="
+echo "=== LDAP_URI=${LDAP_URI} ==="
+echo "=== Suffix={{ ds389_suffix }} ==="
+
+run_exists_check () {
+  local BASE="$1"
+  ldapsearch -LLL -x -H "$LDAP_URI" -D "$BIND_DN" -w "$DS_DM_PASSWORD" \
+    -s base -b "$BASE" dn >/dev/null 2>&1
+}
+
+pretty_users () {
+  awk '
+    BEGIN {
+      fmt = "%-24s %-28s %s\n";
+      printf fmt, "uid", "cn", "dn";
+      print  "--------------------------------------------------------------------------";
+    }
+    /^dn: /  { if (u || c) { printf fmt, u, c, dn }; dn=substr($0,5); u=""; c=""; next }
+    /^uid: / { u=substr($0,6); next }
+    /^cn: /  { if (c == "") c=substr($0,5); next }
+    END      { if (u || c) { printf fmt, u, c, dn } }
+  '
+}
+
+pretty_groups () {
+  awk '
+    BEGIN {
+      fmt = "%-28s %-10s %-8s %-10s %s\n";
+      printf fmt, "cn", "gidNumber", "#member", "#memberUid", "dn";
+      print  "---------------------------------------------------------------------------------------";
+    }
+    /^dn: /       { if (cnv) { printf fmt, cnv, gid, mcount, mu, dn }
+                    dn=substr($0,5); cnv=""; gid=""; mcount=0; mu=0; next }
+    /^cn: /       { if (cnv == "") cnv=substr($0,5); next }
+    /^gidNumber:/ { gid=substr($0,12); next }
+    /^member:/    { mcount++; next }
+    /^memberUid:/ { mu++; next }
+    END          { if (cnv) { printf fmt, cnv, gid, mcount, mu, dn } }
+  '
+}
+
+{% for q in ds389_queries %}
+echo
+echo "=== {{ q.name }} ==="
+BASE="{{ q.base }}"
+FILTER="{{ q.filter }}"
+SCOPE="{{ q.scope | default('sub') }}"
+ATTRS="{{ (q.attrs | default(['dn'])) | join(' ') }}"
+
+if run_exists_check "$BASE"; then
+  if [ "{{ q.kind | default('raw') }}" = "users" ] && [ "{{ ds389_pretty_tables | bool }}" = "True" ]; then
+    ldapsearch -LLL -x -o ldif-wrap=no -H "$LDAP_URI" -D "$BIND_DN" -w "$DS_DM_PASSWORD" \
+      -b "$BASE" -s "$SCOPE" "$FILTER" $ATTRS | pretty_users
+  elif [ "{{ q.kind | default('raw') }}" = "groups" ] && [ "{{ ds389_pretty_tables | bool }}" = "True" ]; then
+    ldapsearch -LLL -x -o ldif-wrap=no -H "$LDAP_URI" -D "$BIND_DN" -w "$DS_DM_PASSWORD" \
+      -b "$BASE" -s "$SCOPE" "$FILTER" $ATTRS | pretty_groups
+  else
+    ldapsearch -LLL -x -o ldif-wrap=no -H "$LDAP_URI" -D "$BIND_DN" -w "$DS_DM_PASSWORD" \
+      -b "$BASE" -s "$SCOPE" "$FILTER" $ATTRS
+  fi
+else
+  echo "$BASE not found (skipping)"
+fi
+{% endfor %}

@@ -1,0 +1,3 @@
+- name: Install ACM operator
+  ansible.builtin.import_tasks: install-acs.yml
+  when: state == "present"

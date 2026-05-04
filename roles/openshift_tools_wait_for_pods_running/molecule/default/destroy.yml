@@ -1,0 +1,11 @@
+- name: Destroy — wait_for_pods (remove fixture)
+  hosts: localhost
+  gather_facts: false
+  vars:
+    name_space: test-wait-pods-molecule
+    validate_certs: false
+    state: absent
+  tasks:
+    - name: Delete namespace via namespace role (tears down all fixture objects)
+      ansible.builtin.include_role:
+        name: ado.openshift.namespace

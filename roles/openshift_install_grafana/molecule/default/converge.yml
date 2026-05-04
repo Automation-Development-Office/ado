@@ -1,0 +1,46 @@
+---
+- name: Deploy Grafana
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    # namespace vars
+    name_space: grafana
+    state: present
+    validate_certs: false
+
+    # operator OperatorGroup
+    operatorgroup: grafana-operator-group
+
+    # subscript_operator
+    operator_name: grafana-operator
+    operator_channel: v5
+    operator_source: community-operators
+    operator_source_namespace: openshift-marketplace
+
+    # grafana vars
+    grafana_hostname: grafana.{{ app_domain }}
+    storage_size: 2Gi
+    storage: synology-iscsi-storage
+
+    env: prod
+
+  vars_files:
+    - ../../../../deploy-lab/vault.yml   # encrypted with ansible-vault
+
+  environment:
+    K8S_AUTH_HOST: "{{ k8s[env].host }}"
+    K8S_AUTH_API_KEY: "{{ k8s[env].token }}"
+    K8S_AUTH_VERIFY_SSL: "{{ (k8s[env].verify_ssl | bool) | ternary('yes','no') }}"
+  pre_tasks:
+    - name: Flatten all k8s[env] vars
+      ansible.builtin.set_fact:
+        "{{ item.key }}": "{{ item.value }}"
+      loop: "{{ k8s[env] | dict2items }}"
+
+  roles:
+    - role: ado.openshift.namespace    
+    - role: ado.openshift.operatorgroup
+    - role: ado.openshift.subscription_operator
+    - role: ado.openshift.grafana
+    - role: ado.openshift.wait_for_pods_running

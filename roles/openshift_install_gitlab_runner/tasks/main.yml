@@ -1,0 +1,54 @@
+---
+- name: Create service account
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: gitlab-runner
+        namespace: "{{ name_space }}"
+
+# --- RBAC (cluster-scoped) ---
+- name: Create/ensure ClusterRole for GitLab Runner
+  kubernetes.core.k8s:
+    state: present
+    definition: |
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: gitlab-runner
+      rules:
+        - apiGroups: [""]
+          resources: ["pods","pods/exec","pods/log","secrets","configmaps","services","events"]
+          verbs: ["get","list","watch","create","delete","update","patch"]
+        - apiGroups: ["batch"]
+          resources: ["jobs"]
+          verbs: ["get","list","watch","create","delete","update","patch"]
+        - apiGroups: ["apps"]
+          resources: ["deployments","replicasets","statefulsets","daemonsets"]
+          verbs: ["get","list","watch","create","delete","update","patch"]
+
+- name: Bind ClusterRole to the runner ServiceAccount (namespaced binding name)
+  kubernetes.core.k8s:
+    state: present
+    definition: |
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: gitlab-runner-{{ name_space }}
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: gitlab-runner
+      subjects:
+        - kind: ServiceAccount
+          name: gitlab-runner
+          namespace: "{{ name_space }}"
+# --- end RBAC ---
+
+- name: Deploy GitLab Runner to OpenShift
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ name_space }}"
+    definition: "{{ lookup('template', 'gitlab-runner-deployment.yaml.j2') }}"

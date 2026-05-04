@@ -1,0 +1,160 @@
+- name: OADP | Skip configuration when disabled
+  ansible.builtin.debug:
+    msg: "Skipping OADP configuration because oadp_configure=false"
+  when: not (oadp_configure | default(false) | bool)
+
+
+# ------------------------------------------------------------
+# Configure OADP (DPA + waits). STS is optional.
+# ------------------------------------------------------------
+- name: OADP | Configure DataProtectionApplication (optional STS)
+  when: (oadp_configure | default(false) | bool)
+  block:
+
+    # --- Optional STS secret (only if oadp_iam_role_arn is set) ---
+    - name: OADP | Create cloud credentials secret for STS (optional)
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: cloud-credentials
+            namespace: "{{ name_space }}"
+          type: Opaque
+          stringData:
+            cloud: |
+              [default]
+              role_arn = {{ oadp_iam_role_arn }}
+              web_identity_token_file = /var/run/secrets/openshift
+      when:
+        - oadp_iam_role_arn is defined
+        - (oadp_iam_role_arn | length) > 0
+
+    - name: OADP | Create DataProtectionApplication
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: oadp.openshift.io/v1alpha1
+          kind: DataProtectionApplication
+          metadata:
+            name: "{{ cluster_id }}-dpa"
+            namespace: "{{ name_space }}"
+          spec:
+            configuration:
+              velero:
+                defaultPlugins:
+                  - openshift
+                  - aws
+                podConfig:
+                  resourceAllocations:
+                    limits:
+                      cpu: "1"
+                      memory: 1Gi
+                    requests:
+                      cpu: 500m
+                      memory: 256Mi
+              nodeAgent:
+                enable: true
+                uploaderType: kopia
+                podConfig:
+                  resourceAllocations:
+                    limits:
+                      cpu: "1"
+                      memory: 4Gi
+                    requests:
+                      cpu: 500m
+                      memory: 512Mi
+            backupLocations:
+              - velero:
+                  provider: aws
+                  default: true
+                  objectStorage:
+                    bucket: "{{ aws_backup_bucket }}"
+                    prefix: "{{ cluster_id }}"
+                  config:
+                    region: "{{ aws_region }}"
+                    enableSharedConfig: "true"
+                  credential:
+                    key: cloud
+                    name: cloud-credentials
+            snapshotLocations:
+              - velero:
+                  provider: aws
+                  config:
+                    region: "{{ aws_region }}"
+                    enableSharedConfig: "true"
+
+    # --- Optional STS annotation (only if oadp_iam_role_arn is set) ---
+    - name: OADP | Annotate Velero service account with IAM role ARN (optional)
+      kubernetes.core.k8s:
+        state: patched
+        api_version: v1
+        kind: ServiceAccount
+        name: velero
+        namespace: "{{ name_space }}"
+        definition:
+          metadata:
+            annotations:
+              eks.amazonaws.com/role-arn: "{{ oadp_iam_role_arn }}"
+      when:
+        - oadp_iam_role_arn is defined
+        - (oadp_iam_role_arn | length) > 0
+
+    # --- Waits ---
+    - name: OADP | Wait for Velero deployment to be ready
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: velero
+        namespace: "{{ name_space }}"
+      register: oadp_velero_deployment
+      until:
+        - oadp_velero_deployment.resources | length > 0
+        - (oadp_velero_deployment.resources[0].status.availableReplicas | default(0)) | int > 0
+        - >
+          (oadp_velero_deployment.resources[0].status.conditions | default([]))
+          | selectattr('type', 'equalto', 'Available')
+          | selectattr('status', 'equalto', 'True')
+          | list
+          | length > 0
+      retries: 40
+      delay: 15
+
+    - name: OADP | Wait for node-agent DaemonSet to be ready
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: DaemonSet
+        name: node-agent
+        namespace: "{{ name_space }}"
+      register: oadp_nodeagent_ds
+      until:
+        - oadp_nodeagent_ds.resources | length > 0
+        - (oadp_nodeagent_ds.resources[0].status.numberReady | default(0)) | int > 0
+      retries: 30
+      delay: 10
+
+    - name: OADP | Verify BackupStorageLocation is available
+      kubernetes.core.k8s_info:
+        api_version: velero.io/v1
+        kind: BackupStorageLocation
+        namespace: "{{ name_space }}"
+      register: oadp_bsl
+      until:
+        - oadp_bsl.resources | length > 0
+        - (oadp_bsl.resources[0].status.phase | default('')) == "Available"
+      retries: 20
+      delay: 10
+
+    - name: OADP | Display status
+      ansible.builtin.debug:
+        msg:
+          - "✅ OADP configuration complete!"
+          - "Namespace: {{ name_space }}"
+          - "STS enabled? {{ (oadp_iam_role_arn is defined and (oadp_iam_role_arn | length) > 0) | bool }}"
+          - "Backup bucket: s3://{{ aws_backup_bucket }}/{{ cluster_id }}"
+          - "Region: {{ aws_region }}"
+          - "Verify:"
+          - "  oc get all -n {{ name_space }}"
+          - "  oc get backupstoragelocations -n {{ name_space }}"
+          - "  oc get dataprotectionapplications -n {{ name_space }}"

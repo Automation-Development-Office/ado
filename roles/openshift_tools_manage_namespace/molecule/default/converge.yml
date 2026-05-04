@@ -1,0 +1,30 @@
+- name: Converge — apply role
+  hosts: localhost
+  gather_facts: false
+  vars:
+    name_space: test-namespace-molecule
+  tasks:
+    - name: Include the role under test
+      ansible.builtin.include_role:
+        name: ado.openshift.namespace
+      vars:
+        state: present
+
+    # ⬇️ Post-create check (no separate verify step needed)
+    - name: Wait for namespace to exist
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: "{{ name_space }}"
+        validate_certs: false     # or true w/ trusted CA/kubeconfig
+      register: ns_info
+      until: ns_info.resources | length == 1
+      retries: 10
+      delay: 3
+
+    - name: Assert namespace exists
+      ansible.builtin.assert:
+        that:
+          - ns_info.resources | length == 1
+        success_msg: "✅ Namespace {{ name_space }} created."
+        fail_msg: "❌ Namespace {{ name_space }} not found after create."

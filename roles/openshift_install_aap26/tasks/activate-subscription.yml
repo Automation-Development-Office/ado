@@ -1,0 +1,21 @@
+---
+- name: Assert manifest path is provided
+  ansible.builtin.assert:
+    that:
+      - aap26_subscription_manifest_path | length > 0
+    fail_msg: "aap26_subscription_manifest_path must be set when using manifest licensing"
+
+- name: Upload subscription manifest to AAP Controller
+  ansible.builtin.uri:
+    url: "https://{{ controller_route_host }}/api/v2/config/"
+    method: POST
+    user: "{{ admin_user }}"
+    password: "{{ aap26_admin_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    body_format: form-multipart
+    body:
+      manifest:
+        filename: manifest.zip
+        content: "{{ lookup('file', aap26_subscription_manifest_path) }}"
+    status_code: [200, 201, 204]

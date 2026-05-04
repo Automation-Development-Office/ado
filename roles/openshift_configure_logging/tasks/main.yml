@@ -1,0 +1,4 @@
+---
+# tasks file for loki-stack
+- name: Cluster Logging
+  ansible.builtin.import_tasks: cluster_forwarder.yml

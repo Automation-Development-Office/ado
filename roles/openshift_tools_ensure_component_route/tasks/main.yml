@@ -1,0 +1,231 @@
+---
+- name: Validate required framework vars
+  ansible.builtin.assert:
+    that:
+      - component is defined
+      - component | length > 0
+      - name_space is defined
+      - name_space | length > 0
+    fail_msg: "ensure_component_route requires 'component' and 'name_space' to be set (via resolve_component)."
+
+# ------------------------------------------------------------
+# 1) Resolve primary + optional alt host from flattened vars
+# ------------------------------------------------------------
+- name: Resolve component hostname var names
+  ansible.builtin.set_fact:
+    ensure_component_route_host_var_name: "{{ component ~ '_hostname' }}"
+    ensure_component_route_host_alt_var_name: "{{ component ~ '_hostname_alt' }}"
+
+- name: Resolve primary route host from flattened vars
+  ansible.builtin.set_fact:
+    ensure_component_route_route_host: >-
+      {{
+        (vars[ensure_component_route_host_var_name] if (ensure_component_route_host_var_name in vars) else
+         (hostname if (hostname is defined) else
+          '')
+        )
+      }}
+
+- name: Resolve alt route host (only if app_domain_alt is set)
+  ansible.builtin.set_fact:
+    ensure_component_route_route_host_alt: >-
+      {{
+        (
+          vars[ensure_component_route_host_alt_var_name]
+          if (
+            (app_domain_alt is defined) and
+            (app_domain_alt | string | length > 0) and
+            (ensure_component_route_host_alt_var_name in vars)
+          )
+          else
+          ''
+        )
+      }}
+
+- name: Fail if no primary hostname was found for component
+  ansible.builtin.assert:
+    that:
+      - ensure_component_route_route_host | length > 0
+    fail_msg: >-
+      No hostname found for component='{{ component }}'.
+      Expected either '{{ component }}_hostname' (e.g. grafana_hostname) or generic 'hostname' to be set by resolve_component.
+
+# ------------------------------------------------------------
+# 2) Resolve per-component defaults, then allow explicit overrides
+#    Overrides you can set in component defaults or env vars:
+#      - <component>_route_name
+#      - <component>_route_name_alt
+#      - <component>_route_backend_svc
+#      - <component>_route_backend_port
+#      - <component>_route_tls_termination
+# ------------------------------------------------------------
+- name: Load component route defaults
+  ansible.builtin.set_fact:
+    ensure_component_route_cdef: "{{ component_route_defaults[component] | default({}) }}"
+
+- name: Resolve route namespace/name/backend from flattened vars (with overrides)
+  ansible.builtin.set_fact:
+    ensure_component_route_namespace: "{{ (acs_namespace if (component == 'acs' and acs_namespace is defined) else name_space) }}"
+
+    ensure_component_route_name: >-
+      {{
+        (vars[component ~ '_route_name'] if ((component ~ '_route_name') in vars) else
+         (ensure_component_route_cdef.route_name | default(component))
+        )
+      }}
+
+    ensure_component_route_name_alt: >-
+      {{
+        (vars[component ~ '_route_name_alt'] if ((component ~ '_route_name_alt') in vars) else
+         (ensure_component_route_name ~ '-alt')
+        )
+      }}
+
+    ensure_component_route_backend_svc: >-
+      {{
+        (vars[component ~ '_route_backend_svc'] if ((component ~ '_route_backend_svc') in vars) else
+         (ensure_component_route_cdef.backend_svc | default(component))
+        )
+      }}
+
+    ensure_component_route_backend_port: >-
+      {{
+        (vars[component ~ '_route_backend_port'] if ((component ~ '_route_backend_port') in vars) else
+         (ensure_component_route_cdef.backend_port | default('https'))
+        )
+      }}
+
+    ensure_component_route_tls_termination: >-
+      {{
+        (vars[component ~ '_route_tls_termination'] if ((component ~ '_route_tls_termination') in vars) else
+         (ensure_component_route_cdef.tls_termination | default('passthrough'))
+        )
+      }}
+
+# ------------------------------------------------------------
+# 3) Ensure the PRIMARY route
+# ------------------------------------------------------------
+- name: Get existing PRIMARY Route (if any)
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ _route_namespace }}"
+    name: "{{ _route_name }}"
+  register: ensure_component_route_existing_primary
+
+- name: Decide whether PRIMARY route must be replaced
+  ansible.builtin.set_fact:
+    ensure_component_route_replace_primary: >-
+      {{
+        (ensure_component_route_existing_primary.resources | length) > 0 and (
+          (ensure_component_route_existing_primary.resources[0].spec.to.name | default('')) != _backend_svc or
+          (ensure_component_route_existing_primary.resources[0].spec.tls.termination | default('')) != _tls_termination or
+          (ensure_component_route_existing_primary.resources[0].spec.host | default('')) != ensure_component_route_route_host or
+          (ensure_component_route_existing_primary.resources[0].spec.port.targetPort | default('')) != _backend_port
+        )
+      }}
+
+- name: Delete PRIMARY Route if it exists but is wrong
+  kubernetes.core.k8s:
+    state: absent
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ _route_namespace }}"
+    name: "{{ _route_name }}"
+  when: ensure_component_route_replace_primary | bool
+
+- name: Ensure PRIMARY passthrough Route exists
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ _route_namespace }}"
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: "{{ _route_name }}"
+        labels: "{{ route_labels | default({}) }}"
+      spec:
+        host: "{{ ensure_component_route_route_host }}"
+        to:
+          kind: Service
+          name: "{{ _backend_svc }}"
+          weight: 100
+        port:
+          targetPort: "{{ _backend_port }}"
+        tls:
+          termination: "{{ _tls_termination }}"
+          insecureEdgeTerminationPolicy: "{{ route_insecure_edge_policy }}"
+        wildcardPolicy: "{{ route_wildcard_policy }}"
+
+# ------------------------------------------------------------
+# 4) Ensure the ALT route (only when _route_host_alt is set)
+# ------------------------------------------------------------
+- name: Get existing ALT Route (if any)
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ _route_namespace }}"
+    name: "{{ _route_name_alt }}"
+  register: ensure_component_route_existing_alt
+  when: ensure_component_route_route_host_alt | length > 0
+
+- name: Decide whether ALT route must be replaced
+  ansible.builtin.set_fact:
+    ensure_component_route_replace_alt: >-
+      {{
+        (ensure_component_route_existing_alt.resources | length) > 0 and (
+          (ensure_component_route_existing_alt.resources[0].spec.to.name | default('')) != _backend_svc or
+          (ensure_component_route_existing_alt.resources[0].spec.tls.termination | default('')) != _tls_termination or
+          (ensure_component_route_existing_alt.resources[0].spec.host | default('')) != ensure_component_route_route_host_alt or
+          (ensure_component_route_existing_alt.resources[0].spec.port.targetPort | default('')) != _backend_port
+        )
+      }}
+  when: ensure_component_route_route_host_alt | length > 0
+
+- name: Delete ALT Route if it exists but is wrong
+  kubernetes.core.k8s:
+    state: absent
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ _route_namespace }}"
+    name: "{{ _route_name_alt }}"
+  when:
+    - ensure_component_route_route_host_alt | length > 0
+    - ensure_component_route_replace_alt | bool
+
+- name: Ensure ALT passthrough Route exists
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ _route_namespace }}"
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: "{{ _route_name_alt }}"
+        labels: "{{ route_labels | default({}) }}"
+      spec:
+        host: "{{ ensure_component_route_route_host_alt }}"
+        to:
+          kind: Service
+          name: "{{ _backend_svc }}"
+          weight: 100
+        port:
+          targetPort: "{{ _backend_port }}"
+        tls:
+          termination: "{{ _tls_termination }}"
+          insecureEdgeTerminationPolicy: "{{ route_insecure_edge_policy }}"
+        wildcardPolicy: "{{ route_wildcard_policy }}"
+  when: ensure_component_route_route_host_alt | length > 0
+
+# ------------------------------------------------------------
+# 5) Show what happened
+# ------------------------------------------------------------
+- name: Show resolved Route inputs
+  ansible.builtin.debug:
+    msg:
+      - "component={{ component }}"
+      - "namespace={{ _route_namespace }}"
+      - "PRIMARY: route={{ _route_name }} host={{ ensure_component_route_route_host }}"
+      - "ALT: route={{ _route_name_alt }} host={{ ensure_component_route_route_host_alt | default('') }}"
+      - "backend={{ _backend_svc }}:{{ _backend_port }}"
+      - "tls_termination={{ _tls_termination }}"

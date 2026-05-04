@@ -1,0 +1,140 @@
+---
+# console_banner role
+#
+# state=present -> add ONE new banner (separate ConsoleNotification) for this text (deduped)
+# state=new     -> delete ALL ADO banners (by label OR name prefix), then create ONE banner
+# state=absent  -> delete ALL ADO banners (by label OR name prefix)
+#
+# We NEVER touch vendor/ROSA banners because we only match by:
+#   - label app.kubernetes.io/managed-by=ado   OR
+#   - name starts with console_banner_name_prefix (default: ado-banner)
+
+- name: Guard state
+  ansible.builtin.assert:
+    that:
+      - (state | default('present')) in ['present', 'new', 'absent']
+    fail_msg: "state must be one of: present, new, absent"
+
+- name: Guard required vars for present/new
+  ansible.builtin.assert:
+    that:
+      - console_banner_text is defined
+      - (console_banner_text | string | trim | length) > 0
+    fail_msg: "console_banner_text must be set for state=present/new"
+  when: (state | default('present')) in ['present', 'new']
+
+- name: Set defaults
+  ansible.builtin.set_fact:
+    console_banner_prefix: "{{ console_banner_name_prefix | default('ado-banner') }}"
+    console_banner_single_name: "{{ console_banner_name | default('ado-banner') }}"
+    console_banner_location: "{{ console_banner_location | default('BannerTop') }}"
+    console_banner_background_color: "{{ console_banner_background_color | default('#1f7a1f') }}"
+    console_banner_text_color: "{{ console_banner_text_color | default('#ffffff') }}"
+
+- name: Read all ConsoleNotifications
+  kubernetes.core.k8s_info:
+    api_version: console.openshift.io/v1
+    kind: ConsoleNotification
+  register: console_banner_cn_all
+
+# "ours" = labeled OR name startswith prefix
+- name: Build list of ADO-managed ConsoleNotifications (label OR prefix)
+  ansible.builtin.set_fact:
+    console_banner_ado_cn: >-
+      {{
+        (console_banner_cn_all.resources | default([]))
+        | selectattr('metadata.name', 'defined')
+        | selectattr('metadata.name', 'match', '^' ~ (console_banner_prefix | regex_escape) )
+        | list
+        +
+        (
+          (console_banner_cn_all.resources | default([]))
+          | selectattr('metadata.labels.app.kubernetes.io/managed-by', 'defined')
+          | selectattr('metadata.labels.app.kubernetes.io/managed-by', 'equalto', 'ado')
+          | list
+        )
+        | unique(attribute='metadata.name')
+      }}
+
+# ----------------------------
+# state=absent -> remove ours
+# ----------------------------
+- name: Delete all ADO-managed banners (state=absent)
+  kubernetes.core.k8s:
+    state: absent
+    api_version: console.openshift.io/v1
+    kind: ConsoleNotification
+    name: "{{ item.metadata.name }}"
+  loop: "{{ console_banner_ado_cn }}"
+  when: (state | default('present')) == 'absent'
+
+# --------------------------------------------
+# state=new -> remove ours, then create one
+# --------------------------------------------
+- name: Delete all ADO-managed banners (state=new)
+  kubernetes.core.k8s:
+    state: absent
+    api_version: console.openshift.io/v1
+    kind: ConsoleNotification
+    name: "{{ item.metadata.name }}"
+  loop: "{{ console_banner_ado_cn }}"
+  when: (state | default('present')) == 'new'
+
+- name: Create single fresh ADO banner (state=new)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: console.openshift.io/v1
+      kind: ConsoleNotification
+      metadata:
+        name: "{{ console_banner_single_name }}"
+        labels:
+          app.kubernetes.io/managed-by: "ado"
+          app.kubernetes.io/name: "console-banner"
+      spec:
+        text: "{{ console_banner_text }}"
+        location: "{{ console_banner_location }}"
+        backgroundColor: "{{ console_banner_background_color }}"
+        color: "{{ console_banner_text_color }}"
+  when: (state | default('present')) == 'new'
+
+# ---------------------------------------------------------
+# state=present -> add a NEW banner (separate CR) if missing
+# ---------------------------------------------------------
+- name: Compute deterministic banner name for this message (state=present)
+  ansible.builtin.set_fact:
+    console_banner_msg_hash: "{{ (console_banner_text | string) | hash('sha1') }}"
+    console_banner_msg_name: "{{ console_banner_prefix ~ '-' ~ ((console_banner_text | string) | hash('sha1'))[0:10] }}"
+  when: (state | default('present')) == 'present'
+
+- name: Determine if this exact message banner already exists
+  ansible.builtin.set_fact:
+    console_banner_already_exists: >-
+      {{
+        (console_banner_cn_all.resources | default([]))
+        | selectattr('metadata.name', 'equalto', console_banner_msg_name)
+        | list
+        | length > 0
+      }}
+  when: (state | default('present')) == 'present'
+
+- name: Create a new ADO banner for this message (state=present)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: console.openshift.io/v1
+      kind: ConsoleNotification
+      metadata:
+        name: "{{ console_banner_msg_name }}"
+        labels:
+          app.kubernetes.io/managed-by: "ado"
+          app.kubernetes.io/name: "console-banner"
+          ado.console-banner/message-hash: "{{ console_banner_msg_hash }}"
+      spec:
+        text: "{{ console_banner_text }}"
+        location: "{{ _location }}"
+        backgroundColor: "{{ _bg }}"
+        color: "{{ _fg }}"
+  when:
+    - (state | default('present')) == 'present'
+    - not console_banner_already_exists

@@ -1,0 +1,9 @@
+# Target namespace; set to "all" to apply to every namespace
+# name_space: default
+# Optional: namespaces to skip when name_space == "all"
+# exclude_namespaces: []
+
+# token: "true"
+# bind_scope: cluster
+# role_kind: ClusterRole
+# scc_context: none

@@ -1,0 +1,53 @@
+---
+- name: Discover Routes | Gather all routes in cluster
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+  register: discover_routes_all
+
+- name: Discover Routes | Start empty candidate list
+  ansible.builtin.set_fact:
+    discover_routes_alt_candidates: []
+
+- name: Discover Routes | Append candidates (primary domain, not already -alt)
+  ansible.builtin.set_fact:
+    discover_routes_alt_candidates: "{{ discover_routes_alt_candidates + [_cand] }}"
+  vars:
+    _cand:
+      namespace: "{{ item.metadata.namespace }}"
+      name: "{{ item.metadata.name }}"
+      host: "{{ item.spec.host }}"
+      service: "{{ item.spec.to.name | default('') }}"
+      targetPort: "{{ item.spec.port.targetPort | default('') }}"
+      tls_termination: "{{ item.spec.tls.termination | default('') }}"
+      tls_insecure_policy: "{{ item.spec.tls.insecureEdgeTerminationPolicy | default('') }}"
+      wildcard_policy: "{{ item.spec.wildcardPolicy | default('None') }}"
+  loop: "{{ discover_routes_all.resources | default([]) }}"
+  loop_control:
+    label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"
+  when:
+    - item.spec is defined
+    - item.spec.host is defined
+    - item.spec.host is not none
+    - (item.metadata.name is not search('-alt$'))
+    - (item.spec.host is not search(((app_domain_alt | default('')) | regex_escape) ~ '$'))
+    - (item.spec.host is search(((app_domain | default('')) | regex_escape) ~ '$'))
+
+- name: Discover Routes | Print summary
+  ansible.builtin.debug:
+    msg: |
+      Primary domain: {{ app_domain }}
+      Alt domain:     {{ app_domain_alt }}
+      Candidates:     {{ discover_routes_alt_candidates | length }}
+
+- name: Discover Routes | Print candidates (one per line)
+  ansible.builtin.debug:
+    msg: >-
+      {{ item.namespace }}/{{ item.name }} -> {{ item.host }}
+  loop: "{{ discover_routes_alt_candidates }}"
+  loop_control:
+    label: "{{ item.host }}"
+
+- name: Discover Routes | Export candidates for downstream roles
+  ansible.builtin.set_fact:
+    discover_routes_alt_routes_candidates: "{{ discover_routes_alt_candidates }}"

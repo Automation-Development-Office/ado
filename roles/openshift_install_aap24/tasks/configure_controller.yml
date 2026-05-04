@@ -1,0 +1,35 @@
+---
+- name: Wait for controller API to be reachable
+  ansible.builtin.uri:
+    url: "https://{{ controller_route_host }}/api/v2/ping/"
+    method: GET
+    validate_certs: false
+    status_code: 200
+  register: aap24_ping
+  retries: 60
+  delay: 10
+  until: aap24_ping.status == 200
+
+- name: Create Automation Hub credential (token)
+  awx.awx.credential:
+    controller_host: "https://{{ controller_route_host }}"
+    controller_username: "{{ admin_user }}"
+    controller_password: "{{ aap24_admin_password }}"
+    validate_certs: false
+    name: "{{ aap24_hub_credential_name }}"
+    organization: "{{ controller_bootstrap_organization | default('Default') }}"
+    credential_type: "Ansible Galaxy/Automation Hub API Token"
+    inputs:
+      url: "{{ aap24_hub_url }}"
+      token: "{{ aap24_hub_token }}"
+  no_log: true
+  register: _aap24_hub_credential
+
+- name: Configure Galaxy server to use Automation Hub
+  awx.awx.settings:
+    controller_host: "https://{{ controller_route_host }}"
+    controller_username: "{{ admin_user }}"
+    controller_password: "{{ aap24_admin_password }}"
+    validate_certs: false
+    settings:
+      GALAXY_SERVER_URL: "{{ aap24_hub_url }}"

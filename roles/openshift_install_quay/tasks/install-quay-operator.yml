@@ -1,0 +1,217 @@
+- name: Create Quay Namespace
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ name_space }}"
+    state: present
+
+- name: Create PVC for Quay storage
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: quay-registry-storage
+        namespace: "{{ name_space }}"
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: "{{ storage_size }}"
+        storageClassName: "{{ storage }}"
+
+- name: Set Quay config
+  ansible.builtin.set_fact:
+    quay_config: |
+      SERVER_HOSTNAME: {{ quay_hostname }}
+      DATABASE_SECRET_KEY: changeme-secret-key
+      SUPER_USERS:
+        - {{ quay_admin_user }}
+      FEATURE_USER_INITIALIZE: true
+      USER_INITIALIZE:
+        username: {{ quay_admin_user }}
+        password: {{ quay_admin_password }}
+        email: "{{ quay_admin_user }}@example.com"
+        access_token: true
+      DB_URI: postgresql://quay:quaypass@postgres-db:5432/quay
+      REDIS_HOST: localhost
+      BUILDLOGS_REDIS:
+        host: localhost
+        port: 6379
+      USER_EVENTS_REDIS:
+        host: localhost
+        port: 6379
+      DISTRIBUTED_STORAGE_CONFIG:
+        default:
+          - LocalStorage
+          - storage_path: /datastorage/registry
+      AUTHENTICATION_TYPE: Database
+      AUTHENTICATION_CONFIG: {}
+      FEATURE_TEAM_SYNCING: false
+      FEATURE_ACTION_LOG_ROTATION: true
+      FEATURE_APP_REGISTRY: false
+      FEATURE_MAILING: false
+
+- name: Create Quay Configuration Secret
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ quay_config_secret }}"
+        namespace: "{{ name_space }}"
+      type: Opaque
+      data:
+        config.yaml: "{{ quay_config | b64encode }}"
+
+- name: Deploy PostgreSQL StatefulSet
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: postgres-db
+        namespace: "{{ name_space }}"
+      spec:
+        serviceName: postgres-db
+        selector:
+          matchLabels:
+            app: postgres-db
+        replicas: 1
+        template:
+          metadata:
+            labels:
+              app: postgres-db
+          spec:
+            securityContext:
+              fsGroup: 26
+            containers:
+              - name: postgres-db
+                image: "{{ postgres_image }}"
+                ports:
+                  - containerPort: 5432
+                volumeMounts:
+                  - name: data-volume
+                    mountPath: /var/lib/pgsql/data/userdata
+                env:
+                  - name: POSTGRESQL_USER
+                    value: quay
+                  - name: POSTGRESQL_PASSWORD
+                    value: quaypass
+                  - name: POSTGRESQL_DATABASE
+                    value: quay
+                securityContext:
+                  runAsUser: 26
+        volumeClaimTemplates:
+          - metadata:
+              name: data-volume
+            spec:
+              accessModes: ["ReadWriteOnce"]
+              resources:
+                requests:
+                  storage: "{{ storage_size }}"
+              storageClassName: "{{ storage }}"
+
+- name: Deploy PostgreSQL Service
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: postgres-db
+        namespace: "{{ name_space }}"
+      spec:
+        selector:
+          app: postgres-db
+        type: ClusterIP
+        ports:
+          - port: 5432
+            targetPort: 5432
+
+- name: Wait for Postgres pod to be Ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ name_space }}"
+    label_selectors:
+      - "app=postgres-db"
+  register: quay_pg_pods
+  until:
+    - quay_pg_pods.resources | length > 0
+    - (quay_pg_pods.resources[0].status.containerStatuses[0].ready | default(false)) | bool
+  retries: 40
+  delay: 6
+
+- name: Wait for Postgres service endpoint to exist
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Endpoints
+    namespace: "{{ name_space }}"
+    name: postgres-db
+  register: quay_pg_eps
+  until:
+    - quay_pg_eps.resources | length > 0
+    - (quay_pg_eps.resources[0].subsets | default([])) | length > 0
+  retries: 40
+  delay: 6
+
+- name: Deploy Quay Registry with Redis Sidecar
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: quay
+        namespace: "{{ name_space }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: quay
+        template:
+          metadata:
+            labels:
+              app: quay
+          spec:
+            volumes:
+              - name: config-volume
+                secret:
+                  secretName: "{{ quay_config_secret }}"
+              - name: registry-storage
+                persistentVolumeClaim:
+                  claimName: quay-registry-storage
+            containers:
+              - name: quay
+                image: quay.io/projectquay/quay:latest
+                ports:
+                  - containerPort: 8443
+                volumeMounts:
+                  - name: config-volume
+                    mountPath: /conf/stack
+                  - name: registry-storage
+                    mountPath: /datastorage/registry
+              - name: redis
+                image: redis:7-alpine
+                ports:
+                  - containerPort: 6379
+
+- name: Expose Quay with OpenShift Route
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: quay
+        namespace: "{{ name_space }}"
+      spec:
+        host: "{{ quay_hostname }}"
+        to:
+          kind: Service
+          name: quay
+        tls:
+          termination: edge
+          insecureEdgeTerminationPolicy: Redirect
+
+- name: Show Quay admin console URL
+  ansible.builtin.debug:
+    msg: "Login to Quay at: https://{{ quay_hostname }} (Username: {{ quay_admin_user }})"
