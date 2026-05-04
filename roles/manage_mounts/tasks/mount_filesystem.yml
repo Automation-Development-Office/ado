@@ -1,0 +1,12 @@
+---
+- name: Setting fstype fact for mounting with detected filesystem type
+  ansible.builtin.set_fact:
+    manage_mounts_fstype: "{{ manage_mounts_detected_fstype }}"
+  when: manage_mounts_detected_fstype is defined
+
+- name: Mount the filesystem (example using the detected type)
+  ansible.posix.mount:
+    path: "{{ mount_path }}"
+    src: "{{ target_device }}"
+    fstype: "{{ manage_mounts_fstype | default(mount_fstype) }}"
+    state: "{{ mount_action }}"

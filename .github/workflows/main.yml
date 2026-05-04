@@ -40,11 +40,11 @@ jobs:
           name: ansible-lint-report
           path: ansible-lint.xml
 
-  # Testing stage - manual trigger only, available on all branches
+  # Testing stage
   discover-molecule-scenarios:
     name: Discover Molecule Scenarios
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     outputs:
       scenarios: ${{ steps.discover.outputs.scenarios }}
     steps:
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: discover-molecule-scenarios
     if: |
-      github.event_name == 'workflow_dispatch' &&
+      (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') &&
       needs.discover-molecule-scenarios.outputs.scenarios != '[]'
     strategy:
       fail-fast: false
@@ -97,6 +97,7 @@ jobs:
       - name: Install collection from local source
         run: |
           ansible-galaxy collection install . --force -p ~/.ansible/collections
+          ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
         env:
           ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
 
@@ -144,6 +145,27 @@ jobs:
           name: molecule-report-${{ steps.scenario_meta.outputs.scenario_name }}
           path: molecule-reports/
           if-no-files-found: error
+
+  pr-gate:
+    name: PR Gate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs:
+      - linting
+      - discover-molecule-scenarios
+      - molecule
+    steps:
+      - name: Assert Molecule scenarios exist
+        run: |
+          test '${{ needs.discover-molecule-scenarios.outputs.scenarios }}' != '[]'
+
+      - name: Assert required jobs passed
+        run: >-
+          python -c "assert set([
+          '${{ needs.linting.result }}',
+          '${{ needs.discover-molecule-scenarios.result }}',
+          '${{ needs.molecule.result }}'
+          ]) <= {'success'}"
 
   # Building stage
   prepare:

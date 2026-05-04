@@ -116,14 +116,14 @@ The scenario:
 From the collection workspace, the validated command is:
 
 ```bash
-/home/jeff/GIT/ansible_collections/ado/utilities/.venv/bin/python -m molecule test -s default
+python -m molecule test -s default
 ```
 
 From the role directory:
 
 ```bash
-cd /home/jeff/GIT/ansible_collections/ado/utilities/roles/vm_image
-/home/jeff/GIT/ansible_collections/ado/utilities/.venv/bin/python -m molecule test -s default
+cd roles/manage_vm_image
+python -m molecule test -s default
 ```
 
 This command was validated against the current `default` scenario and completed successfully for `converge`, `idempotence`, `verify`, and `destroy`.

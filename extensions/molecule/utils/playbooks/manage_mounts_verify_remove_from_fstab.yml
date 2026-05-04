@@ -1,0 +1,30 @@
+---
+- name: Verify - manage_mounts remove from fstab scenario
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  vars:
+    manage_mounts_test_root: /tmp/manage_mounts_molecule_remove_from_fstab
+    manage_mounts_mount_path: "{{ manage_mounts_test_root }}/mnt"
+
+  tasks:
+    - name: Assert filesystem is not mounted
+      ansible.builtin.assert:
+        that:
+          - ansible_mounts | selectattr("mount", "equalto", manage_mounts_mount_path) | list | length == 0
+        fail_msg: "Mount {{ manage_mounts_mount_path }} should be absent"
+        success_msg: "Mount {{ manage_mounts_mount_path }} is absent"
+
+    - name: Check fstab does not contain mount path
+      ansible.builtin.command: "grep -F {{ manage_mounts_mount_path }} /etc/fstab"
+      register: manage_mounts_verify_fstab_result
+      changed_when: false
+      failed_when: false
+
+    - name: Assert fstab does not contain mount path
+      ansible.builtin.assert:
+        that:
+          - manage_mounts_verify_fstab_result.rc != 0
+        fail_msg: "Did not expect fstab entry for {{ manage_mounts_mount_path }}"
+        success_msg: "fstab entry removed for {{ manage_mounts_mount_path }}"

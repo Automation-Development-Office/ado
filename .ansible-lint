@@ -1,9 +1,14 @@
 exclude_paths:
-    - .gitlab-ci.yml
+    - "**/.github/**"
     - .ansible-lint
     - "**/.ansible/**"
+    - "**/defaults/**"      # exclude any defaults dir anywhere
+    - "**/vars/**"          # exclude any vars dir anywhere
     - "**/molecule/**"     # exclude any molecule dir anywhere
     - "**/meta/**"         # exclude any meta dir anywhere
     - galaxy.yml
     - "**/changelogs/**"
     - devfile.yaml
+
+mock_modules:
+  - ansible.posix.mount

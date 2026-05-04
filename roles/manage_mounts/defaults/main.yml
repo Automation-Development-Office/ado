@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: MIT-0
+---
+# defaults file for mount
+
+mount_fstype_detection: false # Set to true to enable filesystem type detection
