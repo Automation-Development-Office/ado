@@ -76,6 +76,7 @@
   ansible.builtin.command: grubby --info=ALL
   register: platform_satellite_install_grubby_info
   changed_when: false
+  ignore_errors: true
 
 - name: preliminary_check | Remove ipv6.disable=1 if present
   ansible.builtin.command: grubby --update-kernel ALL --remove-args="ipv6.disable=1"
