@@ -1,0 +1,17 @@
+---
+- name: Converge - utils_mount remove from fstab scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  vars:
+    utils_mount_test_root: /tmp/utils_mount_molecule_remove_from_fstab
+    utils_mount_mount_path: "{{ utils_mount_test_root }}/mnt"
+
+  tasks:
+    - name: Include utils_mount role for fstab removal # noqa: var-naming[no-role-prefix]
+      ansible.builtin.include_role:
+        name: infra.ado.utils_mount
+      vars:
+        mount_action: absent
+        mount_path: "{{ utils_mount_mount_path }}"

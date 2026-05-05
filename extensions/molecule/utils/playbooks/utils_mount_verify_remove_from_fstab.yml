@@ -1,0 +1,30 @@
+---
+- name: Verify - utils_mount remove from fstab scenario
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  vars:
+    utils_mount_test_root: /tmp/utils_mount_molecule_remove_from_fstab
+    utils_mount_mount_path: "{{ utils_mount_test_root }}/mnt"
+
+  tasks:
+    - name: Assert filesystem is not mounted
+      ansible.builtin.assert:
+        that:
+          - ansible_mounts | selectattr("mount", "equalto", utils_mount_mount_path) | list | length == 0
+        fail_msg: "Mount {{ utils_mount_mount_path }} should be absent"
+        success_msg: "Mount {{ utils_mount_mount_path }} is absent"
+
+    - name: Check fstab does not contain mount path
+      ansible.builtin.command: "grep -F {{ utils_mount_mount_path }} /etc/fstab"
+      register: utils_mount_verify_fstab_result
+      changed_when: false
+      failed_when: false
+
+    - name: Assert fstab does not contain mount path
+      ansible.builtin.assert:
+        that:
+          - utils_mount_verify_fstab_result.rc != 0
+        fail_msg: "Did not expect fstab entry for {{ utils_mount_mount_path }}"
+        success_msg: "fstab entry removed for {{ utils_mount_mount_path }}"

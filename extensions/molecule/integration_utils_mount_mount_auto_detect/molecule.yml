@@ -7,10 +7,10 @@ provisioner:
   env:
     ANSIBLE_ROLES_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}"
   playbooks:
-    converge: ../utils/playbooks/manage_mounts_converge_mount_auto_detect.yml
-    destroy: ../utils/playbooks/manage_mounts_destroy_mount_auto_detect.yml
-    verify: ../utils/playbooks/manage_mounts_verify_mount_auto_detect.yml
-    prepare: ../utils/playbooks/manage_mounts_prepare_mount_auto_detect.yml
+    converge: ../utils/playbooks/utils_mount_converge_mount_auto_detect.yml
+    destroy: ../utils/playbooks/utils_mount_destroy_mount_auto_detect.yml
+    verify: ../utils/playbooks/utils_mount_verify_mount_auto_detect.yml
+    prepare: ../utils/playbooks/utils_mount_prepare_mount_auto_detect.yml
   config_options:
     defaults:
       collections_path: ${ANSIBLE_COLLECTIONS_PATH}

@@ -1,4 +1,4 @@
-# Role: `manage_mounts`
+# Role: `utils_mount`
 
 This Ansible role detects filesystem types and mounts block devices in a consistent, idempotent way for Linux systems.
 
@@ -46,7 +46,7 @@ Define the mount configuration in your playbook or inventory using the variables
     mount_path: /mnt/data
     mount_fstype_detection: true
   roles:
-    - role: infra.ado.manage_mounts
+    - role: infra.ado.utils_mount
 ```
 
 ### Example 2: Mount a filesystem with explicit type
@@ -59,7 +59,7 @@ Define the mount configuration in your playbook or inventory using the variables
     mount_path: /opt/app_data
     mount_fstype: xfs
   roles:
-    - role: infra.ado.manage_mounts
+    - role: infra.ado.utils_mount
 ```
 
 ### Example 3: Mount an EFS filesystem
@@ -72,7 +72,7 @@ Define the mount configuration in your playbook or inventory using the variables
     mount_path: /mnt/efs
     mount_fstype: efs
   roles:
-    - role: infra.ado.manage_mounts
+    - role: infra.ado.utils_mount
 ```
 
 ### Example 4: Unmount a filesystem
@@ -83,7 +83,7 @@ Define the mount configuration in your playbook or inventory using the variables
     mount_action: unmounted
     mount_path: /mnt/data
   roles:
-    - role: infra.ado.manage_mounts
+    - role: infra.ado.utils_mount
 ```
 
 ### Example 5: Remove a filesystem from fstab
@@ -94,7 +94,7 @@ Define the mount configuration in your playbook or inventory using the variables
     mount_action: absent
     mount_path: /mnt/data
   roles:
-    - role: infra.ado.manage_mounts
+    - role: infra.ado.utils_mount
 ```
 
 ## 🔧 Tasks Overview
@@ -129,10 +129,10 @@ This role is tested with extension-level Molecule scenarios under `extensions/mo
 
 Scenarios:
 
-- `integration_manage_mounts_mount_auto_detect`
-- `integration_manage_mounts_mount_explicit_fstype`
-- `integration_manage_mounts_unmount_filesystem`
-- `integration_manage_mounts_remove_from_fstab`
+- `integration_utils_mount_mount_auto_detect`
+- `integration_utils_mount_mount_explicit_fstype`
+- `integration_utils_mount_unmount_filesystem`
+- `integration_utils_mount_remove_from_fstab`
 
 Shared playbooks are located in `extensions/molecule/utils/playbooks/` and include dedicated `prepare`, `converge`, `idempotence`, `verify`, and `destroy` flows for each scenario.
 
@@ -142,10 +142,10 @@ Run from the collection root:
 
 ```bash
 cd /path/to/cloned/ado
-molecule test -s integration_manage_mounts_mount_auto_detect
-molecule test -s integration_manage_mounts_mount_explicit_fstype
-molecule test -s integration_manage_mounts_unmount_filesystem
-molecule test -s integration_manage_mounts_remove_from_fstab
+molecule test -s integration_utils_mount_mount_auto_detect
+molecule test -s integration_utils_mount_mount_explicit_fstype
+molecule test -s integration_utils_mount_unmount_filesystem
+molecule test -s integration_utils_mount_remove_from_fstab
 ```
 
 > Note: run Molecule from the collection root so scenario discovery resolves `extensions/molecule` correctly.
@@ -153,7 +153,7 @@ molecule test -s integration_manage_mounts_remove_from_fstab
 ## 📁 Structure
 
 ```
-manage_mounts/
+utils_mount/
 ├── defaults/
 │   └── main.yml
 ├── files/
