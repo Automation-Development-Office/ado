@@ -18,4 +18,4 @@
   tasks:
     - name: Include platform_satellite_install role for pre_check # noqa: var-naming[no-role-prefix]
       ansible.builtin.include_role:
-        name: platform_satellite_install
+        name: infra.ado.platform_satellite_install
