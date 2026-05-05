@@ -70,6 +70,7 @@
   ansible.builtin.package:
     name: grubby
     state: present
+  ignore_errors: true
 
 - name: preliminary_check | Get current kernel args for all entries
   ansible.builtin.command: grubby --info=ALL
