@@ -1,62 +1,71 @@
 ---
 
-# Role: `sat_reg`
+# Role: `utilities_sat_reg`
 
-This Ansible role automates the generation and execution of a Red Hat Satellite registration command using the `redhat.satellite.registration_command` module. It supports activation keys, lifecycle environments, and optional configuration for Insights and package updates.  
-**Now supports both registration and deregistration actions.**
+This Ansible role automates registration and deregistration of hosts with Red Hat Satellite using the `redhat.satellite.registration_command` and `redhat.satellite.host` modules. It supports activation keys, lifecycle environments, Insights, package updates, and robust cleanup.
 
-> **⚠️ Note:**  
-> OS versions prior to RHEL 8 are no longer supported. Registration and deregistration tasks will not run on unsupported operating systems.
+> **Note:** OS versions prior to RHEL 8 are not supported. Tasks will not run on unsupported operating systems.
 
-## ✅ Role Requirements
-
-- Requires access to a Red Hat Satellite server.
-- Ensure the `redhat.satellite` collection is installed.
-- The target host must be reachable and have the necessary permissions to register with Satellite.
-- Credentials (`sat_org_admin_account` and `sat_org_admin_account_password`) should be securely stored using Ansible Vault or AAP credentials.
+## ✅ Requirements
+- Red Hat Satellite server access
+- `redhat.satellite` collection installed
+- Target host must be reachable and have permissions to register/deregister
+- Credentials (`sat_org_admin_account` and `sat_org_admin_account_password`) should be securely stored (e.g., Ansible Vault)
 
 ## 📦 Role Variables
+| Variable                              | Description                                                                | Required | Default     |
+|----------------------------------------|----------------------------------------------------------------------------|----------|-------------|
+| `sat_org_admin_account`                | Satellite organization admin username                                      | ✅       | —           |
+| `sat_org_admin_account_password`       | Satellite organization admin password                                      | ✅       | —           |
+| `sat_reg_activation_key_name`          | Activation key used for registration                                       | ✅       | —           |
+| `sat_reg_satellite_org_name`           | Name of the Satellite organization                                         | ✅       | —           |
+| `sat_reg_satellite_host`               | FQDN of the Satellite server                                               | ✅       | —           |
+| `sat_reg_insights_enabled`             | Enable Red Hat Insights during registration                                | ❌       | `false`     |
+| `sat_reg_update_packages`              | Update packages during registration                                        | ❌       | `false`     |
+| `sat_reg_validate_certs`               | Validate SSL certificates                                                  | ❌       | `true`      |
+| `sat_reg_action`                       | Action: `register` or `deregister`                                         | ✅       | `register`  |
+| `sat_reg_insecure`                     | Use insecure connection (skip SSL validation)                              | ❌       | `false`     |
+| `sat_reg_force_registration`           | Force registration                                                        | ❌       | `true`      |
 
-| Variable                        | Description                                                                | Required | Default |
-|---------------------------------|----------------------------------------------------------------------------|----------|---------|
-| `sat_org_admin_account`         | Satellite organization admin username                                      | ✅       | —       |
-| `sat_org_admin_account_password`| Satellite organization admin password                                      | ✅       | —       |
-| `sat_reg_activation_key_name`   | Activation key used for registration                                       | ✅       | —       |
-| `sat_reg_satellite_org_name`    | Name of the Satellite organization                                         | ✅       | —       |
-| `sat_reg_satellite_host`        | FQDN of the Satellite server                                               | ✅       | —       |
-| `sat_reg_insights_enabled`      | Whether to enable Red Hat Insights during registration                     | ❌       | `false` |
-| `sat_reg_update_packages`       | Whether to update packages during registration                             | ❌       | `false` |
-| `sat_reg_validate_certs`        | Whether to validate SSL certificates                                       | ❌       | `true`  |
-| `sat_reg_action`                | Action to perform: `"register"` or `"deregister"`                          | ✅       | `register` |
-| `sat_reg_insecure`              | Whether to use insecure connection (skip SSL validation)                   | ❌       | `false` |
-| `sat_reg_force_registration`    | Whether to force registration or not                                       | ❌       | `true`  |
-
-## 🚀 Usage
-
-Set `sat_reg_action` to `"register"` or `"deregister"` to control registration or deregistration.
+## 🚀 Usage Example
+```yaml
+- hosts: all
+  roles:
+    - role: utilities_sat_reg
+      vars:
+        sat_org_admin_account: "admin"
+        sat_org_admin_account_password: "{{ vault_sat_password }}"
+        sat_reg_activation_key_name: "my-key"
+        sat_reg_satellite_org_name: "MyOrg"
+        sat_reg_satellite_host: "satellite.example.com"
+        sat_reg_action: "register"  # or "deregister"
+```
 
 ## 🔧 Tasks Overview
-
 - **Registration** (`reg_to_sat.yml`):
-  - Gathers facts and checks OS support (RHEL 8+ only).
-  - Generates registration command using `redhat.satellite.registration_command`.
-  - Executes registration command.
-  - Supports forcing registration, insecure registrations, and Insights
-
+  - Gathers facts and checks OS support (RHEL 8+ only)
+  - Generates registration command using `redhat.satellite.registration_command`
+  - Executes registration command
+  - Supports force/insecure/Insights options
+  - Registered variables: `utilities_sat_reg_command`, `utilities_sat_reg_script_result`
 - **Deregistration** (`deregister_from_sat.yml`):
-  - Gathers facts and checks OS support (RHEL 8+ only).
-  - Unregisters system from subscription-manager.
-  - Cleans local subscription-manager configs.
-  - Removes Katello agent/consumer certs and custom yum repos.
-  - Deletes the host record from Satellite via `redhat.satellite.host`.
-
+  - Gathers facts and checks OS support (RHEL 8+ only)
+  - Unregisters from subscription-manager
+  - Cleans configs, removes certs/repos, deletes host from Satellite
+  - Registered variables: `utilities_sat_reg_unregister_result`, `utilities_sat_reg_clean_result`
 - **Main Task File** (`main.yml`):
-  - Imports registration or deregistration tasks based on `sat_reg_action`.
+  - Imports registration or deregistration tasks based on `sat_reg_action`
+
+## 🧪 Molecule Testing
+- Scenario: `integration_utilities_sat_reg`
+- Playbooks:
+  - Converge: `../utils/playbooks/utilities_sat_reg_converge.yml`
+  - Destroy: `../utils/playbooks/utilities_sat_reg_destroy.yml`
+  - Verify:  `../utils/playbooks/utilities_sat_reg_verify.yml`
 
 ## 📁 Structure
-
 ```
-sat_reg/
+utilities_sat_reg/
 ├── defaults/
 │   └── main.yml
 ├── vars/
@@ -69,20 +78,16 @@ sat_reg/
 │   └── main.yml
 ├── meta/
 │   └── main.yml
-├── molecule/
-│   └── default/
-│       ├── .vault_pass
-│       ├── converge.yml
-│       ├── destroy.yml
-│       ├── molecule.yml
-│       ├── README.md
-│       ├── TEST.md
-│       ├── verify.yml
-│       └── group_vars/
-│           └── ...
 ├── files/
 ├── templates/
 ├── tests/
 │   ├── inventory
-│   └──
+│   └── ...
 ```
+
+## 📝 Notes & Optimization
+- All variable names and registered variables use the `utilities_sat_reg_` prefix for lint compliance.
+- Molecule scenarios reference playbooks using correct relative paths.
+- Example usage and documentation are up to date with current role structure and naming.
+- For best security, use Ansible Vault for sensitive variables.
+- Ensure the `redhat.satellite` collection is installed on your control node or inside your execution environment.
