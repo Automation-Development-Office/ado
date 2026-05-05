@@ -11,7 +11,7 @@
 - name: rhsm_subscribe | Check amazon-id.conf
   ansible.builtin.stat:
     path: /etc/yum/pluginconf.d/amazon-id.conf
-  register: sat_install_stat_result
+  register: platform_satellite_install_stat_result
 
 - name: rhsm_subscribe | Disable amazon-id.conf
   ansible.builtin.lineinfile:
@@ -19,23 +19,23 @@
     regexp: '^enabled=1'
     line: enabled=0
     backrefs: true
-  when: sat_install_stat_result.stat.exists
+  when: platform_satellite_install_stat_result.stat.exists
 
 - name: rhsm_subscribe | Find repo files
   ansible.builtin.find:
     paths: /etc/yum.repos.d
     patterns: "*.repo"
-  register: sat_install_repo_files
+  register: platform_satellite_install_repo_files
 
 - name: rhsm_subscribe | Check registration
   ansible.builtin.command: subscription-manager list
-  register: sat_install_status
+  register: platform_satellite_install_status
   changed_when: false
-  failed_when: sat_install_status.rc not in [0, 1]
+  failed_when: platform_satellite_install_status.rc not in [0, 1]
   become: true
 
 - name: rhsm_subscribe | Subscription block
-  when: "'Satellite' not in sat_install_status.stdout"
+  when: "'Satellite' not in platform_satellite_install_status.stdout"
   block:
 
     - name: rhsm_subscribe | Remove non-redhat repo files
@@ -43,7 +43,7 @@
         path: "{{ item.path }}"
         state: absent
       when: item.path != "/etc/yum.repos.d/redhat.repo"
-      loop: "{{ sat_install_repo_files.files }}"
+      loop: "{{ platform_satellite_install_repo_files.files }}"
 
     - name: rhsm_subscribe | Stop rhsm service
       ansible.builtin.service:

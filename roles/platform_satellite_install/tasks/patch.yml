@@ -16,22 +16,22 @@
 - name: patch | Check servers with latest packages updates
   ansible.builtin.dnf:
     list: updates
-  register: sat_install_package_updates
+  register: platform_satellite_install_package_updates
   when: ansible_facts['distribution'] == 'RedHat'
 
 - name: patch | Print the number of package updates
   ansible.builtin.debug:
-    msg: "{{ inventory_hostname }} has {{ sat_install_package_updates['results'] | count }} updates"
-  when: sat_install_package_updates['results'] | count > 0
+    msg: "{{ inventory_hostname }} has {{ platform_satellite_install_package_updates['results'] | count }} updates"
+  when: platform_satellite_install_package_updates['results'] | count > 0
 
 - name: patch | Update host
   when:
-    - sat_install_package_updates['results'] | count > 0
+    - platform_satellite_install_package_updates['results'] | count > 0
   block:
     - name: patch | Ensure package updates variable is defined
       ansible.builtin.assert:
         that:
-          - sat_install_package_updates is defined
+          - platform_satellite_install_package_updates is defined
 
     - name: patch | Update server with latest packages # noqa: package-latest
       ansible.builtin.dnf:
@@ -39,7 +39,7 @@
         state: latest
       when:
         - ansible_facts['distribution'] == 'RedHat'
-        - sat_install_package_updates['results'] | count > 0
+        - platform_satellite_install_package_updates['results'] | count > 0
 
     - name: patch | Enable SELinux
       ansible.posix.selinux:
@@ -53,10 +53,10 @@
 
     - name: patch | Check if server needs to restart
       ansible.builtin.command: needs-restarting -r
-      register: sat_install_restart_required
+      register: platform_satellite_install_restart_required
       ignore_errors: true
       failed_when: false
-      changed_when: sat_install_restart_required['rc'] != 0
+      changed_when: platform_satellite_install_restart_required['rc'] != 0
 
     - name: patch | Reboot on new kernel
       ansible.builtin.reboot:

@@ -14,18 +14,18 @@
 - name: prep-custom-certs | Check for existing CSR
   ansible.builtin.stat:
     path: "/tmp/backup/satellite-certificates/{{ inventory_hostname }}/{{ inventory_hostname }}_cert_csr.pem"
-  register: sat_install_existing_csr
+  register: platform_satellite_install_existing_csr
 
 - name: prep-custom-certs | Check if openssl.cnf.j2 exists
   ansible.builtin.stat:
     path: "{{ role_path }}/templates/openssl.cnf.j2"
-  register: sat_install_template_check
+  register: platform_satellite_install_template_check
   delegate_to: localhost
 
 - name: Assert template exists
   ansible.builtin.assert:
     that:
-      - sat_install_template_check.stat.exists
+      - platform_satellite_install_template_check.stat.exists
     fail_msg: "Template openssl.cnf.j2 is missing. Please add it with your satellite servers custom configurations in {{ role_path }}/templates/ !"
 
 - name: prep-custom-certs | Generate CNF file

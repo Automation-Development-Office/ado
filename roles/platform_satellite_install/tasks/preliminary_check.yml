@@ -70,29 +70,29 @@
 
 - name: preliminary_check | Get current kernel args for all entries
   ansible.builtin.command: grubby --info=ALL
-  register: sat_install_grubby_info
+  register: platform_satellite_install_grubby_info
   changed_when: false
 
 - name: preliminary_check | Remove ipv6.disable=1 if present
   ansible.builtin.command: grubby --update-kernel ALL --remove-args="ipv6.disable=1"
-  when: "'ipv6.disable=1' in sat_install_grubby_info.stdout"
+  when: "'ipv6.disable=1' in platform_satellite_install_grubby_info.stdout"
   changed_when: true
   notify: reboot system
 
 - name: preliminary_check | Add ipv6.disable=0 if missing
   ansible.builtin.command: grubby --update-kernel ALL --args="ipv6.disable=0"
-  when: "'ipv6.disable=0' not in sat_install_grubby_info.stdout"
+  when: "'ipv6.disable=0' not in platform_satellite_install_grubby_info.stdout"
   changed_when: true
   notify: reboot system
 
 - name: preliminary_check | Get kernel args for all entries
   ansible.builtin.command: grubby --info=ALL
-  register: sat_install_grubby_info
+  register: platform_satellite_install_grubby_info
   changed_when: false
 
 - name: preliminary_check | Remove ipv6.disable=1 from all kernels (only if present)
   ansible.builtin.command: grubby --update-kernel ALL --remove-args="ipv6.disable=1"
-  when: "'ipv6.disable=1' in sat_install_grubby_info.stdout"
+  when: "'ipv6.disable=1' in platform_satellite_install_grubby_info.stdout"
   changed_when: true
   notify: reboot system
 

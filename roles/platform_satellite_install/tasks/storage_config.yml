@@ -1,18 +1,18 @@
 ---
 - name: storage_config | Check to see if LVM exists from previous install attempt
   ansible.builtin.set_fact:
-    sat_install_lvm_exists: true
+    platform_satellite_install_lvm_exists: true
   when: ansible_facts['lvm']['vgs'][platform_satellite_install_satellite_vg_name] is defined
 
-# - name: create sat_install_data_disk_list
+# - name: create platform_satellite_install_data_disk_list
 #  ansible.builtin.set_fact:
-#    sat_install_data_disk_list: ''
+#    platform_satellite_install_data_disk_list: ''
 
 - name: storage_config | Find existing storage device
   ansible.builtin.set_fact:
-    sat_install_satellite_data_disk: "{{ item['key'] }}"
+    platform_satellite_install_satellite_data_disk: "{{ item['key'] }}"
   loop: "{{ ansible_facts['lvm']['pvs'] | dict2items }}"
-  when: item['value']['vg'] == platform_satellite_install_satellite_vg_name and sat_install_lvm_exists
+  when: item['value']['vg'] == platform_satellite_install_satellite_vg_name and platform_satellite_install_lvm_exists
 
 - name: storage_config | Debug devices
   ansible.builtin.debug:
@@ -23,7 +23,7 @@
     var: "item"
   loop: "{{ ansible_facts['devices'] | dict2items }}"
   when:
-    - sat_install_satellite_data_disk is not defined
+    - platform_satellite_install_satellite_data_disk is not defined
     - item['key'] is search("vd") or item['key'] is search("xvd") or item['key'] is search("sd")
     - item['value']['size'] | human_to_bytes >= platform_satellite_install_satellite_data_disk_min_size | string | human_to_bytes(default_unit="G")
     - not item['value']['partitions']
@@ -34,42 +34,42 @@
 - name: storage_config | Find suitable disk device for installation
   when:
     - platform_satellite_install_satellite_data_device_name is not defined
-    - sat_install_data_disk_list is not defined
+    - platform_satellite_install_data_disk_list is not defined
   block:
     - name: storage_config | Set variable for suitable disks
       ansible.builtin.set_fact:
-        sat_install_data_disk_list: "{{ sat_install_data_disk_list | default([]) + [item['key']] }}"
+        platform_satellite_install_data_disk_list: "{{ platform_satellite_install_data_disk_list | default([]) + [item['key']] }}"
       loop: "{{ ansible_facts['devices'] | dict2items }}"
       when:
-        - sat_install_satellite_data_disk is not defined
+        - platform_satellite_install_satellite_data_disk is not defined
         - item['key'] is search("vd") or item['key'] is search("xvd") or item['key'] is search("sd")
         - item['value']['size'] | human_to_bytes >= platform_satellite_install_satellite_data_disk_min_size | string | human_to_bytes(default_unit="G")
         - not item['value']['partitions']
         - not item['value']['holders']       # Holders = Mountpoints
-        - sat_install_data_disk_list is not defined
+        - platform_satellite_install_data_disk_list is not defined
 
     - name: storage_config | Print list of suitable disks
       ansible.builtin.debug:
-        var: sat_install_data_disk_list
+        var: platform_satellite_install_data_disk_list
 
-      # TODO Add sat_install_data_disk_list to the fail_msg
+      # TODO Add platform_satellite_install_data_disk_list to the fail_msg
     - name: storage_config | Assert that there is only one suitable disk for Satellite
       ansible.builtin.assert:
         that:
-          - sat_install_data_disk_list | length == 1
+          - platform_satellite_install_data_disk_list | length == 1
         fail_msg: "There are multiple disks that can be used. Please manually define platform_satellite_install_satellite_data_device_name and rerun"
 
     - name: storage_config | Define Satellite data disk
       ansible.builtin.set_fact:
-        sat_install_satellite_data_disk: "{{ platform_satellite_install_satellite_data_device }}/{{ sat_install_data_disk_list[0] }}"
+        platform_satellite_install_satellite_data_disk: "{{ platform_satellite_install_satellite_data_device }}/{{ platform_satellite_install_data_disk_list[0] }}"
       loop: "{{ ansible_facts['devices'] | dict2items }}"
       when:
-        - sat_install_satellite_data_disk is not defined
+        - platform_satellite_install_satellite_data_disk is not defined
         - item['key'] is search("vd") or item['key'] is search("xvd") or item['key'] is search("sd")
         - item['value']['size'] | human_to_bytes >= platform_satellite_install_satellite_data_disk_min_size | string | human_to_bytes(default_unit="G")
         - not item['value']['partitions']
         - not item['value']['holders']
-        - sat_install_data_disk_list is not defined
+        - platform_satellite_install_data_disk_list is not defined
 
 - name: storage_config | Ensure lvm2 package is installed
   ansible.builtin.dnf:
@@ -88,7 +88,7 @@
 - name: storage_config | Create the volume group.
   community.general.lvg:
     vg: "{{ platform_satellite_install_satellite_vg_name }}"
-    pvs: "{{ sat_install_satellite_data_disk }}"
+    pvs: "{{ platform_satellite_install_satellite_data_disk }}"
 
 - name: storage_config | Create the logical volumes to be mounted to Satellite's required dirs
   community.general.lvol:
