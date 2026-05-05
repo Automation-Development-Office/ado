@@ -61,7 +61,9 @@
 
     - name: storage_config | Define Satellite data disk
       ansible.builtin.set_fact:
-        platform_satellite_install_satellite_data_disk: "{{ platform_satellite_install_satellite_data_device }}/{{ platform_satellite_install_data_disk_list[0] }}"
+        platform_satellite_install_satellite_data_disk: >-
+          {{ [platform_satellite_install_satellite_data_device,
+              platform_satellite_install_data_disk_list[0]] | join('/') }}
       loop: "{{ ansible_facts['devices'] | dict2items }}"
       when:
         - platform_satellite_install_satellite_data_disk is not defined
