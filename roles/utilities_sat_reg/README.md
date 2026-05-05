@@ -87,7 +87,8 @@ utilities_sat_reg/
 
 ## 📝 Notes & Optimization
 - All variable names and registered variables use the `utilities_sat_reg_` prefix for lint compliance.
-- Molecule scenarios reference playbooks using correct relative paths.
+#- Molecule scenarios reference playbooks using correct relative paths.
+- Molecule testing temporarily removed due to github restrictions. Remove this tag once it's been added back.
 - Example usage and documentation are up to date with current role structure and naming.
 - For best security, use Ansible Vault for sensitive variables.
 - Ensure the `redhat.satellite` collection is installed on your control node or inside your execution environment.
