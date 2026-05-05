@@ -1,0 +1,104 @@
+---
+- name: rhsm_subscribe | Set timezone
+  community.general.timezone:
+    name: "{{ platform_satellite_install_satellite_timezone }}"
+
+- name: rhsm_subscribe | Restart chronyd
+  ansible.builtin.service:
+    name: chronyd
+    state: restarted
+
+- name: rhsm_subscribe | Check amazon-id.conf
+  ansible.builtin.stat:
+    path: /etc/yum/pluginconf.d/amazon-id.conf
+  register: sat_install_stat_result
+
+- name: rhsm_subscribe | Disable amazon-id.conf
+  ansible.builtin.lineinfile:
+    path: /etc/yum/pluginconf.d/amazon-id.conf
+    regexp: '^enabled=1'
+    line: enabled=0
+    backrefs: true
+  when: sat_install_stat_result.stat.exists
+
+- name: rhsm_subscribe | Find repo files
+  ansible.builtin.find:
+    paths: /etc/yum.repos.d
+    patterns: "*.repo"
+  register: sat_install_repo_files
+
+- name: rhsm_subscribe | Check registration
+  ansible.builtin.command: subscription-manager list
+  register: sat_install_status
+  changed_when: false
+  failed_when: sat_install_status.rc not in [0, 1]
+  become: true
+
+- name: rhsm_subscribe | Subscription block
+  when: "'Satellite' not in sat_install_status.stdout"
+  block:
+
+    - name: rhsm_subscribe | Remove non-redhat repo files
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      when: item.path != "/etc/yum.repos.d/redhat.repo"
+      loop: "{{ sat_install_repo_files.files }}"
+
+    - name: rhsm_subscribe | Stop rhsm service
+      ansible.builtin.service:
+        name: rhsm
+        state: stopped
+
+    - name: rhsm_subscribe | Configure rhsm.conf
+      ansible.builtin.lineinfile:
+        path: /etc/rhsm/rhsm.conf
+        regexp: "^{{ item.key }}"
+        line: "{{ item.value }}"
+      loop:
+        - { key: 'hostname', value: 'hostname = subscription.rhsm.redhat.com' }
+        - { key: 'baseurl', value: 'baseurl = https://cdn.redhat.com' }
+        - { key: 'repo_ca_cert', value: 'repo_ca_cert = %(ca_cert_dir)sredhat-uep.pem' }
+        - { key: 'prefix', value: 'prefix = /subscription' }
+
+    - name: rhsm_subscribe | Start rhsm service
+      ansible.builtin.service:
+        name: rhsm
+        state: started
+
+    - name: rhsm_subscribe | Remove old subscription
+      community.general.redhat_subscription:
+        state: absent
+
+    - name: rhsm_subscribe | Clean subscription manager
+      ansible.builtin.command: subscription-manager clean
+      changed_when: false
+
+    - name: rhsm_subscribe | Remove old Satellite RPMs
+      ansible.builtin.package:
+        name: katello-ca-consumer-*.noarch
+        state: absent
+
+    - name: rhsm_subscribe | Debug activation key
+      ansible.builtin.debug:
+        var: platform_satellite_install_satellite_rhn_activation_key
+
+    - name: rhsm_subscribe | Debug org id
+      ansible.builtin.debug:
+        var: platform_satellite_install_satellite_rhn_org_id
+
+    - name: rhsm_subscribe | Register system
+      community.general.redhat_subscription:
+        activationkey: "{{ platform_satellite_install_satellite_rhn_activation_key }}"
+        org_id: "{{ platform_satellite_install_satellite_rhn_org_id }}"
+        state: present
+        force_register: true
+        server_proxy_hostname: "{{ platform_satellite_install_satellite_proxy_server | default(omit) }}"
+        server_proxy_port: "{{ platform_satellite_install_satellite_proxy_port | default(omit) }}"
+        server_proxy_scheme: "{{ platform_satellite_install_satellite_proxy_scheme | default(omit) }}"
+
+    - name: rhsm_subscribe | Enable repositories
+      community.general.rhsm_repository:
+        name: "{{ item }}"
+        state: enabled
+      loop: "{{ platform_satellite_install_satellite_rhn_repos }}"

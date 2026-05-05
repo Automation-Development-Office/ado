@@ -1,0 +1,29 @@
+---
+# tasks file for ado.applications.sat_install
+
+- name: Preliminary Check
+  ansible.builtin.include_tasks: preliminary_check.yml
+
+- name: Block tasks to run when pre_check is set to false
+  when: not platform_satellite_install_pre_check
+  block:
+    - name: RHSM Subscribe
+      ansible.builtin.include_tasks: rhsm_subscribe.yml
+
+    - name: Patch
+      ansible.builtin.include_tasks: patch.yml
+
+    - name: Storage Config
+      ansible.builtin.include_tasks: storage_config.yml
+
+    - name: Install Packages
+      ansible.builtin.include_tasks: install_packages.yml
+
+    - name: Configure Firewall
+      ansible.builtin.include_tasks: configure_firewall.yml
+
+    - name: Prep Custom Certificates
+      ansible.builtin.include_tasks: prep-custom-certs.yml
+
+    - name: DNS Config
+      ansible.builtin.include_tasks: dns_config.yml

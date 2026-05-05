@@ -1,0 +1,10 @@
+---
+- name: Prepare - platform_satellite_install scenario
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: prepare | Ensure test environment is available
+      ansible.builtin.debug:
+        msg: "platform_satellite_install prepare step"

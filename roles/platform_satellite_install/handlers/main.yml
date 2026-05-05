@@ -1,0 +1,7 @@
+---
+# handlers file for ado.applications.sat_install
+- name: Reboot node
+  listen: reboot system
+  ansible.builtin.reboot:
+    reboot_timeout: 600
+    test_command: "ping -c 1 127.0.0.1"

@@ -1,0 +1,69 @@
+---
+- name: patch | Clean dnf-clean-metadata
+  ansible.builtin.file:
+    path: /var/cache/dnf
+    state: absent
+
+- name: Gather package facts
+  ansible.builtin.package_facts:
+
+- name: Remove unneeded packages
+  ansible.builtin.dnf:
+    name: iwl7265-firmware
+    state: absent
+  when: "'iwl7265-firmware' in ansible_facts['packages']"
+
+- name: patch | Check servers with latest packages updates
+  ansible.builtin.dnf:
+    list: updates
+  register: sat_install_package_updates
+  when: ansible_facts['distribution'] == 'RedHat'
+
+- name: patch | Print the number of package updates
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }} has {{ sat_install_package_updates['results'] | count }} updates"
+  when: sat_install_package_updates['results'] | count > 0
+
+- name: patch | Update host
+  when:
+    - sat_install_package_updates['results'] | count > 0
+  block:
+    - name: patch | Ensure package updates variable is defined
+      ansible.builtin.assert:
+        that:
+          - sat_install_package_updates is defined
+
+    - name: patch | Update server with latest packages # noqa: package-latest
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+      when:
+        - ansible_facts['distribution'] == 'RedHat'
+        - sat_install_package_updates['results'] | count > 0
+
+    - name: patch | Enable SELinux
+      ansible.posix.selinux:
+        policy: targeted
+        state: "{{ platform_satellite_install_satellite_selinux_state }}"
+
+    - name: patch | Create autorelabel file # noqa: risky-file-permissions
+      ansible.builtin.file:
+        path: /.autorelabel
+        state: touch
+
+    - name: patch | Check if server needs to restart
+      ansible.builtin.command: needs-restarting -r
+      register: sat_install_restart_required
+      ignore_errors: true
+      failed_when: false
+      changed_when: sat_install_restart_required['rc'] != 0
+
+    - name: patch | Reboot on new kernel
+      ansible.builtin.reboot:
+        msg: "Reboot initiated by Ansible after Linux kernel update"
+        reboot_timeout: 3600
+        test_command: date
+
+- name: patch | Refreshing Ansible facts
+  ansible.builtin.setup:
+...
