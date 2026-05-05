@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: MIT-0
+---
+# tasks file for mount
+
+- name: Assert mount_action required variable is defined
+  ansible.builtin.assert:
+    that:
+      - mount_action is defined
+      - mount_action in ['mounted', 'unmounted', 'absent']
+    fail_msg: "mount_action variable must be defined (either 'mounted', 'unmounted', or 'absent')"
+
+- name: Assert mount_path required variable is defined when mounting or unmounting
+  ansible.builtin.assert:
+    that:
+      - mount_path is defined
+    fail_msg: "mount_path variable must be defined when mounting or unmounting or removing"
+
+- name: Assert mount_fstype required variable is defined when mounting and detection is set to false
+  ansible.builtin.assert:
+    that:
+      - mount_fstype is defined
+    fail_msg: "mount_fstype variable must be defined when mounting without detection"
+  when: mount_action == 'mounted' and not mount_fstype_detection
+
+- name: Install latest efs-utils
+  ansible.builtin.import_tasks: get_fs_type.yml
+  when: mount_fstype_detection
+
+- name: Mount filesystem tasks
+  ansible.builtin.import_tasks:
+    file: mount_filesystem.yml
+  when: mount_path is defined and target_device is defined and mount_action in ['mounted']
+
+- name: Unmount filesystem tasks
+  ansible.builtin.import_tasks: unmount_filesystem.yml
+  when: mount_path is defined and mount_action in ['unmounted']
+
+- name: Remove filesystem from fstab
+  when: mount_action in ['absent']
+  block:
+    - name: Unmount filesystem tasks
+      ansible.builtin.import_tasks: unmount_filesystem.yml
+
+    - name: Remove mount from fstab if unmounted
+      ansible.builtin.import_tasks: remove_mount_from_fstab.yml
