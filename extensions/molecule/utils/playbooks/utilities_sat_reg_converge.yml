@@ -1,0 +1,15 @@
+---
+- name: Converge — apply satellite registration across RHEL 7/8/9/10
+  hosts: all
+  become: false
+  remote_user: root
+
+  roles:
+    - role: infra.ado.platform_sat_reg
+      vars:
+        sat_reg_action: register
+        # sat_reg_activation_key_name: rhel-9
+        sat_reg_satellite_org_name: Lab
+        sat_reg_satellite_host: "https://sat.server.lab"
+        sat_reg_validate_certs: false
+        sat_reg_insecure: true
