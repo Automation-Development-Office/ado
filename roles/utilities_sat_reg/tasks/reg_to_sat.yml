@@ -1,5 +1,4 @@
 ---
-
 - name: Gathering facts
   ansible.builtin.gather_facts:
     gather_subset:
@@ -12,7 +11,6 @@
       - (ansible_facts['distribution_major_version'] | int >= 8)
     fail_msg: "RHEL {{ ansible_facts['distribution_major_version'] }} and earlier machines are out-of-support and will not be registered."
     success_msg: "RHEL{{ ansible_facts['distribution_major_version'] }} detected. Proceeding."
-
 
 - name: Generate registration command
   redhat.satellite.registration_command:
@@ -35,7 +33,7 @@
     verbosity: 1
     msg: "{{ utilities_sat_reg_command.registration_command }}"
 
-- name: Perform registration  # noqa: command-instead-of-shell Because we need to run a shell command based on the output of the previous task
+- name: Perform registration # noqa: command-instead-of-shell Because we need to run a shell command based on the output of the previous task
   ansible.builtin.shell: "{{ utilities_sat_reg_command.registration_command }}"
   register: utilities_sat_reg_script_result
   changed_when: "'system has been registered' in utilities_sat_reg_script_result.stdout"

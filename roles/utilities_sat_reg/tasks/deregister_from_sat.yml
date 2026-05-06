@@ -1,5 +1,4 @@
 ---
-
 - name: Gathering facts
   ansible.builtin.gather_facts:
     gather_subset:
