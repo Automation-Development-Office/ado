@@ -1,3 +1,4 @@
+---
 - name: Deploy MultiClusterHub CR
   kubernetes.core.k8s:
     definition:

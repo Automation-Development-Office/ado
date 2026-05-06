@@ -1,3 +1,4 @@
+---
 - name: Create Certificate Secret
   kubernetes.core.k8s:
     state: present
@@ -8,8 +9,8 @@
         name: "{{ username }}-certificates"
         namespace: "{{ username }}-devspaces"
         labels:
-          controller.devfile.io/mount-to-devworkspace: 'true'
-          controller.devfile.io/watch-secret: 'true'
+          controller.devfile.io/mount-to-devworkspace: "true"
+          controller.devfile.io/watch-secret: "true"
         annotations:
           controller.devfile.io/mount-path: /home/user/certs
       data:
@@ -27,8 +28,8 @@
         name: "{{ username }}-bashrc"
         namespace: "{{ username }}-devspaces"
         labels:
-          controller.devfile.io/mount-to-devworkspace: 'true'
-          controller.devfile.io/watch-configmap: 'true'
+          controller.devfile.io/mount-to-devworkspace: "true"
+          controller.devfile.io/watch-configmap: "true"
         annotations:
           controller.devfile.io/mount-as: subpath
           controller.devfile.io/mount-path: /home/user
@@ -99,13 +100,13 @@
         name: "{{ username }}-data"
         namespace: "{{ username }}-devspaces"
         labels:
-          controller.devfile.io/mount-to-devworkspace: 'true'
+          controller.devfile.io/mount-to-devworkspace: "true"
       spec:
         accessModes:
           - ReadWriteOnce
         resources:
           requests:
-            storage: '{{ pvc_size }}'
+            storage: "{{ pvc_size }}"
         volumeName: "pvc-{{ username }}-devspaces"
         storageClassName: "{{ storage_class }}"
         volumeMode: Filesystem
@@ -121,8 +122,8 @@
         name: ssh-config
         namespace: "{{ username }}-devspaces"
         labels:
-          controller.devfile.io/mount-to-devworkspace: 'true'
-          controller.devfile.io/watch-secret: 'true'
+          controller.devfile.io/mount-to-devworkspace: "true"
+          controller.devfile.io/watch-secret: "true"
         annotations:
           controller.devfile.io/mount-as: subpath
           controller.devfile.io/mount-path: /home/user/.ssh
@@ -136,19 +137,21 @@
     kind: Secret
     name: ssh-pub-key
     namespace: "{{ username }}-devspaces"
-  register: devspaces_user_config_ssh_pub_key_test
+  register: openshift_configure_devspaces_user_config_ssh_pub_key_test
 
 - name: Check if ssh-priv-key secret exists
   kubernetes.core.k8s_info:
     kind: Secret
     name: ssh-priv-key
     namespace: "{{ username }}-devspaces"
-  register: devspaces_user_config_ssh_priv_key_test
+  register: openshift_configure_devspaces_user_config_ssh_priv_key_test
 
 - name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
   community.crypto.openssh_keypair:
     path: /tmp/id_ssh_rsa
-  when: devspaces_user_config_ssh_priv_key_test.resources | length == 0 or devspaces_user_config_ssh_pub_key_test.resources | length == 0
+  when: >-
+    openshift_configure_devspaces_user_config_ssh_priv_key_test.resources
+    | length == 0 or openshift_configure_devspaces_user_config_ssh_pub_key_test.resources | length == 0
 
 - name: Create ssh_priv_keys Secret
   kubernetes.core.k8s:
@@ -160,8 +163,8 @@
         name: ssh-priv-key
         namespace: "{{ username }}-devspaces"
         labels:
-          controller.devfile.io/mount-to-devworkspace: 'true'
-          controller.devfile.io/watch-secret: 'true'
+          controller.devfile.io/mount-to-devworkspace: "true"
+          controller.devfile.io/watch-secret: "true"
         annotations:
           controller.devfile.io/mount-as: subpath
           controller.devfile.io/mount-path: /home/user/.ssh
@@ -180,8 +183,8 @@
         name: ssh-pub-key
         namespace: "{{ username }}-devspaces"
         labels:
-          controller.devfile.io/mount-to-devworkspace: 'true'
-          controller.devfile.io/watch-secret: 'true'
+          controller.devfile.io/mount-to-devworkspace: "true"
+          controller.devfile.io/watch-secret: "true"
         annotations:
           controller.devfile.io/mount-as: subpath
           controller.devfile.io/mount-path: /home/user/.ssh

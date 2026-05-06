@@ -1,3 +1,4 @@
+---
 - name: Converge — wait_for_pods (fixture + wait role)
   hosts: localhost
   gather_facts: false
@@ -5,7 +6,7 @@
     name_space: test-wait-pods-molecule
     app_name: hello
     replicas: 2
-    validate_certs: false           # flip to true if you provide a trusted CA
+    validate_certs: false # flip to true if you provide a trusted CA
     fixture_image: registry.k8s.io/pause:3.9
     state: present
   tasks:
@@ -13,7 +14,7 @@
       ansible.builtin.include_role:
         name: ado.openshift.namespace
 
-    - name: Ensure Deployment exists ({{ replicas }} replicas)
+    - name: "Ensure Deployment exists, replicas: {{ replicas }}"
       kubernetes.core.k8s:
         state: present
         definition:
@@ -50,9 +51,14 @@
         name: "{{ app_name }}"
         namespace: "{{ name_space }}"
         validate_certs: "{{ validate_certs }}"
-      register: dep_info
+      register: openshift_tools_wait_for_pods_running_dep_info
 
     - name: Debug replicas and selector
       ansible.builtin.debug:
-        msg: "Deployment '{{ dep_info.resources[0].metadata.name }}' selector={{ dep_info.resources[0].spec.selector.matchLabels | to_json }} replicas={{ dep_info.resources[0].spec.replicas }}"
-      when: dep_info.resources | length == 1
+        msg: >-
+          Deployment '{{ openshift_tools_wait_for_pods_running_dep_info.resources[0].metadata.name }}'
+          selector={{
+          openshift_tools_wait_for_pods_running_dep_info.resources[0].spec.selector.matchLabels
+          | to_json }} replicas={{ openshift_tools_wait_for_pods_running_dep_info.resources[0].spec.replicas
+          }}"
+      when: openshift_tools_wait_for_pods_running_dep_info.resources | length == 1

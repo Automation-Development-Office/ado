@@ -9,16 +9,16 @@
 - name: Validate required ACS vars
   ansible.builtin.assert:
     that:
-      - acs_namespace is defined
-      - acs_namespace | length > 0
-      - acs_namespace != "openshift-operators"
-      - not (acs_namespace is match("^openshift-"))
-      - (acs_admin_password is defined) and (acs_admin_password | length > 0)
-      - (acs_admin_password is not match(".*\\n.*"))   # single line only
+      - openshift_install_acs_namespace is defined
+      - openshift_install_acs_namespace | length > 0
+      - openshift_install_acs_namespace != "openshift-operators"
+      - not (openshift_install_acs_namespace is match("^openshift-"))
+      - (openshift_install_acs_admin_password is defined) and (openshift_install_acs_admin_password | length > 0)
+      - (openshift_install_acs_admin_password is not match(".*\\n.*")) # single line only
     fail_msg: >-
       Missing/invalid vars. Ensure:
-      - acs_namespace is a non-system namespace (e.g. stackrox)
-      - acs_admin_password is set and single-line (plaintext)
+      - openshift_install_acs_namespace is a non-system namespace (e.g. stackrox)
+      - openshift_install_acs_admin_password is set and single-line (plaintext)
   tags: [acs, rhacs, central]
 
 # ------------------------------------------------------------
@@ -31,7 +31,7 @@
       apiVersion: v1
       kind: Namespace
       metadata:
-        name: "{{ acs_namespace }}"
+        name: "{{ openshift_install_acs_namespace }}"
   tags: [acs, rhacs, central]
 
 # ------------------------------------------------------------
@@ -42,9 +42,9 @@
     state: absent
     api_version: platform.stackrox.io/v1alpha1
     kind: Central
-    namespace: "{{ acs_namespace }}"
-    name: "{{ acs_central_name }}"
-  when: acs_reinstall | bool
+    namespace: "{{ openshift_install_acs_namespace }}"
+    name: "{{ openshift_install_acs_central_name }}"
+  when: openshift_install_acs_reinstall | bool
   failed_when: >
     (kubernetes.core.k8s is failed) and
     ('NotFound' not in (kubernetes.core.k8s | string))
@@ -55,9 +55,9 @@
     state: absent
     api_version: route.openshift.io/v1
     kind: Route
-    namespace: "{{ acs_namespace }}"
-    name: "{{ acs_route_name }}"
-  when: acs_reinstall | bool
+    namespace: "{{ openshift_install_acs_namespace }}"
+    name: "{{ openshift_install_acs_route_name }}"
+  when: openshift_install_acs_reinstall | bool
   failed_when: >
     (kubernetes.core.k8s is failed) and
     ('NotFound' not in (kubernetes.core.k8s | string))
@@ -68,11 +68,11 @@
     state: absent
     api_version: v1
     kind: Secret
-    namespace: "{{ acs_namespace }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
     name: central-htpasswd
   when:
-    - acs_reinstall | bool
-    - acs_delete_operator_generated_htpasswd | bool
+    - openshift_install_acs_reinstall | bool
+    - openshift_install_acs_delete_operator_generated_htpasswd | bool
   failed_when: >
     (kubernetes.core.k8s is failed) and
     ('NotFound' not in (kubernetes.core.k8s | string))
@@ -84,9 +84,9 @@
     state: absent
     api_version: v1
     kind: Secret
-    namespace: "{{ acs_namespace }}"
-    name: "{{ acs_admin_password_secret }}"
-  when: acs_reinstall | bool
+    namespace: "{{ openshift_install_acs_namespace }}"
+    name: "{{ openshift_install_acs_admin_password_secret }}"
+  when: openshift_install_acs_reinstall | bool
   failed_when: >
     (kubernetes.core.k8s is failed) and
     ('NotFound' not in (kubernetes.core.k8s | string))
@@ -102,9 +102,9 @@
     state: absent
     api_version: apps/v1
     kind: StatefulSet
-    namespace: "{{ acs_namespace }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
     name: central-db
-  when: acs_reinstall | bool
+  when: openshift_install_acs_reinstall | bool
   failed_when: >
     (kubernetes.core.k8s is failed) and
     ('NotFound' not in (kubernetes.core.k8s | string))
@@ -114,9 +114,9 @@
     state: absent
     api_version: v1
     kind: Service
-    namespace: "{{ acs_namespace }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
     name: central-db
-  when: acs_reinstall | bool
+  when: openshift_install_acs_reinstall | bool
   failed_when: >
     (kubernetes.core.k8s is failed) and
     ('NotFound' not in (kubernetes.core.k8s | string))
@@ -126,9 +126,9 @@
     state: absent
     api_version: v1
     kind: Secret
-    namespace: "{{ acs_namespace }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
     name: central-db-password
-  when: acs_reinstall | bool
+  when: openshift_install_acs_reinstall | bool
   failed_when: >
     (kubernetes.core.k8s is failed) and
     ('NotFound' not in (kubernetes.core.k8s | string))
@@ -141,9 +141,9 @@
     state: absent
     api_version: v1
     kind: PersistentVolumeClaim
-    namespace: "{{ acs_namespace }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
     name: central-db
-  when: acs_reinstall | bool
+  when: openshift_install_acs_reinstall | bool
   failed_when: >
     (kubernetes.core.k8s is failed) and
     ('NotFound' not in (kubernetes.core.k8s | string))
@@ -153,20 +153,20 @@
   kubernetes.core.k8s_info:
     api_version: v1
     kind: PersistentVolumeClaim
-    namespace: "{{ acs_namespace }}"
-  register: acs_pvcs
-  when: acs_reinstall | bool
+    namespace: "{{ openshift_install_acs_namespace }}"
+  register: openshift_install_acs_pvcs
+  when: openshift_install_acs_reinstall | bool
 
 - name: Remove matching central-db PVCs
   kubernetes.core.k8s:
     state: absent
     api_version: v1
     kind: PersistentVolumeClaim
-    namespace: "{{ acs_namespace }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
     name: "{{ item.metadata.name }}"
-  loop: "{{ (acs_pvcs.resources | default([])) }}"
+  loop: "{{ (openshift_install_acs_pvcs.resources | default([])) }}"
   when:
-    - acs_reinstall | bool
+    - openshift_install_acs_reinstall | bool
     - item.metadata.name is match('^data-.*central-db.*') or item.metadata.name is match('^central-db.*')
   failed_when: >
     (kubernetes.core.k8s is failed) and
@@ -179,15 +179,15 @@
 - name: Create Central admin password secret (plaintext "password" entry)
   kubernetes.core.k8s:
     state: present
-    namespace: "{{ acs_namespace }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
     definition:
       apiVersion: v1
       kind: Secret
       metadata:
-        name: "{{ acs_admin_password_secret }}"
+        name: "{{ openshift_install_acs_admin_password_secret }}"
       type: Opaque
       stringData:
-        password: "{{ acs_admin_password }}"
+        password: "{{ openshift_install_acs_admin_password }}"
   no_log: true
   tags: [acs, rhacs, central]
 
@@ -197,16 +197,16 @@
 - name: Deploy RHACS Central CR (adminPasswordSecret)
   kubernetes.core.k8s:
     state: present
-    namespace: "{{ acs_namespace }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
     definition:
       apiVersion: platform.stackrox.io/v1alpha1
       kind: Central
       metadata:
-        name: "{{ acs_central_name }}"
+        name: "{{ openshift_install_acs_central_name }}"
       spec:
         central:
           adminPasswordSecret:
-            name: "{{ acs_admin_password_secret }}"
+            name: "{{ openshift_install_acs_admin_password_secret }}"
         persistence:
           persistentVolumeClaim:
             claimName: central-pvc
@@ -228,10 +228,10 @@
   kubernetes.core.k8s_info:
     api_version: apps/v1
     kind: Deployment
-    name: "{{ acs_central_name }}"
-    namespace: "{{ acs_namespace }}"
-  register: acs_central_deploy
-  until: acs_central_deploy.resources | length > 0
+    name: "{{ openshift_install_acs_central_name }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
+  register: openshift_install_acs_central_deploy
+  until: openshift_install_acs_central_deploy.resources | length > 0
   retries: 60
   delay: 10
   tags: [acs, rhacs, central]
@@ -240,11 +240,11 @@
   kubernetes.core.k8s_info:
     api_version: apps/v1
     kind: Deployment
-    name: "{{ acs_central_name }}"
-    namespace: "{{ acs_namespace }}"
-  register: acs_central_ready
+    name: "{{ openshift_install_acs_central_name }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
+  register: openshift_install_acs_central_ready
   until:
-    - (acs_central_ready.resources[0].status.availableReplicas | default(0)) | int >= 1
+    - (openshift_install_acs_central_ready.resources[0].status.availableReplicas | default(0)) | int >= 1
   retries: 60
   delay: 10
   tags: [acs, rhacs, central]
@@ -255,16 +255,16 @@
 - name: Create passthrough route for Central
   kubernetes.core.k8s:
     state: present
-    namespace: "{{ acs_namespace }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
     definition:
       apiVersion: route.openshift.io/v1
       kind: Route
       metadata:
-        name: "{{ acs_route_name }}"
+        name: "{{ openshift_install_acs_route_name }}"
       spec:
         to:
           kind: Service
-          name: "{{ acs_central_name }}"
+          name: "{{ openshift_install_acs_central_name }}"
         port:
           targetPort: https
         tls:
@@ -277,16 +277,16 @@
   kubernetes.core.k8s_info:
     api_version: route.openshift.io/v1
     kind: Route
-    name: "{{ acs_route_name }}"
-    namespace: "{{ acs_namespace }}"
-  register: acs_central_route
+    name: "{{ openshift_install_acs_route_name }}"
+    namespace: "{{ openshift_install_acs_namespace }}"
+  register: openshift_install_acs_central_route
   tags: [acs, rhacs, central]
 
 - name: Show RHACS admin login info
   ansible.builtin.debug:
     msg:
-      - "RHACS Login: https://{{ acs_central_route.resources[0].spec.host }}"
+      - "RHACS Login: https://{{ openshift_install_acs_central_route.resources[0].spec.host }}"
       - "Username: admin"
-      - "Password: (acs_admin_password)"
-      - "Admin secret: {{ acs_admin_password_secret }} (key: password)"
+      - "Password: (openshift_install_acs_admin_password)"
+      - "Admin secret: {{ openshift_install_acs_admin_password_secret }} (key: password)"
   tags: [acs, rhacs, central]

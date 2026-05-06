@@ -54,9 +54,9 @@
     name: postfix-pod
     state: absent
   failed_when: >
-    (postfix_result is defined and postfix_result.failed) and
-    ('NotFound' not in (postfix_result.msg | default('')))
-  register: postfix_result
+    (openshift_install_postfix_result is defined and openshift_install_postfix_result.failed) and
+    ('NotFound' not in (openshift_install_postfix_result.msg | default('')))
+  register: openshift_install_postfix_result
 
 - name: Deploy Postfix Pod
   kubernetes.core.k8s:
@@ -72,7 +72,7 @@
       spec:
         containers:
           - name: postfix
-            image: "{{ postfix_image }}"
+            image: "{{ openshift_install_postfix_image }}"
             securityContext:
               runAsUser: 0
               capabilities:
@@ -110,8 +110,8 @@
     kind: Pod
     namespace: "{{ name_space }}"
     name: postfix-pod
-  register: postfix_pod_info
-  until: postfix_pod_info.resources[0].status.phase == "Running"
+  register: openshift_install_postfix_pod_info
+  until: openshift_install_postfix_pod_info.resources[0].status.phase == "Running"
   retries: 12
   delay: 10
 
@@ -138,14 +138,14 @@
     kind: Service
     namespace: "{{ name_space }}"
     name: postfix-service
-  register: postfix_service_info
+  register: openshift_install_postfix_service_info
 
 - name: Display Service Details
   ansible.builtin.debug:
     msg: |
       Postfix Service is exposed:
-      Cluster IP: {{ postfix_service_info.resources[0].spec.clusterIP }}
-      Node Port: {{ postfix_service_info.resources[0].spec.ports[0].nodePort | default('N/A') }}
+      Cluster IP: {{ openshift_install_postfix_service_info.resources[0].spec.clusterIP }}
+      Node Port: {{ openshift_install_postfix_service_info.resources[0].spec.ports[0].nodePort | default('N/A') }}
 
 - name: Test sending email from pod
   kubernetes.core.k8s_exec:
@@ -156,9 +156,9 @@
       - /bin/bash
       - -c
       - |
-          echo -e "From: {{ test_email }}\nTo: {{ recipient_email }}\nSubject: Postfix Test Email\n\n\
-          This is a test email sent from Postfix on OpenShift." | \
-          sendmail -v {{ recipient_email }}
+        echo -e "From: {{ test_email }}\nTo: {{ recipient_email }}\nSubject: Postfix Test Email\n\n\
+        This is a test email sent from Postfix on OpenShift." | \
+        sendmail -v {{ recipient_email }}
 
 - name: Clean up Postfix Pod (optional)
   kubernetes.core.k8s:

@@ -1,42 +1,43 @@
+---
 - name: Find a running dirsrv pod # noqa
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Pod
-    namespace: "{{ dirsrv_search_target_namespace }}" # noqa
+    namespace: "{{ openshift_tools_search_dirsrv__target_namespace }}" # noqa
     label_selectors:
-      - "{{ dirsrv_searchds_app_label }}" # noqa
-  register: dirsrv_search_pods # noqa
+      - "{{ openshift_tools_search_dirsrv_ds_app_label }}" # noqa
+  register: openshift_tools_search_dirsrv__pods # noqa
 
 - name: Fail if no dirsrv pods found
   ansible.builtin.fail:
-    msg: "No pods with label {{ dirsrv_search_app_label }} in namespace {{ dirsrv_search_target_namespace }}"
+    msg: "No pods with label {{ openshift_tools_search_dirsrv__app_label }} in namespace {{ openshift_tools_search_dirsrv__target_namespace }}"
   when:
-    - dirsrv_search_fail_if_no_pod | bool
-    - (dirsrv_search_pods.resources | length) == 0
+    - openshift_tools_search_dirsrv__fail_if_no_pod | bool
+    - (openshift_tools_search_dirsrv__pods.resources | length) == 0
 
 - name: Pick first pod name # noqa
   ansible.builtin.set_fact:
-    dirsrv_search_pod: "{{ (dirsrv_search_pods.resources | map(attribute='metadata.name') | list | first) | default('') }}"
+    openshift_tools_search_dirsrv__pod: "{{ (openshift_tools_search_dirsrv__pods.resources | map(attribute='metadata.name') | list | first) | default('') }}"
 
 - name: Render search script # noqa
   ansible.builtin.set_fact:
-    dirsrv_search_script: "{{ lookup('template', 'run_search.sh.j2') }}"
-  when: dirsrv_search_pod | length > 0
+    openshift_tools_search_dirsrv__script: "{{ lookup('template', 'run_search.sh.j2') }}"
+  when: openshift_tools_search_dirsrv__pod | length > 0
 
 - name: Run ldapsearch queries inside container # noqa
   kubernetes.core.k8s_exec:
-    namespace: "{{ dirsrv_search_target_namespace }}"
-    pod: "{{ dirsrv_search_pod }}"
-    container: "{{ dirsrv_search_container_name }}"
+    namespace: "{{ openshift_tools_search_dirsrv__target_namespace }}"
+    pod: "{{ openshift_tools_search_dirsrv__pod }}"
+    container: "{{ openshift_tools_search_dirsrv__container_name }}"
     command: |
-      sh -lc {{ dirsrv_search_script | to_json }}
-  register: dirsrv_search_out
+      sh -lc {{ openshift_tools_search_dirsrv__script | to_json }}
+  register: openshift_tools_search_dirsrv__out
   failed_when: false
-  when: dirsrv_search_pod | length > 0
+  when: openshift_tools_search_dirsrv__pod | length > 0
 
 - name: Print output
   ansible.builtin.debug:
-    msg: "{{ dirsrv_search_out.stdout | default('No output') }}"
+    msg: "{{ openshift_tools_search_dirsrv__out.stdout | default('No output') }}"
   when:
-    - dirsrv_search_print_only | bool
-    - dirsrv_search_pod | length > 0
+    - openshift_tools_search_dirsrv__print_only | bool
+    - openshift_tools_search_dirsrv__pod | length > 0

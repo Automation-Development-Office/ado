@@ -19,7 +19,7 @@ provisioner:
             ansible_connection: local
   playbooks:
     converge: converge.yml
-    destroy: destroy.yml        
+    destroy: destroy.yml
   env:
     # Use a safe callback (your earlier error came from a broken yaml callback plugin)
     ANSIBLE_STDOUT_CALLBACK: default

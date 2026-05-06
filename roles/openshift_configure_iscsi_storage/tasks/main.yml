@@ -1,15 +1,16 @@
+---
 - name: Get all storage classes
   community.kubernetes.k8s_info:
     api_version: storage.k8s.io/v1
     kind: StorageClass
     kubeconfig: "{{ kubeconfig_tmp }}"
-  register: iscsi_storage_classes
+  register: openshift_configure_iscsi_storage_classes
 
 - name: Set fact if default storage class exists
   ansible.builtin.set_fact:
-    iscsi_storage_has_default_storage_class: >-
+    openshift_configure_iscsi_storage_has_default_storage_class: >-
       {{
-        iscsi_storage_classes.resources
+        openshift_configure_iscsi_storage_classes.resources
         | selectattr('metadata.annotations.storageclass\\.kubernetes\\.io/is-default-class', 'equalto', 'true')
         | list
         | length > 0
@@ -23,7 +24,7 @@
       kind: Namespace
       metadata:
         name: synology-csi
-  when: not iscsi_storage_has_default_storage_class
+  when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Create client-info-secret from file
   community.kubernetes.k8s:
@@ -37,53 +38,53 @@
       type: Opaque
       data:
         client-info.yml: "{{ lookup('file', synology_dir + '/client-info.yml') | b64encode }}"
-  when: not iscsi_storage_has_default_storage_class
+  when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply synology-csi-scc.yml
   community.kubernetes.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ synology_dir }}/synology-csi-scc.yml"
-  when: not iscsi_storage_has_default_storage_class
+  when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply controller.yml
   community.kubernetes.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ deploy_dir }}/controller.yml"
-  when: not iscsi_storage_has_default_storage_class
+  when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply csi-driver.yml
   community.kubernetes.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ deploy_dir }}/csi-driver.yml"
-  when: not iscsi_storage_has_default_storage_class
+  when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply node.yml
   community.kubernetes.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ deploy_dir }}/node.yml"
-  when: not iscsi_storage_has_default_storage_class
+  when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply storage-class.yml
   community.kubernetes.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ synology_dir }}/storage-class.yml"
-  when: not iscsi_storage_has_default_storage_class
+  when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply snapshotter.yaml
   community.kubernetes.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ deploy_dir }}/snapshotter/snapshotter.yaml"
-  when: not iscsi_storage_has_default_storage_class
+  when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply volume-snapshot-class.yml
   community.kubernetes.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ deploy_dir }}/snapshotter/volume-snapshot-class.yml"
-  when: not iscsi_storage_has_default_storage_class
+  when: not openshift_configure_iscsi_storage_has_default_storage_class

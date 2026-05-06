@@ -1,3 +1,4 @@
+---
 - name: Create/Delete Loki Stack
   kubernetes.core.k8s:
     state: "{{ loki_stack_state }}"
@@ -13,7 +14,7 @@
         managementState: Managed
         storage:
           schemas:
-            - effectiveDate: '2020-10-11'
+            - effectiveDate: "2020-10-11"
               version: v11
           secret:
             name: "{{ loki_secret }}"

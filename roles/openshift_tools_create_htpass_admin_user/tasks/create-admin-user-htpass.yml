@@ -1,7 +1,7 @@
 ---
 - name: Build htpasswd content from user list
   ansible.builtin.set_fact:
-    create_htpass_admin_user_htpasswd_content: |
+    openshift_tools_create_htpass_admin_user_htpasswd_content: |
       {% for user in htpasswd_users %}
       {{ user.name }}:{{ user.password | password_hash('bcrypt', rounds=12) | regex_replace('^\$2b\$', '$2y$') }}
       {% endfor %}
@@ -18,7 +18,7 @@
         name: "{{ htpasswd_secret }}"
       type: Opaque
       stringData:
-        htpasswd: "{{ create_htpass_admin_user_htpasswd_content | trim }}"
+        htpasswd: "{{ openshift_tools_create_htpass_admin_user_htpasswd_content | trim }}"
   no_log: true
 
 - name: Grant cluster-admin to selected htpasswd users
@@ -47,17 +47,18 @@
     api_version: config.openshift.io/v1
     kind: OAuth
     name: cluster
-  register: create_htpass_admin_user_oauth_config
+  register: openshift_tools_create_htpass_admin_user_oauth_config
 
 - name: Extract identity providers
   ansible.builtin.set_fact:
-    create_htpass_admin_user_current_providers: "{{ create_htpass_admin_user_oauth_config.resources[0].spec.identityProviders | default([]) }}"
+    openshift_tools_create_htpass_admin_user_current_providers: >-
+      {{ openshift_tools_create_htpass_admin_user_oauth_config.resources[0].spec.identityProviders | default([]) }}
 
 - name: Check if htpasswd provider exists
   ansible.builtin.set_fact:
-    create_htpass_admin_user_htpasswd_exists: >-
+    openshift_tools_create_htpass_admin_user_htpasswd_exists: >-
       {{
-        create_htpass_admin_user_current_providers
+        openshift_tools_create_htpass_admin_user_current_providers
         | selectattr('name', 'equalto', htpasswd_idp_name)
         | list
         | length > 0
@@ -66,7 +67,7 @@
 
 - name: Define htpasswd provider
   ansible.builtin.set_fact:
-    create_htpass_admin_user_htpasswd_provider_def:
+    openshift_tools_create_htpass_admin_user_htpasswd_provider_def:
       name: "{{ htpasswd_idp_name }}"
       mappingMethod: claim
       type: HTPasswd
@@ -77,12 +78,12 @@
 
 - name: Add htpasswd provider if missing
   ansible.builtin.set_fact:
-    create_htpass_admin_user_updated_identity_providers: >
+    openshift_tools_create_htpass_admin_user_updated_identity_providers: >
       {{
-        create_htpass_admin_user_current_providers
-        + [create_htpass_admin_user_htpasswd_provider_def]
-        if not create_htpass_admin_user_htpasswd_exists
-        else create_htpass_admin_user_current_providers
+        openshift_tools_create_htpass_admin_user_current_providers
+        + [openshift_tools_create_htpass_admin_user_htpasswd_provider_def]
+        if not openshift_tools_create_htpass_admin_user_htpasswd_exists
+        else openshift_tools_create_htpass_admin_user_current_providers
       }}
   no_log: true
 
@@ -95,19 +96,19 @@
       metadata:
         name: cluster
       spec:
-        identityProviders: "{{ create_htpass_admin_user_updated_identity_providers }}"
-  when: not create_htpass_admin_user_htpasswd_exists
+        identityProviders: "{{ openshift_tools_create_htpass_admin_user_updated_identity_providers }}"
+  when: not openshift_tools_create_htpass_admin_user_htpasswd_exists
 
 - name: Wait for authentication operator to finish rollout
   kubernetes.core.k8s_info:
     api_version: config.openshift.io/v1
     kind: ClusterOperator
     name: authentication
-  register: create_htpass_admin_user_auth_co
+  register: openshift_tools_create_htpass_admin_user_auth_co
   until: >
-    create_htpass_admin_user_auth_co.resources is defined and
-    create_htpass_admin_user_auth_co.resources | length > 0 and
-    (create_htpass_admin_user_auth_co.resources[0].status.conditions
+    openshift_tools_create_htpass_admin_user_auth_co.resources is defined and
+    openshift_tools_create_htpass_admin_user_auth_co.resources | length > 0 and
+    (openshift_tools_create_htpass_admin_user_auth_co.resources[0].status.conditions
       | selectattr('type','equalto','Progressing')
       | list | first).status | default('False')
     == 'False'

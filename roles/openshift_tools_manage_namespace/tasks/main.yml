@@ -1,3 +1,4 @@
+---
 - name: Importing namespace
   ansible.builtin.import_tasks: create_namespace.yml
   when: state == "present"

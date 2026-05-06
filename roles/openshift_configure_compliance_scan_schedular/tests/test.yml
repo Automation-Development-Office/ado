@@ -4,4 +4,4 @@
   hosts: localhost
   remote_user: root
   roles:
-    - compliance_scan_scheduler
+    - openshift_configure_compliance_scan_schedular

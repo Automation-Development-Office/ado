@@ -4,23 +4,23 @@
 - name: Subscription | Derive namespaces and names
   ansible.builtin.set_fact:
     # Where the Subscription + OperatorGroup live
-    subscription_operator_sub_namespace: >-
+    openshift_tools_subscription_operator_sub_namespace: >-
       {{
         (operator_subscription_namespace | default('') | string | trim)
         | default((name_space | default('') | string | trim))
       }}
     # metadata.name for the Subscription object
-    subscription_operator_sub_name: "{{ operator_subscription_name | default(operator_name ~ '-sub') }}"
+    openshift_tools_subscription_operator_sub_name: "{{ operator_subscription_name | default(operator_name ~ '-sub') }}"
     # Package name (spec.name) is operator_name
-    subscription_operator_pkg_name: "{{ operator_name }}"
+    openshift_tools_subscription_operator_pkg_name: "{{ operator_name }}"
     # Always force channel to string
-    subscription_operator_channel: "{{ operator_channel | string }}"
+    openshift_tools_subscription_operator_channel: "{{ operator_channel | string }}"
   changed_when: false
 
 - name: Subscription | Assert required inputs
   ansible.builtin.assert:
     that:
-      - subscription_operator_sub_namespace is defined and (subscription_operator_sub_namespace | string | trim | length) > 0
+      - openshift_tools_subscription_operator_sub_namespace is defined and (openshift_tools_subscription_operator_sub_namespace | string | trim | length) > 0
       - operator_name is defined and (operator_name | string | trim | length) > 0
       - operator_channel is defined and (operator_channel | string | trim | length) > 0
       - operator_source is defined and (operator_source | string | trim | length) > 0
@@ -39,7 +39,7 @@
       apiVersion: v1
       kind: Namespace
       metadata:
-        name: "{{ subscription_operator_sub_namespace }}"
+        name: "{{ openshift_tools_subscription_operator_sub_namespace }}"
   when: state | default('present') == 'present'
 
 # Create OperatorGroup first (if configured)
@@ -51,11 +51,11 @@
       kind: OperatorGroup
       metadata:
         name: "{{ operatorgroup }}"
-        namespace: "{{ subscription_operator_sub_namespace }}"
+        namespace: "{{ openshift_tools_subscription_operator_sub_namespace }}"
       spec: >-
         {{
           (all_namespaces_install | default(false) | bool)
-          | ternary({}, {'targetNamespaces': [subscription_operator_sub_namespace]})
+          | ternary({}, {'targetNamespaces': [openshift_tools_subscription_operator_sub_namespace]})
         }}
   when:
     - operatorgroup is defined
@@ -69,11 +69,11 @@
       apiVersion: operators.coreos.com/v1alpha1
       kind: Subscription
       metadata:
-        name: "{{ subscription_operator_sub_name }}"
-        namespace: "{{ subscription_operator_sub_namespace }}"
+        name: "{{ openshift_tools_subscription_operator_sub_name }}"
+        namespace: "{{ openshift_tools_subscription_operator_sub_namespace }}"
       spec:
-        channel: "{{ subscription_operator_channel }}"
-        name: "{{ subscription_operator_pkg_name }}"
+        channel: "{{ openshift_tools_subscription_operator_channel }}"
+        name: "{{ openshift_tools_subscription_operator_pkg_name }}"
         source: "{{ operator_source }}"
         sourceNamespace: "{{ operator_source_namespace }}"
         installPlanApproval: "{{ installPlanApproval | default('Automatic') }}"

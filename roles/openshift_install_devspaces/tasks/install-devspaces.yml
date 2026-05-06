@@ -1,10 +1,11 @@
+---
 # ----------------------------
 # 0) Resolve namespaces
 # ----------------------------
 - name: Resolve DevSpaces namespaces
   ansible.builtin.set_fact:
-    _devspaces_operator_ns: "{{ operator_namespace | default(name_space) }}"
-    _devspaces_app_ns: "{{ app_namespace | default('devspaces') }}"
+    openshift_install_devspaces_operator_ns: "{{ operator_namespace | default(name_space) }}"
+    openshift_install_devspaces_app_ns: "{{ app_namespace | default('devspaces') }}"
 
 # ----------------------------
 # 1) Wait for Dev Spaces CSV (operator install namespace)
@@ -13,12 +14,12 @@
   kubernetes.core.k8s_info:
     api_version: operators.coreos.com/v1alpha1
     kind: ClusterServiceVersion
-    namespace: "{{ _devspaces_operator_ns }}"
-  register: devspaces_csvs
+    namespace: "{{ openshift_install_devspaces_operator_ns }}"
+  register: openshift_install_devspaces_csvs
   retries: 30
   delay: 10
   until: >
-    (devspaces_csvs.resources | default([])) |
+    (openshift_install_devspaces_csvs.resources | default([])) |
     selectattr('metadata.name', 'search', 'devspacesoperator') |
     selectattr('status.phase', 'equalto', 'Succeeded') |
     list | length > 0
@@ -33,7 +34,7 @@
       apiVersion: v1
       kind: Namespace
       metadata:
-        name: "{{ _devspaces_app_ns }}"
+        name: "{{ openshift_install_devspaces_app_ns }}"
 
 # ----------------------------
 # 3) Deploy CheCluster in app namespace (devspaces)
@@ -46,7 +47,7 @@
       kind: CheCluster
       metadata:
         name: devspaces
-        namespace: "{{ _devspaces_app_ns }}"
+        namespace: "{{ openshift_install_devspaces_app_ns }}"
       spec:
         server:
           cheImageTag: "3.20.0"
@@ -62,20 +63,20 @@
     api_version: org.eclipse.che/v2
     kind: CheCluster
     name: devspaces
-    namespace: "{{ _devspaces_app_ns }}"
-  register: devspaces_checluster
+    namespace: "{{ openshift_install_devspaces_app_ns }}"
+  register: openshift_install_devspaces_checluster
   retries: 60
   delay: 10
   until: >
-    (devspaces_checluster.resources | default([]) | length) > 0 and
-    ((devspaces_checluster.resources[0].status.cheURL | default('')) | length) > 0
+    (openshift_install_devspaces_checluster.resources | default([]) | length) > 0 and
+    ((openshift_install_devspaces_checluster.resources[0].status.cheURL | default('')) | length) > 0
 
 # Optional: show what URL it picked (useful for debugging)
 - name: Show DevSpaces URL
   ansible.builtin.debug:
     msg:
-      - "DevSpaces operator namespace: {{ _devspaces_operator_ns }}"
-      - "DevSpaces app namespace: {{ _devspaces_app_ns }}"
-      - "cheURL: {{ devspaces_checluster.resources[0].status.cheURL | default('') }}"
-      - "pluginRegistryURL: {{ devspaces_checluster.resources[0].status.pluginRegistryURL | default('') }}"
-      - "devfileRegistryURL: {{ devspaces_checluster.resources[0].status.devfileRegistryURL | default('') }}"
+      - "DevSpaces operator namespace: {{ openshift_install_devspaces_operator_ns }}"
+      - "DevSpaces app namespace: {{ openshift_install_devspaces_app_ns }}"
+      - "cheURL: {{ openshift_install_devspaces_checluster.resources[0].status.cheURL | default('') }}"
+      - "pluginRegistryURL: {{ openshift_install_devspaces_checluster.resources[0].status.pluginRegistryURL | default('') }}"
+      - "devfileRegistryURL: {{ openshift_install_devspaces_checluster.resources[0].status.devfileRegistryURL | default('') }}"

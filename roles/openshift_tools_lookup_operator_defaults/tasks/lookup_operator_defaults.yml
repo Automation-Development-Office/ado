@@ -1,25 +1,26 @@
+---
 - name: Get list of all PackageManifests
   kubernetes.core.k8s_info:
     api_version: packages.operators.coreos.com/v1
     kind: PackageManifest
-  register: lookup_operator_defaults_operator_manifest_list
+  register: openshift_tools_lookup_operator_defaults_operator_manifest_list
 
 - name: Build list of matching operators
   ansible.builtin.set_fact:
-    lookup_operator_defaults_matching_manifests: >-
-      {{ lookup_operator_defaults_operator_manifest_list.resources
+    openshift_tools_lookup_operator_defaults_matching_manifests: >-
+      {{ openshift_tools_lookup_operator_defaults_operator_manifest_list.resources
          | selectattr('metadata.name', 'search', app_name)
          | list }}
 
 - name: Fail if no matching operators found
   ansible.builtin.fail:
     msg: "No PackageManifest found for '{{ app_name }}'"
-  when: lookup_operator_defaults_matching_manifests | length == 0
+  when: openshift_tools_lookup_operator_defaults_matching_manifests | length == 0
 
 - name: Show all matching operator packages
   ansible.builtin.debug:
     msg: >-
-      {% for item in lookup_operator_defaults_matching_manifests %}
+      {% for item in openshift_tools_lookup_operator_defaults_matching_manifests %}
       operator_name: {{ item.metadata.name }}
       operator_channel: {{ item.status.defaultChannel }}
       operator_source: {{ item.status.catalogSource }}
@@ -29,8 +30,8 @@
 
 - name: Extract operator match info as list of dicts
   ansible.builtin.set_fact:
-    lookup_operator_defaults_operator_matches: >-
-      [{% for item in lookup_operator_defaults_matching_manifests %}
+    openshift_tools_lookup_operator_defaults_operator_matches: >-
+      [{% for item in openshift_tools_lookup_operator_defaults_matching_manifests %}
         {
           "operator_name": "{{ item.metadata.name }}",
           "operator_channel": "{{ item.status.defaultChannel }}",
@@ -42,4 +43,4 @@
 
 - name: Show operator name list
   ansible.builtin.debug:
-    var: lookup_operator_defaults_operator_matches
+    var: openshift_tools_lookup_operator_defaults_operator_matches

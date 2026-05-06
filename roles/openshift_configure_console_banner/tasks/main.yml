@@ -7,7 +7,7 @@
 #
 # We NEVER touch vendor/ROSA banners because we only match by:
 #   - label app.kubernetes.io/managed-by=ado   OR
-#   - name starts with console_banner_name_prefix (default: ado-banner)
+#   - name starts with openshift_configure_console_banner_name_prefix (default: ado-banner)
 
 - name: Guard state
   ansible.builtin.assert:
@@ -18,37 +18,37 @@
 - name: Guard required vars for present/new
   ansible.builtin.assert:
     that:
-      - console_banner_text is defined
-      - (console_banner_text | string | trim | length) > 0
-    fail_msg: "console_banner_text must be set for state=present/new"
+      - openshift_configure_console_banner_text is defined
+      - (openshift_configure_console_banner_text | string | trim | length) > 0
+    fail_msg: "openshift_configure_console_banner_text must be set for state=present/new"
   when: (state | default('present')) in ['present', 'new']
 
 - name: Set defaults
   ansible.builtin.set_fact:
-    console_banner_prefix: "{{ console_banner_name_prefix | default('ado-banner') }}"
-    console_banner_single_name: "{{ console_banner_name | default('ado-banner') }}"
-    console_banner_location: "{{ console_banner_location | default('BannerTop') }}"
-    console_banner_background_color: "{{ console_banner_background_color | default('#1f7a1f') }}"
-    console_banner_text_color: "{{ console_banner_text_color | default('#ffffff') }}"
+    openshift_configure_console_banner_prefix: "{{ openshift_configure_console_banner_name_prefix | default('ado-banner') }}"
+    openshift_configure_console_banner_single_name: "{{ openshift_configure_console_banner_name | default('ado-banner') }}"
+    openshift_configure_console_banner_location: "{{ openshift_configure_console_banner_location | default('BannerTop') }}"
+    openshift_configure_console_banner_background_color: "{{ openshift_configure_console_banner_background_color | default('#1f7a1f') }}"
+    openshift_configure_console_banner_text_color: "{{ openshift_configure_console_banner_text_color | default('#ffffff') }}"
 
 - name: Read all ConsoleNotifications
   kubernetes.core.k8s_info:
     api_version: console.openshift.io/v1
     kind: ConsoleNotification
-  register: console_banner_cn_all
+  register: openshift_configure_console_banner_cn_all
 
 # "ours" = labeled OR name startswith prefix
 - name: Build list of ADO-managed ConsoleNotifications (label OR prefix)
   ansible.builtin.set_fact:
-    console_banner_ado_cn: >-
+    openshift_configure_console_banner_ado_cn: >-
       {{
-        (console_banner_cn_all.resources | default([]))
+        (openshift_configure_console_banner_cn_all.resources | default([]))
         | selectattr('metadata.name', 'defined')
-        | selectattr('metadata.name', 'match', '^' ~ (console_banner_prefix | regex_escape) )
+        | selectattr('metadata.name', 'match', '^' ~ (openshift_configure_console_banner_prefix | regex_escape) )
         | list
         +
         (
-          (console_banner_cn_all.resources | default([]))
+          (openshift_configure_console_banner_cn_all.resources | default([]))
           | selectattr('metadata.labels.app.kubernetes.io/managed-by', 'defined')
           | selectattr('metadata.labels.app.kubernetes.io/managed-by', 'equalto', 'ado')
           | list
@@ -65,7 +65,7 @@
     api_version: console.openshift.io/v1
     kind: ConsoleNotification
     name: "{{ item.metadata.name }}"
-  loop: "{{ console_banner_ado_cn }}"
+  loop: "{{ openshift_configure_console_banner_ado_cn }}"
   when: (state | default('present')) == 'absent'
 
 # --------------------------------------------
@@ -77,7 +77,7 @@
     api_version: console.openshift.io/v1
     kind: ConsoleNotification
     name: "{{ item.metadata.name }}"
-  loop: "{{ console_banner_ado_cn }}"
+  loop: "{{ openshift_configure_console_banner_ado_cn }}"
   when: (state | default('present')) == 'new'
 
 - name: Create single fresh ADO banner (state=new)
@@ -87,15 +87,15 @@
       apiVersion: console.openshift.io/v1
       kind: ConsoleNotification
       metadata:
-        name: "{{ console_banner_single_name }}"
+        name: "{{ openshift_configure_console_banner_single_name }}"
         labels:
           app.kubernetes.io/managed-by: "ado"
           app.kubernetes.io/name: "console-banner"
       spec:
-        text: "{{ console_banner_text }}"
-        location: "{{ console_banner_location }}"
-        backgroundColor: "{{ console_banner_background_color }}"
-        color: "{{ console_banner_text_color }}"
+        text: "{{ openshift_configure_console_banner_text }}"
+        location: "{{ openshift_configure_console_banner_location }}"
+        backgroundColor: "{{ openshift_configure_console_banner_background_color }}"
+        color: "{{ openshift_configure_console_banner_text_color }}"
   when: (state | default('present')) == 'new'
 
 # ---------------------------------------------------------
@@ -103,16 +103,17 @@
 # ---------------------------------------------------------
 - name: Compute deterministic banner name for this message (state=present)
   ansible.builtin.set_fact:
-    console_banner_msg_hash: "{{ (console_banner_text | string) | hash('sha1') }}"
-    console_banner_msg_name: "{{ console_banner_prefix ~ '-' ~ ((console_banner_text | string) | hash('sha1'))[0:10] }}"
+    openshift_configure_console_banner_msg_hash: "{{ (openshift_configure_console_banner_text | string) | hash('sha1') }}"
+    openshift_configure_console_banner_msg_name: >-
+      {{ openshift_configure_console_banner_prefix ~ '-' ~ ((openshift_configure_console_banner_text | string) | hash('sha1'))[0:10] }}
   when: (state | default('present')) == 'present'
 
 - name: Determine if this exact message banner already exists
   ansible.builtin.set_fact:
-    console_banner_already_exists: >-
+    openshift_configure_console_banner_already_exists: >-
       {{
-        (console_banner_cn_all.resources | default([]))
-        | selectattr('metadata.name', 'equalto', console_banner_msg_name)
+        (openshift_configure_console_banner_cn_all.resources | default([]))
+        | selectattr('metadata.name', 'equalto', openshift_configure_console_banner_msg_name)
         | list
         | length > 0
       }}
@@ -125,16 +126,16 @@
       apiVersion: console.openshift.io/v1
       kind: ConsoleNotification
       metadata:
-        name: "{{ console_banner_msg_name }}"
+        name: "{{ openshift_configure_console_banner_msg_name }}"
         labels:
           app.kubernetes.io/managed-by: "ado"
           app.kubernetes.io/name: "console-banner"
-          ado.console-banner/message-hash: "{{ console_banner_msg_hash }}"
+          ado.console-banner/message-hash: "{{ openshift_configure_console_banner_msg_hash }}"
       spec:
-        text: "{{ console_banner_text }}"
+        text: "{{ openshift_configure_console_banner_text }}"
         location: "{{ _location }}"
         backgroundColor: "{{ _bg }}"
         color: "{{ _fg }}"
   when:
     - (state | default('present')) == 'present'
-    - not console_banner_already_exists
+    - not openshift_configure_console_banner_already_exists

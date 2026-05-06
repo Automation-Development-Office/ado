@@ -1,3 +1,4 @@
+---
 # roles/.../tasks/main.yml
 - name: Create Service Accounts (per-item)
   ansible.builtin.include_tasks: create_service_account.yml

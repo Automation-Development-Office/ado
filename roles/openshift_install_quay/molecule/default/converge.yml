@@ -1,3 +1,4 @@
+---
 - name: Create SAs and bindings
   hosts: localhost
   gather_facts: false
@@ -6,7 +7,19 @@
     verify_cert: false
     exclude_namespaces: [] # optional when name_space is all, skip these namespaces
     service_accounts:
-      - { service_account: aap, state: present, role: cluster-admin, role_kind: ClusterRole, bind_scope: cluster, scc_context: anyuid, token: true }
-      - { service_account: cli-tool, state: present, role: cluster-devel, role_kind: ClusterRole, bind_scope: cluster, scc_context: none, token: false }
+      - service_account: aap
+        state: present
+        role: cluster-admin
+        role_kind: ClusterRole
+        bind_scope: cluster
+        scc_context: anyuid
+        token: true
+      - service_account: cli-tool
+        state: present
+        role: cluster-devel
+        role_kind: ClusterRole
+        bind_scope: cluster
+        scc_context: none
+        token: false
   roles:
     - ado.openshift.service_accounts

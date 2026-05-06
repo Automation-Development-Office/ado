@@ -1,3 +1,4 @@
+---
 - name: Ensure required variables are defined
   ansible.builtin.assert:
     that:
@@ -57,7 +58,7 @@
     name: "{{ vm_name }}"
     namespace: "{{ vm_namespace }}"
     running: true
-  register: ocp_virt_vm_status
-  until: ocp_virt_vm_status.result.status.printableStatus == "Running"
+  register: openshift_install_ocp_virt_vm_status
+  until: openshift_install_ocp_virt_vm_status.result.status.printableStatus == "Running"
   retries: 60
   delay: 5

@@ -49,7 +49,7 @@
         namespace: "{{ name_space }}"
       spec:
         chart:
-          version: "9.4.0"  # Supported version!
+          version: "9.4.0" # Supported version!
         certmanager:
           install: false
         gitlab:

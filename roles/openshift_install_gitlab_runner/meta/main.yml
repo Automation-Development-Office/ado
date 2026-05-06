@@ -1,3 +1,4 @@
+---
 galaxy_info:
   role_name: gitlab_runner
   author: Chad Elliott
@@ -5,7 +6,7 @@ galaxy_info:
   company: ADO Lab
   license: GPL-3.0-or-later
 
-  min_ansible_version: '2.16.0'
+  min_ansible_version: "2.16.0"
   # If the issue tracker for your role is not on github, uncomment the
   # next line and provide a value
   # issue_tracker_url: http://example.com/issue/tracker

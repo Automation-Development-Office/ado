@@ -3,15 +3,15 @@
   kubernetes.core.k8s_info:
     api_version: route.openshift.io/v1
     kind: Route
-  register: discover_routes_all
+  register: openshift_tools_discover_routes__all
 
 - name: Discover Routes | Start empty candidate list
   ansible.builtin.set_fact:
-    discover_routes_alt_candidates: []
+    openshift_tools_discover_routes__alt_candidates: []
 
 - name: Discover Routes | Append candidates (primary domain, not already -alt)
   ansible.builtin.set_fact:
-    discover_routes_alt_candidates: "{{ discover_routes_alt_candidates + [_cand] }}"
+    openshift_tools_discover_routes__alt_candidates: "{{ openshift_tools_discover_routes__alt_candidates + [_cand] }}"
   vars:
     _cand:
       namespace: "{{ item.metadata.namespace }}"
@@ -22,7 +22,7 @@
       tls_termination: "{{ item.spec.tls.termination | default('') }}"
       tls_insecure_policy: "{{ item.spec.tls.insecureEdgeTerminationPolicy | default('') }}"
       wildcard_policy: "{{ item.spec.wildcardPolicy | default('None') }}"
-  loop: "{{ discover_routes_all.resources | default([]) }}"
+  loop: "{{ openshift_tools_discover_routes__all.resources | default([]) }}"
   loop_control:
     label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"
   when:
@@ -38,16 +38,16 @@
     msg: |
       Primary domain: {{ app_domain }}
       Alt domain:     {{ app_domain_alt }}
-      Candidates:     {{ discover_routes_alt_candidates | length }}
+      Candidates:     {{ openshift_tools_discover_routes__alt_candidates | length }}
 
 - name: Discover Routes | Print candidates (one per line)
   ansible.builtin.debug:
     msg: >-
       {{ item.namespace }}/{{ item.name }} -> {{ item.host }}
-  loop: "{{ discover_routes_alt_candidates }}"
+  loop: "{{ openshift_tools_discover_routes__alt_candidates }}"
   loop_control:
     label: "{{ item.host }}"
 
 - name: Discover Routes | Export candidates for downstream roles
   ansible.builtin.set_fact:
-    discover_routes_alt_routes_candidates: "{{ discover_routes_alt_candidates }}"
+    openshift_tools_discover_routes__alt_routes_candidates: "{{ openshift_tools_discover_routes__alt_candidates }}"

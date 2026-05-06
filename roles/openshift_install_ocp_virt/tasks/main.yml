@@ -1,3 +1,4 @@
+---
 - name: Create OpenShift VirtualMachine
   ansible.builtin.import_tasks: create_vm.yml
   when: vm_name is defined

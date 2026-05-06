@@ -1,3 +1,4 @@
+---
 - name: Delete Keycloak Custom Resource
   kubernetes.core.k8s:
     state: absent
@@ -34,7 +35,7 @@
     kind: PersistentVolumeClaim
     namespace: "{{ name_space }}"
     name: data-volume-postgresql-db
-  failed_when: false  # In case PVC is already gone
+  failed_when: false # In case PVC is already gone
 
 - name: Delete Keycloak TLS Secret
   kubernetes.core.k8s:

@@ -1,7 +1,7 @@
+---
 - name: Install Grafana operator
   ansible.builtin.import_tasks: install-grafana-operator.yml
   when: state == "present"
-
 
 - name: Delete Grafana operator
   ansible.builtin.import_tasks: delete-grafana-operator.yml

@@ -15,7 +15,8 @@ argument_specs:
         required: true
       manage_vm_image_dest_path:
         type: str
-        description: Destination path for the output image. In prerequisites, this is expanded to the final output image path by appending manage_vm_image_dest_name.
+        description: Destination path for the output image. In prerequisites, this is expanded to the final output image path by appending
+          manage_vm_image_dest_name.
         required: true
       manage_vm_image_dest_name:
         type: str
@@ -40,11 +41,11 @@ argument_specs:
       manage_vm_image_path:
         type: str
         description: Reserved default variable for a full destination path. It is defined in defaults but is not used by the current task flow.
-        default: null
+        default:
       manage_vm_image_size:
         type: str
         description: Reserved for future image sizing workflows. Not used by the current task flow.
-        default: null
+        default:
       manage_vm_image_force:
         type: bool
         description: Reserved for future replacement behavior. Not used by the current task flow.

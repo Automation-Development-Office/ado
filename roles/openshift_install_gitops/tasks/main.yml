@@ -51,11 +51,11 @@
     kind: Route
     namespace: "{{ app_namespace | default(name_space) }}"
     name: "{{ route_name | default('openshift-gitops-server') }}"
-  register: gitops_argocd_route
+  register: openshift_install_gitops_argocd_route
 
 - name: Print ArgoCD URL
   ansible.builtin.debug:
     msg:
-      - "Argo CD URL: https://{{ gitops_argocd_route.resources[0].spec.host }}"
+      - "Argo CD URL: https://{{ openshift_install_gitops_argocd_route.resources[0].spec.host }}"
       - "Login: click LOG IN VIA OPENSHIFT"
-  when: gitops_argocd_route.resources | length > 0
+  when: openshift_install_gitops_argocd_route.resources | length > 0

@@ -1,3 +1,4 @@
+---
 - name: Destroy — remove resources
   hosts: localhost
   gather_facts: false
@@ -16,15 +17,15 @@
         api_version: v1
         kind: Namespace
         name: "{{ name_space }}"
-        validate_certs: false     # or true w/ trusted CA/kubeconfig
-      register: ns_gone
-      until: ns_gone.resources | length == 0
+        validate_certs: false # or true w/ trusted CA/kubeconfig
+      register: openshift_tools_manage_namespace_ns_gone
+      until: openshift_tools_manage_namespace_ns_gone.resources | length == 0
       retries: 10
       delay: 3
 
     - name: Assert namespace exists
       ansible.builtin.assert:
         that:
-          - ns_gone.resources | length == 0
+          - openshift_tools_manage_namespace_ns_gone.resources | length == 0
         success_msg: "✅ Namespace {{ name_space }} deleted."
         fail_msg: "❌ Namespace {{ name_space }} still exists after deletion."

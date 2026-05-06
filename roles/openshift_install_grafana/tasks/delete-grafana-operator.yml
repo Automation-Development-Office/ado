@@ -1,3 +1,4 @@
+---
 - name: Delete Route to expose Grafana
   kubernetes.core.k8s:
     state: absent

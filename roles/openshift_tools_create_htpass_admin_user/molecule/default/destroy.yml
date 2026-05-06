@@ -22,14 +22,14 @@
         kind: OAuth
         name: "{{ htpasswd_idp_name }}"
         validate_certs: "{{ validate_certs }}"
-      register: _oauth_before
+      register: openshift_tools_create_htpass_admin_user_oauth_before
       failed_when: false
 
     - name: Prune dummy OIDC from OAuth spec
-      when: _oauth_before.resources | length > 0
+      when: openshift_tools_create_htpass_admin_user_oauth_before.resources | length > 0
       vars:
-        _existing: "{{ _oauth_before.resources[0].spec.identityProviders | default([]) }}"
-        _pruned: "{{ _existing | rejectattr('name','equalto', oidc_idp_name) | list }}"
+        _existing: "{{ openshift_tools_create_htpass_admin_user_oauth_before.resources[0].spec.identityProviders | default([]) }}"
+        _pruned: "{{ _existing | rejectattr('name', 'equalto', oidc_idp_name) | list }}"
       kubernetes.core.k8s:
         api_version: config.openshift.io/v1
         kind: OAuth
@@ -50,14 +50,18 @@
         kind: ClusterOperator
         name: authentication
         validate_certs: "{{ validate_certs }}"
-      register: _auth_co_after
+      register: openshift_tools_create_htpass_admin_user_auth_co_after
       retries: 30
       delay: 10
       until: >
-        _auth_co_after.resources is defined and
-        _auth_co_after.resources | length > 0 and
+        openshift_tools_create_htpass_admin_user_auth_co_after.resources is defined and
+        openshift_tools_create_htpass_admin_user_auth_co_after.resources | length > 0 and
         (
-          (_auth_co_after.resources[0].status.conditions | selectattr('type','equalto','Progressing') | list | first).status
+          (
+            openshift_tools_create_htpass_admin_user_auth_co_after.resources[0].status.conditions
+            | selectattr('type', 'equalto', 'Progressing')
+            | list | first
+          ).status
           | default('False')
         ) == 'False'
 
@@ -77,11 +81,15 @@
         kind: OAuth
         name: "{{ htpasswd_idp_name }}"
         validate_certs: "{{ validate_certs }}"
-      register: _oauth_final
+      register: openshift_tools_create_htpass_admin_user_oauth_final
 
     - name: Confirm HTPasswd and dummy OIDC IdPs are gone
       ansible.builtin.assert:
         that:
-          - (_oauth_final.resources[0].spec.identityProviders | default([]) | selectattr('name','equalto', htpasswd_idp_name) | list | length) == 0
-          - (_oauth_final.resources[0].spec.identityProviders | default([]) | selectattr('name','equalto', oidc_idp_name) | list | length) == 0
+          - >-
+            (openshift_tools_create_htpass_admin_user_oauth_final.resources[0].spec.identityProviders | default([])
+            | selectattr('name','equalto', htpasswd_idp_name) | list | length) == 0
+          - >-
+            (openshift_tools_create_htpass_admin_user_oauth_final.resources[0].spec.identityProviders | default([])
+            | selectattr('name','equalto', oidc_idp_name) | list | length) == 0
         fail_msg: "Expected both '{{ htpasswd_idp_name }}' and '{{ oidc_idp_name }}' IdPs to be removed."

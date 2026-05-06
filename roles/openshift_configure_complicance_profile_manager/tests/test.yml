@@ -4,4 +4,4 @@
   hosts: localhost
   remote_user: root
   roles:
-    - compliance_profile_manager
+    - openshift_configure_complicance_profile_manager

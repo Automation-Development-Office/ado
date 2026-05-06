@@ -1,14 +1,15 @@
+---
 - name: Derive operator namespace and OperatorGroup name
   ansible.builtin.set_fact:
     # Prefer the standard framework var if present
-    operatorgroup_operator_ns: >-
+    openshift_tools_manage_operator_groups_operator_ns: >-
       {{ operator_namespace
-         | default(operatorgroup_operator_ns)
+         | default(openshift_tools_manage_operator_groups_operator_ns)
          | default( (all_namespaces_install | default(false) | bool)
                     | ternary('openshift-operators', name_space)) }}
-    operatorgroup_name: >-
+    openshift_tools_manage_operator_groups_name: >-
       {{ operatorgroup
-         | default(operatorgroup_name)
+         | default(openshift_tools_manage_operator_groups_name)
          | default( (all_namespaces_install | default(false) | bool)
                     | ternary('global-operators', name_space ~ '-operatorgroup') ) }}
 
@@ -28,22 +29,23 @@
     kubernetes.core.k8s_info:
       validate_certs: "{{ validate_certs | default(true) | bool }}"
   block:
-
     # ========================== PRESENT =======================================
     - name: Lookup existing OperatorGroups in operator namespace
       kubernetes.core.k8s_info:
         api_version: operators.coreos.com/v1
         kind: OperatorGroup
-        namespace: "{{ operatorgroup_operator_ns }}"
-      register: operatorgroup_og_info
+        namespace: "{{ openshift_tools_manage_operator_groups_operator_ns }}"
+      register: openshift_tools_manage_operator_groups_og_info
       when: (state | default('present')) == 'present'
 
     - name: Guard — OLM requires exactly 0 or 1 OG in a namespace
       ansible.builtin.fail:
-        msg: "Namespace '{{ operatorgroup_operator_ns }}' already has {{ operatorgroup_og_info.resources | length }} OperatorGroups. OLM requires exactly one."
+        msg: >-
+          Namespace '{{ openshift_tools_manage_operator_groups_operator_ns }}' already has {{ openshift_tools_manage_operator_groups_og_info.resources
+          | length }} OperatorGroups. OLM requires exactly one.
       when:
         - (state | default('present')) == 'present'
-        - (operatorgroup_og_info.resources | length) > 1
+        - (openshift_tools_manage_operator_groups_og_info.resources | length) > 1
 
     # ---- AllNamespaces mode: create when none exists; reconcile if needed -----
     - name: Create OperatorGroup (AllNamespaces mode) when none exists
@@ -53,19 +55,19 @@
           apiVersion: operators.coreos.com/v1
           kind: OperatorGroup
           metadata:
-            name: "{{ operatorgroup_name }}"
-            namespace: "{{ operatorgroup_operator_ns }}"
-          spec: {}     # no targetNamespaces → all namespaces
+            name: "{{ openshift_tools_manage_operator_groups_name }}"
+            namespace: "{{ openshift_tools_manage_operator_groups_operator_ns }}"
+          spec: {} # no targetNamespaces → all namespaces
       when:
         - (state | default('present')) == 'present'
         - (all_namespaces_install | default(false) | bool)
-        - (operatorgroup_og_info.resources | length) == 0
+        - (openshift_tools_manage_operator_groups_og_info.resources | length) == 0
 
     - name: Reconcile existing OG to AllNamespaces (remove targetNamespaces) when needed
       vars:
         _reconcile_all_ns: "{{ reconcile_all_ns | default(true) | bool }}"
-        existing_name: "{{ operatorgroup_og_info.resources[0].metadata.name }}"
-        current_tns: "{{ (operatorgroup_og_info.resources[0].spec.targetNamespaces | default([])) | list }}"
+        existing_name: "{{ openshift_tools_manage_operator_groups_og_info.resources[0].metadata.name }}"
+        current_tns: "{{ (openshift_tools_manage_operator_groups_og_info.resources[0].spec.targetNamespaces | default([])) | list }}"
       kubernetes.core.k8s:
         state: present
         definition:
@@ -73,27 +75,27 @@
           kind: OperatorGroup
           metadata:
             name: "{{ existing_name }}"
-            namespace: "{{ operatorgroup_operator_ns }}"
+            namespace: "{{ openshift_tools_manage_operator_groups_operator_ns }}"
           spec: {}
       when:
         - (state | default('present')) == 'present'
         - (all_namespaces_install | default(false) | bool)
-        - (operatorgroup_og_info.resources | length) == 1
+        - (openshift_tools_manage_operator_groups_og_info.resources | length) == 1
         - _reconcile_all_ns
         - (current_tns | length) > 0
 
     - name: Info — AllNamespaces OG already has no targetNamespaces
       vars:
-        current_tns: "{{ (operatorgroup_og_info.resources[0].spec.targetNamespaces | default([])) | list }}"
+        current_tns: "{{ (openshift_tools_manage_operator_groups_og_info.resources[0].spec.targetNamespaces | default([])) | list }}"
       ansible.builtin.debug:
         msg: >-
-          OG '{{ operatorgroup_og_info.resources[0].metadata.name }}' in
-          '{{ operatorgroup_operator_ns }}' already AllNamespaces
+          OG '{{ openshift_tools_manage_operator_groups_og_info.resources[0].metadata.name }}' in
+          '{{ openshift_tools_manage_operator_groups_operator_ns }}' already AllNamespaces
           (targetNamespaces={{ current_tns | to_json }}).
       when:
         - (state | default('present')) == 'present'
         - (all_namespaces_install | default(false) | bool)
-        - (operatorgroup_og_info.resources | length) == 1
+        - (openshift_tools_manage_operator_groups_og_info.resources | length) == 1
         - (current_tns | length) == 0
 
     # ---- SingleNamespace mode -------------------------------------------------
@@ -104,21 +106,21 @@
           apiVersion: operators.coreos.com/v1
           kind: OperatorGroup
           metadata:
-            name: "{{ operatorgroup_name }}"
-            namespace: "{{ operatorgroup_operator_ns }}"
+            name: "{{ openshift_tools_manage_operator_groups_name }}"
+            namespace: "{{ openshift_tools_manage_operator_groups_operator_ns }}"
           spec:
             targetNamespaces:
               - "{{ name_space }}"
       when:
         - (state | default('present')) == 'present'
         - not (all_namespaces_install | default(false) | bool)
-        - (operatorgroup_og_info.resources | length) == 0
+        - (openshift_tools_manage_operator_groups_og_info.resources | length) == 0
 
     - name: Reconcile existing OG to SingleNamespace target (optional)
       vars:
         _reconcile_single_ns: "{{ reconcile_single_ns | default(true) | bool }}"
-        existing_name: "{{ operatorgroup_og_info.resources[0].metadata.name | default(operatorgroup_name) }}"
-        current_tns: "{{ (operatorgroup_og_info.resources[0].spec.targetNamespaces | default([])) | list }}"
+        existing_name: "{{ openshift_tools_manage_operator_groups_og_info.resources[0].metadata.name | default(openshift_tools_manage_operator_groups_name) }}"
+        current_tns: "{{ (openshift_tools_manage_operator_groups_og_info.resources[0].spec.targetNamespaces | default([])) | list }}"
         desired_tns: ["{{ name_space }}"]
       kubernetes.core.k8s:
         state: present
@@ -127,23 +129,27 @@
           kind: OperatorGroup
           metadata:
             name: "{{ existing_name }}"
-            namespace: "{{ operatorgroup_operator_ns }}"
+            namespace: "{{ openshift_tools_manage_operator_groups_operator_ns }}"
           spec:
             targetNamespaces: "{{ desired_tns }}"
       when:
         - (state | default('present')) == 'present'
         - not (all_namespaces_install | default(false) | bool)
-        - (operatorgroup_og_info.resources | length) == 1
+        - (openshift_tools_manage_operator_groups_og_info.resources | length) == 1
         - _reconcile_single_ns
         - current_tns != desired_tns
 
     - name: Info — SingleNamespace OG already matches desired targetNamespaces
       vars:
-        current_tns: "{{ (operatorgroup_og_info.resources[0].spec.targetNamespaces | default([])) | list }}"
+        current_tns: "{{ (openshift_tools_manage_operator_groups_og_info.resources[0].spec.targetNamespaces | default([])) | list }}"
       ansible.builtin.debug:
-        msg: "OG '{{ operatorgroup_og_info.resources[0].metadata.name }}' in '{{ operatorgroup_operator_ns }}' already targets {{ current_tns | to_json }}."
+        msg: >-
+          OG '{{ openshift_tools_manage_operator_groups_og_info.resources[0].metadata.name }}'
+          in '{{ openshift_tools_manage_operator_groups_operator_ns }}'
+          already targets {{ current_tns
+          | to_json }}.
       when:
         - (state | default('present')) == 'present'
         - not (all_namespaces_install | default(false) | bool)
-        - (operatorgroup_og_info.resources | length) == 1
+        - (openshift_tools_manage_operator_groups_og_info.resources | length) == 1
         - current_tns == [ name_space ]

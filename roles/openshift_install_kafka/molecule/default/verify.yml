@@ -29,170 +29,170 @@
     - name: Check if README.md exists
       ansible.builtin.stat:
         path: "{{ readme_path }}"
-      register: readme_file
+      register: openshift_install_kafka_readme_file
 
     - name: Print message if README.md exists
       ansible.builtin.debug:
         msg: "✅ README.md file exists in the role."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     - name: Print message if README.md does not exist
       ansible.builtin.debug:
         msg: "❌ README.md file is missing in the role."
-      when: not readme_file.stat.exists
+      when: not openshift_install_kafka_readme_file.stat.exists
 
     # ------------------ Check file contents ------------------
 
     - name: Load README.md if present
       ansible.builtin.slurp:
         path: "{{ readme_path }}"
-      register: readme_raw
-      when: readme_file.stat.exists
+      register: openshift_install_kafka_readme_raw
+      when: openshift_install_kafka_readme_file.stat.exists
 
     - name: Set README content fact
       ansible.builtin.set_fact:
-        readme: "{{ readme_raw.content | b64decode }}"
-      when: readme_file.stat.exists
+        openshift_install_kafka_readme: "{{ openshift_install_kafka_readme_raw.content | b64decode }}"
+      when: openshift_install_kafka_readme_file.stat.exists
 
     # H1 heading
     - name: Verify README has required heading
       ansible.builtin.assert:
         that:
-          - readme is regex('(?m)^#\\s+Role:')
+          - openshift_install_kafka_readme is regex('(?m)^#\\s+Role:')
         fail_msg: "❌ README.md should start with '# Role: <collection.role>'."
         success_msg: "✅ README.md has correct heading format."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     # Variables table (already in your checks)
     - name: Verify README has variables table
       ansible.builtin.assert:
         that:
-          - readme is search('\\|\\s*Variable\\s*\\|\\s*Description\\s*\\|', multiline=True)
+          - openshift_install_kafka_readme is search('\\|\\s*Variable\\s*\\|\\s*Description\\s*\\|', multiline=True)
         fail_msg: "❌ README.md should include a variables table with '| Variable | Description |'."
         success_msg: "✅ README.md includes a variables table."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     # At least one fenced example block
     - name: Verify README has example code block
       ansible.builtin.assert:
         that:
-          - readme is search('```(yaml|yml|ansible|bash)[\\s\\S]*?```', multiline=True)
+          - openshift_install_kafka_readme is search('```(yaml|yml|ansible|bash)[\\s\\S]*?```', multiline=True)
         fail_msg: "❌ README.md should include a fenced code block with an example (```yaml ... ```)."
         success_msg: "✅ README.md includes an example code block."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     - name: Verify 'Requirements' section exists
       ansible.builtin.assert:
         that:
-          - readme is search('(?m)^##\\s+Requirements')
+          - openshift_install_kafka_readme is search('(?m)^##\\s+Requirements')
         fail_msg: "❌ Missing '## Requirements' section."
         success_msg: "✅ Found '## Requirements'."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     - name: Verify 'Variables' section exists
       ansible.builtin.assert:
         that:
-          - readme is search('(?m)^##\\s+Variables')
+          - openshift_install_kafka_readme is search('(?m)^##\\s+Variables')
         fail_msg: "❌ Missing '## Variables' section."
         success_msg: "✅ Found '## Variables'."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     - name: Verify 'Examples' section exists
       ansible.builtin.assert:
         that:
-          - readme is search('(?m)^##\\s+Examples')
+          - openshift_install_kafka_readme is search('(?m)^##\\s+Examples')
         fail_msg: "❌ Missing '## Examples' section."
         success_msg: "✅ Found '## Examples'."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     - name: Verify 'Behavior Notes' section exists
       ansible.builtin.assert:
         that:
-          - readme is search('(?m)^##\\s+Behavior Notes')
+          - openshift_install_kafka_readme is search('(?m)^##\\s+Behavior Notes')
         fail_msg: "❌ Missing '## Behavior Notes' section."
         success_msg: "✅ Found '## Behavior Notes'."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     - name: Verify 'Molecule' section exists
       ansible.builtin.assert:
         that:
-          - readme is search('(?m)^##\\s+Molecule')
+          - openshift_install_kafka_readme is search('(?m)^##\\s+Molecule')
         fail_msg: "❌ Missing '## Molecule' section."
         success_msg: "✅ Found '## Molecule'."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     - name: Verify Molecule sequence mentions all stages in order
       ansible.builtin.assert:
         that:
-          - readme is regex(molecule_seq_regex)
+          - openshift_install_kafka_readme is regex(molecule_seq_regex)
         fail_msg: "❌ Molecule sequence should list: dependency → lint → syntax → create → converge → idempotence → destroy → verify."
         success_msg: "✅ Molecule sequence present."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     # Optional but recommended: Auth section presence
     - name: Verify 'Auth via environment' section exists (optional)
       ansible.builtin.debug:
         msg: "ℹ️ 'Auth via environment' section not found — optional."
       when:
-        - readme_file.stat.exists
-        - not (readme is search('(?m)^###\\s+Auth via environment', multiline=True))
+        - openshift_install_kafka_readme_file.stat.exists
+        - not (openshift_install_kafka_readme is search('(?m)^###\\s+Auth via environment', multiline=True))
     - name: Confirm 'Auth via environment' section exists
       ansible.builtin.assert:
         that:
-          - readme is search('(?m)^###\\s+Auth via environment', multiline=True)
+          - openshift_install_kafka_readme is search('(?m)^###\\s+Auth via environment', multiline=True)
         success_msg: "✅ Found '### Auth via environment'."
         fail_msg: "❌ Missing '### Auth via environment' section."
       when:
-        - readme_file.stat.exists
-        - readme is search('(?m)^###\\s+Auth via environment', multiline=True)
+        - openshift_install_kafka_readme_file.stat.exists
+        - openshift_install_kafka_readme is search('(?m)^###\\s+Auth via environment', multiline=True)
 
     # Repository layout must exist and be last
     - name: Verify 'Repository layout' section exists
       ansible.builtin.assert:
         that:
-          - readme is search('(?m)^##\\s+Repository layout', multiline=True)
+          - openshift_install_kafka_readme is search('(?m)^##\\s+Repository layout', multiline=True)
         fail_msg: "❌ Missing '## Repository layout' section."
         success_msg: "✅ Found '## Repository layout'."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     - name: Collect H2 headings order
       ansible.builtin.set_fact:
-        h2_headings: "{{ readme | regex_findall('(?m)^##\\s+([^\\n]+)') }}"
-        h2_last: "{{ (h2_headings | last | default('')) }}"
-      when: readme_file.stat.exists
+        openshift_install_kafka_h2_headings: "{{ openshift_install_kafka_readme | regex_findall('(?m)^##\\s+([^\\n]+)') }}"
+        openshift_install_kafka_h2_last: "{{ (openshift_install_kafka_h2_headings | last | default('')) }}"
+      when: openshift_install_kafka_readme_file.stat.exists
 
     # Repository layout must exist and be last
 
     - name: Verify 'Repository layout' section exists
       ansible.builtin.assert:
         that:
-          - readme is search('(?m)^##\\s+Repository layout', multiline=True)
+          - openshift_install_kafka_readme is search('(?m)^##\\s+Repository layout', multiline=True)
         fail_msg: "❌ Missing '## Repository layout' section."
         success_msg: "✅ Found '## Repository layout'."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists
 
     # Compute headings in two steps to avoid self-reference timing
     - name: Collect H2 headings
       ansible.builtin.set_fact:
-        h2_headings: "{{ readme | regex_findall('(?m)^##\\s+([^\\r\\n]+)') }}"
-      when: readme_file.stat.exists
+        openshift_install_kafka_h2_headings: "{{ openshift_install_kafka_readme | regex_findall('(?m)^##\\s+([^\\r\\n]+)') }}"
+      when: openshift_install_kafka_readme_file.stat.exists
 
     - name: Compute last H2 heading
       ansible.builtin.set_fact:
-        h2_last: "{{ (readme | regex_findall('(?m)^##\\s+([^\\r\\n]+)')) | last | default('') }}"
-      when: readme_file.stat.exists
+        openshift_install_kafka_h2_last: "{{ (openshift_install_kafka_readme | regex_findall('(?m)^##\\s+([^\\r\\n]+)')) | last | default('') }}"
+      when: openshift_install_kafka_readme_file.stat.exists
 
     # (Optional) quick debug to see what was found
     - name: Show H2 headings
       ansible.builtin.debug:
-        var: h2_headings
-      when: readme_file.stat.exists
+        var: openshift_install_kafka_h2_headings
+      when: openshift_install_kafka_readme_file.stat.exists
 
     - name: Verify 'Repository layout' is the last section
       ansible.builtin.assert:
         that:
-          - (h2_headings | length) > 0
-          - h2_last is regex('(?i)^Repository layout')
-        fail_msg: "❌ 'Repository layout' should be the final '##' section. Found last='{{ h2_last }}'."
+          - (openshift_install_kafka_h2_headings | length) > 0
+          - openshift_install_kafka_h2_last is regex('(?i)^Repository layout')
+        fail_msg: "❌ 'Repository layout' should be the final '##' section. Found last='{{ openshift_install_kafka_h2_last }}'."
         success_msg: "✅ 'Repository layout' is last."
-      when: readme_file.stat.exists
+      when: openshift_install_kafka_readme_file.stat.exists

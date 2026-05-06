@@ -26,7 +26,7 @@
     env: prod
 
   vars_files:
-    - ../../../../deploy-lab/vault.yml   # encrypted with ansible-vault
+    - ../../../../deploy-lab/vault.yml # encrypted with ansible-vault
 
   environment:
     K8S_AUTH_HOST: "{{ k8s[env].host }}"
@@ -39,7 +39,7 @@
       loop: "{{ k8s[env] | dict2items }}"
 
   roles:
-    - role: ado.openshift.namespace    
+    - role: ado.openshift.namespace
     - role: ado.openshift.operatorgroup
     - role: ado.openshift.subscription_operator
     - role: ado.openshift.grafana

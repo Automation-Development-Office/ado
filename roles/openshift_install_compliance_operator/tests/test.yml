@@ -3,4 +3,4 @@
   hosts: localhost
   remote_user: root
   roles:
-    - compliance_operator
+    - openshift_install_compliance_operator

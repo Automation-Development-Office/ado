@@ -2,4 +2,4 @@
 ---
 # defaults file for mount
 
-mount_fstype_detection: false # Set to true to enable filesystem type detection
+manage_mounts_detection: false # Set to true to enable filesystem type detection

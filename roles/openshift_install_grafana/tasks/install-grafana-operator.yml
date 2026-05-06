@@ -5,97 +5,98 @@
 
 - name: Set OIDC enabled flag (safe default)
   ansible.builtin.set_fact:
-    grafana_oidc_enabled: "{{ (oidc.enabled | default(false)) | bool }}"
+    openshift_install_grafana_oidc_enabled: "{{ (oidc.enabled | default(false)) | bool }}"
   when:
     - oidc is defined
 
 - name: Build base Grafana config
   ansible.builtin.set_fact:
-    grafana_config_base:
+    openshift_install_grafana_config_base:
       log:
         mode: console
         level: warn
 
       server:
-        domain: "{{ grafana_hostname }}"
-        root_url: "https://{{ grafana_hostname }}/"
+        domain: "{{ openshift_install_grafana_hostname }}"
+        root_url: "https://{{ openshift_install_grafana_hostname }}/"
         serve_from_sub_path: "false"
 
       auth:
         disable_login_form: "false"
 
       security:
-        admin_user: "{{ grafana_admin_user }}"
-        admin_password: "{{ grafana_admin_password }}"
+        admin_user: "{{ openshift_install_grafana_admin_user }}"
+        admin_password: "{{ openshift_install_grafana_admin_password }}"
 
 # ---------------------------------------------------------
 # If OIDC enabled, fetch Keycloak client secret
 # ---------------------------------------------------------
-- name: Fetch Keycloak client secret for Grafana (when OIDC enabled)  # noqa var-naming[no-role-prefix]
+- name: Fetch Keycloak client secret for Grafana (when OIDC enabled) # noqa var-naming[no-role-prefix]
   ansible.builtin.include_role:
-    name: rhbk_get_client_secrets
+    name: openshift_tools_rhbk_get_client_secrets_
   vars:
-    rhbk_secret_client_id: "{{ (oidc.client_id | default(client_id | default('grafana'))) }}"
-    rhbk_secret_target_var: "grafana_oidc_client_secret"
-    rhbk_component_name: "rhbk"
+    openshift_install_rhbk_secret_client_id: "{{ (oidc.client_id | default(client_id | default('grafana'))) }}"
+    openshift_install_rhbk_secret_target_var: "openshift_install_grafana_oidc_client_secret"
+    openshift_install_rhbk_component_name: "rhbk"
   when:
-    - grafana_oidc_enabled | default(false) | bool
+    - openshift_install_grafana_oidc_enabled | default(false) | bool
   no_log: true
 
-- name: Ensure grafana_oidc_client_secret is set after fetch (fallback)
+- name: Ensure openshift_install_grafana_oidc_client_secret is set after fetch (fallback)
   ansible.builtin.set_fact:
-    grafana_oidc_client_secret: "{{ rhbk_get_client_secrets_value }}"
+    openshift_install_grafana_oidc_client_secret: "{{ openshift_tools_rhbk_get_client_secrets__value }}"
   when:
-    - grafana_oidc_enabled | default(false) | bool
-    - grafana_oidc_client_secret is not defined
-    - rhbk_get_client_secrets_value is defined
-    - (rhbk_get_client_secrets_value | string | length) > 0
+    - openshift_install_grafana_oidc_enabled | default(false) | bool
+    - openshift_install_grafana_oidc_client_secret is not defined
+    - openshift_tools_rhbk_get_client_secrets__value is defined
+    - (openshift_tools_rhbk_get_client_secrets__value | string | length) > 0
   no_log: true
 
 - name: Fail if OIDC enabled but client secret missing
   ansible.builtin.fail:
     msg: >-
-      Grafana OIDC enabled but grafana_oidc_client_secret is not defined.
+      Grafana OIDC enabled but openshift_install_grafana_oidc_client_secret is not defined.
       clientId='{{ (oidc.client_id | default(client_id | default("grafana"))) }}'
   when:
-    - grafana_oidc_enabled | default(false) | bool
-    - grafana_oidc_client_secret is not defined
+    - openshift_install_grafana_oidc_enabled | default(false) | bool
+    - openshift_install_grafana_oidc_client_secret is not defined
 
 # ---------------------------------------------------------
 # Build issuer URL using outputs from secret role
 # ---------------------------------------------------------
 - name: Derive issuer URL for Keycloak
   ansible.builtin.set_fact:
-    grafana_oidc_issuer_url: "https://{{ rhbk_get_client_secrets_hostname }}/realms/{{ rhbk_get_client_secrets_realm }}"
+    openshift_install_grafana_oidc_issuer_url: >-
+      https://{{ openshift_tools_rhbk_get_client_secrets__hostname }}/realms/{{ openshift_tools_rhbk_get_client_secrets__realm }}
   when:
-    - grafana_oidc_enabled | default(false) | bool
-    - rhbk_get_client_secrets_hostname is defined
-    - (rhbk_get_client_secrets_hostname | length) > 0
-    - rhbk_get_client_secrets_realm is defined
-    - (rhbk_get_client_secrets_realm | length) > 0
+    - openshift_install_grafana_oidc_enabled | default(false) | bool
+    - openshift_tools_rhbk_get_client_secrets__hostname is defined
+    - (openshift_tools_rhbk_get_client_secrets__hostname | length) > 0
+    - openshift_tools_rhbk_get_client_secrets__realm is defined
+    - (openshift_tools_rhbk_get_client_secrets__realm | length) > 0
 
 - name: Fail if OIDC enabled but issuer URL cannot be derived
   ansible.builtin.fail:
     msg: >-
-      Grafana OIDC enabled but grafana_oidc_issuer_url could not be built.
-      Ensure rhbk component has rhbk_hostname + rhbk_realm and secret role exports them.
+      Grafana OIDC enabled but openshift_install_grafana_oidc_issuer_url could not be built.
+      Ensure rhbk component has openshift_install_rhbk_hostname + openshift_install_rhbk_realm and secret role exports them.
   when:
-    - grafana_oidc_enabled | default(false) | bool
-    - grafana_oidc_issuer_url is not defined
+    - openshift_install_grafana_oidc_enabled | default(false) | bool
+    - openshift_install_grafana_oidc_issuer_url is not defined
 
 # ---------------------------------------------------------
 # Build role mapping from Keycloak groups -> Grafana role
 # ---------------------------------------------------------
 - name: Build Grafana role_attribute_path expression from oidc.role_map (optional)
   ansible.builtin.set_fact:
-    grafana_role_attribute_path: >-
+    openshift_install_grafana_role_attribute_path: >-
       {%- set parts = [] -%}
       {%- for item in (oidc.role_map | default([])) -%}
       {%-   set _ = parts.append("contains(groups[*], '" ~ item.group ~ "') && '" ~ item.role ~ "'") -%}
       {%- endfor -%}
       {{ (parts | join(" || ")) ~ (" || '" ~ (oidc.default_role | default('Viewer')) ~ "'") }}
   when:
-    - grafana_oidc_enabled | default(false) | bool
+    - openshift_install_grafana_oidc_enabled | default(false) | bool
   no_log: true
 
 # ---------------------------------------------------------
@@ -103,7 +104,7 @@
 # ---------------------------------------------------------
 - name: Build Grafana OIDC config fragment
   ansible.builtin.set_fact:
-    grafana_config_oidc:
+    openshift_install_grafana_config_oidc:
       auth:
         oauth_auto_login: "{{ (oidc.oauth_auto_login | default(true)) | ternary('true', 'false') }}"
       "auth.generic_oauth":
@@ -111,26 +112,27 @@
         name: "Keycloak"
         allow_sign_up: "true"
         client_id: "{{ (oidc.client_id | default(client_id | default('grafana'))) }}"
-        client_secret: "{{ grafana_oidc_client_secret }}"
+        client_secret: "{{ openshift_install_grafana_oidc_client_secret }}"
         scopes: "{{ (oidc.scopes | default(['openid', 'profile', 'email'])) | join(' ') }}"
-        auth_url: "{{ grafana_oidc_issuer_url }}/protocol/openid-connect/auth"
-        token_url: "{{ grafana_oidc_issuer_url }}/protocol/openid-connect/token"
-        api_url: "{{ grafana_oidc_issuer_url }}/protocol/openid-connect/userinfo"
+        auth_url: "{{ openshift_install_grafana_oidc_issuer_url }}/protocol/openid-connect/auth"
+        token_url: "{{ openshift_install_grafana_oidc_issuer_url }}/protocol/openid-connect/token"
+        api_url: "{{ openshift_install_grafana_oidc_issuer_url }}/protocol/openid-connect/userinfo"
         login_attribute_path: "{{ (oidc.claims.login | default('preferred_username')) }}"
         name_attribute_path: "{{ (oidc.claims.name | default('name')) }}"
         email_attribute_path: "{{ (oidc.claims.email | default('email')) }}"
         groups_attribute_path: "{{ (oidc.claims.groups | default('groups')) }}"
-        role_attribute_path: "{{ grafana_role_attribute_path | default(omit) }}"
+        role_attribute_path: "{{ openshift_install_grafana_role_attribute_path | default(omit) }}"
         role_attribute_strict: "{{ (oidc.role_attribute_strict | default(true)) | ternary('true', 'false') }}"
         allow_assign_grafana_admin: "{{ (oidc.allow_assign_grafana_admin | default(true)) | ternary('true', 'false') }}"
         tls_skip_verify_insecure: "true"
   when:
-    - grafana_oidc_enabled | default(false) | bool
+    - openshift_install_grafana_oidc_enabled | default(false) | bool
   no_log: true
 
 - name: Merge Grafana config (base + optional OIDC)
   ansible.builtin.set_fact:
-    grafana_config: "{{ grafana_config_base | combine((grafana_config_oidc | default({})), recursive=True) }}"
+    openshift_install_grafana_config: >-
+      {{ openshift_install_grafana_config_base | combine((openshift_install_grafana_config_oidc | default({})), recursive=True) }}
 
 # =========================================================
 # Grafana instance + SCC + route (your existing tasks)
@@ -147,7 +149,7 @@
       spec:
         ingress:
           enabled: true
-        config: "{{ grafana_config }}"
+        config: "{{ openshift_install_grafana_config }}"
         persistentVolumeClaim:
           spec:
             accessModes: ["ReadWriteOnce"]
@@ -207,17 +209,17 @@
       apiVersion: route.openshift.io/v1
       kind: Route
       metadata:
-        name: "{{ grafana_route_name | default('grafana') }}"
+        name: "{{ openshift_install_grafana_route_name | default('grafana') }}"
         namespace: "{{ name_space }}"
       spec:
-        host: "{{ grafana_hostname }}"
+        host: "{{ openshift_install_grafana_hostname }}"
         to:
           kind: Service
-          name: "{{ grafana_route_backend_svc | default('grafana-service') }}"
+          name: "{{ openshift_install_grafana_route_backend_svc | default('grafana-service') }}"
         port:
           targetPort: 3000
         tls:
-          termination: "{{ grafana_route_tls_termination | default('edge') }}"
+          termination: "{{ openshift_install_grafana_route_tls_termination | default('edge') }}"
           insecureEdgeTerminationPolicy: "{{ route_insecure_edge_policy | default('Redirect') }}"
 
 # =========================================================
@@ -268,24 +270,24 @@
     kind: Secret
     namespace: openshift-monitoring
     name: grafana-prometheus-sa-token
-  register: grafana_sa_secret
+  register: openshift_install_grafana_sa_secret
   no_log: true
 
 - name: Set bearer token fact
   ansible.builtin.set_fact:
-    grafana_bearer_token: "{{ grafana_sa_secret.resources[0].data.token | b64decode }}"
+    openshift_install_grafana_bearer_token: "{{ openshift_install_grafana_sa_secret.resources[0].data.token | b64decode }}"
   no_log: true
 
 - name: Wait for Grafana API to be ready (/api/health)
   ansible.builtin.uri:
-    url: "https://{{ grafana_hostname }}/api/health"
+    url: "https://{{ openshift_install_grafana_hostname }}/api/health"
     method: GET
-    validate_certs: "{{ grafana_validate_certs | default(false) }}"
+    validate_certs: "{{ openshift_install_grafana_validate_certs | default(false) }}"
     status_code: 200
     return_content: true
-  register: grafana_health
+  register: openshift_install_grafana_health
   until:
-    - grafana_health.status == 200
-    - (grafana_health.json.database | default('ok')) in ['ok', 'connected']
+    - openshift_install_grafana_health.status == 200
+    - (openshift_install_grafana_health.json.database | default('ok')) in ['ok', 'connected']
   retries: 60
   delay: 5

@@ -3,4 +3,4 @@
   hosts: localhost
   remote_user: root
   roles:
-    - namespace
+    - openshift_tools_manage_namespace

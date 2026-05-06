@@ -1,5 +1,6 @@
+---
 - name: Create/Delete Kube Descheduler Instance
   kubernetes.core.k8s:
     state: "{{ kube_descheduler_state }}"
-    template: 'kube_cluster.j2'
+    template: "kube_cluster.j2"
   when: state == "present"

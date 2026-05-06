@@ -7,9 +7,9 @@
 
 - name: Kafka Set derived vars
   ansible.builtin.set_fact:
-    kafka_operator_namespace: "{{ operator_subscription_namespace | default('openshift-operators') }}"
-    kafka_operand_namespace: "{{ name_space | default('cfk-operator') }}"
-    kafka_cluster_name: "{{ kafka_cluster_name | default('kafka-cluster') }}"
+    openshift_install_kafka_operator_namespace: "{{ operator_subscription_namespace | default('openshift-operators') }}"
+    openshift_install_kafka_operand_namespace: "{{ name_space | default('cfk-operator') }}"
+    openshift_install_kafka_cluster_name: "{{ openshift_install_kafka_cluster_name | default('kafka-cluster') }}"
   changed_when: false
 
 # If user didn't pin a CSV, use the currentCSV for the chosen channel.
@@ -20,30 +20,30 @@
     kind: PackageManifest
     name: "{{ operator_name }}"
     namespace: "{{ operator_source_namespace | default('openshift-marketplace') }}"
-  register: kafka_pm
+  register: openshift_install_kafka_pm
   when: ((operator_starting_csv  default('')  string)  trim  length) == 0
 
 # --- REPLACE THIS TASK ENTIRELY ---
 - name: Kafka  Derive effective starting CSV (safe)
   ansible.builtin.set_fact:
-    kafka_starting_csv_clean: "{{ operator_starting_csv | default('') | string | trim }}"
-    kafka_channel_str: "{{ operator_channel | string }}"
+    openshift_install_kafka_starting_csv_clean: "{{ operator_starting_csv | default('') | string | trim }}"
+    openshift_install_kafka_channel_str: "{{ operator_channel | string }}"
   changed_when: false
 
-- name: Kafka  Set kafka_operator_starting_csv_effective from provided startingCSV
+- name: Kafka  Set openshift_install_kafka_operator_starting_csv_effective from provided startingCSV
   ansible.builtin.set_fact:
-    kafka_operator_starting_csv_effective: "{{ kafka_starting_csv_clean }}"
-  when: kafka_starting_csv_clean  length > 0
+    openshift_install_kafka_operator_starting_csv_effective: "{{ openshift_install_kafka_starting_csv_clean }}"
+  when: openshift_install_kafka_starting_csv_clean  length > 0
   changed_when: false
 
-- name: Kafka  Set kafka_operator_starting_csv_effective from PackageManifest currentCSV
+- name: Kafka  Set openshift_install_kafka_operator_starting_csv_effective from PackageManifest currentCSV
   ansible.builtin.set_fact:
-    kafka_operator_starting_csv_effective: >-
+    openshift_install_kafka_operator_starting_csv_effective: >-
       {{
         (
-          kafka_pm.resources[0].status.channels
+          openshift_install_kafka_pm.resources[0].status.channels
           | default([])
-          | selectattr('name','equalto', kafka_channel_str)
+          | selectattr('name','equalto', openshift_install_kafka_channel_str)
           | map(attribute='currentCSV')
           | list
           | first
@@ -53,8 +53,8 @@
         | trim
       }}
   when:
-    - kafka_starting_csv_clean  length == 0
-    - kafka_pm is defined
+    - openshift_install_kafka_starting_csv_clean  length == 0
+    - openshift_install_kafka_pm is defined
   changed_when: false
 
 - name: Kafka  Assert required inputs
@@ -64,9 +64,9 @@
       - operator_channel is defined and (operator_channel  string  length) > 0
       - operator_source is defined and (operator_source  string  length) > 0
       - operator_source_namespace is defined and (operator_source_namespace  string  length) > 0
-      - kafka_operator_namespace is defined and (kafka_operator_namespace  string  length) > 0
-      - kafka_operand_namespace is defined and (kafka_operand_namespace  string  length) > 0
-      - kafka_operator_starting_csv_effective is defined and (kafka_operator_starting_csv_effective  string  length) > 0
+      - openshift_install_kafka_operator_namespace is defined and (openshift_install_kafka_operator_namespace  string  length) > 0
+      - openshift_install_kafka_operand_namespace is defined and (openshift_install_kafka_operand_namespace  string  length) > 0
+      - openshift_install_kafka_operator_starting_csv_effective is defined and (openshift_install_kafka_operator_starting_csv_effective  string  length) > 0
     fail_msg: |
       Missing required vars for CFK.
       Need: operator_name, operator_channel, operator_source, operator_source_namespace,
@@ -77,10 +77,10 @@
   kubernetes.core.k8s_info:
     api_version: operators.coreos.com/v1alpha1
     kind: ClusterServiceVersion
-    namespace: "{{ kafka_operator_namespace }}"
-    name: "{{ kafka_operator_starting_csv_effective }}"
-  register: kafka_csv
-  until: kafka_csv.resources is defined and (kafka_csv.resources  length) > 0
+    namespace: "{{ openshift_install_kafka_operator_namespace }}"
+    name: "{{ openshift_install_kafka_operator_starting_csv_effective }}"
+  register: openshift_install_kafka_csv
+  until: openshift_install_kafka_csv.resources is defined and (openshift_install_kafka_csv.resources  length) > 0
   retries: 40
   delay: 6
   changed_when: false
@@ -89,13 +89,13 @@
   kubernetes.core.k8s_info:
     api_version: operators.coreos.com/v1alpha1
     kind: ClusterServiceVersion
-    namespace: "{{ kafka_operator_namespace }}"
-    name: "{{ kafka_operator_starting_csv_effective }}"
-  register: kafka_csv_recheck
+    namespace: "{{ openshift_install_kafka_operator_namespace }}"
+    name: "{{ openshift_install_kafka_operator_starting_csv_effective }}"
+  register: openshift_install_kafka_csv_recheck
   until: >
-    kafka_csv_recheck.resources is defined and
-    (kafka_csv_recheck.resources  length) > 0 and
-    (kafka_csv_recheck.resources[0].status.phase  default('')) == 'Succeeded'
+    openshift_install_kafka_csv_recheck.resources is defined and
+    (openshift_install_kafka_csv_recheck.resources  length) > 0 and
+    (openshift_install_kafka_csv_recheck.resources[0].status.phase  default('')) == 'Succeeded'
   retries: 60
   delay: 6
   changed_when: false
@@ -105,13 +105,13 @@
   kubernetes.core.k8s_info:
     api_version: apps/v1
     kind: Deployment
-    namespace: "{{ kafka_operator_namespace }}"
+    namespace: "{{ openshift_install_kafka_operator_namespace }}"
     name: confluent-operator
-  register: kafka_op_deploy
+  register: openshift_install_kafka_op_deploy
   until: >
-    kafka_op_deploy.resources is defined and
-    (kafka_op_deploy.resources  length) > 0 and
-    (kafka_op_deploy.resources[0].status.availableReplicas  default(0)  int) >= 1
+    openshift_install_kafka_op_deploy.resources is defined and
+    (openshift_install_kafka_op_deploy.resources  length) > 0 and
+    (openshift_install_kafka_op_deploy.resources[0].status.availableReplicas  default(0)  int) >= 1
   retries: 40
   delay: 6
   changed_when: false
@@ -120,7 +120,7 @@
 # We create a minimal Kafka CR so pods actually appear.
 # IMPORTANT:
 # By default, the kafka role only validates/waits.
-# Creating a Kafka CR is OPTIONAL and gated by kafka_create_cr=true.
+# Creating a Kafka CR is OPTIONAL and gated by openshift_install_kafka_create_cr=true.
 - name: Kafka  Create Kafka CR (optional)
   kubernetes.core.k8s:
     state: present
@@ -128,42 +128,42 @@
       apiVersion: platform.confluent.io/v1beta1
       kind: Kafka
       metadata:
-        name: "{{ kafka_cluster_name }}"
-        namespace: "{{ kafka_operand_namespace }}"
+        name: "{{ openshift_install_kafka_cluster_name }}"
+        namespace: "{{ openshift_install_kafka_operand_namespace }}"
       spec:
-        replicas: "{{ kafka_replicas | default(1) | int }}"
-        dataVolumeCapacity: "{{ kafka_data_volume_capacity | default('1Gi') }}"
-  when: kafka_create_cr  default(false)  bool
+        replicas: "{{ openshift_install_kafka_replicas | default(1) | int }}"
+        dataVolumeCapacity: "{{ openshift_install_kafka_data_volume_capacity | default('1Gi') }}"
+  when: openshift_install_kafka_create_cr  default(false)  bool
 
 # Wait for operand pods to exist and be Running
 - name: Kafka  Wait for operand pods to appear (only when CR is created)
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Pod
-    namespace: "{{ kafka_operand_namespace }}"
-  register: kafka_operand_pods
-  until: kafka_operand_pods.resources is defined and (kafka_operand_pods.resources  length) > 0
+    namespace: "{{ openshift_install_kafka_operand_namespace }}"
+  register: openshift_install_kafka_operand_pods
+  until: openshift_install_kafka_operand_pods.resources is defined and (openshift_install_kafka_operand_pods.resources  length) > 0
   retries: 60
   delay: 10
   changed_when: false
-  when: kafka_create_cr  default(false)  bool
+  when: openshift_install_kafka_create_cr  default(false)  bool
 
 - name: Kafka  Wait for operand pods to be Running/Ready (only when CR is created)
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Pod
-    namespace: "{{ kafka_operand_namespace }}"
-  register: kafka_operand_pods_ready
+    namespace: "{{ openshift_install_kafka_operand_namespace }}"
+  register: openshift_install_kafka_operand_pods_ready
   until: >
-    kafka_operand_pods_ready.resources is defined and
-    (kafka_operand_pods_ready.resources  length) > 0 and
+    openshift_install_kafka_operand_pods_ready.resources is defined and
+    (openshift_install_kafka_operand_pods_ready.resources  length) > 0 and
     (
-      kafka_operand_pods_ready.resources
+      openshift_install_kafka_operand_pods_ready.resources
        selectattr('status.phase','equalto','Running')
        list
        length
-    ) == (kafka_operand_pods_ready.resources  length)
+    ) == (openshift_install_kafka_operand_pods_ready.resources  length)
   retries: 60
   delay: 10
   changed_when: false
-  when: kafka_create_cr  default(false)  bool
+  when: openshift_install_kafka_create_cr  default(false)  bool

@@ -2,7 +2,7 @@
 # Role: ensure_alt_routes_from_list
 #
 # Input (preferred):
-#   alt_routes_candidates: list of dicts from discover_routes (namespace/name/host required)
+#   alt_routes_candidates: list of dicts from openshift_tools_discover_routes_ (namespace/name/host required)
 #
 # Back-compat accepted input:
 #   route_alt_candidates: same as above
@@ -57,3 +57,11 @@
     alt_routes_suffix: "{{ openshift_tools_ensure_alt_routes_from_list_alt_routes_suffix }}"
     alt_routes_force_replace: "{{ openshift_tools_ensure_alt_routes_from_list_alt_routes_force_replace }}"
     alt_routes_print_only: "{{ openshift_tools_ensure_alt_routes_from_list_alt_routes_print_only }}"
+    alt_routes_candidates: "{{ openshift_tools_ensure_alt_routes_from_list_alt_routes_candidates }}"
+    oauth_identity_providers: >-
+      {{
+        openshift_tools_create_htpass_admin_user_oauth_after.resources[0].spec.identityProviders | default([])
+        if (openshift_tools_create_htpass_admin_user_oauth_after.resources is defined
+        and (openshift_tools_create_htpass_admin_user_oauth_after.resources | length) > 0)
+        else []
+      }}

@@ -3,4 +3,4 @@
   hosts: localhost
   remote_user: root
   roles:
-    - print_crd
+    - openshift_tools_print_crd

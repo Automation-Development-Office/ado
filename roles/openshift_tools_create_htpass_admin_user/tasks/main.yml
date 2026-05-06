@@ -1,3 +1,4 @@
+---
 - name: Create admin user with htpass
   ansible.builtin.import_tasks: create-admin-user-htpass.yml
   when: state == "present"

@@ -1,17 +1,16 @@
+---
 - name: OADP | Skip configuration when disabled
   ansible.builtin.debug:
-    msg: "Skipping OADP configuration because oadp_configure=false"
-  when: not (oadp_configure | default(false) | bool)
-
+    msg: "Skipping OADP configuration because openshift_install_oadp_configure=false"
+  when: not (openshift_install_oadp_configure | default(false) | bool)
 
 # ------------------------------------------------------------
 # Configure OADP (DPA + waits). STS is optional.
 # ------------------------------------------------------------
 - name: OADP | Configure DataProtectionApplication (optional STS)
-  when: (oadp_configure | default(false) | bool)
+  when: (openshift_install_oadp_configure | default(false) | bool)
   block:
-
-    # --- Optional STS secret (only if oadp_iam_role_arn is set) ---
+    # --- Optional STS secret (only if openshift_install_oadp_iam_role_arn is set) ---
     - name: OADP | Create cloud credentials secret for STS (optional)
       kubernetes.core.k8s:
         state: present
@@ -25,11 +24,11 @@
           stringData:
             cloud: |
               [default]
-              role_arn = {{ oadp_iam_role_arn }}
+              role_arn = {{ openshift_install_oadp_iam_role_arn }}
               web_identity_token_file = /var/run/secrets/openshift
       when:
-        - oadp_iam_role_arn is defined
-        - (oadp_iam_role_arn | length) > 0
+        - openshift_install_oadp_iam_role_arn is defined
+        - (openshift_install_oadp_iam_role_arn | length) > 0
 
     - name: OADP | Create DataProtectionApplication
       kubernetes.core.k8s:
@@ -85,7 +84,7 @@
                     region: "{{ aws_region }}"
                     enableSharedConfig: "true"
 
-    # --- Optional STS annotation (only if oadp_iam_role_arn is set) ---
+    # --- Optional STS annotation (only if openshift_install_oadp_iam_role_arn is set) ---
     - name: OADP | Annotate Velero service account with IAM role ARN (optional)
       kubernetes.core.k8s:
         state: patched
@@ -96,10 +95,10 @@
         definition:
           metadata:
             annotations:
-              eks.amazonaws.com/role-arn: "{{ oadp_iam_role_arn }}"
+              eks.amazonaws.com/role-arn: "{{ openshift_install_oadp_iam_role_arn }}"
       when:
-        - oadp_iam_role_arn is defined
-        - (oadp_iam_role_arn | length) > 0
+        - openshift_install_oadp_iam_role_arn is defined
+        - (openshift_install_oadp_iam_role_arn | length) > 0
 
     # --- Waits ---
     - name: OADP | Wait for Velero deployment to be ready
@@ -108,12 +107,12 @@
         kind: Deployment
         name: velero
         namespace: "{{ name_space }}"
-      register: oadp_velero_deployment
+      register: openshift_install_oadp_velero_deployment
       until:
-        - oadp_velero_deployment.resources | length > 0
-        - (oadp_velero_deployment.resources[0].status.availableReplicas | default(0)) | int > 0
+        - openshift_install_oadp_velero_deployment.resources | length > 0
+        - (openshift_install_oadp_velero_deployment.resources[0].status.availableReplicas | default(0)) | int > 0
         - >
-          (oadp_velero_deployment.resources[0].status.conditions | default([]))
+          (openshift_install_oadp_velero_deployment.resources[0].status.conditions | default([]))
           | selectattr('type', 'equalto', 'Available')
           | selectattr('status', 'equalto', 'True')
           | list
@@ -127,10 +126,10 @@
         kind: DaemonSet
         name: node-agent
         namespace: "{{ name_space }}"
-      register: oadp_nodeagent_ds
+      register: openshift_install_oadp_nodeagent_ds
       until:
-        - oadp_nodeagent_ds.resources | length > 0
-        - (oadp_nodeagent_ds.resources[0].status.numberReady | default(0)) | int > 0
+        - openshift_install_oadp_nodeagent_ds.resources | length > 0
+        - (openshift_install_oadp_nodeagent_ds.resources[0].status.numberReady | default(0)) | int > 0
       retries: 30
       delay: 10
 
@@ -139,10 +138,10 @@
         api_version: velero.io/v1
         kind: BackupStorageLocation
         namespace: "{{ name_space }}"
-      register: oadp_bsl
+      register: openshift_install_oadp_bsl
       until:
-        - oadp_bsl.resources | length > 0
-        - (oadp_bsl.resources[0].status.phase | default('')) == "Available"
+        - openshift_install_oadp_bsl.resources | length > 0
+        - (openshift_install_oadp_bsl.resources[0].status.phase | default('')) == "Available"
       retries: 20
       delay: 10
 
@@ -151,7 +150,7 @@
         msg:
           - "✅ OADP configuration complete!"
           - "Namespace: {{ name_space }}"
-          - "STS enabled? {{ (oadp_iam_role_arn is defined and (oadp_iam_role_arn | length) > 0) | bool }}"
+          - "STS enabled? {{ (openshift_install_oadp_iam_role_arn is defined and (openshift_install_oadp_iam_role_arn | length) > 0) | bool }}"
           - "Backup bucket: s3://{{ aws_backup_bucket }}/{{ cluster_id }}"
           - "Region: {{ aws_region }}"
           - "Verify:"

@@ -7,10 +7,10 @@
     kind: AutomationController
     namespace: "{{ name_space }}"
     name: "{{ controller_name }}"
-  register: aap25_ac_delete
+  register: openshift_install_aap25_ac_delete
   failed_when: >
-    (aap25_ac_delete is failed) and
-    ('NotFound' not in (aap25_ac_delete.msg | default('')))
+    (openshift_install_aap25_ac_delete is failed) and
+    ('NotFound' not in (openshift_install_aap25_ac_delete.msg | default('')))
 
 # Delete likely route names (ignore NotFound)
 - name: Delete controller Route(s)
@@ -24,11 +24,11 @@
     - "{{ controller_name }}"
     - "{{ controller_name }}-route"
     - "{{ controller_name }}-service"
-  register: aap25_route_delete
+  register: openshift_install_aap25_route_delete
   failed_when: >
-    (aap25_route_delete is failed) and
+    (openshift_install_aap25_route_delete is failed) and
     (
-      (aap25_route_delete.results | default([]))
+      (openshift_install_aap25_route_delete.results | default([]))
       | selectattr('failed', 'equalto', true)
       | rejectattr('msg', 'search', 'NotFound')
       | list
@@ -41,7 +41,7 @@
     api_version: v1
     kind: PersistentVolumeClaim
     namespace: "{{ name_space }}"
-  register: aap25_pvc_list
+  register: openshift_install_aap25_pvc_list
 
 # Delete ONLY the controller postgres PVC(s) (ignore NotFound)
 - name: Delete postgres PVCs for this controller (wipe DB)
@@ -51,13 +51,13 @@
     kind: PersistentVolumeClaim
     namespace: "{{ name_space }}"
     name: "{{ item.metadata.name }}"
-  loop: "{{ aap25_pvc_list.resources | default([]) }}"
+  loop: "{{ openshift_install_aap25_pvc_list.resources | default([]) }}"
   when: item.metadata.name is search('postgres-15-' ~ controller_name)
-  register: aap25_pvc_delete
+  register: openshift_install_aap25_pvc_delete
   failed_when: >
-    (aap25_pvc_delete is failed) and
+    (openshift_install_aap25_pvc_delete is failed) and
     (
-      (aap25_pvc_delete.results | default([]))
+      (openshift_install_aap25_pvc_delete.results | default([]))
       | selectattr('failed', 'equalto', true)
       | rejectattr('msg', 'search', 'NotFound')
       | list
@@ -80,11 +80,11 @@
     - "{{ controller_name }}-receptor-work-signing"
     - "{{ controller_name }}-route-tls"
     - "{{ controller_name }}-secret-key"
-  register: aap25_secret_delete
+  register: openshift_install_aap25_secret_delete
   failed_when: >
-    (aap25_secret_delete is failed) and
+    (openshift_install_aap25_secret_delete is failed) and
     (
-      (aap25_secret_delete.results | default([]))
+      (openshift_install_aap25_secret_delete.results | default([]))
       | selectattr('failed', 'equalto', true)
       | rejectattr('msg', 'search', 'NotFound')
       | list

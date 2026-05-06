@@ -1,12 +1,13 @@
+---
 - name: Launch ACS remediation
   ansible.builtin.uri:
-    url: "https://{{ acs_api_url }}/remediations"
+    url: "https://{{ openshift_install_acs_api_url }}/remediations"
     method: POST
     body_format: json
     body:
       profile: "{{ compliance_profile }}"
       scan_id: "{{ scan_id }}"
     headers:
-      Authorization: "Bearer {{ acs_token }}"
+      Authorization: "Bearer {{ openshift_install_acs_token }}"
     validate_certs: false
   when: remediation | default(false) | bool

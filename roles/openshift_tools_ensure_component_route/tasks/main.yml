@@ -13,14 +13,14 @@
 # ------------------------------------------------------------
 - name: Resolve component hostname var names
   ansible.builtin.set_fact:
-    ensure_component_route_host_var_name: "{{ component ~ '_hostname' }}"
-    ensure_component_route_host_alt_var_name: "{{ component ~ '_hostname_alt' }}"
+    openshift_tools_ensure_component_route_host_var_name: "{{ component ~ '_hostname' }}"
+    openshift_tools_ensure_component_route_host_alt_var_name: "{{ component ~ '_hostname_alt' }}"
 
 - name: Resolve primary route host from flattened vars
   ansible.builtin.set_fact:
-    ensure_component_route_route_host: >-
+    openshift_tools_ensure_component_route_route_host: >-
       {{
-        (vars[ensure_component_route_host_var_name] if (ensure_component_route_host_var_name in vars) else
+        (vars[openshift_tools_ensure_component_route_host_var_name] if (openshift_tools_ensure_component_route_host_var_name in vars) else
          (hostname if (hostname is defined) else
           '')
         )
@@ -28,14 +28,14 @@
 
 - name: Resolve alt route host (only if app_domain_alt is set)
   ansible.builtin.set_fact:
-    ensure_component_route_route_host_alt: >-
+    openshift_tools_ensure_component_route_route_host_alt: >-
       {{
         (
-          vars[ensure_component_route_host_alt_var_name]
+          vars[openshift_tools_ensure_component_route_host_alt_var_name]
           if (
             (app_domain_alt is defined) and
             (app_domain_alt | string | length > 0) and
-            (ensure_component_route_host_alt_var_name in vars)
+            (openshift_tools_ensure_component_route_host_alt_var_name in vars)
           )
           else
           ''
@@ -45,10 +45,10 @@
 - name: Fail if no primary hostname was found for component
   ansible.builtin.assert:
     that:
-      - ensure_component_route_route_host | length > 0
+      - openshift_tools_ensure_component_route_route_host | length > 0
     fail_msg: >-
       No hostname found for component='{{ component }}'.
-      Expected either '{{ component }}_hostname' (e.g. grafana_hostname) or generic 'hostname' to be set by resolve_component.
+      Expected either '{{ component }}_hostname' (e.g. openshift_install_grafana_hostname) or generic 'hostname' to be set by resolve_component.
 
 # ------------------------------------------------------------
 # 2) Resolve per-component defaults, then allow explicit overrides
@@ -61,44 +61,45 @@
 # ------------------------------------------------------------
 - name: Load component route defaults
   ansible.builtin.set_fact:
-    ensure_component_route_cdef: "{{ component_route_defaults[component] | default({}) }}"
+    openshift_tools_ensure_component_route_cdef: "{{ component_route_defaults[component] | default({}) }}"
 
 - name: Resolve route namespace/name/backend from flattened vars (with overrides)
   ansible.builtin.set_fact:
-    ensure_component_route_namespace: "{{ (acs_namespace if (component == 'acs' and acs_namespace is defined) else name_space) }}"
+    openshift_tools_ensure_component_route_namespace: >-
+      {{ (openshift_install_acs_namespace if (component == 'acs' and openshift_install_acs_namespace is defined) else name_space) }}
 
-    ensure_component_route_name: >-
+    openshift_tools_ensure_component_route_name: >-
       {{
         (vars[component ~ '_route_name'] if ((component ~ '_route_name') in vars) else
-         (ensure_component_route_cdef.route_name | default(component))
+         (openshift_tools_ensure_component_route_cdef.route_name | default(component))
         )
       }}
 
-    ensure_component_route_name_alt: >-
+    openshift_tools_ensure_component_route_name_alt: >-
       {{
         (vars[component ~ '_route_name_alt'] if ((component ~ '_route_name_alt') in vars) else
-         (ensure_component_route_name ~ '-alt')
+         (openshift_tools_ensure_component_route_name ~ '-alt')
         )
       }}
 
-    ensure_component_route_backend_svc: >-
+    openshift_tools_ensure_component_route_backend_svc: >-
       {{
         (vars[component ~ '_route_backend_svc'] if ((component ~ '_route_backend_svc') in vars) else
-         (ensure_component_route_cdef.backend_svc | default(component))
+         (openshift_tools_ensure_component_route_cdef.backend_svc | default(component))
         )
       }}
 
-    ensure_component_route_backend_port: >-
+    openshift_tools_ensure_component_route_backend_port: >-
       {{
         (vars[component ~ '_route_backend_port'] if ((component ~ '_route_backend_port') in vars) else
-         (ensure_component_route_cdef.backend_port | default('https'))
+         (openshift_tools_ensure_component_route_cdef.backend_port | default('https'))
         )
       }}
 
-    ensure_component_route_tls_termination: >-
+    openshift_tools_ensure_component_route_tls_termination: >-
       {{
         (vars[component ~ '_route_tls_termination'] if ((component ~ '_route_tls_termination') in vars) else
-         (ensure_component_route_cdef.tls_termination | default('passthrough'))
+         (openshift_tools_ensure_component_route_cdef.tls_termination | default('passthrough'))
         )
       }}
 
@@ -111,17 +112,17 @@
     kind: Route
     namespace: "{{ _route_namespace }}"
     name: "{{ _route_name }}"
-  register: ensure_component_route_existing_primary
+  register: openshift_tools_ensure_component_route_existing_primary
 
 - name: Decide whether PRIMARY route must be replaced
   ansible.builtin.set_fact:
-    ensure_component_route_replace_primary: >-
+    openshift_tools_ensure_component_route_replace_primary: >-
       {{
-        (ensure_component_route_existing_primary.resources | length) > 0 and (
-          (ensure_component_route_existing_primary.resources[0].spec.to.name | default('')) != _backend_svc or
-          (ensure_component_route_existing_primary.resources[0].spec.tls.termination | default('')) != _tls_termination or
-          (ensure_component_route_existing_primary.resources[0].spec.host | default('')) != ensure_component_route_route_host or
-          (ensure_component_route_existing_primary.resources[0].spec.port.targetPort | default('')) != _backend_port
+        (openshift_tools_ensure_component_route_existing_primary.resources | length) > 0 and (
+          (openshift_tools_ensure_component_route_existing_primary.resources[0].spec.to.name | default('')) != _backend_svc or
+          (openshift_tools_ensure_component_route_existing_primary.resources[0].spec.tls.termination | default('')) != _tls_termination or
+          (openshift_tools_ensure_component_route_existing_primary.resources[0].spec.host | default('')) != openshift_tools_ensure_component_route_route_host or
+          (openshift_tools_ensure_component_route_existing_primary.resources[0].spec.port.targetPort | default('')) != _backend_port
         )
       }}
 
@@ -132,7 +133,7 @@
     kind: Route
     namespace: "{{ _route_namespace }}"
     name: "{{ _route_name }}"
-  when: ensure_component_route_replace_primary | bool
+  when: openshift_tools_ensure_component_route_replace_primary | bool
 
 - name: Ensure PRIMARY passthrough Route exists
   kubernetes.core.k8s:
@@ -145,7 +146,7 @@
         name: "{{ _route_name }}"
         labels: "{{ route_labels | default({}) }}"
       spec:
-        host: "{{ ensure_component_route_route_host }}"
+        host: "{{ openshift_tools_ensure_component_route_route_host }}"
         to:
           kind: Service
           name: "{{ _backend_svc }}"
@@ -166,21 +167,21 @@
     kind: Route
     namespace: "{{ _route_namespace }}"
     name: "{{ _route_name_alt }}"
-  register: ensure_component_route_existing_alt
-  when: ensure_component_route_route_host_alt | length > 0
+  register: openshift_tools_ensure_component_route_existing_alt
+  when: openshift_tools_ensure_component_route_route_host_alt | length > 0
 
 - name: Decide whether ALT route must be replaced
   ansible.builtin.set_fact:
-    ensure_component_route_replace_alt: >-
+    openshift_tools_ensure_component_route_replace_alt: >-
       {{
-        (ensure_component_route_existing_alt.resources | length) > 0 and (
-          (ensure_component_route_existing_alt.resources[0].spec.to.name | default('')) != _backend_svc or
-          (ensure_component_route_existing_alt.resources[0].spec.tls.termination | default('')) != _tls_termination or
-          (ensure_component_route_existing_alt.resources[0].spec.host | default('')) != ensure_component_route_route_host_alt or
-          (ensure_component_route_existing_alt.resources[0].spec.port.targetPort | default('')) != _backend_port
+        (openshift_tools_ensure_component_route_existing_alt.resources | length) > 0 and (
+          (openshift_tools_ensure_component_route_existing_alt.resources[0].spec.to.name | default('')) != _backend_svc or
+          (openshift_tools_ensure_component_route_existing_alt.resources[0].spec.tls.termination | default('')) != _tls_termination or
+          (openshift_tools_ensure_component_route_existing_alt.resources[0].spec.host | default('')) != openshift_tools_ensure_component_route_route_host_alt or
+          (openshift_tools_ensure_component_route_existing_alt.resources[0].spec.port.targetPort | default('')) != _backend_port
         )
       }}
-  when: ensure_component_route_route_host_alt | length > 0
+  when: openshift_tools_ensure_component_route_route_host_alt | length > 0
 
 - name: Delete ALT Route if it exists but is wrong
   kubernetes.core.k8s:
@@ -190,8 +191,8 @@
     namespace: "{{ _route_namespace }}"
     name: "{{ _route_name_alt }}"
   when:
-    - ensure_component_route_route_host_alt | length > 0
-    - ensure_component_route_replace_alt | bool
+    - openshift_tools_ensure_component_route_route_host_alt | length > 0
+    - openshift_tools_ensure_component_route_replace_alt | bool
 
 - name: Ensure ALT passthrough Route exists
   kubernetes.core.k8s:
@@ -204,7 +205,7 @@
         name: "{{ _route_name_alt }}"
         labels: "{{ route_labels | default({}) }}"
       spec:
-        host: "{{ ensure_component_route_route_host_alt }}"
+        host: "{{ openshift_tools_ensure_component_route_route_host_alt }}"
         to:
           kind: Service
           name: "{{ _backend_svc }}"
@@ -215,7 +216,7 @@
           termination: "{{ _tls_termination }}"
           insecureEdgeTerminationPolicy: "{{ route_insecure_edge_policy }}"
         wildcardPolicy: "{{ route_wildcard_policy }}"
-  when: ensure_component_route_route_host_alt | length > 0
+  when: openshift_tools_ensure_component_route_route_host_alt | length > 0
 
 # ------------------------------------------------------------
 # 5) Show what happened
@@ -225,7 +226,7 @@
     msg:
       - "component={{ component }}"
       - "namespace={{ _route_namespace }}"
-      - "PRIMARY: route={{ _route_name }} host={{ ensure_component_route_route_host }}"
-      - "ALT: route={{ _route_name_alt }} host={{ ensure_component_route_route_host_alt | default('') }}"
+      - "PRIMARY: route={{ _route_name }} host={{ openshift_tools_ensure_component_route_route_host }}"
+      - "ALT: route={{ _route_name_alt }} host={{ openshift_tools_ensure_component_route_route_host_alt | default('') }}"
       - "backend={{ _backend_svc }}:{{ _backend_port }}"
       - "tls_termination={{ _tls_termination }}"

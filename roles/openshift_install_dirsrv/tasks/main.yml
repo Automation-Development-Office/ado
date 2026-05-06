@@ -4,19 +4,19 @@
 
 - name: DirSrv Normalize inputs (component vars + vault)
   ansible.builtin.set_fact:
-    dirsrv_target_namespace: "{{ name_space }}"
-    dirsrv_storage_class_name_effective: "{{ (storage_class_name | default('')) | string | trim }}"
-    dirsrv_selector_effective: "{{ dirsrv_selector | default({'app': 'dirsrv'}) }}"
+    openshift_install_dirsrv_target_namespace: "{{ name_space }}"
+    openshift_install_dirsrv_storage_class_name_effective: "{{ (storage_class_name | default('')) | string | trim }}"
+    openshift_install_dirsrv_selector_effective: "{{ openshift_install_dirsrv_selector | default({'app': 'dirsrv'}) }}"
 
     # vault root key is "dirsrv" (must use vars['dirsrv'] because key starts with digit)
-    dirsrv_dm_password: >-
+    openshift_install_dirsrv_dm_password: >-
       {{
-        (vars['dirsrv'].dirsrv_manager_password)
-        | mandatory('Missing dirsrv.dirsrv_manager_password in vault_' ~ env ~ '.yml')
+        (vars['dirsrv'].openshift_install_dirsrv_manager_password)
+        | mandatory('Missing dirsrv.openshift_install_dirsrv_manager_password in vault_' ~ env ~ '.yml')
       }}
-    dirsrv_ds_suffix_effective: "{{ (vars['dirsrv'].ds_suffix | default('')) | string | trim }}"
-    dirsrv_repl_manager_password_effective: "{{ (vars['dirsrv'].repl_manager_password | default('')) | string | trim }}"
-    dirsrv_test_user_uid_effective: "{{ (vars['dirsrv'].test_user_uid | default('testuser')) | string | trim }}"
+    openshift_install_dirsrv_ds_suffix_effective: "{{ (vars['dirsrv'].ds_suffix | default('')) | string | trim }}"
+    openshift_install_dirsrv_repl_manager_password_effective: "{{ (vars['dirsrv'].repl_manager_password | default('')) | string | trim }}"
+    openshift_install_dirsrv_test_user_uid_effective: "{{ (vars['dirsrv'].test_user_uid | default('testuser')) | string | trim }}"
   changed_when: false
 
 - name: DirSrv Assert required component vars
@@ -26,7 +26,7 @@
       - statefulset_name is defined and (statefulset_name | string | trim | length) > 0
       - expected_replicas is defined
       - init_image is defined and (init_image | string | trim | length) > 0
-      - dirsrv_image is defined and (dirsrv_image | string | trim | length) > 0
+      - openshift_install_dirsrv_image is defined and (openshift_install_dirsrv_image | string | trim | length) > 0
       - pvc_size is defined and (pvc_size | string | trim | length) > 0
       - storage_class_name_effective | length > 0
       - sa_name is defined and (sa_name | string | trim | length) > 0
@@ -120,10 +120,10 @@
       metadata:
         name: dirsrv-internal-svc
         namespace: "{{ target_namespace }}"
-        labels: "{{ dirsrv_selector_effective }}"
+        labels: "{{ openshift_install_dirsrv_selector_effective }}"
       spec:
         clusterIP: None
-        selector: "{{ dirsrv_selector_effective }}"
+        selector: "{{ openshift_install_dirsrv_selector_effective }}"
         ports:
           - name: dirsrv-nonsecure
             port: "{{ ldap_port | int }}"
@@ -144,10 +144,10 @@
       metadata:
         name: dirsrv-external-svc
         namespace: "{{ target_namespace }}"
-        labels: "{{ dirsrv_selector_effective }}"
+        labels: "{{ openshift_install_dirsrv_selector_effective }}"
       spec:
         type: NodePort
-        selector: "{{ dirsrv_selector_effective }}"
+        selector: "{{ openshift_install_dirsrv_selector_effective }}"
         ports:
           - name: dirsrv-nonsecure
             port: "{{ ldap_port | int }}"
@@ -202,7 +202,7 @@
     name: "{{ statefulset_name }}"
     namespace: "{{ target_namespace }}"
     state: absent
-  when: dirsrv_cleanup  default(false)  bool
+  when: openshift_install_dirsrv_cleanup  default(false)  bool
 
 # --------------------------
 # StatefulSet
@@ -225,10 +225,10 @@
           whenScaled: Retain
         replicas: "{{ expected_replicas | int }}"
         selector:
-          matchLabels: "{{ dirsrv_selector_effective }}"
+          matchLabels: "{{ openshift_install_dirsrv_selector_effective }}"
         template:
           metadata:
-            labels: "{{ dirsrv_selector_effective }}"
+            labels: "{{ openshift_install_dirsrv_selector_effective }}"
           spec:
             serviceAccountName: "{{ sa_name }}"
             securityContext:
@@ -246,7 +246,7 @@
                     mountPath: /data
             containers:
               - name: dirsrv-container
-                image: "{{ dirsrv_image }}"
+                image: "{{ openshift_install_dirsrv_image }}"
                 env:
                   - name: DS_DM_PASSWORD
                     valueFrom:
@@ -295,10 +295,10 @@
     kind: StatefulSet
     namespace: "{{ target_namespace }}"
     name: "{{ statefulset_name }}"
-  register: dirsrv_sts_info
+  register: openshift_install_dirsrv_sts_info
   until: >
-    (dirsrv_sts_info.resources  length) > 0 and
-    ((dirsrv_sts_info.resources[0].status.readyReplicas  default(0))  int >= (expected_replicas  int))
+    (openshift_install_dirsrv_sts_info.resources  length) > 0 and
+    ((openshift_install_dirsrv_sts_info.resources[0].status.readyReplicas  default(0))  int >= (expected_replicas  int))
   retries: 60
   delay: 10
   changed_when: false
@@ -314,13 +314,13 @@
     namespace: "{{ target_namespace }}"
     label_selectors:
       - "{{ label_selector | default('app=dirsrv') }}"
-  register: dirsrv_pods
+  register: openshift_install_dirsrv_pods
 
 - name: Dirsrv Set pods list (sorted, Running only)
   ansible.builtin.set_fact:
-    dirsrv_pods_list: >-
+    openshift_install_dirsrv_pods_list: >-
       {{
-        (dirsrv_pods.resources | default([]))
+        (openshift_install_dirsrv_pods.resources | default([]))
          | selectattr('status.phase', 'equalto', 'Running')
          | map(attribute='metadata.name')
          | sort
@@ -331,10 +331,10 @@
 - name: Dirsrv Assert expected pods are Running
   ansible.builtin.assert:
     that:
-      - (dirsrv_pods_list | length) >= (expected_replicas | int)
+      - (openshift_install_dirsrv_pods_list | length) >= (expected_replicas | int)
     fail_msg: >-
       Expected at least {{ expected_replicas }} Running pods for app=dirsrv in {{ target_namespace }},
-      but found {{ dirsrv_pods_list | length }}. Check oc describe pod/events.
+      but found {{ openshift_install_dirsrv_pods_list | length }}. Check oc describe pod/events.
   changed_when: false
 
 # --------------------------
@@ -350,7 +350,7 @@
     command: >-
       sh -lc 'dsconf localhost backend suffix list  grep -F "{{ ds_suffix_effective }}" >/dev/null 2>&1
       | dsconf localhost backend create --suffix "{{ ds_suffix_effective }}" --be-name "backend-{{ target_namespace }}"'
-  loop: "{{ dirsrv_pods_list }}"
+  loop: "{{ openshift_install_dirsrv_pods_list }}"
   when: enable_bootstrap  default(true)  bool
 
 - name: Dirsrv Render LDIF templates locally
@@ -375,7 +375,7 @@
     pod_path: "/tmp/{{ item }}"
   kubernetes.core.k8s_exec:
     namespace: "{{ target_namespace }}"
-    pod: "{{ dirsrv_pods_list[0] }}"
+    pod: "{{ openshift_install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
       sh -lc 'printf "%s" "{{ lookup("file", local_path) | b64encode }}"  base64 -d > {{ pod_path }}'
@@ -393,7 +393,7 @@
 - name: Dirsrv Ensure suffix root exists (idempotent)
   kubernetes.core.k8s_exec:
     namespace: "{{ target_namespace }}"
-    pod: "{{ dirsrv_pods_list[0] }}"
+    pod: "{{ openshift_install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
       sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ dm_password }}"
@@ -404,7 +404,7 @@
 - name: Dirsrv Ensure ou=people exists (idempotent)
   kubernetes.core.k8s_exec:
     namespace: "{{ target_namespace }}"
-    pod: "{{ dirsrv_pods_list[0] }}"
+    pod: "{{ openshift_install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
       sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ dm_password }}"
@@ -415,7 +415,7 @@
 - name: Dirsrv Ensure ou=groups exists (idempotent)
   kubernetes.core.k8s_exec:
     namespace: "{{ target_namespace }}"
-    pod: "{{ dirsrv_pods_list[0] }}"
+    pod: "{{ openshift_install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
       sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ dm_password }}"
@@ -426,7 +426,7 @@
 - name: Dirsrv Ensure test group exists (idempotent)
   kubernetes.core.k8s_exec:
     namespace: "{{ target_namespace }}"
-    pod: "{{ dirsrv_pods_list[0] }}"
+    pod: "{{ openshift_install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
       sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ dm_password }}"
@@ -437,7 +437,7 @@
 - name: Dirsrv Ensure test user exists (idempotent)
   kubernetes.core.k8s_exec:
     namespace: "{{ target_namespace }}"
-    pod: "{{ dirsrv_pods_list[0] }}"
+    pod: "{{ openshift_install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
       sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ dm_password }}"
@@ -448,7 +448,7 @@
 - name: Dirsrv Ensure test user is member of test group (idempotent)
   kubernetes.core.k8s_exec:
     namespace: "{{ target_namespace }}"
-    pod: "{{ dirsrv_pods_list[0] }}"
+    pod: "{{ openshift_install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
       sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ dm_password }}"
@@ -459,7 +459,7 @@
 - name: Dirsrv Apply user-groups LDIF (non-fatal; may already exist)
   kubernetes.core.k8s_exec:
     namespace: "{{ target_namespace }}"
-    pod: "{{ dirsrv_pods_list[0] }}"
+    pod: "{{ openshift_install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
       sh -lc 'ldapadd -x -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ dm_password }}" -f /tmp/user-groups.ldif | true'
@@ -478,28 +478,28 @@
       sh -lc 'dsconf localhost replication enable --suffix "{{ ds_suffix_effective }}"
       --role supplier --replica-id {{ item.replica_id }}
       --bind-dn "{{ repl_manager_dn }}" --bind-passwd "{{ repl_manager_password_effective }}"'
-  register: dirsrv_repl_enable
+  register: openshift_install_dirsrv_repl_enable
   failed_when: >
-    (dirsrv_repl_enable.rc != 0) and
-    ("already enabled for this suffix" not in (dirsrv_repl_enable.stderr  default("")))
+    (openshift_install_dirsrv_repl_enable.rc != 0) and
+    ("already enabled for this suffix" not in (openshift_install_dirsrv_repl_enable.stderr  default("")))
   changed_when: >
-    (dirsrv_repl_enable.rc == 0) and
-    ("already enabled for this suffix" not in (dirsrv_repl_enable.stderr  default("")))
+    (openshift_install_dirsrv_repl_enable.rc == 0) and
+    ("already enabled for this suffix" not in (openshift_install_dirsrv_repl_enable.stderr  default("")))
   loop:
-    - { pod: "{{ dirsrv_pods_list[0] }}", replica_id: 1 }
-    - { pod: "{{ dirsrv_pods_list[1] }}", replica_id: 2 }
+    - { pod: "{{ openshift_install_dirsrv_pods_list[0] }}", replica_id: 1 }
+    - { pod: "{{ openshift_install_dirsrv_pods_list[1] }}", replica_id: 2 }
   when: enable_replication  default(true)  bool
 
 - name: Dirsrv Create replication agreement pod-0 -> pod-1 (idempotent)
   kubernetes.core.k8s_exec:
     namespace: "{{ target_namespace }}"
-    pod: "{{ dirsrv_pods_list[0] }}"
+    pod: "{{ openshift_install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >
       sh -lc '
         set -e
         AGREEMENT="to-pod-1"
-        TARGET="{{ dirsrv_pods_list[1] }}.dirsrv-internal-svc.{{ target_namespace }}.svc.cluster.local"
+        TARGET="{{ openshift_install_dirsrv_pods_list[1] }}.dirsrv-internal-svc.{{ target_namespace }}.svc.cluster.local"
         dsconf localhost repl-agmt list --suffix "{{ ds_suffix_effective }}"  grep -q "$AGREEMENT" && exit 0
         dsconf localhost repl-agmt create \
           --suffix "{{ ds_suffix_effective }}" \
@@ -520,7 +520,7 @@
 - name: Dirsrv Enable unauthenticated binds if supported (pod-0)
   kubernetes.core.k8s_exec:
     namespace: "{{ target_namespace }}"
-    pod: "{{ dirsrv_pods_list[0] }}"
+    pod: "{{ openshift_install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
       sh -lc '
@@ -537,14 +537,14 @@
 - name: Dirsrv Apply Anonymous Read ACI on suffix (non-fatal idempotent)
   kubernetes.core.k8s_exec:
     namespace: "{{ target_namespace }}"
-    pod: "{{ dirsrv_pods_list[0] }}"
+    pod: "{{ openshift_install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
       sh -lc 'ldapmodify -x -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ dm_password }}" -f /tmp/aci-anon-read.ldif'
-  register: dirsrv_aci_apply
+  register: openshift_install_dirsrv_aci_apply
   failed_when: >
-    (dirsrv_aci_apply.rc != 0) and
-    ("Type or value exists" not in (dirsrv_aci_apply.stderr  default("")))
+    (openshift_install_dirsrv_aci_apply.rc != 0) and
+    ("Type or value exists" not in (openshift_install_dirsrv_aci_apply.stderr  default("")))
   changed_when: >
-    (dirsrv_aci_apply.rc == 0)
+    (openshift_install_dirsrv_aci_apply.rc == 0)
   when: enable_bootstrap  default(true)  bool

@@ -3,4 +3,4 @@
   hosts: localhost
   remote_user: root
   roles:
-    - postfix
+    - openshift_install_postfix

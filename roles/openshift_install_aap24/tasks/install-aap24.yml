@@ -2,8 +2,8 @@
 - name: Assert admin password is provided
   ansible.builtin.assert:
     that:
-      - aap24_admin_password | length > 0
-    fail_msg: "aap24_admin_password is empty. Put it in vault and pass it in."
+      - openshift_install_aap24_admin_password | length > 0
+    fail_msg: "openshift_install_aap24_admin_password is empty. Put it in vault and pass it in."
 
 # Pull secret handling (your working approach)
 - name: Read cluster pull-secret
@@ -12,8 +12,8 @@
     kind: Secret
     namespace: openshift-config
     name: pull-secret
-  register: aap24_cluster_pull
-  failed_when: (aap24_cluster_pull.get('resources', []) | length) != 1
+  register: openshift_install_aap24_cluster_pull
+  failed_when: (openshift_install_aap24_cluster_pull.get('resources', []) | length) != 1
 
 - name: Create redhat-operators-pull-secret in target namespace
   kubernetes.core.k8s:
@@ -26,7 +26,7 @@
         namespace: "{{ name_space }}"
       type: kubernetes.io/dockerconfigjson
       data:
-        .dockerconfigjson: "{{ aap24_cluster_pull.resources[0].data['.dockerconfigjson'] }}"
+        .dockerconfigjson: "{{ openshift_install_aap24_cluster_pull.resources[0].data['.dockerconfigjson'] }}"
 
 # Admin password secret (must exist BEFORE CR)
 - name: Create admin password secret
@@ -40,7 +40,7 @@
         namespace: "{{ name_space }}"
       type: Opaque
       stringData:
-        password: "{{ aap24_admin_password }}"
+        password: "{{ openshift_install_aap24_admin_password }}"
   no_log: true
 
 # cert-manager cert for route
@@ -67,10 +67,10 @@
     kind: Secret
     namespace: "{{ name_space }}"
     name: "{{ controller_tls_secret }}"
-  register: aap24_tls_secret
+  register: openshift_install_aap24_tls_secret
   retries: 60
   delay: 10
-  until: (aap24_tls_secret.get('resources', []) | length) == 1
+  until: (openshift_install_aap24_tls_secret.get('resources', []) | length) == 1
 
 # Create AutomationController
 - name: Create AutomationController
@@ -105,12 +105,12 @@
     api_version: route.openshift.io/v1
     kind: Route
     namespace: "{{ name_space }}"
-  register: aap24_routes
+  register: openshift_install_aap24_routes
   retries: 240
   delay: 10
   until: >
     (
-      aap24_routes.get('resources', [])
+      openshift_install_aap24_routes.get('resources', [])
       | selectattr('spec.host', 'equalto', controller_route_host)
       | list | length
     ) > 0
@@ -122,8 +122,8 @@
 # Optional post-config to connect Hub/Galaxy
 - name: Configure controller to use Automation Hub (optional)
   ansible.builtin.include_tasks: configure_controller.yml
-  when: aap24_configure_hub | bool
+  when: openshift_install_aap24_configure_hub | bool
 
 - name: Activate AAP subscription (optional)
   ansible.builtin.include_tasks: activate-subscription.yml
-  when: (aap24_activate_subscription | default(false)) | bool
+  when: (openshift_install_aap24_activate_subscription | default(false)) | bool

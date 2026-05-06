@@ -3,4 +3,4 @@
   hosts: localhost
   remote_user: root
   roles:
-    - gitops
+    - openshift_install_gitops

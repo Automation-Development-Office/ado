@@ -1,4 +1,4 @@
 ---
-# tasks file for devspaces_user_config
+# tasks file for openshift_install_devspaces_user_config
 - name: Devspaces User Config
-  ansible.builtin.import_tasks: devspaces_config.yml
+  ansible.builtin.import_tasks: openshift_install_devspaces_config.yml

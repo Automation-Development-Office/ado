@@ -1,3 +1,4 @@
+---
 - name: Converge — get_routes (uses namespace role as fixture)
   hosts: localhost
   gather_facts: false
@@ -5,7 +6,7 @@
     name_space: test-routes-molecule
     svc_name: echo-svc
     route_name: echo
-    validate_certs: false     # flip to true if you provide a CA/kubeconfig
+    validate_certs: false # flip to true if you provide a CA/kubeconfig
     state: present
   tasks:
     # Use your namespace role instead of inline tasks
@@ -25,7 +26,7 @@
             namespace: "{{ name_space }}"
             labels: { app: echo }
           spec:
-            selector: { app: echo }     # pods not required for the Route object
+            selector: { app: echo } # pods not required for the Route object
             ports:
               - name: http
                 port: 80
@@ -63,6 +64,6 @@
         require_found: true
         k8s_validate_certs: "{{ validate_certs }}"
 
-    #- name: Show found route host
+    # - name: Show found route host
     #  ansible.builtin.debug:
     #    var: primary_host

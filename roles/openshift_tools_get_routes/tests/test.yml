@@ -4,4 +4,4 @@
   hosts: localhost
   remote_user: root
   roles:
-    - get_routes
+    - openshift_tools_get_routes

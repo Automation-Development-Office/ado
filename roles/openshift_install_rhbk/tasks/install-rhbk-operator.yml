@@ -3,8 +3,8 @@
   ansible.builtin.assert:
     that:
       - name_space is defined and (name_space | string | length) > 0
-      - rhbk_hostname is defined and (rhbk_hostname | string | length) > 0
-    fail_msg: "name_space and rhbk_hostname are required."
+      - openshift_install_rhbk_hostname is defined and (openshift_install_rhbk_hostname | string | length) > 0
+    fail_msg: "name_space and openshift_install_rhbk_hostname are required."
 
 # -----------------------
 # Secrets: DB + Admin
@@ -21,8 +21,8 @@
         namespace: "{{ name_space }}"
       type: Opaque
       stringData:
-        username: "{{ rhbk_db_user }}"
-        password: "{{ rhbk_db_password }}"
+        username: "{{ openshift_install_rhbk_db_user }}"
+        password: "{{ openshift_install_rhbk_db_password }}"
 
 - name: Create Keycloak bootstrap ADMIN Secret (used by spec.bootstrapAdmin.user.secret)
   kubernetes.core.k8s:
@@ -35,8 +35,8 @@
         namespace: "{{ name_space }}"
       type: Opaque
       stringData:
-        username: "{{ rhbk_admin_user }}"
-        password: "{{ rhbk_admin_password }}"
+        username: "{{ openshift_install_rhbk_admin_user }}"
+        password: "{{ openshift_install_rhbk_admin_password }}"
 
 # -----------------------
 # TLS: cert-manager vs manual
@@ -45,11 +45,11 @@
 - name: Guard — cert-manager mode requires issuer name
   ansible.builtin.assert:
     that:
-      - rhbk_issuer_name is defined
-      - (rhbk_issuer_name | string | length) > 0
-      - rhbk_issuer_kind is defined
-      - rhbk_issuer_kind in ['Issuer', 'ClusterIssuer']
-    fail_msg: "cert_manager=true requires rhbk_issuer_name and rhbk_issuer_kind (Issuer or ClusterIssuer)."
+      - openshift_install_rhbk_issuer_name is defined
+      - (openshift_install_rhbk_issuer_name | string | length) > 0
+      - openshift_install_rhbk_issuer_kind is defined
+      - openshift_install_rhbk_issuer_kind in ['Issuer', 'ClusterIssuer']
+    fail_msg: "cert_manager=true requires openshift_install_rhbk_issuer_name and openshift_install_rhbk_issuer_kind (Issuer or ClusterIssuer)."
   when: cert_manager | default(false) | bool
 
 - name: Create cert-manager Certificate for Keycloak (cert_manager=true)
@@ -59,15 +59,15 @@
       apiVersion: cert-manager.io/v1
       kind: Certificate
       metadata:
-        name: "{{ rhbk_cert_name }}"
+        name: "{{ openshift_install_rhbk_cert_name }}"
         namespace: "{{ name_space }}"
       spec:
-        secretName: "{{ rhbk_tls_secret_name }}"
+        secretName: "{{ openshift_install_rhbk_tls_secret_name }}"
         dnsNames:
-          - "{{ rhbk_hostname }}"
+          - "{{ openshift_install_rhbk_hostname }}"
         issuerRef:
-          name: "{{ rhbk_issuer_name }}"
-          kind: "{{ rhbk_issuer_kind }}"
+          name: "{{ openshift_install_rhbk_issuer_name }}"
+          kind: "{{ openshift_install_rhbk_issuer_kind }}"
   when: cert_manager | default(false) | bool
 
 - name: Guard — manual TLS requires tls_crt + tls_key
@@ -85,7 +85,7 @@
       apiVersion: v1
       kind: Secret
       metadata:
-        name: "{{ rhbk_tls_secret_name }}"
+        name: "{{ openshift_install_rhbk_tls_secret_name }}"
         namespace: "{{ name_space }}"
       type: kubernetes.io/tls
       data:
@@ -103,21 +103,23 @@
     kind: StatefulSet
     namespace: "{{ name_space }}"
     name: "{{ postgres_statefulset_name }}"
-  register: rhbk_ss_info
+  register: openshift_install_rhbk_ss_info
   failed_when: false
 
 - name: Decide if StatefulSet needs recreation due to immutable changes
   ansible.builtin.set_fact:
-    rhbk_requires_ss_recreation: >-
+    openshift_install_rhbk_requires_ss_recreation: >-
       {{
-        (rhbk_recreate_ss_on_immutable_change | bool) and
-        (rhbk_ss_info.resources | length > 0) and (
+        (openshift_install_rhbk_recreate_ss_on_immutable_change | bool) and
+        (openshift_install_rhbk_ss_info.resources | length > 0) and (
           (
-            (rhbk_ss_info.resources[0].spec.volumeClaimTemplates[0].spec.storageClassName | default('')) != (postgres_storage_class | default(''))
+            (openshift_install_rhbk_ss_info.resources[0].spec
+            .volumeClaimTemplates[0].spec.storageClassName | default(''))
+            != (postgres_storage_class | default(''))
           )
           or
           (
-            (rhbk_ss_info.resources[0].spec.serviceName | default('')) != postgres_service_name
+            (openshift_install_rhbk_ss_info.resources[0].spec.serviceName | default('')) != postgres_service_name
           )
         )
       }}
@@ -131,7 +133,7 @@
 #    state: absent
 #  when:
 #    - state == 'present'
-#    - rhbk_requires_ss_recreation | bool
+#    - openshift_install_rhbk_requires_ss_recreation | bool
 
 # -----------------------
 # Postgres objects
@@ -184,7 +186,7 @@
           - metadata:
               name: data-volume
             spec:
-              accessModes: ['ReadWriteOnce']
+              accessModes: ["ReadWriteOnce"]
               resources:
                 requests:
                   storage: "{{ postgres_storage_size }}"
@@ -240,10 +242,10 @@
             key: password
 
         http:
-          tlsSecret: "{{ rhbk_tls_secret_name }}"
+          tlsSecret: "{{ openshift_install_rhbk_tls_secret_name }}"
 
         hostname:
-          hostname: "{{ rhbk_hostname }}"
+          hostname: "{{ openshift_install_rhbk_hostname }}"
 
         proxy:
           headers: xforwarded

@@ -1,3 +1,4 @@
+---
 - name: Destroy — wait_for_pods (remove fixture)
   hosts: localhost
   gather_facts: false

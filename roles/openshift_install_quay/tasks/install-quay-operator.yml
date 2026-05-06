@@ -1,3 +1,4 @@
+---
 - name: Create Quay Namespace
   kubernetes.core.k8s:
     api_version: v1
@@ -22,16 +23,16 @@
 
 - name: Set Quay config
   ansible.builtin.set_fact:
-    quay_config: |
-      SERVER_HOSTNAME: {{ quay_hostname }}
+    openshift_install_quay_config: |
+      SERVER_HOSTNAME: {{ openshift_install_quay_hostname }}
       DATABASE_SECRET_KEY: changeme-secret-key
       SUPER_USERS:
-        - {{ quay_admin_user }}
+        - {{ openshift_install_quay_admin_user }}
       FEATURE_USER_INITIALIZE: true
       USER_INITIALIZE:
-        username: {{ quay_admin_user }}
-        password: {{ quay_admin_password }}
-        email: "{{ quay_admin_user }}@example.com"
+        username: {{ openshift_install_quay_admin_user }}
+        password: {{ openshift_install_quay_admin_password }}
+        email: "{{ openshift_install_quay_admin_user }}@example.com"
         access_token: true
       DB_URI: postgresql://quay:quaypass@postgres-db:5432/quay
       REDIS_HOST: localhost
@@ -58,11 +59,11 @@
       apiVersion: v1
       kind: Secret
       metadata:
-        name: "{{ quay_config_secret }}"
+        name: "{{ openshift_install_quay_config_secret }}"
         namespace: "{{ name_space }}"
       type: Opaque
       data:
-        config.yaml: "{{ quay_config | b64encode }}"
+        config.yaml: "{{ openshift_install_quay_config | b64encode }}"
 
 - name: Deploy PostgreSQL StatefulSet
   kubernetes.core.k8s:
@@ -135,10 +136,10 @@
     namespace: "{{ name_space }}"
     label_selectors:
       - "app=postgres-db"
-  register: quay_pg_pods
+  register: openshift_install_quay_pg_pods
   until:
-    - quay_pg_pods.resources | length > 0
-    - (quay_pg_pods.resources[0].status.containerStatuses[0].ready | default(false)) | bool
+    - openshift_install_quay_pg_pods.resources | length > 0
+    - (openshift_install_quay_pg_pods.resources[0].status.containerStatuses[0].ready | default(false)) | bool
   retries: 40
   delay: 6
 
@@ -148,10 +149,10 @@
     kind: Endpoints
     namespace: "{{ name_space }}"
     name: postgres-db
-  register: quay_pg_eps
+  register: openshift_install_quay_pg_eps
   until:
-    - quay_pg_eps.resources | length > 0
-    - (quay_pg_eps.resources[0].subsets | default([])) | length > 0
+    - openshift_install_quay_pg_eps.resources | length > 0
+    - (openshift_install_quay_pg_eps.resources[0].subsets | default([])) | length > 0
   retries: 40
   delay: 6
 
@@ -176,7 +177,7 @@
             volumes:
               - name: config-volume
                 secret:
-                  secretName: "{{ quay_config_secret }}"
+                  secretName: "{{ openshift_install_quay_config_secret }}"
               - name: registry-storage
                 persistentVolumeClaim:
                   claimName: quay-registry-storage
@@ -204,7 +205,7 @@
         name: quay
         namespace: "{{ name_space }}"
       spec:
-        host: "{{ quay_hostname }}"
+        host: "{{ openshift_install_quay_hostname }}"
         to:
           kind: Service
           name: quay
@@ -214,4 +215,4 @@
 
 - name: Show Quay admin console URL
   ansible.builtin.debug:
-    msg: "Login to Quay at: https://{{ quay_hostname }} (Username: {{ quay_admin_user }})"
+    msg: "Login to Quay at: https://{{ openshift_install_quay_hostname }} (Username: {{ openshift_install_quay_admin_user }})"

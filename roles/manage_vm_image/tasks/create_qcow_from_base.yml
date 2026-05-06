@@ -1,3 +1,4 @@
+---
 - name: Get backing file info
   ansible.builtin.command: >
     qemu-img info --output=json {{ manage_vm_image_base_path }}

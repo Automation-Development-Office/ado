@@ -1,3 +1,4 @@
+---
 - name: Create Cluster Forwarder Splunk Secret
   kubernetes.core.k8s:
     state: "{{ cluster_forwarder_state }}"
@@ -10,7 +11,6 @@
       data:
         hecToken: "{{ splunk_secret | b64encode }}"
   when: splunk_secret is defined
-
 
 - name: Create/Delete Cluster Forwarder
   kubernetes.core.k8s:

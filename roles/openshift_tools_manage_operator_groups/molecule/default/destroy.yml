@@ -1,3 +1,4 @@
+---
 - name: Destroy — remove resources
   hosts: localhost
   gather_facts: false
@@ -30,22 +31,22 @@
         kind: OperatorGroup
         name: "{{ operatorgroup }}"
         namespace: "{{ name_space }}"
-        validate_certs: "{{ k8s_validate_certs | default(false) }}"   # set true if you trust the CA
-      register: og_gone
-      failed_when: false          # tolerate NotFound / namespace gone
-      until: (og_gone.resources | default([])) | length == 0
+        validate_certs: "{{ k8s_validate_certs | default(false) }}" # set true if you trust the CA
+      register: openshift_tools_manage_operator_groups_og_gone
+      failed_when: false # tolerate NotFound / namespace gone
+      until: (openshift_tools_manage_operator_groups_og_gone.resources | default([])) | length == 0
       retries: 12
       delay: 5
 
     - name: Assert OperatorGroup deleted
       ansible.builtin.assert:
         that:
-          - (og_gone.resources | default([])) | length == 0
+          - (openshift_tools_manage_operator_groups_og_gone.resources | default([])) | length == 0
         success_msg: >-
           ✅ k8s confirms OperatorGroup '{{ operatorgroup }}' is not present in namespace '{{ name_space }}'.
         fail_msg: >-
           ❌ OperatorGroup '{{ operatorgroup }}' still present in namespace '{{ name_space }}'
-          (found {{ (og_gone.resources | default([])) | length }} result(s)).
+          (found {{ (openshift_tools_manage_operator_groups_og_gone.resources | default([])) | length }} result(s)).
 
     # ---- Optional: verify the namespace is gone too ----
     - name: Check namespace after deletion (optional)
@@ -54,12 +55,12 @@
         kind: Namespace
         name: "{{ name_space }}"
         validate_certs: "{{ k8s_validate_certs | default(false) }}"
-      register: ns_after
+      register: openshift_tools_manage_operator_groups_ns_after
       failed_when: false
 
     - name: Report namespace state (optional)
       ansible.builtin.debug:
         msg: >-
-          {{ (ns_after.resources | default([])) | length == 0
+          {{ (openshift_tools_manage_operator_groups_ns_after.resources | default([])) | length == 0
               | ternary("ℹ️ Namespace '" ~ name_space ~ "' is gone.",
                         "ℹ️ Namespace '" ~ name_space ~ "' still exists.") }}

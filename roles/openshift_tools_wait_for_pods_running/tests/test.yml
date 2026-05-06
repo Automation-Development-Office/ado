@@ -3,4 +3,4 @@
   hosts: localhost
   remote_user: root
   roles:
-    - wait_for_pods_running
+    - openshift_tools_wait_for_pods_running

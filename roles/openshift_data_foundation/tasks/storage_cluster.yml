@@ -1,3 +1,4 @@
+---
 - name: Create Storage Cluster
   kubernetes.core.k8s:
     state: present
@@ -11,7 +12,7 @@
         arbiter: {}
         encryption:
           keyRotation:
-            schedule: '@weekly'
+            schedule: "@weekly"
           kms: {}
         externalStorage: {}
         managedResources:

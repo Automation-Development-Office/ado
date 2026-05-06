@@ -23,17 +23,18 @@
         kind: OAuth
         name: "{{ _oauth }}"
         validate_certs: "{{ validate_certs }}"
-      register: _oauth_before
+      register: openshift_tools_create_htpass_admin_user_oauth_before
 
     - name: Snapshot IdP names (baseline)
       ansible.builtin.set_fact:
-        _idps_before: >-
+        openshift_tools_create_htpass_admin_user_idps_before: >-
           {{
-            _oauth_before.resources[0].spec.identityProviders | default([])
-            if (_oauth_before.resources | length > 0)
+            openshift_tools_create_htpass_admin_user_oauth_before.resources[0].spec.identityProviders | default([])
+            if (openshift_tools_create_htpass_admin_user_oauth_before.resources | length > 0)
             else []
           }}
-        _idp_names_before: "{{ _idps_before | map(attribute='name') | list | default([]) }}"
+        openshift_tools_create_htpass_admin_user_idp_names_before: >-
+          {{ openshift_tools_create_htpass_admin_user_idps_before | map(attribute='name') | list | default([]) }}
 
   tasks:
     # Run the role under test
@@ -48,40 +49,47 @@
         kind: OAuth
         name: "{{ _oauth }}"
         validate_certs: "{{ validate_certs }}"
-      register: _oauth_after
+      register: openshift_tools_create_htpass_admin_user_oauth_after
 
     # --- compute each fact in its own task ---
     - name: Extract IdPs after
       ansible.builtin.set_fact:
-        _idps_after: >-
+        openshift_tools_create_htpass_admin_user_idps_after: >-
           {{
-            _oauth_after.resources[0].spec.identityProviders | default([])
-            if (_oauth_after.resources is defined and (_oauth_after.resources | length) > 0)
+            openshift_tools_create_htpass_admin_user_oauth_after.resources[0].spec.identityProviders | default([])
+            if (
+              openshift_tools_create_htpass_admin_user_oauth_after.resources is defined
+              and (openshift_tools_create_htpass_admin_user_oauth_after.resources | length) > 0
+            )
             else []
           }}
 
     - name: Compute IdP name list after
       ansible.builtin.set_fact:
-        _idp_names_after: "{{ _idps_after | map(attribute='name') | list | default([]) }}"
+        openshift_tools_create_htpass_admin_user_idp_names_after: >-
+          {{ openshift_tools_create_htpass_admin_user_idps_after | map(attribute='name') | list | default([]) }}
 
     - name: Filter HTPasswd IdPs after
       ansible.builtin.set_fact:
-        _htpasswd_idps_after: "{{ _idps_after | selectattr('type','equalto','HTPasswd') | list }}"
+        openshift_tools_create_htpass_admin_user_htpasswd_idps_after: >-
+          {{ openshift_tools_create_htpass_admin_user_idps_after | selectattr('type', 'equalto', 'HTPasswd') | list }}
       no_log: true
 
     # 1) We did not remove anyone else’s IdP
     - name: Assert no existing IdPs were removed
       ansible.builtin.assert:
         that:
-          - _idp_names_before | difference(_idp_names_after) | length == 0
-        fail_msg: "An existing IdP was removed. Before={{ _idp_names_before }} After={{ _idp_names_after }}"
+          - openshift_tools_create_htpass_admin_user_idp_names_before | difference(openshift_tools_create_htpass_admin_user_idp_names_after) | length == 0
+        fail_msg: >-
+          An existing IdP was removed. Before={{ openshift_tools_create_htpass_admin_user_idp_names_before }} After={{
+          openshift_tools_create_htpass_admin_user_idp_names_after }}
 
     # 2) Our HTPasswd IdP is present by Secret reference (name can vary)
     - name: Collect HTPasswd Secret names after
       ansible.builtin.set_fact:
-        _htpasswd_secret_names_after: >-
+        openshift_tools_create_htpass_admin_user_htpasswd_secret_names_after: >-
           {{
-            _htpasswd_idps_after
+            openshift_tools_create_htpass_admin_user_htpasswd_idps_after
             | map(attribute='htpasswd') | map(attribute='fileData') | map(attribute='name')
             | list | default([])
           }}
@@ -90,8 +98,8 @@
     - name: Assert HTPasswd IdP referencing our Secret exists
       ansible.builtin.assert:
         that:
-          - htpasswd_secret in _htpasswd_secret_names_after
-        fail_msg: "No HTPasswd IdP references Secret '{{ htpasswd_secret }}'. Found={{ _htpasswd_secret_names_after }}"
+          - htpasswd_secret in openshift_tools_create_htpass_admin_user_htpasswd_secret_names_after
+        fail_msg: "No HTPasswd IdP references Secret '{{ htpasswd_secret }}'. Found={{ openshift_tools_create_htpass_admin_user_htpasswd_secret_names_after }}"
 
     # 3) Secret exists
     - name: Assert HTPasswd Secret exists
@@ -101,13 +109,13 @@
         namespace: "{{ _ns }}"
         name: "{{ htpasswd_secret }}"
         validate_certs: "{{ validate_certs }}"
-      register: _htp_sec
+      register: openshift_tools_create_htpass_admin_user_htp_sec
       no_log: true
 
     - name: Secret is present
       ansible.builtin.assert:
         that:
-          - _htp_sec.resources | length == 1
+          - openshift_tools_create_htpass_admin_user_htp_sec.resources | length == 1
         fail_msg: "HTPasswd Secret '{{ htpasswd_secret }}' not found."
 
     # 4) (Optional) CRB check for the user you created
@@ -118,11 +126,13 @@
         api_version: rbac.authorization.k8s.io/v1
         kind: ClusterRoleBinding
         validate_certs: "{{ validate_certs }}"
-      register: _crbs
+      register: openshift_tools_create_htpass_admin_user_crbs
 
     - name: CRB present
       when: grant_admin | bool
       ansible.builtin.assert:
         that:
-          - ("cluster-admin-" ~ htpasswd_user) in (_crbs.resources | map(attribute='metadata.name') | list | default([]))
+          - >-
+            ("cluster-admin-" ~ htpasswd_user) in (openshift_tools_create_htpass_admin_user_crbs.resources | map(attribute='metadata.name') | list
+            | default([]))
         fail_msg: "ClusterRoleBinding {{ 'cluster-admin-' ~ htpasswd_user }} not found."

@@ -5,30 +5,30 @@
     method: GET
     validate_certs: false
     status_code: 200
-  register: aap26_ping
+  register: openshift_install_aap26_ping
   retries: 60
   delay: 10
-  until: aap26_ping.status == 200
+  until: openshift_install_aap26_ping.status == 200
 
 - name: Create Automation Hub credential (token)
   awx.awx.credential:
     controller_host: "https://{{ controller_route_host }}"
     controller_username: "{{ admin_user }}"
-    controller_password: "{{ aap26_admin_password }}"
+    controller_password: "{{ openshift_install_aap26_admin_password }}"
     validate_certs: false
-    name: "{{ aap26_hub_credential_name }}"
+    name: "{{ openshift_install_aap26_hub_credential_name }}"
     organization: "{{ controller_bootstrap_organization | default('Default') }}"
     credential_type: "Ansible Galaxy/Automation Hub API Token"
     inputs:
-      url: "{{ aap26_hub_url }}"
-      token: "{{ aap26_hub_token }}"
+      url: "{{ openshift_install_aap26_hub_url }}"
+      token: "{{ openshift_install_aap26_hub_token }}"
   no_log: true
-  
+
 - name: Configure Galaxy server to use Automation Hub
   awx.awx.settings:
     controller_host: "https://{{ controller_route_host }}"
     controller_username: "{{ admin_user }}"
-    controller_password: "{{ aap26_admin_password }}"
+    controller_password: "{{ openshift_install_aap26_admin_password }}"
     validate_certs: false
     settings:
-      GALAXY_SERVER_URL: "{{ aap26_hub_url }}"
+      GALAXY_SERVER_URL: "{{ openshift_install_aap26_hub_url }}"
