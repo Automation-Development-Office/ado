@@ -4,6 +4,52 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      run_integration_manage_vm_image:
+        description: "Run integration_manage_vm_image"
+        required: false
+        default: true
+        type: boolean
+      run_integration_utilities_cron_full_special:
+        description: "Run integration_utilities_cron_full_special"
+        required: false
+        default: true
+        type: boolean
+      run_integration_utilities_cron_full_special_removal:
+        description: "Run integration_utilities_cron_full_special_removal"
+        required: false
+        default: true
+        type: boolean
+      run_integration_utilities_cron_single_special:
+        description: "Run integration_utilities_cron_single_special"
+        required: false
+        default: true
+        type: boolean
+      run_integration_utilities_cron_single_special_removal:
+        description: "Run integration_utilities_cron_single_special_removal"
+        required: false
+        default: true
+        type: boolean
+      run_integration_utils_mount_mount_auto_detect:
+        description: "Run integration_utils_mount_mount_auto_detect"
+        required: false
+        default: true
+        type: boolean
+      run_integration_utils_mount_mount_explicit_fstype:
+        description: "Run integration_utils_mount_mount_explicit_fstype"
+        required: false
+        default: true
+        type: boolean
+      run_integration_utils_mount_remove_from_fstab:
+        description: "Run integration_utils_mount_remove_from_fstab"
+        required: false
+        default: true
+        type: boolean
+      run_integration_utils_mount_unmount_filesystem:
+        description: "Run integration_utils_mount_unmount_filesystem"
+        required: false
+        default: true
+        type: boolean
 
 env:
   NAMESPACE: ado
@@ -56,7 +102,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t dirs < <(find extensions/molecule -type f -name molecule.yml -printf '%h\n' | sort)
+          dirs=()
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            declare -A checks=(
+              [integration_manage_vm_image]="${{ github.event.inputs.run_integration_manage_vm_image }}"
+              [integration_utilities_cron_full_special]="${{ github.event.inputs.run_integration_utilities_cron_full_special }}"
+              [integration_utilities_cron_full_special_removal]="${{ github.event.inputs.run_integration_utilities_cron_full_special_removal }}"
+              [integration_utilities_cron_single_special]="${{ github.event.inputs.run_integration_utilities_cron_single_special }}"
+              [integration_utilities_cron_single_special_removal]="${{ github.event.inputs.run_integration_utilities_cron_single_special_removal }}"
+              [integration_utils_mount_mount_auto_detect]="${{ github.event.inputs.run_integration_utils_mount_mount_auto_detect }}"
+              [integration_utils_mount_mount_explicit_fstype]="${{ github.event.inputs.run_integration_utils_mount_mount_explicit_fstype }}"
+              [integration_utils_mount_remove_from_fstab]="${{ github.event.inputs.run_integration_utils_mount_remove_from_fstab }}"
+              [integration_utils_mount_unmount_filesystem]="${{ github.event.inputs.run_integration_utils_mount_unmount_filesystem }}"
+            )
+            for scenario in "${!checks[@]}"; do
+              if [[ "${checks[$scenario]}" == "true" ]]; then
+                dirs+=("extensions/molecule/$scenario")
+              fi
+            done
+            IFS=$'\n' dirs=($(sort <<< "${dirs[*]}"))
+          else
+            mapfile -t dirs < <(find extensions/molecule -type f -name molecule.yml -printf '%h\n' | sort)
+          fi
           if [ ${#dirs[@]} -eq 0 ]; then
             echo "No Molecule scenarios found under extensions/molecule"
             echo "scenarios=[]" >> "$GITHUB_OUTPUT"
@@ -75,7 +142,6 @@ jobs:
       needs.discover-molecule-scenarios.outputs.scenarios != '[]'
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         scenario_dir: ${{ fromJson(needs.discover-molecule-scenarios.outputs.scenarios) }}
     steps:

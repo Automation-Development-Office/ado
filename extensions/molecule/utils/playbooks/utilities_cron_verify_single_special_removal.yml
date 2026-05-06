@@ -1,0 +1,19 @@
+---
+- name: Verify - utilities_cron single special removal scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Get root crontab content
+      ansible.builtin.command: crontab -l -u root
+      register: utilities_cron_verify_crontab
+      changed_when: false
+      failed_when: false
+
+    - name: Assert yearly test cron job is absent
+      ansible.builtin.assert:
+        that:
+          - utilities_cron_verify_crontab.rc != 0 or (utilities_cron_verify_crontab.stdout is not search("yearly_test"))
+        fail_msg: "Expected cron entry 'yearly_test' to be absent from root crontab."
+        success_msg: "Cron entry 'yearly_test' is absent from root crontab."

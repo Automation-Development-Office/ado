@@ -2,6 +2,7 @@ exclude_paths:
     - "**/.github/**"
     - .ansible-lint
     - "**/.ansible/**"
+    - "roles/**/defaults/**"  # explicit role defaults exclusion
     - "**/defaults/**"      # exclude any defaults dir anywhere
     - "**/vars/**"          # exclude any vars dir anywhere
     - "**/molecule/**"     # exclude any molecule dir anywhere

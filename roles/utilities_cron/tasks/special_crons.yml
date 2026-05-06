@@ -1,0 +1,69 @@
+- name: Control @Annual Cron Jobs
+  ansible.builtin.cron:
+    name: " {{ item.name }}"
+    special_time: "annually"
+    job: "{{ item.job }}"
+    state: "{{ cron_state }}"
+  loop: "{{ cron_annual_jobs | default([]) }}"
+  # when: annual_jobs is defined
+  register: utilities_cron_result
+
+- name: Control @Daily Cron Jobs
+  ansible.builtin.cron:
+    name: "{{ item.name }}"
+    special_time: "daily"
+    job: "{{ item.job }}"
+    state: "{{ cron_state }}"
+  loop: "{{ cron_daily_jobs | default([]) }}"
+  # when: daily_jobs is defined
+  register: utilities_cron_result
+
+- name: Control @Hourly Cron Jobs
+  ansible.builtin.cron:
+    name: " {{ item.name }}"
+    special_time: "hourly"
+    job: "{{ item.job }}"
+    state: "{{ cron_state }}"
+  loop: "{{ cron_hourly_jobs | default([]) }}"
+  # when: hourly_jobs is defined
+  register: utilities_cron_result
+
+- name: Control @Monthly Cron Jobs
+  ansible.builtin.cron:
+    name: " {{ item.name }}"
+    special_time: "monthly"
+    job: "{{ item.job }}"
+    state: "{{ cron_state }}"
+  loop: "{{ cron_monthly_jobs | default([]) }}"
+  # when: monthly_jobs is defined
+  register: utilities_cron_result
+
+- name: Control @Reboot Cron Jobs
+  ansible.builtin.cron:
+    name: "{{ item.name }}"
+    special_time: "reboot"
+    job: "{{ item.job }}"
+    state: "{{ cron_state }}"
+  loop: "{{ cron_reboot_jobs | default([]) }}"
+  # when: reboot_jobs is defined
+  register: utilities_cron_result
+
+- name: Control Weekly Cron Jobs
+  ansible.builtin.cron:
+    name: "{{ item.name }}"
+    special_time: "weekly"
+    job: "{{ item.job }}"
+    state: "{{ cron_state }}"
+  loop: "{{ cron_weekly_jobs | default([]) }}"
+  # when: weekly_jobs is defined
+  register: utilities_cron_result
+
+- name: Control @Yearly Cron Jobs
+  ansible.builtin.cron:
+    name: "{{ item.name }}"
+    special_time: "yearly"
+    job: "{{ item.job }}"
+    state: "{{ cron_state }}"
+  loop: "{{ cron_yearly_jobs | default([]) }}"
+  # when: annual_jobs is defined
+  register: utilities_cron_result

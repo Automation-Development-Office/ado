@@ -87,6 +87,27 @@ See the
 
 <!-- Optional. Include the roadmap for this collection, and the proposed release/versioning strategy so users can anticipate the upgrade/update cycle. -->
 
+## Testing
+
+### Molecule scenarios
+
+Collection integration scenarios live under `extensions/molecule/` and are executed by the CI workflow.
+
+Run a scenario locally from the collection root:
+
+```bash
+cd extensions/molecule
+molecule test -s integration_utilities_cron_full_special
+```
+
+### GitHub Actions manual runs
+
+The `Ansible Collection CI/CD` workflow supports manual execution through `workflow_dispatch`.
+
+- Each Molecule scenario is exposed as a boolean input in the Run workflow form.
+- Checked scenarios are included in the test matrix.
+- Matrix jobs run in parallel.
+
 ## More information
 
 <!-- List out where the user can find additional information, such as working group meeting times, slack/matrix channels, or documentation for the product this collection automates. At a minimum, link to: -->
