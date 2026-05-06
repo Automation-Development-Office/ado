@@ -1,4 +1,4 @@
-# Role: `cron`
+# Role: `utilities_cron`
 
 This Ansible role manages cron jobs, including special time-based entries (e.g., `@reboot`, `@hourly`, `@daily`) for Linux systems.
 It supports flexible addition, removal, and verification of cron jobs using Ansible variables.
@@ -39,10 +39,42 @@ Define the desired cron jobs in your playbook or inventory using the variables a
 - **Main Task File** (`main.yml`):
   - Imports and runs the appropriate cron management tasks.
 
+## 🧪 Molecule
+
+This role is tested with extension-level Molecule scenarios under `extensions/molecule/`.
+
+Scenarios:
+
+- `integration_utilities_cron_full_special`
+- `integration_utilities_cron_full_special_removal`
+- `integration_utilities_cron_single_special`
+- `integration_utilities_cron_single_special_removal`
+
+Shared playbooks are located in `extensions/molecule/utils/playbooks/` and include dedicated `prepare`, `converge`, `idempotence`, `verify`, and `destroy` flows for each scenario.
+
+### Run scenarios locally
+
+Run from the collection root:
+
+```bash
+cd extensions/molecule
+molecule test -s integration_utilities_cron_full_special
+molecule test -s integration_utilities_cron_full_special_removal
+molecule test -s integration_utilities_cron_single_special
+molecule test -s integration_utilities_cron_single_special_removal
+```
+
+### GitHub Actions manual runs
+
+The `Ansible Collection CI/CD` workflow exposes each cron scenario as a checkbox in `workflow_dispatch`.
+
+- Checked scenarios are included in the Molecule matrix.
+- Matrix jobs run in parallel.
+
 ## 📁 Structure
 
 ```
-cron/
+utilities_cron/
 ├── defaults/
 │   └── main.yml
 ├── vars/
