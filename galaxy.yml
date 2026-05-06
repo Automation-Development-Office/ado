@@ -18,6 +18,8 @@ tags: ["linux", "tools"]
 # TO-DO: maintain this list to reflect the collection's dependencies
 dependencies:
   "ansible.utils": "*" # note: "*" selects the latest version available
+  "ansible.builtin": "*"
+  "redhat.satellite": "*"
 
 repository: http://example.com/repository
 documentation: http://docs.example.com
