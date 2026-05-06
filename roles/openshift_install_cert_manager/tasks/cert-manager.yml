@@ -75,14 +75,10 @@
         content: "{{ item.content }}\n"
         mode: "0600"
       loop:
-        - {
-            name: "{{ openshift_install_cert_manager_root_ca_awspca_cert_file }}",
-            content: "{{ openshift_install_cert_manager_awspca_cert.stdout }}",
-          }
-        - {
-            name: "{{ openshift_install_cert_manager_root_ca_awspca_chain_file }}",
-            content: "{{ openshift_install_cert_manager_awspca_chain.stdout }}",
-          }
+        - name: "{{ openshift_install_cert_manager_root_ca_awspca_cert_file }}"
+          content: "{{ openshift_install_cert_manager_awspca_cert.stdout }}"
+        - name: "{{ openshift_install_cert_manager_root_ca_awspca_chain_file }}"
+          content: "{{ openshift_install_cert_manager_awspca_chain.stdout }}"
 
     - name: AWS PCA | Read key + fullchain into openshift_install_cert_manager_tls_key / openshift_install_cert_manager_tls_crt (reuses your secret task)
       ansible.builtin.set_fact:
