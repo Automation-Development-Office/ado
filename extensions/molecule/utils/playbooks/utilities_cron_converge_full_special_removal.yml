@@ -7,7 +7,7 @@
   tasks:
     - name: Include utilities_cron role to remove all special schedules # noqa: var-naming[no-role-prefix]
       ansible.builtin.include_role:
-        name: infra.ado.utilities_cron
+        name: utilities_cron
       vars:
         utilities_cron_type: special
         cron_state: absent

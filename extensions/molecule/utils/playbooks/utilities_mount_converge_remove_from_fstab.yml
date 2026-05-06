@@ -11,7 +11,7 @@
   tasks:
     - name: Include utilities_mount role for fstab removal # noqa: var-naming[no-role-prefix]
       ansible.builtin.include_role:
-        name: infra.ado.utilities_mount
+        name: utilities_mount
       vars:
         mount_action: absent
         mount_path: "{{ utilities_mount_mount_path }}"

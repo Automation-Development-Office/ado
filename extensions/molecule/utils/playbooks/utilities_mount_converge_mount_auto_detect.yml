@@ -12,7 +12,7 @@
   tasks:
     - name: Include utilities_mount role for auto-detect mount # noqa: var-naming[no-role-prefix]
       ansible.builtin.include_role:
-        name: infra.ado.utilities_mount
+        name: utilities_mount
       vars:
         mount_action: mounted
         mount_path: "{{ utilities_mount_mount_path }}"
