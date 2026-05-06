@@ -28,9 +28,9 @@ dependency → syntax → create → converge → idempotence → verify
      - The `operator_defaults` fact exists and is a dictionary.
      - (Optionally) required keys exist — update `verify.yml` to match your schema (e.g., `operator_name`, `operator_channel`, `operator_source`, `operator_source_namespace`).
    - Checks **README.md** exists and has basic structure:
-     - ✅ **Heading**: starts with `# Role:`  (regex: `(?m)^#\s+Role:`)
-     - ✅ **Variables table**: contains header `| Variable | Description |`  (regex: `\|\s*Variable\s*\|\s*Description\s*\|`)
-     - ✅ **Example code block**: fenced block like ```yaml … ``` (yaml/yml/ansible/bash)  (regex: ```(yaml|yml|ansible|bash)[\s\S]*?```)
+     - ✅ **Heading**: starts with `# Role:` (regex: `(?m)^#\s+Role:`)
+     - ✅ **Variables table**: contains header `| Variable | Description |` (regex: `\|\s*Variable\s*\|\s*Description\s*\|`)
+     - ✅ **Example code block**: fenced block like `yaml … ` (yaml/yml/ansible/bash) (regex: `(yaml|yml|ansible|bash)[\s\S]*?`)
 
 > These README checks are implemented via `slurp` → `set_fact` → `assert` in `verify.yml`.
 
@@ -47,20 +47,24 @@ molecule verify
 ```
 
 ## Notes
+
 - If your role uses a different fact name than `operator_defaults`, update the verify assertions accordingly.
 - Because this role is read-only, there is **no destroy step** in this scenario.
 
 ## Linting
+
 - **Ansible syntax** runs automatically in the **`syntax`** step.
 - **ansible-lint**: recommended to run locally/CI:
   ```bash
   ansible-lint --offline roles/namespace
-
+  ```
 
 # full cycle
+
 molecule test
 
 # or step-by-step
+
 molecule converge
 molecule idempotence
 molecule destroy

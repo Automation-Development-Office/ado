@@ -40,7 +40,6 @@
         }{% if not loop.last %},{% endif %}
       {% endfor %}]
 
-
 - name: Show operator name list
   ansible.builtin.debug:
     var: openshift_tools_lookup_operator_defaults_operator_matches

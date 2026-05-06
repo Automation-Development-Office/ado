@@ -4,7 +4,6 @@
 
 dependency → syntax → create → converge → idempotence → destroy → verify
 
-
 ## What these tests cover
 
 1. **Dependency**
@@ -36,20 +35,19 @@ dependency → syntax → create → converge → idempotence → destroy → ve
    - Confirms the Subscription is **absent**.
    - Checks **README.md** exists and has basic structure (see below).
 
-
 ## README.md checks (verify step)
+
 The verify play performs:
 
 - ✅ **Existence**: `README.md` must be present at the role root.
-- ✅ **Heading**: first heading starts with `# Role:`  
+- ✅ **Heading**: first heading starts with `# Role:`
   (regex: `(?m)^#\s+Role:`)
-- ✅ **Variables table**: contains a header row like `| Variable | Description |`  
+- ✅ **Variables table**: contains a header row like `| Variable | Description |`
   (regex: `\|\s*Variable\s*\|\s*Description\s*\|`)
-- ✅ **Example code block**: fenced block like ```yaml … ``` (yaml/yml/ansible/bash)  
-  (regex: ```(yaml|yml|ansible|bash)[\s\S]*?```)
+- ✅ **Example code block**: fenced block like `yaml … ` (yaml/yml/ansible/bash)
+  (regex: `(yaml|yml|ansible|bash)[\s\S]*?`)
 
 > These are implemented via `slurp` → `set_fact` → `assert` in `verify.yml`.
-
 
 ## How to run
 
@@ -64,14 +62,16 @@ molecule destroy
 molecule verify
 ```
 
-
 ## Linting
+
 - **Ansible syntax** runs automatically in the **`syntax`** step.
 - **ansible-lint**: recommended to run locally/CI:
   ```bash
   ansible-lint --offline roles/namespace
+  ```
 
 ## Auth/TLS notes
+
 Provide either:
 
 - **KUBECONFIG** to a valid kubeconfig, **or**

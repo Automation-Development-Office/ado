@@ -38,7 +38,8 @@
 
     - name: Set installed CSV name
       ansible.builtin.set_fact:
-        openshift_tools_subscription_operator_openshift_tools_subscription_operator_installed_csv: >-
+        openshift_tools_subscription_operator_openshift_tools_subscription_operator_installed_csv:
+          >-
           {{ openshift_tools_subscription_operator_sub_info.resources[0].status.installedCSV }}
 
     # Wait for CSV to be Succeeded

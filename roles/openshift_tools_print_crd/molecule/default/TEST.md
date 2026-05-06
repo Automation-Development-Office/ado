@@ -19,28 +19,29 @@ during installs and makes operator/app bundles safe to apply in one shot.
 
 ## Variables
 
-| Variable | Description |
-|---------|-------------|
-| `manifest_docs` | **Required.** List of YAML docs (dicts) to order. Usually from `from_yaml_all`. |
-| `validate_certs` | TLS verification for API calls (`true` with trusted CA; `false` for lab/self‑signed). |
-| `output_path` | Optional file path to write the final, ordered manifest (YAML). If omitted, role prints to screen/log. |
+| Variable            | Description                                                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `manifest_docs`     | **Required.** List of YAML docs (dicts) to order. Usually from `from_yaml_all`.                                            |
+| `validate_certs`    | TLS verification for API calls (`true` with trusted CA; `false` for lab/self‑signed).                                      |
+| `output_path`       | Optional file path to write the final, ordered manifest (YAML). If omitted, role prints to screen/log.                     |
 | `apply_after_print` | If `true`, the role will also **apply** the ordered manifest to the cluster using `kubernetes.core.k8s`. Default: `false`. |
 
 ### Auth via environment (optional)
 
-| Variable | Description |
-|---------|-------------|
-| `KUBECONFIG` | Path to kubeconfig file (alternative to host+token). |
-| `K8S_AUTH_HOST` | API server URL, e.g. `https://api.cluster:6443`. |
-| `K8S_AUTH_API_KEY` | Bearer token for the API. |
-| `K8S_AUTH_VERIFY_SSL` | `true`/`false` TLS verify toggle. |
-| `K8S_AUTH_SSL_CA_CERT` | Path to CA bundle file when verifying TLS. |
+| Variable               | Description                                          |
+| ---------------------- | ---------------------------------------------------- |
+| `KUBECONFIG`           | Path to kubeconfig file (alternative to host+token). |
+| `K8S_AUTH_HOST`        | API server URL, e.g. `https://api.cluster:6443`.     |
+| `K8S_AUTH_API_KEY`     | Bearer token for the API.                            |
+| `K8S_AUTH_VERIFY_SSL`  | `true`/`false` TLS verify toggle.                    |
+| `K8S_AUTH_SSL_CA_CERT` | Path to CA bundle file when verifying TLS.           |
 
 ---
 
 ## Examples
 
 ### Order a local bundle and print to STDOUT
+
 ```yaml
 - hosts: localhost
   gather_facts: false
@@ -53,6 +54,7 @@ during installs and makes operator/app bundles safe to apply in one shot.
 ```
 
 ### Order a bundle, save to file, and apply
+
 ```yaml
 - hosts: localhost
   gather_facts: false
@@ -67,6 +69,7 @@ during installs and makes operator/app bundles safe to apply in one shot.
 ```
 
 ### Feed multiple sources (files, templates) into one ordered manifest
+
 ```yaml
 - hosts: localhost
   gather_facts: false
@@ -90,7 +93,7 @@ during installs and makes operator/app bundles safe to apply in one shot.
 - **Safety:** If no CRDs exist in input, the role outputs the non‑CRD resources unchanged.
 - **Apply path:** When `apply_after_print: true`, resources are applied in the same ordered sequence using `kubernetes.core.k8s`.
 - **Output:** With `output_path` set, the ordered manifest is written to disk; otherwise it’s printed/logged.
-- **Idempotence:** The same input produces the same ordered output, supporting reproducible CI. 
+- **Idempotence:** The same input produces the same ordered output, supporting reproducible CI.
 
 ---
 
@@ -107,6 +110,7 @@ dependency → lint → syntax → create → converge → idempotence → destr
 ---
 
 ## Author
+
 - Chad Elliott (<chelliot@redhat.com>)
 
 ---

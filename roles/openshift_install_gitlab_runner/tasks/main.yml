@@ -46,7 +46,6 @@
           name: gitlab-runner
           namespace: "{{ name_space }}"
 # --- end RBAC ---
-
 - name: Deploy GitLab Runner to OpenShift
   kubernetes.core.k8s:
     state: present

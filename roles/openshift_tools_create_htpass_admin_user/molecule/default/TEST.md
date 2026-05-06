@@ -1,12 +1,14 @@
 # TEST — create_htpass_admin_user (Molecule)
 
 ## Goals
+
 - Prove the role adds an HTPasswd IdP **non-destructively**.
 - Verify Secret exists and includes the user.
 - (Optional) Verify `cluster-admin` CRB.
 - Prove delete removes only this IdP + Secret + (optional) CRBs.
 
 ## Running
+
 ```bash
 export K8S_AUTH_HOST="https://api.<cluster>:6443"
 export K8S_AUTH_API_KEY="<token>"
@@ -20,6 +22,7 @@ molecule destroy
 ## Checks
 
 ### Converge
+
 ```bash
 # IdP summary
 oc get oauth cluster -o jsonpath='{range .spec.identityProviders[*]}{.name}{"\t"}{.type}{"\t"}{.mappingMethod}{"\t"}{.htpasswd.fileData.name}{"\n"}{end}'
@@ -32,11 +35,13 @@ oc get co authentication -o jsonpath='{.status.conditions[?(@.type=="Progressing
 ```
 
 ### Idempotence
+
 ```bash
 molecule idempotence
 ```
 
 ### Destroy
+
 ```bash
 # IdP gone
 oc get oauth cluster -o jsonpath='{range .spec.identityProviders[*]}{.name}{"\n"}{end}' | grep -w htpasswd-admin || echo "gone"

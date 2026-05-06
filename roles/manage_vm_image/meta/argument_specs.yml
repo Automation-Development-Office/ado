@@ -15,7 +15,8 @@ argument_specs:
         required: true
       manage_vm_image_dest_path:
         type: str
-        description: Destination path for the output image. In prerequisites, this is expanded to the final output image path by appending
+        description:
+          Destination path for the output image. In prerequisites, this is expanded to the final output image path by appending
           manage_vm_image_dest_name.
         required: true
       manage_vm_image_dest_name:

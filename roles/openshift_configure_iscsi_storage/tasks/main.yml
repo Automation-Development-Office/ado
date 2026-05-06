@@ -1,6 +1,6 @@
 ---
 - name: Get all storage classes
-  community.kubernetes.k8s_info:
+  kubernetes.core.k8s_info:
     api_version: storage.k8s.io/v1
     kind: StorageClass
     kubeconfig: "{{ kubeconfig_tmp }}"
@@ -17,7 +17,7 @@
       }}
 
 - name: Create synology-csi namespace
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     definition:
       apiVersion: v1
@@ -27,7 +27,7 @@
   when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Create client-info-secret from file
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     namespace: synology-csi
     definition:
@@ -41,49 +41,49 @@
   when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply synology-csi-scc.yml
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ synology_dir }}/synology-csi-scc.yml"
   when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply controller.yml
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ deploy_dir }}/controller.yml"
   when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply csi-driver.yml
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ deploy_dir }}/csi-driver.yml"
   when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply node.yml
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ deploy_dir }}/node.yml"
   when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply storage-class.yml
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ synology_dir }}/storage-class.yml"
   when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply snapshotter.yaml
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ deploy_dir }}/snapshotter/snapshotter.yaml"
   when: not openshift_configure_iscsi_storage_has_default_storage_class
 
 - name: Apply volume-snapshot-class.yml
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
     src: "{{ deploy_dir }}/snapshotter/volume-snapshot-class.yml"

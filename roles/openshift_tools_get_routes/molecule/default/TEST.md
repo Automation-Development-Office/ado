@@ -49,12 +49,12 @@ dependency → lint → syntax → create → converge → idempotence → destr
 The verify play performs:
 
 - ✅ **Existence**: `README.md` present at the role root.
-- ✅ **Heading**: first heading starts with `# Role:`  
+- ✅ **Heading**: first heading starts with `# Role:`
   (regex: `(?m)^#\s+Role:`)
-- ✅ **Variables table**: includes `| Variable | Description |`  
+- ✅ **Variables table**: includes `| Variable | Description |`
   (regex: `\|\s*Variable\s*\|\s*Description\s*\|`)
-- ✅ **Example code block**: fenced block like ```yaml … ``` (yaml/yml/ansible/bash)  
-  (regex: ```(yaml|yml|ansible|bash)[\s\S]*?```)
+- ✅ **Example code block**: fenced block like `yaml … ` (yaml/yml/ansible/bash)
+  (regex: `(yaml|yml|ansible|bash)[\s\S]*?`)
 
 (Implemented via `slurp` → `set_fact` → `assert` in `verify.yml`.)
 
@@ -66,6 +66,7 @@ The verify play performs:
 - Run directly if needed:
   ```bash
   ansible-lint --offline roles/get_routes
+  ```
 
 Auth/TLS notes
 Provide either:

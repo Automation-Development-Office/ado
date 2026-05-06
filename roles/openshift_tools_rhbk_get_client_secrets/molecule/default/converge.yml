@@ -38,7 +38,8 @@
 
     - name: Set installed CSV name
       ansible.builtin.set_fact:
-        openshift_tools_rhbk_get_client_secrets_openshift_tools_rhbk_get_client_secrets_installed_csv: >-
+        openshift_tools_rhbk_get_client_secrets_openshift_tools_rhbk_get_client_secrets_installed_csv:
+          >-
           {{ openshift_tools_rhbk_get_client_secrets_sub_info.resources[0].status.installedCSV }}
 
     # Wait for CSV to be Succeeded
