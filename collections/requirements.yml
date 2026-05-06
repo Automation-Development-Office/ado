@@ -7,4 +7,3 @@ collections:
   - name: community.grafana
   - name: freeipa.ansible_freeipa
   - name: infra.aap_configuration
-  - name: ansible.controller

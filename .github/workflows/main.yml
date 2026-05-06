@@ -75,7 +75,7 @@ jobs:
       - name: Install Ansible collections
         run: |
           if [ -f collections/requirements.yml ]; then
-            ansible-galaxy collection install -r collections/requirements.yml --pre;
+            ansible-galaxy collection install -r collections/requirements.yml;
           fi
 
       - name: Run ansible-lint
