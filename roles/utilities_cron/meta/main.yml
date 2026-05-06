@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: GPL-3.0-or-later
 galaxy_info:
   author: Jeff Radabaugh
   description: Manage special cron schedule entries (@hourly, @daily, @weekly, @monthly, @yearly, @annually, and @reboot); developed as part of the Automation Development Office.
   company: Red Hat
-  license: MIT-0
+  license: GPL-3.0-or-later
 
   # If the issue tracker for your role is not on github, uncomment the
   # next line and provide a value
@@ -13,7 +13,7 @@ galaxy_info:
   # - BSD-3-Clause (default)
   # - MIT
   # - GPL-2.0-or-later
-  # - GPL-3.0-only
+  # - GPL-3.0-or-later
   # - Apache-2.0
   # - CC-BY-4.0
 
