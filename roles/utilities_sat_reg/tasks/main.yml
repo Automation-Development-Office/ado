@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# tasks file for sat_reg
+
+- name: Importing registration tasks
+  ansible.builtin.import_tasks: reg_to_sat.yml
+  when: sat_reg_action == "register"
+  # when: satellite_host is defined and satellite_admin_account is defined |
+  #  and satellite_admin_account_password is defined and activation_key_name |
+  #   is defined and satellite_org_name is defined
+
+- name: Importing deregistration tasks
+  ansible.builtin.import_tasks: deregister_from_sat.yml
+  when: sat_reg_action == "deregister"

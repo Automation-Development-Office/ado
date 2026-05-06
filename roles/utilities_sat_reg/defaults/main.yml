@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# defaults file for sat_reg
+
+sat_reg_validate_certs: true # Whether to validate SSL certificates when connecting to Satellite
+sat_reg_insights_enabled: false # Whether to enable Insights during registration
+sat_reg_update_packages: false # Whether to update packages during registration
+sat_reg_insecure: false
+sat_reg_action: "register" # The action to perform (register or deregister)
+sat_reg_force_registration: true # Whether to force registration even if the system is already registered
