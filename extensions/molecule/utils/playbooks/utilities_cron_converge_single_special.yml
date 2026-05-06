@@ -9,7 +9,7 @@
       ansible.builtin.include_role:
         name: infra.ado.utilities_cron
       vars:
-        cron_type: special
+        utilities_cron_type: special
         cron_state: present
         cron_yearly_jobs:
           - { name: "yearly_test", job: "test" }

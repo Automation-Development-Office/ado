@@ -1,0 +1,117 @@
+---
+- name: Resolve inputs
+  ansible.builtin.set_fact:
+    openshift_tools_create_htpass_admin_user_idp_to_remove: >-
+      {{
+        (
+          openshift_tools_create_htpass_admin_user_htpasswd_idp_name
+          if (
+            openshift_tools_create_htpass_admin_user_htpasswd_idp_name is defined
+            and (openshift_tools_create_htpass_admin_user_htpasswd_idp_name | length) > 0
+          )
+          else 'htpasswd-admin'
+        )
+      }}
+    openshift_tools_create_htpass_admin_user_secret_to_remove: >-
+      {{
+        (
+          openshift_tools_create_htpass_admin_user_htpasswd_secret_name
+          if (
+            openshift_tools_create_htpass_admin_user_htpasswd_secret_name is defined
+            and (openshift_tools_create_htpass_admin_user_htpasswd_secret_name | length) > 0
+          )
+          else 'htpasswd-admin-secret'
+        )
+      }}
+    openshift_tools_create_htpass_admin_user_vcerts: "{{ openshift_tools_create_htpass_admin_user_validate_certs | default(false) }}"
+
+- name: Read current OAuth
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: OAuth
+    name: "cluster"
+    validate_certs: "{{ validate_certs }}"
+  register: openshift_tools_create_htpass_admin_user_oauth
+  failed_when: false
+
+- name: Build pruned IdP list (if OAuth exists)
+  when: openshift_tools_create_htpass_admin_user_oauth.resources | length > 0
+  ansible.builtin.set_fact:
+    openshift_tools_create_htpass_admin_user_existing_idps: >-
+      {{ openshift_tools_create_htpass_admin_user_oauth.resources[0].spec.identityProviders | default([]) }}
+    openshift_tools_create_htpass_admin_user_idps_new: >-
+      {{
+        (openshift_tools_create_htpass_admin_user_oauth.resources[0].spec.identityProviders | default([]))
+        | rejectattr('name','equalto', openshift_tools_create_htpass_admin_user_idp_to_remove)
+        | list
+      }}
+
+- name: Apply OAuth without our IdP
+  when: openshift_tools_create_htpass_admin_user_oauth.resources | length > 0
+  kubernetes.core.k8s:
+    api_version: config.openshift.io/v1
+    kind: OAuth
+    name: "cluster"
+    state: present
+    definition:
+      apiVersion: config.openshift.io/v1
+      kind: OAuth
+      metadata:
+        name: "cluster"
+      spec:
+        identityProviders: "{{ openshift_tools_create_htpass_admin_user_idps_new }}"
+    validate_certs: "{{ openshift_tools_create_htpass_admin_user_vcerts }}"
+  register: openshift_tools_create_htpass_admin_user_apply_oauth_result
+
+- name: Wait for OAuth to settle after removal
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: ClusterOperator
+    name: authentication
+    validate_certs: "{{ openshift_tools_create_htpass_admin_user_vcerts }}"
+  register: openshift_tools_create_htpass_admin_user_auth_co_after
+  retries: 30
+  delay: 10
+  until: >
+    openshift_tools_create_htpass_admin_user_auth_co_after.resources is defined and
+    openshift_tools_create_htpass_admin_user_auth_co_after.resources | length > 0 and
+    (
+      (openshift_tools_create_htpass_admin_user_auth_co_after.resources[0].status.conditions
+        | selectattr('type','equalto','Progressing') | list | first).status
+      | default('False')
+    ) == 'False'
+
+- name: Delete Secret (safe if missing)
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Secret
+    name: "{{ openshift_tools_create_htpass_admin_user_secret_to_remove }}"
+    namespace: "openshift-config"
+    state: absent
+    validate_certs: "{{ openshift_tools_create_htpass_admin_user_vcerts }}"
+
+- name: Build admin subjects list (for CRB cleanup)
+  ansible.builtin.set_fact:
+    openshift_tools_create_htpass_admin_user_admin_subjects: >-
+      {{
+        (users | default([]) | map(attribute='name') | list)
+        if (users | default([]) | length > 0)
+        else ([ htpasswd_user ] if (htpasswd_user is defined) else [])
+      }}
+
+- name: Optionally remove cluster-admin CRBs we created
+  when: (remove_cluster_admin_bindings | default(true) | bool) and (grant_admin | default(true) | bool)
+  loop: "{{ openshift_tools_create_htpass_admin_user_admin_subjects }}"
+  loop_control:
+    label: "{{ item }}"
+  kubernetes.core.k8s:
+    api_version: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    name: "cluster-admin-{{ item }}"
+    state: absent
+    validate_certs: "{{ openshift_tools_create_htpass_admin_user_vcerts }}"
+
+# <-- Pauce to wait for provider to show up on console -->
+- name: Give the new identity providers a few seconds to propagate
+  ansible.builtin.pause:
+    seconds: 25

@@ -16,7 +16,7 @@ It supports flexible addition, removal, and verification of cron jobs using Ansi
 
 | Variable            | Description                                             | Required | Default  |
 |---------------------|---------------------------------------------------------|----------|----------|
-| `cron_type`         | Type of cron jobs to manage (`special`, etc.)           | ❌       | `special`|
+| `utilities_cron_type` | Type of cron jobs to manage (`special`, etc.)         | ❌       | `special`|
 | `cron_state`        | State of cron jobs (`present`, `absent`)                | ❌       | `present`|
 | `cron_yearly_jobs`  | List of yearly cron jobs (`[{ name, job }]`)            | ❌       | `[]`     |
 | `cron_monthly_jobs` | List of monthly cron jobs (`[{ name, job }]`)           | ❌       | `[]`     |
@@ -42,6 +42,8 @@ Define the desired cron jobs in your playbook or inventory using the variables a
 ## 🧪 Molecule
 
 This role is tested with extension-level Molecule scenarios under `extensions/molecule/`.
+
+Role-local scenario files are available under `roles/utilities_cron/molecule/` and delegate to shared extension playbooks.
 
 Scenarios:
 
@@ -91,22 +93,7 @@ utilities_cron/
 │   ├── full_special_removal/
 │   ├── single_special/
 │   ├── single_special_removal/
-│   ├── verify_docs/
-│   └── ...
-├── files/
-├── templates/
-├── tests/
-│   ├── full_special.yml
-│   ├── full_special_removal.yml
-│   ├── single_special_removal.yml
-│   ├── single_special.yml
-│   ├── test.yml
-│   ├── verify_docs.yml
-│   ├── verify_full_special.yml
-│   ├── verify_full_special_removal.yml
-│   ├── verify_single_special.yml
-│   ├── verify_single_special_removal.yml
-│   └── ...
+│   └── verify_docs/
 └── README.md
 ```
 

@@ -1,0 +1,32 @@
+---
+# What we consider "primary" and "alt" domains
+openshift_tools_discover_routes_primary_suffix: "{{ app_domain }}"
+openshift_tools_discover_routes_alt_suffix: "{{ app_domain_alt }}"
+
+# If true, only include routes whose host endswith primary suffix
+openshift_tools_discover_routes_filter_primary_suffix: true
+
+# Exclude routes in these namespaces
+openshift_tools_discover_routes_exclude_namespaces:
+  - openshift-authentication
+  - openshift-console
+  - openshift-ingress
+  - openshift-ingress-operator
+  - openshift-kube-apiserver
+  - openshift-monitoring
+  - openshift-oauth-apiserver
+  - openshift-config
+  - openshift-config-managed
+  - openshift-marketplace
+
+# Exclude by route name regex (skip oauth/canary/system-ish)
+openshift_tools_discover_routes_alt_exclude_name_regex: "(^oauth|oauth-|^canary|canary-|^console|console-|^router|router-|^downloads|downloads-)"
+
+# Exclude by host regex
+openshift_tools_discover_routes_alt_exclude_host_regex: "(^oauth-openshift\\.|^console-openshift\\.|^downloads\\.|^canary\\.)"
+
+# If true, print the computed list
+openshift_tools_discover_routes_alt_print: true
+
+# Output variable name (if you want to standardize across roles)
+openshift_tools_discover_routes_alt_output_var: "route_alt_candidates"

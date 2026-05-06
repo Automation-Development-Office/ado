@@ -1,0 +1,4 @@
+---
+# tasks file for kube descheduler
+- name: Kube descheduler task
+  ansible.builtin.import_tasks: kube-descheduler.yml

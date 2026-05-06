@@ -1,0 +1,8 @@
+---
+- name: Run present
+  ansible.builtin.include_tasks: install-aap26.yml
+  when: state == 'present'
+
+- name: Run absent
+  ansible.builtin.include_tasks: delete-aap26.yml
+  when: state == 'absent'

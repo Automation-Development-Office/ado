@@ -1,0 +1,63 @@
+---
+- name: Ensure Helm repo for csi-driver-nfs is present
+  kubernetes.core.helm_repository:
+    name: csi-driver-nfs
+    repo_url: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+
+- name: Install csi-driver-nfs with Helm
+  kubernetes.core.helm:
+    name: csi-driver-nfs
+    chart_ref: csi-driver-nfs/csi-driver-nfs
+    chart_version: "{{ nfs_driver_version | default('v4.6.0') }}"
+    create_namespace: true
+    namespace: csi-driver-nfs
+    values:
+      controller:
+        runOnControlPlane: true
+        replicas: 2
+        strategyType: RollingUpdate
+      externalSnapshotter:
+        enabled: true
+        customResourceDefinitions:
+          enabled: false
+
+- name: Assign privileged SCC to csi-nfs-node-sa
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: privileged-scc-to-csi-nfs-node-sa
+        namespace: csi-driver-nfs
+      subjects:
+        - kind: ServiceAccount
+          name: csi-nfs-node-sa
+          namespace: csi-driver-nfs
+      roleRef:
+        kind: ClusterRole
+        name: system:openshift:scc:privileged
+        apiGroup: rbac.authorization.k8s.io
+
+- name: Assign privileged SCC to csi-nfs-controller-sa
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: privileged-scc-to-csi-nfs-controller-sa
+        namespace: csi-driver-nfs
+      subjects:
+        - kind: ServiceAccount
+          name: csi-nfs-controller-sa
+          namespace: csi-driver-nfs
+      roleRef:
+        kind: ClusterRole
+        name: system:openshift:scc:privileged
+        apiGroup: rbac.authorization.k8s.io
+
+- name: Apply NFS storage class
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ nfs_storage_class_manifest | default('/tmp/nfs-storage-class.yaml') }}"

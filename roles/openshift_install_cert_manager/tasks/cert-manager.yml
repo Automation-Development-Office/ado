@@ -1,0 +1,127 @@
+---
+- name: AWS PCA | Prepare intermediate CA material (key/csr/cert) when enabled
+  when:
+    - openshift_install_cert_manager_root_ca_awspca_enabled | bool
+    - state == 'present'
+  block:
+    - name: AWS PCA | Ensure workdir exists
+      ansible.builtin.file:
+        path: "{{ openshift_install_cert_manager_root_ca_awspca_workdir }}"
+        state: directory
+        mode: "0700"
+
+    - name: AWS PCA | Generate private key (intermediate)
+      ansible.builtin.command: >
+        openssl genrsa -out {{ openshift_install_cert_manager_root_ca_awspca_key_file }} 4096
+      args:
+        chdir: "{{ openshift_install_cert_manager_root_ca_awspca_workdir }}"
+        creates: "{{ openshift_install_cert_manager_root_ca_awspca_key_file }}"
+      no_log: true
+
+    - name: AWS PCA | Generate CSR
+      ansible.builtin.command: >
+        openssl req -new
+        -key {{ openshift_install_cert_manager_root_ca_awspca_key_file }}
+        -out {{ openshift_install_cert_manager_root_ca_awspca_csr_file }}
+        -subj "/CN={{ openshift_install_cert_manager_root_ca_awspca_domain_cn }}"
+      args:
+        chdir: "{{ openshift_install_cert_manager_root_ca_awspca_workdir }}"
+        creates: "{{ openshift_install_cert_manager_root_ca_awspca_csr_file }}"
+
+    - name: AWS PCA | Issue certificate (returns CertificateArn)
+      ansible.builtin.command: >
+        aws acm-pca issue-certificate
+        --region {{ openshift_install_cert_manager_root_ca_awspca_region }}
+        --certificate-authority-arn {{ openshift_install_cert_manager_root_ca_awspca_pca_arn }}
+        --csr fileb://{{ openshift_install_cert_manager_root_ca_awspca_csr_file }}
+        --signing-algorithm {{ openshift_install_cert_manager_root_ca_awspca_signing_algorithm }}
+        --validity Value={{ openshift_install_cert_manager_root_ca_awspca_validity_days }},Type=DAYS
+        --template-arn {{ openshift_install_cert_manager_root_ca_awspca_template_arn }}
+        --query CertificateArn --output text
+      args:
+        chdir: "{{ openshift_install_cert_manager_root_ca_awspca_workdir }}"
+      register: openshift_install_cert_manager_awspca_issue
+      changed_when: true
+
+    - name: AWS PCA | Wait for issued cert to be available
+      ansible.builtin.command: >
+        aws acm-pca get-certificate
+        --region {{ openshift_install_cert_manager_root_ca_awspca_region }}
+        --certificate-authority-arn {{ openshift_install_cert_manager_root_ca_awspca_pca_arn }}
+        --certificate-arn {{ openshift_install_cert_manager_awspca_issue.stdout }}
+        --query Certificate --output text
+      register: openshift_install_cert_manager_awspca_cert
+      retries: 20
+      delay: 6
+      until: openshift_install_cert_manager_awspca_cert.rc == 0 and (openshift_install_cert_manager_awspca_cert.stdout | length) > 0
+      changed_when: false
+
+    - name: AWS PCA | Fetch chain
+      ansible.builtin.command: >
+        aws acm-pca get-certificate
+        --region {{ openshift_install_cert_manager_root_ca_awspca_region }}
+        --certificate-authority-arn {{ openshift_install_cert_manager_root_ca_awspca_pca_arn }}
+        --certificate-arn {{ openshift_install_cert_manager_awspca_issue.stdout }}
+        --query CertificateChain --output text
+      register: openshift_install_cert_manager_awspca_chain
+      retries: 20
+      delay: 6
+      until: openshift_install_cert_manager_awspca_chain.rc == 0 and (openshift_install_cert_manager_awspca_chain.stdout | length) > 0
+      changed_when: false
+
+    - name: AWS PCA | Write cert and chain to files
+      ansible.builtin.copy:
+        dest: "{{ openshift_install_cert_manager_root_ca_awspca_workdir }}/{{ item.name }}"
+        content: "{{ item.content }}\n"
+        mode: "0600"
+      loop:
+        - name: "{{ openshift_install_cert_manager_root_ca_awspca_cert_file }}"
+          content: "{{ openshift_install_cert_manager_awspca_cert.stdout }}"
+        - name: "{{ openshift_install_cert_manager_root_ca_awspca_chain_file }}"
+          content: "{{ openshift_install_cert_manager_awspca_chain.stdout }}"
+
+    - name: AWS PCA | Read key + fullchain into openshift_install_cert_manager_tls_key / openshift_install_cert_manager_tls_crt (reuses your secret task)
+      ansible.builtin.set_fact:
+        openshift_install_cert_manager_tls_key: >-
+          {{ lookup('ansible.builtin.file', openshift_install_cert_manager_root_ca_awspca_workdir ~ '/' ~
+          openshift_install_cert_manager_root_ca_awspca_key_file) }}
+        openshift_install_cert_manager_tls_crt: >-
+          {{
+            lookup('ansible.builtin.file',
+              openshift_install_cert_manager_root_ca_awspca_workdir ~ '/' ~
+              openshift_install_cert_manager_root_ca_awspca_cert_file)
+            ~ '\n'
+            ~ lookup('ansible.builtin.file',
+              openshift_install_cert_manager_root_ca_awspca_workdir ~ '/' ~
+              openshift_install_cert_manager_root_ca_awspca_chain_file)
+          }}
+      no_log: true
+
+- name: Create root CA secret
+  kubernetes.core.k8s:
+    namespace: "{{ name_space }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ openshift_install_cert_manager_root_ca_secret_name }}"
+        namespace: "{{ name_space }}"
+      type: kubernetes.io/tls
+      data:
+        tls.crt: "{{ openshift_install_cert_manager_tls_crt | b64encode }}"
+        tls.key: "{{ openshift_install_cert_manager_tls_key | b64encode }}"
+  when: openshift_install_cert_manager_tls_crt is defined and openshift_install_cert_manager_tls_key is defined and state == 'present'
+
+- name: Create ClusterIssuer or Issuer
+  kubernetes.core.k8s:
+    namespace: "{{ name_space if not openshift_install_cert_manager_root_ca_is_cluster_issuer else omit }}"
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: "{{ 'ClusterIssuer' if openshift_install_cert_manager_root_ca_is_cluster_issuer else 'Issuer' }}"
+      metadata:
+        name: "{{ openshift_install_cert_manager_root_ca_issuer_name }}"
+        namespace: "{{ name_space if not openshift_install_cert_manager_root_ca_is_cluster_issuer else omit }}"
+      spec:
+        ca:
+          secretName: "{{ openshift_install_cert_manager_root_ca_secret_name }}"
+  when: state == 'present'

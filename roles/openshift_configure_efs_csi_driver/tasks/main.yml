@@ -1,0 +1,4 @@
+---
+# tasks file for EFS CSI Storage driver
+- name: EFS CSI Storage Driver
+  ansible.builtin.import_tasks: efs_storage_class.yml

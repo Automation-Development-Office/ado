@@ -1,0 +1,67 @@
+---
+# Role: ensure_alt_routes_from_list
+#
+# Input (preferred):
+#   alt_routes_candidates: list of dicts from openshift_tools_discover_routes_ (namespace/name/host required)
+#
+# Back-compat accepted input:
+#   route_alt_candidates: same as above
+#
+# Required:
+#   app_domain: primary apps domain (e.g. apps.ocp.prod.rhlab)
+#   app_domain_alt: alt apps domain (e.g. apps.ocp.server.lab)
+#
+# Optional knobs:
+#   alt_routes_suffix: "-alt"
+#   alt_routes_print_only: true/false (default true)
+#   alt_routes_force_replace: true/false (default false)
+
+- name: Ensure_alt_routes_from_list Normalize candidates input
+  ansible.builtin.set_fact:
+    openshift_tools_ensure_alt_routes_from_list_alt_routes_candidates: >-
+      {{
+        alt_routes_candidates | default(route_alt_candidates, true) | default([])
+      }}
+
+- name: Ensure_alt_routes_from_list Set defaults
+  ansible.builtin.set_fact:
+    openshift_tools_ensure_alt_routes_from_list_alt_routes_suffix: "{{ alt_routes_suffix | default('-alt') }}"
+    openshift_tools_ensure_alt_routes_from_list_alt_routes_force_replace: "{{ alt_routes_force_replace | default(false) }}"
+    openshift_tools_ensure_alt_routes_from_list_alt_routes_print_only: "{{ alt_routes_print_only | default(true) }}"
+
+- name: Ensure_alt_routes_from_list Validate required inputs
+  ansible.builtin.assert:
+    that:
+      - openshift_tools_ensure_alt_routes_from_list_alt_routes_candidates is iterable
+      - (openshift_tools_ensure_alt_routes_from_list_alt_routes_candidates | length) > 0
+      - app_domain is defined
+      - app_domain_alt is defined
+      - (app_domain | string | length) > 0
+      - (app_domain_alt | string | length) > 0
+    fail_msg: >-
+      ensure_alt_routes_from_list requires:
+        - alt_routes_candidates (or route_alt_candidates) as a non-empty list
+        - app_domain and app_domain_alt
+
+- name: Ensure_alt_routes_from_list Debug first candidate shape
+  ansible.builtin.debug:
+    var: openshift_tools_ensure_alt_routes_from_list_alt_routes_candidates[0]
+
+- name: Ensure_alt_routes_from_list Iterate candidates
+  ansible.builtin.include_tasks: per_route.yml
+  loop: "{{ openshift_tools_ensure_alt_routes_from_list_alt_routes_candidates }}"
+  loop_control:
+    label: "{{ item.namespace }}/{{ item.name }} -> {{ item.host }}"
+  vars:
+    _p: "{{ item }}"
+    alt_routes_suffix: "{{ openshift_tools_ensure_alt_routes_from_list_alt_routes_suffix }}"
+    alt_routes_force_replace: "{{ openshift_tools_ensure_alt_routes_from_list_alt_routes_force_replace }}"
+    alt_routes_print_only: "{{ openshift_tools_ensure_alt_routes_from_list_alt_routes_print_only }}"
+    alt_routes_candidates: "{{ openshift_tools_ensure_alt_routes_from_list_alt_routes_candidates }}"
+    oauth_identity_providers: >-
+      {{
+        openshift_tools_create_htpass_admin_user_oauth_after.resources[0].spec.identityProviders | default([])
+        if (openshift_tools_create_htpass_admin_user_oauth_after.resources is defined
+        and (openshift_tools_create_htpass_admin_user_oauth_after.resources | length) > 0)
+        else []
+      }}

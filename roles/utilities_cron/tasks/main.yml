@@ -12,4 +12,4 @@
     cron_reboot_jobs is defined or
     cron_daily_jobs is defined or
     cron_annual_jobs is defined or
-    cron_yearly_jobs is defined) and cron_type == "special"
+    cron_yearly_jobs is defined) and utilities_cron_type == "special"

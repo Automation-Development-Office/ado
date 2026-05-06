@@ -1,0 +1,31 @@
+---
+- name: Create ComplianceScan resource to schedule a scan
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: compliance.openshift.io/v1alpha1
+      kind: ComplianceScan
+      metadata:
+        name: "{{ compliance_scan_name }}"
+        namespace: "{{ openshift_install_compliance_operator_namespace | default('openshift-compliance') }}"
+      spec:
+        profile: "{{ compliance_profile }}"
+        contentImage: "{{ compliance_content_image | default('quay.io/complianceascode/content:latest') }}"
+        debug: false
+        autoApplyRemediations: false
+        scanType: "Node"
+  when: schedule_scan | default(false) | bool
+
+- name: Start ComplianceSuite to run the scan
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: compliance.openshift.io/v1alpha1
+      kind: ComplianceSuite
+      metadata:
+        name: "{{ compliance_suite_name }}"
+        namespace: "{{ openshift_install_compliance_operator_namespace | default('openshift-compliance') }}"
+      spec:
+        scans:
+          - name: "{{ compliance_scan_name }}"
+  when: run_scan | default(false) | bool

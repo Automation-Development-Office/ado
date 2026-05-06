@@ -1,0 +1,169 @@
+---
+- name: Ensure namespace exists
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ name_space }}"
+    state: present
+
+- name: Create Secret for relay authentication
+  kubernetes.core.k8s:
+    namespace: "{{ name_space }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: postfix-relay-secret
+      type: Opaque
+      stringData:
+        sasl_passwd: "[{{ relay_host }}]:587 {{ smtp_user }}:{{ smtp_password }}"
+
+- name: Create ConfigMap for Postfix main.cf
+  kubernetes.core.k8s:
+    namespace: "{{ name_space }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: postfix-config
+      data:
+        main.cf: |
+          relayhost = [{{ relay_host }}]:587
+          smtp_sasl_auth_enable = yes
+          smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+          smtp_sasl_security_options = noanonymous
+          smtp_use_tls = yes
+          smtp_tls_CAfile = /etc/ssl/certs/ca-bundle.crt
+          myhostname = relay-pod.gmail.com
+          myorigin = gmail.com
+          inet_interfaces = all
+          inet_protocols = ipv4
+          mydestination =
+          local_transport = error:local delivery is disabled
+          default_transport = smtp
+          debug_peer_list = 127.0.0.1
+          debug_peer_level = 3
+          soft_bounce = yes
+
+- name: Delete existing Postfix Pod (if any)
+  kubernetes.core.k8s:
+    kind: Pod
+    namespace: "{{ name_space }}"
+    name: postfix-pod
+    state: absent
+  failed_when: >
+    (openshift_install_postfix_result is defined and openshift_install_postfix_result.failed) and
+    ('NotFound' not in (openshift_install_postfix_result.msg | default('')))
+  register: openshift_install_postfix_result
+
+- name: Deploy Postfix Pod
+  kubernetes.core.k8s:
+    namespace: "{{ name_space }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: postfix-pod
+        labels:
+          app: postfix-pod
+      spec:
+        containers:
+          - name: postfix
+            image: "{{ openshift_install_postfix_image }}"
+            securityContext:
+              runAsUser: 0
+              capabilities:
+                add:
+                  - NET_RAW
+            command:
+              - /bin/bash
+              - -c
+            args:
+              - |
+                set -euxo pipefail
+                dnf install -y postfix cyrus-sasl cyrus-sasl-plain ca-certificates openssl rsyslog nmap --disableplugin=subscription-manager
+                cp /mnt/config/main.cf /etc/postfix/main.cf
+                cp /mnt/secret/sasl_passwd /etc/postfix/sasl_passwd
+                postmap /etc/postfix/sasl_passwd
+                chmod 600 /etc/postfix/sasl_passwd*
+                rsyslogd
+                postfix start-fg
+            volumeMounts:
+              - name: config-volume
+                mountPath: /mnt/config
+              - name: secret-volume
+                mountPath: /mnt/secret
+        volumes:
+          - name: config-volume
+            configMap:
+              name: postfix-config
+          - name: secret-volume
+            secret:
+              secretName: postfix-relay-secret
+        restartPolicy: Never
+
+- name: Wait for Postfix Pod to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ name_space }}"
+    name: postfix-pod
+  register: openshift_install_postfix_pod_info
+  until: openshift_install_postfix_pod_info.resources[0].status.phase == "Running"
+  retries: 12
+  delay: 10
+
+- name: Expose Postfix Pod as a Service
+  kubernetes.core.k8s:
+    namespace: "{{ name_space }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: postfix-service
+      spec:
+        selector:
+          app: postfix-pod
+        ports:
+          - protocol: TCP
+            port: 25
+            targetPort: 25
+        type: NodePort
+
+- name: Get Service Details
+  kubernetes.core.k8s_info:
+    kind: Service
+    namespace: "{{ name_space }}"
+    name: postfix-service
+  register: openshift_install_postfix_service_info
+
+- name: Display Service Details
+  ansible.builtin.debug:
+    msg: |
+      Postfix Service is exposed:
+      Cluster IP: {{ openshift_install_postfix_service_info.resources[0].spec.clusterIP }}
+      Node Port: {{ openshift_install_postfix_service_info.resources[0].spec.ports[0].nodePort | default('N/A') }}
+
+- name: Test sending email from pod
+  kubernetes.core.k8s_exec:
+    namespace: "{{ name_space }}"
+    pod: postfix-pod
+    container: postfix
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo -e "From: {{ test_email }}\nTo: {{ recipient_email }}\nSubject: Postfix Test Email\n\n\
+        This is a test email sent from Postfix on OpenShift." | \
+        sendmail -v {{ recipient_email }}
+
+- name: Clean up Postfix Pod (optional)
+  kubernetes.core.k8s:
+    kind: Pod
+    namespace: "{{ name_space }}"
+    name: postfix-pod
+    state: absent
+  failed_when: false

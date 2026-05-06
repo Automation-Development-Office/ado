@@ -1,6 +1,6 @@
-manage_vm_image_path: null # needs to be full path and name
-manage_vm_image_size: null
-
+---
+manage_vm_image_path: # needs to be full path and name
+manage_vm_image_size:
 # Optional features
 # manage_vm_image_base: null            # full path and name or URL
 manage_vm_image_download: false

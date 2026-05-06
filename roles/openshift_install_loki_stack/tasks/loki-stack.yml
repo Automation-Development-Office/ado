@@ -1,0 +1,24 @@
+---
+- name: Create/Delete Loki Stack
+  kubernetes.core.k8s:
+    state: "{{ loki_stack_state }}"
+    definition:
+      apiVersion: loki.grafana.com/v1
+      kind: LokiStack
+      metadata:
+        name: "{{ loki_name }}"
+        namespace: "{{ name_space }}"
+      spec:
+        tenants:
+          mode: openshift-logging
+        managementState: Managed
+        storage:
+          schemas:
+            - effectiveDate: "2020-10-11"
+              version: v11
+          secret:
+            name: "{{ loki_secret }}"
+            type: "{{ loki_storage_type }}"
+        size: "{{ loki_size }}"
+        storageClassName: "{{ loki_storage_class_name }}:"
+  when: state == "present"

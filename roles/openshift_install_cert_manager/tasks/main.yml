@@ -1,0 +1,4 @@
+---
+- name: Install cert-manager
+  ansible.builtin.import_tasks: cert-manager.yml
+  when: state == "present"

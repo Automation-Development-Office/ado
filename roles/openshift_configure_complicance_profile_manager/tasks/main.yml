@@ -1,0 +1,24 @@
+---
+- name: Create ComplianceProfile in OpenShift
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: compliance.openshift.io/v1alpha1
+      kind: ComplianceProfile
+      metadata:
+        name: "{{ compliance_profile }}"
+        namespace: "{{ openshift_install_compliance_operator_namespace | default('openshift-compliance') }}"
+      spec:
+        title: "{{ compliance_profile_title }}"
+        description: "{{ compliance_profile_description }}"
+        # Add other profile details as needed!
+  when: manage_profile == "create"
+
+- name: Delete ComplianceProfile in OpenShift
+  kubernetes.core.k8s:
+    state: absent
+    api_version: compliance.openshift.io/v1alpha1
+    kind: ComplianceProfile
+    name: "{{ compliance_profile }}"
+    namespace: "{{ openshift_install_compliance_operator_namespace | default('openshift-compliance') }}"
+  when: manage_profile == "delete"

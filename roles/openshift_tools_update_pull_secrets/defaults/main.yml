@@ -1,0 +1,12 @@
+---
+# Target secret
+openshift_tools_update_pull_secrets_name: pull-secret
+openshift_tools_update_pull_secrets_namespace: openshift-config
+
+# What to do: present | absent
+
+# Registry entry
+openshift_tools_update_pull_secrets_registry_host: ""
+openshift_tools_update_pull_secrets_registry_username: ""
+openshift_tools_update_pull_secrets_registry_password: ""
+openshift_tools_update_pull_secrets_registry_email: ""

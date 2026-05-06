@@ -1,3 +1,4 @@
+---
 - name: Download base image if requested
   ansible.builtin.get_url:
     url: "{{ manage_vm_image_base }}"

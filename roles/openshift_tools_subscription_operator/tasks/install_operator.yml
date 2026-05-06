@@ -1,0 +1,99 @@
+---
+# roles/subscription_operator/tasks/install_operator.yml
+
+- name: Subscription | Derive namespaces and names
+  ansible.builtin.set_fact:
+    # Where the Subscription + OperatorGroup live
+    openshift_tools_subscription_operator_sub_namespace: >-
+      {{
+        (operator_subscription_namespace | default('') | string | trim)
+        | default((name_space | default('') | string | trim))
+      }}
+    # metadata.name for the Subscription object
+    openshift_tools_subscription_operator_sub_name: "{{ operator_subscription_name | default(operator_name ~ '-sub') }}"
+    # Package name (spec.name) is operator_name
+    openshift_tools_subscription_operator_pkg_name: "{{ operator_name }}"
+    # Always force channel to string
+    openshift_tools_subscription_operator_channel: "{{ operator_channel | string }}"
+  changed_when: false
+
+- name: Subscription | Assert required inputs
+  ansible.builtin.assert:
+    that:
+      - openshift_tools_subscription_operator_sub_namespace is defined and (openshift_tools_subscription_operator_sub_namespace | string | trim | length) > 0
+      - operator_name is defined and (operator_name | string | trim | length) > 0
+      - operator_channel is defined and (operator_channel | string | trim | length) > 0
+      - operator_source is defined and (operator_source | string | trim | length) > 0
+      - operator_source_namespace is defined and (operator_source_namespace | string | trim | length) > 0
+    fail_msg: |
+      Missing required vars for operator subscription.
+      Need: operator_subscription_namespace (or name_space), operator_name, operator_channel,
+            operator_source, operator_source_namespace.
+  changed_when: false
+
+# Optional safety: ensure namespace exists
+- name: Namespace | Ensure subscription namespace exists
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ openshift_tools_subscription_operator_sub_namespace }}"
+  when: state | default('present') == 'present'
+
+# Create OperatorGroup first (if configured)
+- name: OperatorGroup | Create/Update (scoped vs all namespaces)
+  kubernetes.core.k8s:
+    state: "{{ state | default('present') }}"
+    definition:
+      apiVersion: operators.coreos.com/v1
+      kind: OperatorGroup
+      metadata:
+        name: "{{ operatorgroup }}"
+        namespace: "{{ openshift_tools_subscription_operator_sub_namespace }}"
+      spec: >-
+        {{
+          (all_namespaces_install | default(false) | bool)
+          | ternary({}, {'targetNamespaces': [openshift_tools_subscription_operator_sub_namespace]})
+        }}
+  when:
+    - operatorgroup is defined
+    - (operatorgroup | string | trim | length) > 0
+
+# Subscription with startingCSV (pinning)
+- name: Subscription | Create/Update Operator subscription (supports startingCSV)
+  kubernetes.core.k8s:
+    state: "{{ state | default('present') }}"
+    definition:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: Subscription
+      metadata:
+        name: "{{ openshift_tools_subscription_operator_sub_name }}"
+        namespace: "{{ openshift_tools_subscription_operator_sub_namespace }}"
+      spec:
+        channel: "{{ openshift_tools_subscription_operator_channel }}"
+        name: "{{ openshift_tools_subscription_operator_pkg_name }}"
+        source: "{{ operator_source }}"
+        sourceNamespace: "{{ operator_source_namespace }}"
+        installPlanApproval: "{{ installPlanApproval | default('Automatic') }}"
+        startingCSV: "{{ operator_starting_csv }}"
+  when: (operator_starting_csv | default('') | string | trim | length) > 0
+
+# Subscription without startingCSV (latest for channel)
+- name: Subscription | Create/Update Operator subscription (no startingCSV)
+  kubernetes.core.k8s:
+    state: "{{ state | default('present') }}"
+    definition:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: Subscription
+      metadata:
+        name: "{{ _sub_name }}"
+        namespace: "{{ _sub_namespace }}"
+      spec:
+        channel: "{{ _channel }}"
+        name: "{{ _pkg_name }}"
+        source: "{{ operator_source }}"
+        sourceNamespace: "{{ operator_source_namespace }}"
+        installPlanApproval: "{{ installPlanApproval | default('Automatic') }}"
+  when: (operator_starting_csv | default('') | string | trim | length) == 0

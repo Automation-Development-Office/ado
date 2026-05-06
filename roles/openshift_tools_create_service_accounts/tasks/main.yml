@@ -1,0 +1,15 @@
+---
+# roles/.../tasks/main.yml
+- name: Create Service Accounts (per-item)
+  ansible.builtin.include_tasks: create_service_account.yml
+  loop: "{{ service_accounts }}"
+  loop_control:
+    loop_var: sa
+  when: (sa.state | default(state | default('present'))) == 'present'
+
+- name: Delete Service Accounts (per-item)
+  ansible.builtin.include_tasks: delete_service_account.yml
+  loop: "{{ service_accounts }}"
+  loop_control:
+    loop_var: sa
+  when: (sa.state | default(state | default('present'))) == 'absent'

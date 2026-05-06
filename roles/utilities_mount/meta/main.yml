@@ -1,9 +1,8 @@
+---
 # SPDX-License-Identifier: MIT-0
 galaxy_info:
   author: Jeff Radabaugh
-  description:
-    An Ansible Role that mounts filesystems based on variables. Supports
-    NFS, CIFS, and local disk mounts. Includes auto detection of mount type.
+  description: An Ansible Role that mounts filesystems based on variables. Supports NFS, CIFS, and local disk mounts. Includes auto detection of mount type.
   company: Red Hat
   license: GPL-3.0 or later
   min_ansible_version: "2.14"

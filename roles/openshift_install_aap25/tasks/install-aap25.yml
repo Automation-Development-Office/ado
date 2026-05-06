@@ -1,0 +1,129 @@
+---
+- name: Assert admin password is provided
+  ansible.builtin.assert:
+    that:
+      - openshift_install_aap24_admin_password | length > 0
+    fail_msg: "openshift_install_aap24_admin_password is empty. Put it in vault and pass it in."
+
+# Pull secret handling (your working approach)
+- name: Read cluster pull-secret
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: openshift-config
+    name: pull-secret
+  register: openshift_install_aap25_cluster_pull
+  failed_when: (openshift_install_aap25_cluster_pull.get('resources', []) | length) != 1
+
+- name: Create redhat-operators-pull-secret in target namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: redhat-operators-pull-secret
+        namespace: "{{ name_space }}"
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: "{{ openshift_install_aap25_cluster_pull.resources[0].data['.dockerconfigjson'] }}"
+
+# Admin password secret (must exist BEFORE CR)
+- name: Create admin password secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ controller_name }}-admin-password"
+        namespace: "{{ name_space }}"
+      type: Opaque
+      stringData:
+        password: "{{ openshift_install_aap24_admin_password }}"
+  no_log: true
+
+# cert-manager cert for route
+- name: Create cert-manager Certificate for Controller Route
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      metadata:
+        name: "{{ controller_name }}-route-cert"
+        namespace: "{{ name_space }}"
+      spec:
+        secretName: "{{ controller_tls_secret }}"
+        issuerRef:
+          kind: "{{ cert_issuer_kind }}"
+          name: "{{ cert_issuer_name }}"
+        dnsNames:
+          - "{{ controller_route_host }}"
+
+- name: Wait for TLS secret
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ name_space }}"
+    name: "{{ controller_tls_secret }}"
+  register: openshift_install_aap25_tls_secret
+  retries: 60
+  delay: 10
+  until: (openshift_install_aap25_tls_secret.get('resources', []) | length) == 1
+
+# Create AutomationController
+- name: Create AutomationController
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: automationcontroller.ansible.com/v1beta1
+      kind: AutomationController
+      metadata:
+        name: "{{ controller_name }}"
+        namespace: "{{ name_space }}"
+      spec:
+        replicas: "{{ replicas }}"
+        admin_user: "{{ admin_user }}"
+        admin_password_secret: "{{ controller_name }}-admin-password"
+        ingress_type: "{{ ingress_type }}"
+        route_host: "{{ controller_route_host }}"
+        route_tls_termination_mechanism: "{{ route_tls_termination_mechanism }}"
+        route_tls_secret: "{{ controller_tls_secret }}"
+        projects_persistence: "{{ projects_persistence }}"
+        projects_storage_class: "{{ projects_storage_class }}"
+        projects_storage_size: "{{ projects_storage_size }}"
+        projects_storage_access_mode: "{{ projects_storage_access_mode }}"
+        create_preload_data: true
+        image_pull_policy: IfNotPresent
+        auto_upgrade: true
+        set_self_labels: true
+        no_log: true
+
+- name: Wait for controller Route (by host)
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ name_space }}"
+  register: openshift_install_aap25_routes
+  retries: 240
+  delay: 10
+  until: >
+    (
+      openshift_install_aap25_routes.get('resources', [])
+      | selectattr('spec.host', 'equalto', controller_route_host)
+      | list | length
+    ) > 0
+
+- name: Print controller URL
+  ansible.builtin.debug:
+    msg: "Controller URL: https://{{ controller_route_host }} (user={{ admin_user }})"
+
+# Optional post-config to connect Hub/Galaxy
+- name: Configure controller to use Automation Hub (optional)
+  ansible.builtin.include_tasks: configure_controller.yml
+  when: openshift_install_aap24_configure_hub | bool
+
+- name: Activate AAP subscription (optional)
+  ansible.builtin.include_tasks: activate-subscription.yml
+  when: (openshift_install_aap24_activate_subscription | default(false)) | bool

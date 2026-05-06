@@ -1,0 +1,122 @@
+---
+- name: Build htpasswd content from user list
+  ansible.builtin.set_fact:
+    openshift_tools_create_htpass_admin_user_htpasswd_content: |
+      {% for user in htpasswd_users %}
+      {{ user.name }}:{{ user.password | password_hash('bcrypt', rounds=12) | regex_replace('^\$2b\$', '$2y$') }}
+      {% endfor %}
+  no_log: true
+
+- name: Create htpasswd Secret
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ name_space }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ htpasswd_secret }}"
+      type: Opaque
+      stringData:
+        htpasswd: "{{ openshift_tools_create_htpass_admin_user_htpasswd_content | trim }}"
+  no_log: true
+
+- name: Grant cluster-admin to selected htpasswd users
+  kubernetes.core.k8s:
+    state: present
+    kind: ClusterRoleBinding
+    api_version: rbac.authorization.k8s.io/v1
+    name: "htpasswd-{{ item.name }}-cluster-admin"
+    definition:
+      metadata:
+        name: "htpasswd-{{ item.name }}-cluster-admin"
+      subjects:
+        - kind: User
+          name: "{{ item.name }}"
+          apiGroup: rbac.authorization.k8s.io
+      roleRef:
+        kind: ClusterRole
+        name: cluster-admin
+        apiGroup: rbac.authorization.k8s.io
+  loop: "{{ htpasswd_users }}"
+  when: item.role is defined and item.role == "cluster-admin"
+  no_log: true
+
+- name: Get current OAuth config
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: OAuth
+    name: cluster
+  register: openshift_tools_create_htpass_admin_user_oauth_config
+
+- name: Extract identity providers
+  ansible.builtin.set_fact:
+    openshift_tools_create_htpass_admin_user_current_providers: >-
+      {{ openshift_tools_create_htpass_admin_user_oauth_config.resources[0].spec.identityProviders | default([]) }}
+
+- name: Check if htpasswd provider exists
+  ansible.builtin.set_fact:
+    openshift_tools_create_htpass_admin_user_htpasswd_exists: >-
+      {{
+        openshift_tools_create_htpass_admin_user_current_providers
+        | selectattr('name', 'equalto', htpasswd_idp_name)
+        | list
+        | length > 0
+      }}
+  no_log: true
+
+- name: Define htpasswd provider
+  ansible.builtin.set_fact:
+    openshift_tools_create_htpass_admin_user_htpasswd_provider_def:
+      name: "{{ htpasswd_idp_name }}"
+      mappingMethod: claim
+      type: HTPasswd
+      htpasswd:
+        fileData:
+          name: "{{ htpasswd_secret }}"
+  no_log: true
+
+- name: Add htpasswd provider if missing
+  ansible.builtin.set_fact:
+    openshift_tools_create_htpass_admin_user_updated_identity_providers: >
+      {{
+        openshift_tools_create_htpass_admin_user_current_providers
+        + [openshift_tools_create_htpass_admin_user_htpasswd_provider_def]
+        if not openshift_tools_create_htpass_admin_user_htpasswd_exists
+        else openshift_tools_create_htpass_admin_user_current_providers
+      }}
+  no_log: true
+
+- name: Update OAuth config if needed
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: config.openshift.io/v1
+      kind: OAuth
+      metadata:
+        name: cluster
+      spec:
+        identityProviders: "{{ openshift_tools_create_htpass_admin_user_updated_identity_providers }}"
+  when: not openshift_tools_create_htpass_admin_user_htpasswd_exists
+
+- name: Wait for authentication operator to finish rollout
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: ClusterOperator
+    name: authentication
+  register: openshift_tools_create_htpass_admin_user_auth_co
+  until: >
+    openshift_tools_create_htpass_admin_user_auth_co.resources is defined and
+    openshift_tools_create_htpass_admin_user_auth_co.resources | length > 0 and
+    (openshift_tools_create_htpass_admin_user_auth_co.resources[0].status.conditions
+      | selectattr('type','equalto','Progressing')
+      | list | first).status | default('False')
+    == 'False'
+  retries: 20
+  delay: 10
+  changed_when: false
+
+# <-- Pauce to wait for provider to show up on console -->
+- name: Give the new identity providers a few seconds to propagate
+  ansible.builtin.pause:
+    seconds: 25

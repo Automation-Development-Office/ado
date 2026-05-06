@@ -1,0 +1,57 @@
+---
+- name: Create Storage Cluster
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: ocs.openshift.io/v1
+      kind: StorageCluster
+      metadata:
+        name: "{{ storage_cluster_name }}"
+        namespace: "{{ name_space }}"
+      spec:
+        arbiter: {}
+        encryption:
+          keyRotation:
+            schedule: "@weekly"
+          kms: {}
+        externalStorage: {}
+        managedResources:
+          cephBlockPools: {}
+          cephCluster: {}
+          cephConfig: {}
+          cephDashboard: {}
+          cephFilesystems: {}
+          cephNonResilientPools: {}
+          cephObjectStoreUsers: {}
+          cephObjectStores: {}
+          cephRBDMirror: {}
+          cephToolbox: {}
+        network:
+          connections:
+            encryption: {}
+          multiClusterService: {}
+        nfs:
+          enable: "{{ nfs_enabled }}"
+        nodeTopologies: {}
+        resourceProfile: "{{ resource_profile }}"
+        storageDeviceSets:
+          - config: {}
+            count: 1
+            dataPVCTemplate:
+              metadata: {}
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: "{{ storage_system_size }}"
+                storageClassName: "{{ storage_class }}"
+                volumeMode: Block
+              status: {}
+            name: ocs-deviceset-gp3-csi
+            placement: {}
+            portable: true
+            preparePlacement: {}
+            replica: 3
+            resources: {}
+  when: state == "present"

@@ -1,0 +1,128 @@
+---
+- name: Assert required input
+  ansible.builtin.assert:
+    that:
+      - name_space is defined
+      - name_space | length > 0
+    fail_msg: "Provide name_space (namespace to inspect)."
+
+# -------- Discover Subscription in the namespace (generic) --------
+- name: Discover Subscriptions in {{ name_space }}
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    namespace: "{{ name_space }}"
+    validate_certs: "{{ validate_certs | default(true) }}"
+  register: openshift_tools_print_crd_subs
+
+- name: Fail if no Subscription found
+  ansible.builtin.fail:
+    msg: "No Subscriptions found in namespace '{{ name_space }}'."
+  when: (openshift_tools_print_crd_subs.resources | default([])) | length == 0
+
+- name: Choose first Subscription (sorted by name)
+  ansible.builtin.set_fact:
+    openshift_tools_print_crd_chosen_sub: "{{ (openshift_tools_print_crd_subs.resources | sort(attribute='metadata.name')) | first }}"
+    openshift_tools_print_crd_sub_count: "{{ (openshift_tools_print_crd_subs.resources | default([])) | length }}"
+
+- name: Legacy variable 'chosen_sub' is unsupported in roles (use openshift_tools_print_crd_chosen_sub)
+  ansible.builtin.debug:
+    msg: "Legacy variable 'chosen_sub' is unsupported in roles; use 'openshift_tools_print_crd_chosen_sub' instead."
+
+- name: Inform if multiple Subscriptions exist
+  ansible.builtin.debug:
+    msg: >-
+      Found {{ openshift_tools_print_crd_sub_count }} subscriptions; using
+      '{{ openshift_tools_print_crd_chosen_sub.metadata.name | default(openshift_tools_print_crd_chosen_sub.spec.name) }}'.
+  when: openshift_tools_print_crd_sub_count|int > 1
+
+# -------- Compute names & shape --------
+- name: Compute OperatorGroup and whether to emit Namespace
+  ansible.builtin.set_fact:
+    openshift_tools_print_crd_all_namespaces_install: "{{ name_space == 'openshift-operators' }}"
+    openshift_tools_print_crd_operatorgroup_name: >-
+      {{ (name_space == 'openshift-operators')
+         | ternary('global-operators', name_space ~ '-operatorgroup') }}
+    openshift_tools_print_crd_emit_namespace: "{{ name_space != 'openshift-operators' }}"
+
+- name: Build raw Subscription spec (may contain empty keys)
+  ansible.builtin.set_fact:
+    openshift_tools_print_crd_sub_spec_raw:
+      name: "{{ openshift_tools_print_crd_chosen_sub.spec.name }}"
+      channel: "{{ openshift_tools_print_crd_chosen_sub.spec.channel | default('') }}"
+      source: "{{ openshift_tools_print_crd_chosen_sub.spec.source | default('redhat-operators') }}"
+      sourceNamespace: "{{ openshift_tools_print_crd_chosen_sub.spec.sourceNamespace | default('openshift-marketplace') }}"
+      installPlanApproval: "{{ openshift_tools_print_crd_chosen_sub.spec.installPlanApproval | default('Automatic') }}"
+
+- name: Remove empty/null keys from Subscription spec
+  ansible.builtin.set_fact:
+    openshift_tools_print_crd_sub_spec: >-
+      {{
+        openshift_tools_print_crd_sub_spec_raw
+        | dict2items
+        | rejectattr('value','equalto','')
+        | rejectattr('value','equalto', none)
+        | items2dict
+      }}
+
+# -------- Build docs (Namespace? → OperatorGroup → Subscription) --------
+- name: Build bundle docs as dictionaries
+  ansible.builtin.set_fact:
+    openshift_tools_print_crd_ns_doc:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ name_space }}"
+        labels:
+          openshift.io/cluster-monitoring: "true"
+    openshift_tools_print_crd_og_doc:
+      apiVersion: operators.coreos.com/v1
+      kind: OperatorGroup
+      metadata:
+        name: "{{ openshift_tools_print_crd_operatorgroup_name }}"
+        namespace: "{{ name_space }}"
+      spec: "{{ {} if (openshift_tools_print_crd_all_namespaces_install | bool) else {'targetNamespaces': [name_space]} }}"
+    openshift_tools_print_crd_sub_doc:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: Subscription
+      metadata:
+        name: "{{ openshift_tools_print_crd_chosen_sub.metadata.name | default(openshift_tools_print_crd_chosen_sub.spec.name) }}"
+        namespace: "{{ name_space }}"
+      spec: "{{ openshift_tools_print_crd_sub_spec }}"
+
+- name: Assemble manifest docs list
+  ansible.builtin.set_fact:
+    openshift_tools_print_crd_manifest_docs: >-
+      {{
+        (openshift_tools_print_crd_emit_namespace | bool | ternary([openshift_tools_print_crd_ns_doc], []))
+        + [openshift_tools_print_crd_og_doc, openshift_tools_print_crd_sub_doc]
+      }}
+
+# -------- Render manifest YAML (multi-doc) --------
+- name: Render manifest YAML (multi-doc for copy/paste)
+  ansible.builtin.set_fact:
+    openshift_tools_print_crd_manifest_yaml: "{{ openshift_tools_print_crd_manifest_docs | map('to_nice_yaml', indent=2) | join('\n---\n') }}"
+
+# -------- Output: clean block print + pretty line print --------
+- name: Print all manifests as one YAML block (easy copy/paste or apply)
+  ansible.builtin.debug:
+    msg: "{{ openshift_tools_print_crd_manifest_yaml }}"
+
+# 1) Initialize pretty lines
+- name: Init pretty lines
+  ansible.builtin.set_fact:
+    openshift_tools_print_crd_pretty_lines: []
+
+# 2) Accumulate pretty lines (YAML -> lines, with --- and a blank line)
+- name: Build pretty lines for JSON-safe output
+  ansible.builtin.set_fact:
+    openshift_tools_print_crd_pretty_lines: "{{ openshift_tools_print_crd_pretty_lines + ['---'] + (item | to_nice_yaml(indent=2)).split('\n') + [''] }}"
+  loop: "{{ openshift_tools_print_crd_manifest_docs }}"
+
+# 3) Print one line at a time (no \n escapes)
+- name: Display manifest (pretty, JSON-safe)
+  ansible.builtin.debug:
+    msg: "{{ item }}"
+  loop: "{{ openshift_tools_print_crd_pretty_lines }}"
+  loop_control:
+    label: ""

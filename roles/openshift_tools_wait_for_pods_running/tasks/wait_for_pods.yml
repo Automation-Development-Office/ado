@@ -1,0 +1,21 @@
+---
+- name: Set default values for pod wait retries and delay (if not set)
+  ansible.builtin.set_fact:
+    openshift_tools_wait_for_pods_running_pod_wait_retries: "{{ openshift_tools_wait_for_pods_running_pod_wait_retries | default(20) }}"
+    openshift_tools_wait_for_pods_running_pod_wait_delay: "{{ openshift_tools_wait_for_pods_running_pod_wait_delay | default(10) }}"
+
+- name: Wait for all pods in namespace to be running
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ name_space }}"
+  register: openshift_tools_wait_for_pods_running_pods
+  until: >-
+    openshift_tools_wait_for_pods_running_pods.resources | length > 0 and
+    (
+      openshift_tools_wait_for_pods_running_pods.resources
+      | selectattr('status.phase', 'equalto', 'Running')
+      | list | length
+      == openshift_tools_wait_for_pods_running_pods.resources | length
+    )
+  retries: "{{ openshift_tools_wait_for_pods_running_pod_wait_retries }}"
+  delay: "{{ openshift_tools_wait_for_pods_running_pod_wait_delay }}"
