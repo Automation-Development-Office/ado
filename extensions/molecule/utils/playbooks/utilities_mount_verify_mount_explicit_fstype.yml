@@ -1,0 +1,30 @@
+---
+- name: Verify - utilities_mount mount explicit fstype scenario
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  vars:
+    utilities_mount_test_root: /tmp/utilities_mount_molecule_mount_explicit_fstype
+    utilities_mount_mount_path: "{{ utilities_mount_test_root }}/mnt"
+
+  tasks:
+    - name: Assert filesystem is mounted
+      ansible.builtin.assert:
+        that:
+          - ansible_mounts | selectattr("mount", "equalto", utilities_mount_mount_path) | list | length > 0
+        fail_msg: "Expected mount at {{ utilities_mount_mount_path }}"
+        success_msg: "Mount exists at {{ utilities_mount_mount_path }}"
+
+    - name: Check fstab contains mount path
+      ansible.builtin.command: "grep -F {{ utilities_mount_mount_path }} /etc/fstab"
+      register: utilities_mount_verify_fstab_result
+      changed_when: false
+      failed_when: false
+
+    - name: Assert fstab contains mount path
+      ansible.builtin.assert:
+        that:
+          - utilities_mount_verify_fstab_result.rc == 0
+        fail_msg: "Expected fstab entry for {{ utilities_mount_mount_path }}"
+        success_msg: "fstab entry exists for {{ utilities_mount_mount_path }}"

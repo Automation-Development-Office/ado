@@ -1,0 +1,30 @@
+---
+- name: Verify - utilities_mount unmount filesystem scenario
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  vars:
+    utilities_mount_test_root: /tmp/utilities_mount_molecule_unmount_filesystem
+    utilities_mount_mount_path: "{{ utilities_mount_test_root }}/mnt"
+
+  tasks:
+    - name: Assert filesystem is not mounted
+      ansible.builtin.assert:
+        that:
+          - ansible_mounts | selectattr("mount", "equalto", utilities_mount_mount_path) | list | length == 0
+        fail_msg: "Mount {{ utilities_mount_mount_path }} should be absent"
+        success_msg: "Mount {{ utilities_mount_mount_path }} is absent"
+
+    - name: Check fstab still contains mount path
+      ansible.builtin.command: "grep -F {{ utilities_mount_mount_path }} /etc/fstab"
+      register: utilities_mount_verify_fstab_result
+      changed_when: false
+      failed_when: false
+
+    - name: Assert fstab still contains mount path
+      ansible.builtin.assert:
+        that:
+          - utilities_mount_verify_fstab_result.rc == 0
+        fail_msg: "Expected fstab entry to remain for {{ utilities_mount_mount_path }}"
+        success_msg: "fstab entry remains for {{ utilities_mount_mount_path }}"

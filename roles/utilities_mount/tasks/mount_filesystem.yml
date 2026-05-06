@@ -1,12 +1,12 @@
 ---
 - name: Setting fstype fact for mounting with detected filesystem type
   ansible.builtin.set_fact:
-    utils_mount_fstype: "{{ utils_mount_detected_fstype }}"
-  when: utils_mount_detected_fstype is defined
+    utilities_mount_fstype: "{{ utilities_mount_detected_fstype }}"
+  when: utilities_mount_detected_fstype is defined
 
 - name: Mount the filesystem (example using the detected type)
   ansible.posix.mount:
     path: "{{ mount_path }}"
     src: "{{ target_device }}"
-    fstype: "{{ utils_mount_fstype | default(mount_fstype) }}"
+    fstype: "{{ utilities_mount_fstype | default(mount_fstype) }}"
     state: "{{ mount_action }}"

@@ -1,0 +1,20 @@
+---
+- name: Destroy - utilities_mount unmount filesystem scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  vars:
+    utilities_mount_test_root: /tmp/utilities_mount_molecule_unmount_filesystem
+    utilities_mount_mount_path: "{{ utilities_mount_test_root }}/mnt"
+
+  tasks:
+    - name: Ensure mount path is absent from fstab and unmounted
+      ansible.posix.mount:
+        path: "{{ utilities_mount_mount_path }}"
+        state: absent
+
+    - name: Remove scenario test root
+      ansible.builtin.file:
+        path: "{{ utilities_mount_test_root }}"
+        state: absent
