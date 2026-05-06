@@ -8,5 +8,5 @@
   ansible.posix.mount:
     path: "{{ mount_path }}"
     src: "{{ target_device }}"
-    fstype: "{{ utilities_mount_fstype | default(mount_fstype) }}"
+    fstype: "{{ utilities_mount_fstype | default(utilities_mount_fstype) }}"
     state: "{{ mount_action }}"
