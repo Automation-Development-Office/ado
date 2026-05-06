@@ -6,7 +6,6 @@
       - (ansible_facts['distribution_major_version'] | int >= 9)
     fail_msg: "RHEL{{ ansible_facts['distribution_major_version'] }} is not supported with {{ platform_satellite_install_satellite_deployment_version }}."
     success_msg: "RHEL{{ ansible_facts['distribution_major_version'] }} detected. Proceeding with install."
-  ignore_errors: true
 
 - name: preliminary_check | Validate Red Hat Satellite version is defined
   ansible.builtin.assert:
@@ -15,7 +14,6 @@
       - platform_satellite_install_satellite_deployment_version | length > 0
     fail_msg: |
       Define a supported version of Red Hat Satellite. Supported versions can be found at https://access.redhat.com/support/policy/updates/satellite.
-  ignore_errors: true
 
 - name: Debug platform_satellite_install_satellite_rhn_org_id
   ansible.builtin.debug:
@@ -34,7 +32,6 @@
     fail_msg: |
       Create an Access Key and get Organization ID from https://console.redhat.com/insights/connector/activation-keys
   when: platform_satellite_install_satellite_rhn_connected is true
-  ignore_errors: true
 
 - name: preliminary_check | Check location of where the Satellite will be located
   ansible.builtin.assert:
@@ -70,13 +67,11 @@
   ansible.builtin.package:
     name: grubby
     state: present
-  ignore_errors: true
 
 - name: preliminary_check | Get current kernel args for all entries
   ansible.builtin.command: grubby --info=ALL
   register: platform_satellite_install_grubby_info
   changed_when: false
-  ignore_errors: true
 
 - name: preliminary_check | Remove ipv6.disable=1 if present
   ansible.builtin.command: grubby --update-kernel ALL --remove-args="ipv6.disable=1"
