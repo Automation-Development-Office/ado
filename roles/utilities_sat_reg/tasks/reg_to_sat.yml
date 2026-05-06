@@ -1,0 +1,40 @@
+---
+- name: Gathering facts
+  ansible.builtin.gather_facts:
+    gather_subset:
+      - distribution
+
+- name: Fail if OS version earlier than 8 is detected (Out of Support)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == "RedHat"
+      - (ansible_facts['distribution_major_version'] | int >= 8)
+    fail_msg: "RHEL {{ ansible_facts['distribution_major_version'] }} and earlier machines are out-of-support and will not be registered."
+    success_msg: "RHEL{{ ansible_facts['distribution_major_version'] }} detected. Proceeding."
+
+- name: Generate registration command
+  redhat.satellite.registration_command:
+    username: "{{ sat_org_admin_account }}"
+    password: "{{ sat_org_admin_account_password }}"
+    activation_keys:
+      - "{{ sat_reg_activation_key_name }}"
+    organization: "{{ sat_reg_satellite_org_name }}"
+    server_url: "{{ sat_reg_satellite_host }}"
+    force: "{{ sat_reg_force_registration }}"
+    validate_certs: "{{ sat_reg_validate_certs }}"
+    insecure: "{{ sat_reg_insecure }}"
+    setup_insights: "{{ sat_reg_insights_enabled }}"
+    update_packages: "{{ sat_reg_update_packages }}"
+  register: utilities_sat_reg_command
+  changed_when: false
+
+- name: Debug
+  ansible.builtin.debug:
+    verbosity: 1
+    msg: "{{ utilities_sat_reg_command.registration_command }}"
+
+- name: Perform registration # noqa: command-instead-of-shell Because we need to run a shell command based on the output of the previous task
+  ansible.builtin.shell: "{{ utilities_sat_reg_command.registration_command }}"
+  register: utilities_sat_reg_script_result
+  changed_when: "'system has been registered' in utilities_sat_reg_script_result.stdout"
+  failed_when: utilities_sat_reg_script_result.rc != 0 and ("already registered" not in utilities_sat_reg_script_result.stderr | lower)
