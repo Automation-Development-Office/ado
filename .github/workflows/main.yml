@@ -4,6 +4,12 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      scenarios:
+        description: "Comma-separated scenario names to run (leave blank to run all)"
+        required: false
+        default: ""
+        type: string
 
 env:
   NAMESPACE: ado
@@ -56,7 +62,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t dirs < <(find extensions/molecule -type f -name molecule.yml -printf '%h\n' | sort)
+          input_scenarios="${{ github.event.inputs.scenarios }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "$input_scenarios" ]]; then
+            IFS=',' read -ra names <<< "$input_scenarios"
+            dirs=()
+            for name in "${names[@]}"; do
+              name="$(echo "$name" | xargs)"  # trim whitespace
+              dirs+=("extensions/molecule/$name")
+            done
+          else
+            mapfile -t dirs < <(find extensions/molecule -type f -name molecule.yml -printf '%h\n' | sort)
+          fi
           if [ ${#dirs[@]} -eq 0 ]; then
             echo "No Molecule scenarios found under extensions/molecule"
             echo "scenarios=[]" >> "$GITHUB_OUTPUT"
