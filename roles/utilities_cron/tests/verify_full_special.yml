@@ -1,0 +1,50 @@
+---
+- name: Verifying all special cron entries exist
+  hosts: all
+  remote_user: molecule
+  become: true
+  gather_facts: false
+
+  vars:
+    cron_yearly_jobs:
+      - { name: "yearly_test", job: "test" }
+      - { name: "yearly_prod", job: "prod" }
+    cron_monthly_jobs:
+      - { name: "monthly_test", job: "test" }
+      - { name: "monthly_prod", job: "prod" }
+    cron_hourly_jobs:
+      - { name: "hourly_test", job: "test" }
+      - { name: "hourly_prod", job: "prod" }
+    cron_daily_jobs:
+      - { name: "daily_test", job: "test" }
+      - { name: "daily_prod", job: "prod" }
+    cron_reboot_jobs:
+      - { name: "reboot_test", job: "test" }
+      - { name: "reboot_prod", job: "prod" }
+    cron_weekly_jobs:
+      - { name: "weekly_test", job: "test" }
+      - { name: "weekly_prod", job: "prod" }
+    cron_annual_jobs:
+      - { name: "annual_test", job: "test" }
+      - { name: "annual_prod", job: "prod" }
+
+  tasks:
+    - name: Get cron entries for root
+      ansible.builtin.command: crontab -l -u molecule
+      register: cron_output
+      changed_when: false
+      failed_when: false # avoid failing if no crontab yet
+
+    # - name: Debug cron output
+    #   ansible.builtin.debug:
+    #     var: cron_output
+    - name: Assert that the expected special cron jobs exist # Post Converge
+      ansible.builtin.assert:
+        that:
+          - cron_output.stdout is search(item.name)
+        fail_msg: "One or more expected cron jobs are missing!"
+        success_msg: "All expected cron jobs found in root's crontab."
+      loop: "{{ cron_yearly_jobs + cron_monthly_jobs + cron_weekly_jobs + cron_daily_jobs + cron_hourly_jobs + cron_annual_jobs + cron_reboot_jobs }}"
+      loop_control:
+        label: "{{ item.name }}"
+      # when: cron_output.stdout != "" and cron_yearly_jobs is defined

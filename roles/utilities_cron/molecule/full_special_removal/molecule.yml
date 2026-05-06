@@ -1,0 +1,44 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+
+platforms:
+  - name: rhel7-vm-molecule-test
+    hostname: rhel7-vm-molecule-test.server.lab
+  - name: rhel8-vm-molecule-test
+    hostname: rhel8-vm-molecule-test.server.lab
+  - name: rhel9-vm-molecule-test
+    hostname: rhel9-vm-molecule-test.server.lab
+  - name: rhel10-vm-molecule-test
+    hostname: rhel10-vm-molecule-test.server.lab
+
+provisioner:
+  name: ansible
+  playbooks:
+    converge: ${MOLECULE_PROJECT_DIRECTORY}/tests/full_special_removal.yml
+    verify: ${MOLECULE_PROJECT_DIRECTORY}/tests/verify_full_special_removal.yml
+  env:
+    # Use a safe callback (your earlier error came from a broken yaml callback plugin)
+    ANSIBLE_STDOUT_CALLBACK: default
+    # ANSIBLE_VERBOSITY: 1
+    # Let Ansible find THIS role (we are inside roles/namespace/)
+    ANSIBLE_ROLES_PATH: /home/jcradabaugh/GIT/utilities/roles
+    ANSIBLE_HOST_KEY_CHECKING: false
+    ANSIBLE_VAULT_PASSWORD_FILE: /home/jcradabaugh/GIT/utilities/roles/cron/tests/.vault_pass
+
+scenario:
+  name: full_special_removal
+  # Keep resources by default (skip destroy). Uncomment 'destroy' anytime you want cleanup.
+  test_sequence:
+    # - dependency
+    # - create
+    - converge
+    - idempotence
+    - verify
+    # - destroy
+
+verifier:
+  name: ansible

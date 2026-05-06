@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: MIT-0
+---
+# tasks file for cron
+
+- name: Creating Special Cron Jobs
+  ansible.builtin.import_tasks: special_crons.yml
+  when: >
+    (cron_weekly_jobs is defined or
+    cron_annual_jobs is defined or
+    cron_monthly_jobs is defined or
+    cron_hourly_jobs is defined or
+    cron_reboot_jobs is defined or
+    cron_daily_jobs is defined or
+    cron_annual_jobs is defined or
+    cron_yearly_jobs is defined) and cron_type == "special"

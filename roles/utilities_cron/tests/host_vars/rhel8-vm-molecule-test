@@ -1,0 +1,18 @@
+---
+
+ansible_host: rhel8-vm-molecule-test.server.lab
+ansible_user: root
+ansible_connection: ssh
+ansible_password: "{{ molecule_root_password }}"
+ansible_ssh_common_args: |
+  -o StrictHostKeyChecking=no
+  -o UserKnownHostsFile=/dev/null
+  -o ConnectionAttempts=3
+  -o ServerAliveInterval=15
+  -o ServerAliveCountMax=2
+ansible_python_interpreter: /usr/bin/python3.9
+sat_reg_activation_key_name: rhel-8
+
+cron_monthly_jobs:
+  - { name: "monthly_test", job: "test" }
+  - { name: "monthly_prod", job: "prod" }

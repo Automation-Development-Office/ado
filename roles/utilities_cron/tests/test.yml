@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MIT-0
+---
+# - hosts: localhost
+#   remote_user: root
+#   roles:
+#     - cron
+# - hosts: all
+#   gather_facts: false
+#   roles:
+#     - role: ado.utilities.cron
+#       vars:
+#         cron_type: special
+#         cron_state: present
+#         cron_yearly_jobs:
+#           - { name: "yearly_test", job: "test" }
+#           - { name: "yearly_prod", job: "prod" }
