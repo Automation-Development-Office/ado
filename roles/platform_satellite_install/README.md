@@ -133,26 +133,9 @@ Define the Satellite installation configuration in your playbook or inventory us
 
 ## 🧪 Molecule
 
-This role includes a default Molecule scenario for testing.
+This role no longer includes a dedicated Molecule scenario or platform-specific Molecule playbooks.
 
-The scenario runs the standard Molecule test sequence:
-
-```text
-dependency → create → converge → idempotence → verify → destroy
-```
-
-- Converge runs the role in safe `pre_check` mode
-- Idempotence re-runs converge and expects no further changes
-- Verify checks the README, pre-check completion marker, and required packages
-
-### Run scenarios locally
-
-Run from the collection root:
-
-```bash
-cd /path/to/cloned/ado
-molecule test -s integration_manage_sat_install
-```
+> Molecule tests for `platform_satellite_install` have been removed from the repository.
 
 ## 👥 Author
 
