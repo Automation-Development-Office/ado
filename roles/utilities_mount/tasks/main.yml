@@ -19,7 +19,7 @@
   ansible.builtin.assert:
     that:
       - utilities_mount_fstype is defined
-    fail_msg: "utilities_mount_fstype variable must be defined when mounting without detection"
+    fail_msg: "mount_fstype variable must be defined when mounting without detection"
   when: mount_action == 'mounted' and not manage_mounts_detection
 
 - name: Install latest efs-utils
