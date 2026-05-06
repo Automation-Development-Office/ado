@@ -1,0 +1,50 @@
+---
+- name: Gathering facts
+  ansible.builtin.gather_facts:
+    gather_subset:
+      - distribution
+
+- name: Fail if OS version earlier than 8 is detected (Out of Support)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == "RedHat"
+      - (ansible_facts['distribution_major_version'] | int >= 8)
+    fail_msg: "RHEL {{ ansible_facts['distribution_major_version'] }} and earlier machines are out-of-support and will not be deregistered."
+    success_msg: "RHEL{{ ansible_facts['distribution_major_version'] }} detected. Proceeding."
+
+- name: Unregister from Satellite via subscription-manager
+  ansible.builtin.command: subscription-manager unregister
+  register: utilities_sat_reg_unregister_result
+  failed_when: false
+  changed_when: "'System has been unregistered' in utilities_sat_reg_unregister_result.stdout"
+
+- name: Clean local subscription-manager configs
+  ansible.builtin.command: subscription-manager clean
+  register: utilities_sat_reg_clean_result
+  # failed_when: false
+  changed_when: "'All local data removed' in utilities_sat_reg_clean_result.stdout"
+
+- name: Remove Katello agent/consumer certs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/rhsm/facts/katello.facts
+    - /etc/pki/consumer
+    - /etc/pki/katello
+    - /var/lib/katello-agent
+  # ignore_errors: yes
+
+- name: Remove custom yum repos created by Satellite
+  ansible.builtin.file:
+    path: /etc/yum.repos.d/redhat.repo
+    state: absent
+
+- name: "Delete a host"
+  redhat.satellite.host:
+    username: "{{ sat_org_admin_account }}"
+    password: "{{ sat_org_admin_account_password }}"
+    server_url: "{{ sat_reg_satellite_host }}"
+    validate_certs: "{{ sat_reg_validate_certs }}"
+    name: "{{ ansible_fqdn }}"
+    state: absent

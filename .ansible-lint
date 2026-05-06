@@ -2,13 +2,30 @@ exclude_paths:
     - "**/.github/**"
     - .ansible-lint
     - "**/.ansible/**"
+    - "roles/**/defaults/**"  # explicit role defaults exclusion
     - "**/defaults/**"      # exclude any defaults dir anywhere
     - "**/vars/**"          # exclude any vars dir anywhere
     - "**/molecule/**"     # exclude any molecule dir anywhere
     - "**/meta/**"         # exclude any meta dir anywhere
+    - "roles/**/meta/**"  # explicit role meta exclusion
     - galaxy.yml
     - "**/changelogs/**"
     - devfile.yaml
 
 mock_modules:
   - ansible.posix.mount
+  - redhat.satellite.registration_command
+  - redhat.satellite.host
+  - redhat.rhel_idm.ipaclient
+  - redhat.rhel_idm.dnsrecord
+  - redhat.rhel_idm.ipareplica
+  - redhat.rhel_idm.ipaserver
+  - redhat.rhel_system_roles.mount
+  - awx.awx.organization
+  - awx.awx.credential
+  - awx.awx.project
+  - awx.awx.inventory
+  - awx.awx.host
+  - awx.awx.label
+  - awx.awx.execution_environment
+  - awx.awx.job_template

@@ -102,7 +102,7 @@ Define the base image directory and file name, then define the destination direc
 
 ## 🧪 Molecule
 
-This role includes a default Molecule scenario under `molecule/default/` that exercises the current local qcow image creation workflow.
+This role includes a role-local Molecule scenario under `molecule/default/` and an extension-level integration scenario under `extensions/molecule/integration_manage_vm_image` used by CI.
 
 The scenario:
 
@@ -113,20 +113,26 @@ The scenario:
 
 ### Run the scenario
 
-From the collection workspace, the validated command is:
-
-```bash
-python -m molecule test -s default
-```
-
-From the role directory:
+Run the role-local scenario from the role directory:
 
 ```bash
 cd roles/manage_vm_image
 python -m molecule test -s default
 ```
 
-This command was validated against the current `default` scenario and completed successfully for `converge`, `idempotence`, `verify`, and `destroy`.
+Run the extension-level CI-aligned scenario from the collection root:
+
+```bash
+cd extensions/molecule
+molecule test -s integration_manage_vm_image
+```
+
+### GitHub Actions manual runs
+
+The `Ansible Collection CI/CD` workflow exposes the manage_vm_image integration scenario as a checkbox in `workflow_dispatch`.
+
+- Checked scenarios are included in the Molecule matrix.
+- Matrix jobs run in parallel.
 
 ## 📁 Structure
 

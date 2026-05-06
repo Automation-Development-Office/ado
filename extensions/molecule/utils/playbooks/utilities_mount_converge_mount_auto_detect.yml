@@ -1,0 +1,20 @@
+---
+- name: Converge - utilities_mount mount auto-detect scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  vars:
+    utilities_mount_test_root: /tmp/utilities_mount_molecule_mount_auto_detect
+    utilities_mount_image_path: "{{ utilities_mount_test_root }}/device.img"
+    utilities_mount_mount_path: "{{ utilities_mount_test_root }}/mnt"
+
+  tasks:
+    - name: Include utilities_mount role for auto-detect mount # noqa: var-naming[no-role-prefix]
+      ansible.builtin.include_role:
+        name: infra.ado.utilities_mount
+      vars:
+        mount_action: mounted
+        mount_path: "{{ utilities_mount_mount_path }}"
+        target_device: "{{ utilities_mount_image_path }}"
+        mount_fstype_detection: true

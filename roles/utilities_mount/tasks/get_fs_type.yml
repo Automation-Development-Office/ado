@@ -1,0 +1,14 @@
+---
+- name: Use blkid to find the filesystem type
+  ansible.builtin.command: "blkid {{ target_device }}"
+  register: utilities_mount_blkid_result
+  changed_when: false # This command only reads data, it doesn't change the system
+
+- name: Parse the FSTYPE from blkid output
+  ansible.builtin.set_fact:
+    utilities_mount_detected_fstype: "{{ utilities_mount_blkid_result.stdout | regex_search('TYPE=\"([^\"]+)\"', '\\1') | first | default('none detected') }}"
+
+- name: Display the detected filesystem type
+  ansible.builtin.debug:
+    verbosity: 1
+    msg: "The device {{ target_device }} has filesystem type: {{ utilities_mount_detected_fstype }} "

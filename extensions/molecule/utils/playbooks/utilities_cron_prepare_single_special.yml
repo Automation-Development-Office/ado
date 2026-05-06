@@ -1,0 +1,11 @@
+---
+- name: Prepare - utilities_cron single special scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Ensure yearly test cron job is absent before converge
+      ansible.builtin.cron:
+        name: yearly_test
+        state: absent

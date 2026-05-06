@@ -1,0 +1,26 @@
+---
+- name: Verify - utilities_cron single special scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Get root crontab content
+      ansible.builtin.command: crontab -l -u root
+      register: utilities_cron_verify_crontab
+      changed_when: false
+      failed_when: false
+
+    - name: Assert root crontab exists after converge
+      ansible.builtin.assert:
+        that:
+          - utilities_cron_verify_crontab.rc == 0
+        fail_msg: Expected root crontab to exist after role converge.
+        success_msg: Root crontab exists.
+
+    - name: Assert yearly test cron job exists
+      ansible.builtin.assert:
+        that:
+          - utilities_cron_verify_crontab.stdout is search("yearly_test")
+        fail_msg: "Expected cron entry 'yearly_test' in root crontab."
+        success_msg: "Found cron entry 'yearly_test' in root crontab."

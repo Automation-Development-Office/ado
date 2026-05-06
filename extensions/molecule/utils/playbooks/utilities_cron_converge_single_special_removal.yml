@@ -1,0 +1,15 @@
+---
+- name: Converge - utilities_cron single special removal scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Include utilities_cron role to remove one special schedule # noqa: var-naming[no-role-prefix]
+      ansible.builtin.include_role:
+        name: infra.ado.utilities_cron
+      vars:
+        cron_type: special
+        cron_state: absent
+        cron_yearly_jobs:
+          - { name: "yearly_test", job: "test" }

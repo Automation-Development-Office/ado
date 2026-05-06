@@ -1,0 +1,29 @@
+---
+- name: Destroy - utilities_cron full special scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  vars:
+    utilities_cron_full_special_jobs:
+      - yearly_test
+      - yearly_prod
+      - monthly_test
+      - monthly_prod
+      - hourly_test
+      - hourly_prod
+      - daily_test
+      - daily_prod
+      - reboot_test
+      - reboot_prod
+      - weekly_test
+      - weekly_prod
+      - annual_test
+      - annual_prod
+
+  tasks:
+    - name: Ensure special cron jobs are absent at destroy
+      ansible.builtin.cron:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ utilities_cron_full_special_jobs }}"

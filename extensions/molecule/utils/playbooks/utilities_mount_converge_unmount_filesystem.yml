@@ -1,0 +1,17 @@
+---
+- name: Converge - utilities_mount unmount filesystem scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  vars:
+    utilities_mount_test_root: /tmp/utilities_mount_molecule_unmount_filesystem
+    utilities_mount_mount_path: "{{ utilities_mount_test_root }}/mnt"
+
+  tasks:
+    - name: Include utilities_mount role for unmount # noqa: var-naming[no-role-prefix]
+      ansible.builtin.include_role:
+        name: infra.ado.utilities_mount
+      vars:
+        mount_action: unmounted
+        mount_path: "{{ utilities_mount_mount_path }}"
