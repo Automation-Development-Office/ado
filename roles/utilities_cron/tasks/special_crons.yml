@@ -1,6 +1,6 @@
 - name: Control @Annual Cron Jobs
   ansible.builtin.cron:
-    name: " {{ item.name }}"
+    name: "{{ item.name }}"
     special_time: "annually"
     job: "{{ item.job }}"
     state: "{{ cron_state }}"
@@ -20,7 +20,7 @@
 
 - name: Control @Hourly Cron Jobs
   ansible.builtin.cron:
-    name: " {{ item.name }}"
+    name: "{{ item.name }}"
     special_time: "hourly"
     job: "{{ item.job }}"
     state: "{{ cron_state }}"
