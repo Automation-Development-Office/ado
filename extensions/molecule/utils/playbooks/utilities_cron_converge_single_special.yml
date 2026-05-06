@@ -7,7 +7,7 @@
   tasks:
     - name: Include utilities_cron role for one special schedule # noqa: var-naming[no-role-prefix]
       ansible.builtin.include_role:
-        name: utilities_cron
+        name: infra.ado.utilities_cron
       vars:
         utilities_cron_type: special
         cron_state: present
