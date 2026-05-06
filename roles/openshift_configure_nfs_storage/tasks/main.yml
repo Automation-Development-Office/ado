@@ -22,7 +22,7 @@
           enabled: false
 
 - name: Assign privileged SCC to csi-nfs-node-sa
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     state: present
     definition:
       apiVersion: rbac.authorization.k8s.io/v1
@@ -40,7 +40,7 @@
         apiGroup: rbac.authorization.k8s.io
 
 - name: Assign privileged SCC to csi-nfs-controller-sa
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     state: present
     definition:
       apiVersion: rbac.authorization.k8s.io/v1
@@ -58,6 +58,6 @@
         apiGroup: rbac.authorization.k8s.io
 
 - name: Apply NFS storage class
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     state: present
     src: "{{ nfs_storage_class_manifest | default('/tmp/nfs-storage-class.yaml') }}"
