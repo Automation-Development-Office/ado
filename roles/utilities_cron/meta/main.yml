@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT-0
 galaxy_info:
   author: Jeff Radabaugh
-  description: Developer
+  description: Manage special cron schedule entries (@hourly, @daily, @weekly, @monthly, @yearly, @annually, and @reboot); developed as part of the Automation Development Office.
   company: Red Hat
   license: MIT-0
 
