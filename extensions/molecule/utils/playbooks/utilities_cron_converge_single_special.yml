@@ -1,0 +1,15 @@
+---
+- name: Converge - utilities_cron single special scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Include utilities_cron role for one special schedule # noqa: var-naming[no-role-prefix]
+      ansible.builtin.include_role:
+        name: infra.ado.utilities_cron
+      vars:
+        cron_type: special
+        cron_state: present
+        cron_yearly_jobs:
+          - { name: "yearly_test", job: "test" }

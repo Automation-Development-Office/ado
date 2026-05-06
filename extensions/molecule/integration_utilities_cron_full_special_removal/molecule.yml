@@ -1,0 +1,25 @@
+---
+platforms:
+  - name: na
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}"
+  playbooks:
+    converge: ../utils/playbooks/utilities_cron_converge_full_special_removal.yml
+    destroy: ../utils/playbooks/utilities_cron_destroy_full_special_removal.yml
+    verify: ../utils/playbooks/utilities_cron_verify_full_special_removal.yml
+    prepare: ../utils/playbooks/utilities_cron_prepare_full_special_removal.yml
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+
+scenario:
+  test_sequence:
+    - prepare
+    - converge
+    - idempotence
+    - verify
+  destroy_sequence:
+    - destroy
