@@ -13,3 +13,19 @@ exclude_paths:
 
 mock_modules:
   - ansible.posix.mount
+  - redhat.satellite.registration_command
+  - redhat.satellite.host
+  - redhat.rhel_idm.ipaclient
+  - redhat.rhel_idm.dnsrecord
+  - redhat.rhel_idm.ipareplica
+  - redhat.rhel_idm.ipaserver
+  - redhat.rhel_system_roles.mount
+  - awx.awx.organization
+  - awx.awx.credential
+  - awx.awx.project
+  - awx.awx.inventory
+  - awx.awx.host
+  - awx.awx.label
+  - awx.awx.execution_environment
+  - awx.awx.job_template
+
