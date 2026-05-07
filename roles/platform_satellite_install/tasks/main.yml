@@ -1,5 +1,5 @@
 ---
-# tasks file for ado.applications.sat_install
+# tasks file for infra.ado.platform_satellite_install
 
 - name: Preliminary Check
   ansible.builtin.include_tasks: preliminary_check.yml

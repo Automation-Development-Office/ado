@@ -1,5 +1,5 @@
 ---
-# argument spec file for ado.applications.sat_install
+# argument spec file for infra.ado.platform_satellite_install
 
 argument_specs:
   main:
