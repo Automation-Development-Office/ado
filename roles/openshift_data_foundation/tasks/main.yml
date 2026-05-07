@@ -1,0 +1,4 @@
+---
+# tasks file for openshift data foundation
+- name: Openshift Data Foundation
+  ansible.builtin.import_tasks: storage_cluster.yml

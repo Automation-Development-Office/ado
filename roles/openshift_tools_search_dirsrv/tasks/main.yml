@@ -1,0 +1,43 @@
+---
+- name: Find a running dirsrv pod # noqa
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ openshift_tools_search_dirsrv__target_namespace }}" # noqa
+    label_selectors:
+      - "{{ openshift_tools_search_dirsrv_ds_app_label }}" # noqa
+  register: openshift_tools_search_dirsrv__pods # noqa
+
+- name: Fail if no dirsrv pods found
+  ansible.builtin.fail:
+    msg: "No pods with label {{ openshift_tools_search_dirsrv__app_label }} in namespace {{ openshift_tools_search_dirsrv__target_namespace }}"
+  when:
+    - openshift_tools_search_dirsrv__fail_if_no_pod | bool
+    - (openshift_tools_search_dirsrv__pods.resources | length) == 0
+
+- name: Pick first pod name # noqa
+  ansible.builtin.set_fact:
+    openshift_tools_search_dirsrv__pod: "{{ (openshift_tools_search_dirsrv__pods.resources | map(attribute='metadata.name') | list | first) | default('') }}"
+
+- name: Render search script # noqa
+  ansible.builtin.set_fact:
+    openshift_tools_search_dirsrv__script: "{{ lookup('template', 'run_search.sh.j2') }}"
+  when: openshift_tools_search_dirsrv__pod | length > 0
+
+- name: Run ldapsearch queries inside container # noqa
+  kubernetes.core.k8s_exec:
+    namespace: "{{ openshift_tools_search_dirsrv__target_namespace }}"
+    pod: "{{ openshift_tools_search_dirsrv__pod }}"
+    container: "{{ openshift_tools_search_dirsrv__container_name }}"
+    command: |
+      sh -lc {{ openshift_tools_search_dirsrv__script | to_json }}
+  register: openshift_tools_search_dirsrv__out
+  failed_when: false
+  when: openshift_tools_search_dirsrv__pod | length > 0
+
+- name: Print output
+  ansible.builtin.debug:
+    msg: "{{ openshift_tools_search_dirsrv__out.stdout | default('No output') }}"
+  when:
+    - openshift_tools_search_dirsrv__print_only | bool
+    - openshift_tools_search_dirsrv__pod | length > 0

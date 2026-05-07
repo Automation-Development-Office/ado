@@ -1,0 +1,3 @@
+---
+openshift_tools_wait_for_operator_ready_retries: 30
+openshift_tools_wait_for_operator_ready_delay: 10

@@ -1,0 +1,83 @@
+---
+- name: Wait for Operator CSV to appear
+  vars:
+    start_time: "{{ ansible_date_time.epoch | int }}"
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ name_space }}"
+  register: openshift_tools_wait_for_operator_ready__installed_operator_csvs
+  until: >-
+    openshift_tools_wait_for_operator_ready__installed_operator_csvs.resources | selectattr('metadata.name', 'search', operator_name_substring) | list
+    | length > 0
+  retries: "{{ (operator_install_timeout // operator_poll_interval) | int }}"
+  delay: "{{ operator_poll_interval }}"
+
+- name: Set fact if Operator CSV is installed
+  ansible.builtin.set_fact:
+    openshift_tools_wait_for_operator_ready__operator_installed: true
+
+- name: Debug operator installation status
+  ansible.builtin.debug:
+    msg: >-
+      ✅ Operator '{{ operator_name_substring }}' is installed in '{{ name_space }}'.
+      Operator installed: {{ openshift_tools_wait_for_operator_ready__operator_installed }}
+
+- name: Get all Deployments in namespace
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ name_space }}"
+  register: openshift_tools_wait_for_operator_ready__all_deployments
+
+- name: Set openshift_tools_wait_for_operator_ready__operator_deployment_pattern fact if not defined
+  ansible.builtin.set_fact:
+    openshift_tools_wait_for_operator_ready__operator_deployment_pattern: >-
+      {{ openshift_tools_wait_for_operator_ready__operator_deployment_pattern | default(operator_name_substring) }}
+  when: openshift_tools_wait_for_operator_ready__operator_deployment_pattern is not defined
+
+- name: Find likely Operator Deployment
+  ansible.builtin.set_fact:
+    openshift_tools_wait_for_operator_ready__operator_deployment: >-
+      {{
+        openshift_tools_wait_for_operator_ready__all_deployments.resources
+        | selectattr('metadata.name', 'search', openshift_tools_wait_for_operator_ready__operator_deployment_pattern)
+        | map(attribute='metadata.name')
+        | list
+        | first
+      }}
+  when: >-
+    openshift_tools_wait_for_operator_ready__operator_deployment is not defined or openshift_tools_wait_for_operator_ready__operator_deployment
+    | length == 0
+
+- name: Debug discovered operator deployment
+  ansible.builtin.debug:
+    msg: >-
+      🕵️ Discovered operator deployment: {{ openshift_tools_wait_for_operator_ready__operator_deployment }} in namespace {{ name_space }}
+
+- name: Wait for Operator Deployment to be ready
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ name_space }}"
+    name: "{{ openshift_tools_wait_for_operator_ready__operator_deployment }}"
+  register: openshift_tools_wait_for_operator_ready__operator_deploy_info
+  until: >
+    openshift_tools_wait_for_operator_ready__operator_deploy_info.resources | default([]) | length > 0
+    and openshift_tools_wait_for_operator_ready__operator_deploy_info.resources[0].status is defined
+    and openshift_tools_wait_for_operator_ready__operator_deploy_info.resources[0].status.availableReplicas is defined
+    and openshift_tools_wait_for_operator_ready__operator_deploy_info.resources[0].status.availableReplicas | int > 0
+  retries: "{{ operator_wait_retries | default(30) }}"
+  delay: "{{ operator_wait_delay | default(10) }}"
+
+- name: Debug operator deployment status
+  ansible.builtin.debug:
+    msg: >-
+      🚦 Operator deployment '{{ openshift_tools_wait_for_operator_ready__operator_deployment }}' ready status:
+      {{
+        openshift_tools_wait_for_operator_ready__operator_deploy_info.resources[0].status.availableReplicas | default('none')
+      }}/
+      {{
+        openshift_tools_wait_for_operator_ready__operator_deploy_info.resources[0].status.replicas | default('none')
+      }}
+      available in namespace {{ name_space }}

@@ -1,0 +1,64 @@
+---
+- name: Ensure required variables are defined
+  ansible.builtin.assert:
+    that:
+      - vm_name is defined
+      - vm_namespace is defined
+      - source_name is defined
+      - instance_type is defined
+      - storage_class is defined
+    fail_msg: >
+      One or more required variables are missing.
+      Please provide: vm_name, vm_namespace, storage_class, source_name, and instance_type.
+
+- name: Create a VirtualMachine by cloning the existing datavolume
+  redhat.openshift_virtualization.kubevirt_vm:
+    validate_certs: false
+    state: present
+    name: "{{ vm_name }}"
+    namespace: "{{ vm_namespace }}"
+    labels:
+      app: "{{ app_label | default(vm_name) }}"
+    instancetype:
+      name: "{{ instance_type }}"
+    preference:
+      name: "{{ preference | default('rhel.9') }}"
+    data_volume_templates:
+      - metadata:
+          name: "{{ vm_name }}-datavolume"
+        spec:
+          sourceRef:
+            kind: "{{ source_kind | default('DataSource') }}"
+            name: "{{ source_name }}"
+            namespace: "{{ source_namespace | default('openshift-virtualization-os-images') }}"
+          storage:
+            resources: {}
+            storageClassName: "{{ storage_class }}"
+    spec:
+      domain:
+        devices:
+          interfaces:
+            - name: "{{ network_name | default('default') }}"
+              masquerade: {}
+      networks:
+        - name: "{{ network_name | default('default') }}"
+          pod: {}
+      volumes:
+        - dataVolume:
+            name: "{{ vm_name }}-datavolume"
+          name: rootdisk
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: "{{ cloud_init_user_data }}"
+    wait: true
+    wait_timeout: "{{ wait_timeout | default(3600) }}"
+
+- name: Wait until the VirtualMachine is started
+  redhat.openshift_virtualization.kubevirt_vm:
+    name: "{{ vm_name }}"
+    namespace: "{{ vm_namespace }}"
+    running: true
+  register: openshift_install_ocp_virt_vm_status
+  until: openshift_install_ocp_virt_vm_status.result.status.printableStatus == "Running"
+  retries: 60
+  delay: 5

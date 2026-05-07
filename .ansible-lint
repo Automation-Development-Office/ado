@@ -29,3 +29,5 @@ mock_modules:
   - awx.awx.label
   - awx.awx.execution_environment
   - awx.awx.job_template
+  - redhat.openshift_virtualization.kubevirt_vm
+  - community.crypto.openssh_keypair

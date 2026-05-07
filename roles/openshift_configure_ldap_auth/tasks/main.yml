@@ -1,0 +1,215 @@
+---
+# ==========================================
+# OpenShift LDAP Identity Provider (append-only)
+# - Uses ldap_config from vault as source of truth
+# - Allows optional overrides via openshift_ldap_auth (if present)
+# - Appends LDAP without removing/reordering existing providers
+# ==========================================
+
+# -----------------------------
+# Required: ldap_config from vault
+# -----------------------------
+- name: Assert ldap_config is present (from vault)
+  ansible.builtin.assert:
+    that:
+      - ldap_config is defined
+      - ldap_config.connectionUrl is defined
+      - ldap_config.bindDn is defined
+      - ldap_config.bindCredential is defined
+      - ldap_config.usersDn is defined
+      - (ldap_config.connectionUrl | string | length) > 0
+      - (ldap_config.bindDn | string | length) > 0
+      - (ldap_config.bindCredential | string | length) > 0
+      - (ldap_config.usersDn | string | length) > 0
+    fail_msg: >
+      Missing required ldap_config values (expected from vault file):
+        - ldap_config.connectionUrl
+        - ldap_config.bindDn
+        - ldap_config.bindCredential
+        - ldap_config.usersDn
+
+# -----------------------------
+# Build openshift_ldap_auth from ldap_config (with optional overrides)
+# -----------------------------
+- name: Build openshift_configure_ldap_auth_config from ldap_config (vault) + optional overrides
+  ansible.builtin.set_fact:
+    openshift_configure_ldap_auth_config: >-
+      {{
+        {
+          'enabled': (ldap_config.enabled | default(true) | bool),
+          'idp_name': 'ldap',
+          'oauth_resource_name': 'cluster',
+          'mapping_method': 'claim',
+          'bind_secret_name': 'ldap-ldap-bind',
+          'insecure': (ldap_config.connectionUrl | lower | regex_search('^ldap://') is not none),
+          'ldap_url': (
+            ldap_config.connectionUrl
+            ~ '/'
+            ~ ldap_config.usersDn
+            ~ '?'
+            ~ (ldap_config.usernameLDAPAttribute | default('uid'))
+          ),
+          'bind_dn': ldap_config.bindDn,
+          'bind_password': ldap_config.bindCredential,
+          'attributes': {
+            'id': ['dn'],
+            'preferredUsername': [(ldap_config.usernameLDAPAttribute | default('uid'))],
+            'name': ['cn'],
+            'email': ['mail']
+          }
+        }
+        | combine((openshift_configure_ldap_auth_config | default({})), recursive=True)
+      }}
+  no_log: "{{ openshift_ldap_no_log | default(true) | bool }}"
+
+# -----------------------------
+# Skip when disabled
+# -----------------------------
+- name: Skip when LDAP auth disabled
+  ansible.builtin.meta: end_play
+  when: not (openshift_configure_ldap_auth_config.enabled | default(true) | bool)
+
+# -----------------------------
+# Assert required LDAP fields (after deriving)
+# -----------------------------
+- name: Assert required LDAP fields
+  ansible.builtin.assert:
+    that:
+      - openshift_configure_ldap_auth_config.idp_name is defined
+      - openshift_configure_ldap_auth_config.ldap_url is defined
+      - openshift_configure_ldap_auth_config.bind_dn is defined
+      - openshift_configure_ldap_auth_config.bind_password is defined
+      - (openshift_configure_ldap_auth_config.idp_name | string | length) > 0
+      - (openshift_configure_ldap_auth_config.ldap_url | string | length) > 0
+      - (openshift_configure_ldap_auth_config.bind_dn | string | length) > 0
+      - (openshift_configure_ldap_auth_config.bind_password | string | length) > 0
+    fail_msg: >
+      Missing required derived vars. Required:
+        - openshift_configure_ldap_auth_config.idp_name
+        - openshift_configure_ldap_auth_config.ldap_url
+        - openshift_configure_ldap_auth_config.bind_dn
+        - openshift_configure_ldap_auth_config.bind_password
+
+# -----------------------------
+# Derived vars
+# -----------------------------
+- name: Set derived vars
+  ansible.builtin.set_fact:
+    openshift_configure_ldap_auth_oauth_name: "{{ openshift_configure_ldap_auth_config.oauth_resource_name | default('cluster') }}"
+    openshift_configure_ldap_auth_mapping_method: "{{ openshift_configure_ldap_auth_config.mapping_method | default('claim') }}"
+    openshift_configure_ldap_auth_bind_secret_name: >-
+      {{
+        openshift_configure_ldap_auth_config.bind_secret_name
+        | default(openshift_configure_ldap_auth_config.idp_name | lower ~ '-ldap-bind')
+      }}
+  no_log: "{{ openshift_ldap_no_log | default(true) | bool }}"
+
+# -----------------------------
+# Create bind secret in openshift-config
+# -----------------------------
+- name: Create/update LDAP bind secret
+  kubernetes.core.k8s:
+    state: present
+    namespace: openshift-config
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ openshift_configure_ldap_auth_bind_secret_name }}"
+      type: Opaque
+      stringData:
+        bindDN: "{{ openshift_configure_ldap_auth_config.bind_dn }}"
+        bindPassword: "{{ openshift_configure_ldap_auth_config.bind_password }}"
+  no_log: "{{ openshift_ldap_no_log | default(true) | bool }}"
+
+# -----------------------------
+# Read current OAuth config
+# -----------------------------
+- name: Get current OAuth config
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: OAuth
+    name: "{{ openshift_configure_ldap_auth_oauth_name }}"
+  register: openshift_configure_ldap_auth_oauth_config
+
+- name: Extract current identity providers
+  ansible.builtin.set_fact:
+    openshift_configure_ldap_auth_existing_providers: "{{ openshift_configure_ldap_auth_oauth_config.resources[0].spec.identityProviders | default([]) }}"
+
+# -----------------------------
+# Define LDAP provider
+# -----------------------------
+- name: Define LDAP identity provider
+  ansible.builtin.set_fact:
+    openshift_configure_ldap_auth_provider_def:
+      name: "{{ openshift_configure_ldap_auth_config.idp_name }}"
+      mappingMethod: "{{ openshift_configure_ldap_auth_mapping_method }}"
+      type: LDAP
+      ldap:
+        url: "{{ openshift_configure_ldap_auth_config.ldap_url }}"
+        bindDN: "{{ openshift_configure_ldap_auth_config.bind_dn }}"
+        bindPassword:
+          name: "{{ openshift_configure_ldap_auth_bind_secret_name }}"
+        insecure: "{{ openshift_configure_ldap_auth_config.insecure | default(false) | bool }}"
+        attributes:
+          id: "{{ openshift_configure_ldap_auth_config.attributes.id | default(['dn']) }}"
+          preferredUsername: "{{ openshift_configure_ldap_auth_config.attributes.preferredUsername | default(['uid']) }}"
+          name: "{{ openshift_configure_ldap_auth_config.attributes.name | default(['cn']) }}"
+          email: "{{ openshift_configure_ldap_auth_config.attributes.email | default(['mail']) }}"
+
+# -----------------------------
+# Append-only behavior
+# -----------------------------
+- name: Check if LDAP provider already exists
+  ansible.builtin.set_fact:
+    openshift_configure_ldap_auth_exists: >-
+      {{
+        openshift_configure_ldap_auth_existing_providers
+        | selectattr('name', 'equalto', openshift_configure_ldap_auth_config.idp_name)
+        | list
+        | length > 0
+      }}
+
+- name: Build updated identity providers list (append only)
+  ansible.builtin.set_fact:
+    openshift_configure_ldap_auth_updated_providers: "{{ openshift_configure_ldap_auth_existing_providers + [openshift_configure_ldap_auth_provider_def] }}"
+  when: not openshift_configure_ldap_auth_exists
+
+- name: Update OAuth config (append LDAP, preserve existing order)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: config.openshift.io/v1
+      kind: OAuth
+      metadata:
+        name: "{{ openshift_configure_ldap_auth_oauth_name }}"
+      spec:
+        identityProviders: "{{ openshift_configure_ldap_auth_updated_providers }}"
+  when: not openshift_configure_ldap_auth_exists
+
+# -----------------------------
+# Wait for auth rollout (only if changed)
+# -----------------------------
+- name: Wait for authentication operator rollout
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: ClusterOperator
+    name: authentication
+  register: openshift_configure_ldap_auth_operator
+  until: >
+    openshift_configure_ldap_auth_operator.resources is defined and
+    openshift_configure_ldap_auth_operator.resources | length > 0 and
+    (
+      openshift_configure_ldap_auth_operator.resources[0].status.conditions
+      | selectattr('type','equalto','Progressing')
+      | list | first
+    ).status | default('False') == 'False'
+  retries: 30
+  delay: 10
+  changed_when: false
+  when: not openshift_configure_ldap_auth_exists
+
+- name: Pause for OAuth provider propagation
+  ansible.builtin.pause:
+    seconds: 25
+  when: not openshift_configure_ldap_auth_exists

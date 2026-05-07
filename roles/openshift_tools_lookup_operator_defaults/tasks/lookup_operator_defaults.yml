@@ -1,0 +1,45 @@
+---
+- name: Get list of all PackageManifests
+  kubernetes.core.k8s_info:
+    api_version: packages.operators.coreos.com/v1
+    kind: PackageManifest
+  register: openshift_tools_lookup_operator_defaults_operator_manifest_list
+
+- name: Build list of matching operators
+  ansible.builtin.set_fact:
+    openshift_tools_lookup_operator_defaults_matching_manifests: >-
+      {{ openshift_tools_lookup_operator_defaults_operator_manifest_list.resources
+         | selectattr('metadata.name', 'search', app_name)
+         | list }}
+
+- name: Fail if no matching operators found
+  ansible.builtin.fail:
+    msg: "No PackageManifest found for '{{ app_name }}'"
+  when: openshift_tools_lookup_operator_defaults_matching_manifests | length == 0
+
+- name: Show all matching operator packages
+  ansible.builtin.debug:
+    msg: >-
+      {% for item in openshift_tools_lookup_operator_defaults_matching_manifests %}
+      operator_name: {{ item.metadata.name }}
+      operator_channel: {{ item.status.defaultChannel }}
+      operator_source: {{ item.status.catalogSource }}
+      operator_source_namespace: {{ item.status.catalogSourceNamespace }}
+      {% if not loop.last %}\n{% endif %}
+      {% endfor %}
+
+- name: Extract operator match info as list of dicts
+  ansible.builtin.set_fact:
+    openshift_tools_lookup_operator_defaults_operator_matches: >-
+      [{% for item in openshift_tools_lookup_operator_defaults_matching_manifests %}
+        {
+          "operator_name": "{{ item.metadata.name }}",
+          "operator_channel": "{{ item.status.defaultChannel }}",
+          "operator_source": "{{ item.status.catalogSource }}",
+          "operator_source_namespace": "{{ item.status.catalogSourceNamespace }}"
+        }{% if not loop.last %},{% endif %}
+      {% endfor %}]
+
+- name: Show operator name list
+  ansible.builtin.debug:
+    var: openshift_tools_lookup_operator_defaults_operator_matches

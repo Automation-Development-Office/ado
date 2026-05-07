@@ -1,0 +1,227 @@
+---
+# roles/openshift_configure_awspca_clusterissuer/tasks/main.yml
+
+# =========================================================
+# AWSPCAClusterIssuer (cert-manager AWS PCA Issuer)
+# - Creates namespace + secret (namespaced)
+# - Creates cluster-scoped AWSPCAClusterIssuer
+# - Optionally waits for Ready=True
+# - Supports state: present|absent
+# =========================================================
+
+# ---------------------------
+# Validate required inputs
+# ---------------------------
+- name: Awspca_clusterissuer | Validate inputs
+  ansible.builtin.assert:
+    that:
+      - state is defined
+      - state in ['present', 'absent']
+      - openshift_configure_awspca_issuer_name is defined
+      - (openshift_configure_awspca_issuer_name | string | length) > 0
+      - openshift_configure_awspca_namespace is defined
+      - (openshift_configure_awspca_namespace | string | length) > 0
+      - openshift_configure_awspca_secret_name is defined
+      - (openshift_configure_awspca_secret_name | string | length) > 0
+      - openshift_configure_awspca_region is defined
+      - (openshift_configure_awspca_region | string | length) > 0
+    fail_msg: >-
+      Required vars:
+        state (present|absent),
+        openshift_configure_awspca_issuer_name, openshift_configure_awspca_namespace, openshift_configure_awspca_secret_name, openshift_configure_awspca_region.
+
+- name: Awspca_clusterissuer | Validate PCA ARN for present
+  ansible.builtin.assert:
+    that:
+      - openshift_configure_awspca_pca_arn is defined
+      - (openshift_configure_awspca_pca_arn | string | length) > 0
+    fail_msg: "openshift_configure_awspca_pca_arn must be set when state=present."
+  when: state == 'present'
+
+# ---------------------------
+# Ensure namespace exists
+# ---------------------------
+- name: Awspca_clusterissuer | Ensure namespace exists
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ openshift_configure_awspca_namespace }}"
+  when: state == 'present'
+
+# ---------------------------
+# Resolve credentials
+# (prefer vars; fallback to env)
+# ---------------------------
+- name: Awspca_clusterissuer | Resolve AWS creds from vars or env
+  ansible.builtin.set_fact:
+    openshift_configure_awspca_access_key_id_resolved: >-
+      {{
+        (openshift_configure_awspca_access_key_id | default('') | string | length > 0)
+        | ternary(
+            openshift_configure_awspca_access_key_id,
+            (lookup('ansible.builtin.env', 'AWS_ACCESS_KEY_ID') | default('', true))
+          )
+      }}
+    openshift_configure_awspca_secret_access_key_resolved: >-
+      {{
+        (openshift_configure_awspca_secret_access_key | default('') | string | length > 0)
+        | ternary(
+            openshift_configure_awspca_secret_access_key,
+            (lookup('ansible.builtin.env', 'AWS_SECRET_ACCESS_KEY') | default('', true))
+          )
+      }}
+  when: state == 'present'
+  no_log: "{{ openshift_configure_awspca_no_log | default(true) | bool }}"
+
+- name: Awspca_clusterissuer | Assert AWS creds are present
+  ansible.builtin.assert:
+    that:
+      - (openshift_configure_awspca_access_key_id_resolved | default('') | string | length) > 0
+      - (openshift_configure_awspca_secret_access_key_resolved | default('') | string | length) > 0
+    fail_msg: >-
+      AWS creds missing. Provide openshift_configure_awspca_access_key_id/openshift_configure_awspca_secret_access_key
+      (preferred via vault) OR export AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY in env.
+  when: state == 'present'
+
+# ---------------------------
+# Detect served CRD version (present only)
+# ---------------------------
+- name: Awspca_clusterissuer | Read AWSPCAClusterIssuer CRD to detect served version
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: awspcaclusterissuers.awspca.cert-manager.io
+  register: openshift_configure_awspca_crd
+  when: state == 'present'
+
+- name: Awspca_clusterissuer | Assert AWSPCAClusterIssuer CRD exists
+  ansible.builtin.assert:
+    that:
+      - (openshift_configure_awspca_crd.resources | default([]) | length) > 0
+    fail_msg: >-
+      CRD awspcaclusterissuers.awspca.cert-manager.io not found.
+      Install the AWS PCA Issuer for cert-manager (CRDs) before running this role.
+  when: state == 'present'
+
+- name: Awspca_clusterissuer | Pick best served API version
+  ansible.builtin.set_fact:
+    openshift_configure_awspca_api_version: >-
+      {{
+        'awspca.cert-manager.io/' ~ (
+          openshift_configure_awspca_crd.resources[0].spec.versions
+          | selectattr('served', 'equalto', true)
+          | map(attribute='name')
+          | list
+          | sort
+          | last
+        )
+      }}
+  when: state == 'present'
+
+# ---------------------------
+# Secret (namespaced)
+# ---------------------------
+- name: Awspca_clusterissuer | Ensure AWS PCA credentials secret present
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ openshift_configure_awspca_namespace }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ openshift_configure_awspca_secret_name }}"
+        namespace: "{{ openshift_configure_awspca_namespace }}"
+      type: Opaque
+      stringData:
+        "{{ openshift_configure_awspca_secret_key_id_field | default('AWS_ACCESS_KEY_ID') }}": "{{ openshift_configure_awspca_access_key_id_resolved }}"
+        ? >-
+          {{ openshift_configure_awspca_secret_secret_key_field | default('AWS_SECRET_ACCESS_KEY') }}
+        : "{{ openshift_configure_awspca_secret_access_key_resolved }}"
+  when: state == 'present'
+  no_log: "{{ openshift_configure_awspca_no_log | default(true) | bool }}"
+
+# ---------------------------
+# ClusterIssuer (cluster-scoped)
+# ---------------------------
+- name: Awspca_clusterissuer | Ensure AWSPCAClusterIssuer present
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: "{{ openshift_configure_awspca_api_version }}"
+      kind: AWSPCAClusterIssuer
+      metadata:
+        name: "{{ openshift_configure_awspca_issuer_name }}"
+      spec:
+        arn: "{{ openshift_configure_awspca_pca_arn }}"
+        region: "{{ openshift_configure_awspca_region }}"
+        secretRef:
+          name: "{{ openshift_configure_awspca_secret_name }}"
+          namespace: "{{ openshift_configure_awspca_namespace }}"
+  when: state == 'present'
+
+- name: Awspca_clusterissuer | Wait for issuer Ready=True
+  kubernetes.core.k8s_info:
+    api_version: "{{ openshift_configure_awspca_api_version }}"
+    kind: AWSPCAClusterIssuer
+    name: "{{ openshift_configure_awspca_issuer_name }}"
+  register: openshift_configure_awspca_issuer_status
+  until:
+    - (openshift_configure_awspca_issuer_status.resources | default([]) | length) > 0
+    - openshift_configure_awspca_issuer_status.resources[0].status is defined
+    - openshift_configure_awspca_issuer_status.resources[0].status.conditions is defined
+    - >-
+      ( openshift_configure_awspca_issuer_status.resources[0].status.conditions | selectattr('type', 'equalto', 'Ready')
+      | selectattr('status', 'equalto', 'True') | list | length )
+      > 0
+  retries: "{{ openshift_configure_awspca_wait_retries | default(30) }}"
+  delay: "{{ openshift_configure_awspca_wait_delay | default(10) }}"
+  when:
+    - state == 'present'
+    - openshift_configure_awspca_wait_ready | default(true) | bool
+
+# ---------------------------
+# Absent path
+# ---------------------------
+- name: Awspca_clusterissuer | Delete AWSPCAClusterIssuer when absent
+  kubernetes.core.k8s:
+    state: absent
+    api_version: "{{ openshift_configure_awspca_api_version_absent | default('awspca.cert-manager.io/v1beta1') }}"
+    kind: AWSPCAClusterIssuer
+    name: "{{ openshift_configure_awspca_issuer_name }}"
+  when: state == 'absent'
+  register: openshift_configure_awspca_delete_clusterissuer_result
+  failed_when: >
+    (openshift_configure_awspca_delete_clusterissuer_result is failed) and
+    (openshift_configure_awspca_delete_clusterissuer_result.msg is not search('NotFound')) and
+    (openshift_configure_awspca_delete_clusterissuer_result.msg is not search('404'))
+
+- name: Awspca_clusterissuer | Delete AWS creds Secret when absent
+  kubernetes.core.k8s:
+    state: absent
+    namespace: "{{ openshift_configure_awspca_namespace }}"
+    api_version: v1
+    kind: Secret
+    name: "{{ openshift_configure_awspca_secret_name }}"
+  when: state == 'absent'
+  register: openshift_configure_awspca_delete_secret_result
+  failed_when: >
+    (openshift_configure_awspca_delete_secret_result is failed) and
+    (openshift_configure_awspca_delete_secret_result.msg is not search('NotFound')) and
+    (openshift_configure_awspca_delete_secret_result.msg is not search('404'))
+
+# ---------------------------
+# Summary (safe)
+# ---------------------------
+- name: Awspca_clusterissuer | Summary
+  ansible.builtin.debug:
+    msg:
+      - "state={{ state }}"
+      - "issuer={{ openshift_configure_awspca_issuer_name }}"
+      - "namespace(secret)={{ openshift_configure_awspca_namespace }}"
+      - "secret={{ openshift_configure_awspca_secret_name }}"
+      - "region={{ openshift_configure_awspca_region }}"
+      - "arn={{ openshift_configure_awspca_pca_arn | default('n/a') }}"
+      - "apiVersion={{ openshift_configure_awspca_api_version | default('n/a') }}"

@@ -1,0 +1,68 @@
+---
+- name: Delete Keycloak Custom Resource
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: k8s.keycloak.org/v2alpha1
+      kind: Keycloak
+      metadata:
+        name: keycloak
+        namespace: "{{ name_space }}"
+
+- name: Delete PostgreSQL Service
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: postgres-db
+        namespace: "{{ name_space }}"
+
+- name: Delete PostgreSQL StatefulSet
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: postgresql-db
+        namespace: "{{ name_space }}"
+
+- name: Delete PVC from StatefulSet
+  kubernetes.core.k8s:
+    state: absent
+    kind: PersistentVolumeClaim
+    namespace: "{{ name_space }}"
+    name: data-volume-postgresql-db
+  failed_when: false # In case PVC is already gone
+
+- name: Delete Keycloak TLS Secret
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: keycloak-tls-secret
+        namespace: "{{ name_space }}"
+
+- name: Delete Keycloak DB Secret
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: keycloak-db-secret
+        namespace: "{{ name_space }}"
+
+- name: Delete Keycloak Admin Secret
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: keycloak-admin-creds
+        namespace: "{{ name_space }}"

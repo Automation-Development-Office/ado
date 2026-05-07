@@ -1,0 +1,298 @@
+---
+# Role: openshift_tools_rhbk_get_client_secrets_
+# Fetch a Keycloak (RHBK) client secret via admin API and expose it as facts.
+#
+# Inputs (caller can provide):
+#   openshift_install_rhbk_component_name: "rhbk" (default)
+#   openshift_install_rhbk_secret_client_id: "<clientId>"  (preferred)
+#   openshift_install_rhbk_secret_client_key: "<key in openshift_install_rhbk_clients map>" (optional alternative)
+#   openshift_install_rhbk_secret_realm: "<realm>" (optional; defaults to rhbk.openshift_install_rhbk_realm)
+#   openshift_install_rhbk_secret_admin_user / openshift_install_rhbk_secret_admin_password (optional)
+#   openshift_install_rhbk_secret_validate_certs: false (default false)
+#   openshift_install_rhbk_secret_base_path: "" (default empty)
+#   openshift_install_rhbk_secret_target_var: "some_fact_name" (optional; if set, role sets that fact to secret)
+#
+# Requires from inventory/framework:
+#   components_env (optional)
+#   components_override (optional)
+#
+# Outputs (always set):
+#   openshift_install_rhbk_secret_value
+#   openshift_install_rhbk_secret_client_id_resolved
+#   openshift_install_rhbk_secret_client_uuid
+#   openshift_install_rhbk_secret_realm_resolved
+#   openshift_install_rhbk_secret_hostname_resolved
+#   openshift_tools_rhbk_get_client_secrets__value / _client_id / _client_uuid / _realm / _hostname
+
+# - name: Rhbk_get_client_secrets  Set Role Defaults # noqa var-naming[no-role-prefix]
+#  ansible.builtin.set_fact:
+#    openshift_tools_rhbk_get_client_secrets__component_name_effective: "{{ component_name  default('rhbk') }}"
+#    openshift_tools_rhbk_get_client_secrets__secret_validate_certs_effective: "{{ validate_certs  default(false)  bool }}"
+#    openshift_tools_rhbk_get_client_secrets__secret_base_path_effective: "{{ base_path  default('') }}"
+#  changed_when: false
+
+- name: Rhbk_get_client_secrets  Snapshot components_env (safe default)
+  ansible.builtin.set_fact:
+    openshift_install_rhbk_secret_components_env: "{{ components_env | default({}) }}"
+  changed_when: false
+  no_log: true
+  # noqa: var-naming
+
+# -----------------------------
+# Load rendered components registry (same pattern as resolve_component)
+# -----------------------------
+- name: Rhbk_get_client_secrets  Create temp file for rendered registry
+  ansible.builtin.tempfile:
+    state: file
+    suffix: "-components_defaults.yml"
+  register: openshift_tools_rhbk_get_client_secrets__registry_tmp
+  no_log: true
+
+- name: Rhbk_get_client_secrets  Render registry file (Jinja evaluated)
+  ansible.builtin.template:
+    src: "{{ role_path }}/../resolve_component/files/components_defaults.yml"
+    dest: "{{ openshift_tools_rhbk_get_client_secrets__registry_tmp.path }}"
+    mode: "0644"
+  changed_when: false
+  no_log: true
+
+- name: Rhbk_get_client_secrets  Load rendered registry YAML
+  ansible.builtin.include_vars:
+    file: "{{ openshift_tools_rhbk_get_client_secrets__registry_tmp.path }}"
+    name: openshift_install_rhbk_secret_registry
+  no_log: true
+
+- name: Rhbk_get_client_secrets  Cleanup temp registry file
+  ansible.builtin.file:
+    path: "{{ openshift_tools_rhbk_get_client_secrets__registry_tmp.path }}"
+    state: absent
+  changed_when: false
+  no_log: true
+
+# -----------------------------
+# Build rhbk effective config (defaults + env + override)
+# -----------------------------
+- name: Rhbk_get_client_secrets  Assert rhbk component exists in registry
+  ansible.builtin.assert:
+    that:
+      - openshift_install_rhbk_secret_registry.components_defaults is defined
+      - openshift_install_rhbk_component_name_effective in openshift_install_rhbk_secret_registry.components_defaults
+    fail_msg: >-
+      Component '{{ openshift_install_rhbk_component_name_effective }}' not found in components_defaults.yml
+
+- name: Rhbk_get_client_secrets  Build effective rhbk config
+  ansible.builtin.set_fact:
+    openshift_install_rhbk_secret_rhbk: >-
+      {{
+        openshift_install_rhbk_secret_registry.components_defaults[openshift_install_rhbk_component_name_effective]
+        | combine((openshift_install_rhbk_secret_components_env | default({})).get(openshift_install_rhbk_component_name_effective, {}), recursive=True)
+        | combine((components_override | default({})).get(openshift_install_rhbk_component_name_effective, {}), recursive=True)
+      }}
+  changed_when: false
+  no_log: true
+  # noqa: var-naming
+
+# -----------------------------
+# Resolve hostname/realm/client_id/admin creds
+# -----------------------------
+- name: Rhbk_get_client_secrets  Resolve hostname
+  ansible.builtin.set_fact:
+    openshift_install_rhbk_secret_hostname_resolved: "{{ openshift_install_rhbk_secret_rhbk.openshift_install_rhbk_hostname | default('') }}"
+  changed_when: false
+  no_log: true
+  # noqa: var-naming
+
+- name: Rhbk_get_client_secrets  Resolve realm
+  ansible.builtin.set_fact:
+    openshift_install_rhbk_secret_realm_resolved: >-
+      {{
+        (openshift_install_rhbk_secret_realm | default('') | string | length > 0)
+          | ternary(openshift_install_rhbk_secret_realm, (openshift_install_rhbk_secret_rhbk.openshift_install_rhbk_realm | default('')))
+      }}
+  changed_when: false
+  no_log: true
+  # noqa: var-naming
+
+- name: Rhbk_get_client_secrets  Resolve client_id (from client_id or client_key)
+  ansible.builtin.set_fact:
+    openshift_install_rhbk_secret_client_id_resolved: >-
+      {{
+        ((openshift_install_rhbk_secret_client_id | default('')) | length > 0)
+          | ternary(
+              openshift_install_rhbk_secret_client_id,
+              (
+                (
+                  openshift_install_rhbk_secret_rhbk.openshift_install_rhbk_clients[openshift_install_rhbk_secret_client_key].client_id
+                  | default(openshift_install_rhbk_secret_client_key)
+                )
+                if ((openshift_install_rhbk_secret_client_key | default('')) | length > 0
+                    and openshift_install_rhbk_secret_rhbk.openshift_install_rhbk_clients is defined
+                    and openshift_install_rhbk_secret_rhbk.openshift_install_rhbk_clients[openshift_install_rhbk_secret_client_key] is defined)
+                else ''
+              )
+            )
+      }}
+  changed_when: false
+  no_log: true
+  # noqa: var-naming
+
+- name: Rhbk_get_client_secrets  Resolve admin username/password
+  ansible.builtin.set_fact:
+    openshift_install_rhbk_secret_admin_user_resolved: >-
+      {{
+        openshift_install_rhbk_secret_admin_user
+        | default(openshift_install_rhbk_admin_user
+        | default(openshift_install_rhbk_secret_rhbk.openshift_install_rhbk_admin_user
+        | default('admin')))
+      }}
+    openshift_install_rhbk_secret_admin_password_resolved: >-
+      {{
+        openshift_install_rhbk_secret_admin_password
+        | default(openshift_install_rhbk_admin_password
+        | default(openshift_install_rhbk_secret_rhbk.openshift_install_rhbk_admin_password
+        | default('')))
+      }}
+  changed_when: false
+  no_log: true
+  # noqa: var-naming
+
+- name: Rhbk_get_client_secrets  Assert required inputs
+  ansible.builtin.assert:
+    that:
+      - (openshift_install_rhbk_secret_hostname_resolved  length) > 0
+      - (openshift_install_rhbk_secret_realm_resolved  length) > 0
+      - (openshift_install_rhbk_secret_client_id_resolved  length) > 0
+      - (openshift_install_rhbk_secret_admin_user_resolved  length) > 0
+      - (openshift_install_rhbk_secret_admin_password_resolved  length) > 0
+    fail_msg: >-
+      Missing required inputs for openshift_tools_rhbk_get_client_secrets_.
+      Resolved: host='{{ openshift_install_rhbk_secret_hostname_resolved }}'
+      realm='{{ openshift_install_rhbk_secret_realm_resolved }}'
+      client_id='{{ openshift_install_rhbk_secret_client_id_resolved }}'
+  changed_when: false
+
+# -----------------------------
+# Get admin access token
+# -----------------------------
+- name: Rhbk_get_client_secrets  Get Keycloak access token (password grant)
+  ansible.builtin.uri:
+    url: >-
+      https://{{ openshift_install_rhbk_secret_hostname_resolved }}{{ openshift_install_rhbk_secret_base_path_effective
+      }}/realms/master/protocol/openid-connect/token
+    method: POST
+    validate_certs: "{{ openshift_install_rhbk_secret_validate_certs_effective }}"
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+    body_format: form-urlencoded
+    body:
+      grant_type: password
+      client_id: admin-cli
+      username: "{{ openshift_install_rhbk_secret_admin_user_resolved }}"
+      password: "{{ openshift_install_rhbk_secret_admin_password_resolved }}"
+    return_content: true
+    status_code: [200]
+  register: openshift_tools_rhbk_get_client_secrets__token_rsp
+  no_log: true
+
+- name: Rhbk_get_client_secrets  Extract access token
+  ansible.builtin.set_fact:
+    openshift_install_rhbk_secret_access_token: "{{ openshift_tools_rhbk_get_client_secrets__token_rsp.json.access_token }}"
+  changed_when: false
+  no_log: true
+  # noqa: var-naming
+
+# -----------------------------
+# Find client UUID by clientId
+# -----------------------------
+- name: Rhbk_get_client_secrets  Lookup client UUID by clientId
+  ansible.builtin.uri:
+    url: >-
+      https://{{ openshift_install_rhbk_secret_hostname_resolved
+      }}{{ openshift_install_rhbk_secret_base_path_effective
+      }}/admin/realms/{{ openshift_install_rhbk_secret_realm_resolved
+      }}/clients?clientId={{ openshift_install_rhbk_secret_client_id_resolved | urlencode }}
+    method: GET
+    validate_certs: "{{ openshift_install_rhbk_secret_validate_certs_effective }}"
+    headers:
+      Authorization: "Bearer {{ openshift_install_rhbk_secret_access_token }}"
+    return_content: true
+    status_code: [200]
+  register: openshift_tools_rhbk_get_client_secrets__clients_rsp
+  no_log: true
+
+- name: Rhbk_get_client_secrets  Assert client exists
+  ansible.builtin.assert:
+    that:
+      - openshift_tools_rhbk_get_client_secrets__clients_rsp.json is defined
+      - (openshift_tools_rhbk_get_client_secrets__clients_rsp.json  length) > 0
+      - openshift_tools_rhbk_get_client_secrets__clients_rsp.json[0].id is defined
+    fail_msg: >-
+      Could not find Keycloak client with clientId='{{ openshift_install_rhbk_secret_client_id_resolved }}'
+      in realm='{{ openshift_install_rhbk_secret_realm_resolved }}'.
+  changed_when: false
+
+- name: Rhbk_get_client_secrets  Set client UUID
+  ansible.builtin.set_fact:
+    openshift_install_rhbk_secret_client_uuid: "{{ openshift_tools_rhbk_get_client_secrets__clients_rsp.json[0].id }}"
+  changed_when: false
+  no_log: true
+  # noqa: var-naming
+
+# -----------------------------
+# Fetch client secret
+# -----------------------------
+- name: Rhbk_get_client_secrets  Fetch Client Secret
+  ansible.builtin.uri:
+    url: >-
+      https://{{ openshift_install_rhbk_secret_hostname_resolved
+      }}{{ openshift_install_rhbk_secret_base_path_effective
+      }}/admin/realms/{{ openshift_install_rhbk_secret_realm_resolved
+      }}/clients/{{ openshift_install_rhbk_secret_client_uuid
+      }}/client-secret
+    method: GET
+    validate_certs: "{{ openshift_install_rhbk_secret_validate_certs_effective }}"
+    headers:
+      Authorization: "Bearer {{ openshift_install_rhbk_secret_access_token }}"
+    return_content: true
+    status_code: [200]
+  register: openshift_tools_rhbk_get_client_secrets__secret_rsp
+  no_log: true
+
+- name: Rhbk_get_client_secrets  Set fetched secret facts
+  ansible.builtin.set_fact:
+    # canonical internal value
+    openshift_install_rhbk_secret_value: "{{ openshift_tools_rhbk_get_client_secrets__secret_rsp.json.value | default('') }}"
+    # backward compatible name you were using
+    openshift_install_rhbk_fetched_client_secret: "{{ openshift_tools_rhbk_get_client_secrets__secret_rsp.json.value | default('') }}"
+  changed_when: false
+  no_log: true
+  # noqa: var-naming
+
+- name: Rhbk_get_client_secrets  Assert fetched secret is present
+  ansible.builtin.assert:
+    that:
+      - (openshift_install_rhbk_secret_value  string  length) > 0
+    fail_msg: >-
+      Keycloak client secret was not returned.
+      Check if the client is confidential and has a secret (not public).
+      clientId='{{ openshift_install_rhbk_secret_client_id_resolved }}' realm='{{ openshift_install_rhbk_secret_realm_resolved }}'
+  changed_when: false
+
+# Optional: set caller-provided var name to secret (like openshift_install_grafana_oidc_client_secret)
+- name: Rhbk_get_client_secrets  Set target var with secret (optional)
+  ansible.builtin.set_fact:
+    "{{ openshift_install_rhbk_secret_target_var }}": "{{ openshift_install_rhbk_secret_value }}"
+  when:
+    - (openshift_install_rhbk_secret_target_var  default('')  length) > 0
+  no_log: true
+
+# Standard outputs callers can rely on
+- name: Rhbk_get_client_secrets  Set standard output facts (for callers)
+  ansible.builtin.set_fact:
+    openshift_tools_rhbk_get_client_secrets__value: "{{ openshift_install_rhbk_secret_value }}"
+    openshift_tools_rhbk_get_client_secrets__client_id: "{{ openshift_install_rhbk_secret_client_id_resolved }}"
+    openshift_tools_rhbk_get_client_secrets__client_uuid: "{{ openshift_install_rhbk_secret_client_uuid }}"
+    openshift_tools_rhbk_get_client_secrets__realm: "{{ openshift_install_rhbk_secret_realm_resolved }}"
+    openshift_tools_rhbk_get_client_secrets__hostname: "{{ openshift_install_rhbk_secret_hostname_resolved }}"
+  changed_when: false
+  no_log: true

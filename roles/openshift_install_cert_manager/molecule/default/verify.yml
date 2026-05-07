@@ -1,0 +1,198 @@
+---
+- name: Verify — namespace exists
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    name_space: test-namespace-molecule
+    readme_path: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/README.md"
+    molecule_seq_regex: >-
+      (?s)dependency.*lint.*syntax.*create.*converge.*idempotence.*destroy.*verify
+
+    # derive role dir from env (preferred) or from playbook path (fallback)
+    role_dir_env: "{{ lookup('env','MOLECULE_PROJECT_DIRECTORY') | default('', true) }}"
+    role_dir: "{{ (role_dir_env != '') | ternary(role_dir_env, (playbook_dir | dirname | dirname)) }}"
+    detected_role_name: "{{ role_dir | regex_replace('^.*/', '') }}"
+  tasks:
+    - name: Show detected role name
+      ansible.builtin.debug:
+        msg: "Detected role name: {{ detected_role_name }}"
+
+    - name: Verify role name does NOT use hyphens ('-')
+      ansible.builtin.assert:
+        that:
+          - detected_role_name is match('^[A-Za-z0-9_]+$')
+          - detected_role_name.find('-') == -1
+        fail_msg: "❌ Role name '{{ detected_role_name }}' contains a hyphen. Use underscores only (e.g., 'kube_sched' not 'kube-sched')."
+        success_msg: "✅ Role name '{{ detected_role_name }}' is valid (underscores allowed, no hyphens)."
+
+    - name: Check if README.md exists
+      ansible.builtin.stat:
+        path: "{{ readme_path }}"
+      register: openshift_install_cert_manager_readme_file
+
+    - name: Print message if README.md exists
+      ansible.builtin.debug:
+        msg: "✅ README.md file exists in the role."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    - name: Print message if README.md does not exist
+      ansible.builtin.debug:
+        msg: "❌ README.md file is missing in the role."
+      when: not openshift_install_cert_manager_readme_file.stat.exists
+
+    # ------------------ Check file contents ------------------
+
+    - name: Load README.md if present
+      ansible.builtin.slurp:
+        path: "{{ readme_path }}"
+      register: openshift_install_cert_manager_readme_raw
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    - name: Set README content fact
+      ansible.builtin.set_fact:
+        openshift_install_cert_manager_readme: "{{ openshift_install_cert_manager_readme_raw.content | b64decode }}"
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    # H1 heading
+    - name: Verify README has required heading
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is regex('(?m)^#\\s+Role:')
+        fail_msg: "❌ README.md should start with '# Role: <collection.role>'."
+        success_msg: "✅ README.md has correct heading format."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    # Variables table (already in your checks)
+    - name: Verify README has variables table
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is search('\\|\\s*Variable\\s*\\|\\s*Description\\s*\\|', multiline=True)
+        fail_msg: "❌ README.md should include a variables table with '| Variable | Description |'."
+        success_msg: "✅ README.md includes a variables table."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    # At least one fenced example block
+    - name: Verify README has example code block
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is search('```(yaml|yml|ansible|bash)[\\s\\S]*?```', multiline=True)
+        fail_msg: "❌ README.md should include a fenced code block with an example (```yaml ... ```)."
+        success_msg: "✅ README.md includes an example code block."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    - name: Verify 'Requirements' section exists
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is search('(?m)^##\\s+Requirements')
+        fail_msg: "❌ Missing '## Requirements' section."
+        success_msg: "✅ Found '## Requirements'."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    - name: Verify 'Variables' section exists
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is search('(?m)^##\\s+Variables')
+        fail_msg: "❌ Missing '## Variables' section."
+        success_msg: "✅ Found '## Variables'."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    - name: Verify 'Examples' section exists
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is search('(?m)^##\\s+Examples')
+        fail_msg: "❌ Missing '## Examples' section."
+        success_msg: "✅ Found '## Examples'."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    - name: Verify 'Behavior Notes' section exists
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is search('(?m)^##\\s+Behavior Notes')
+        fail_msg: "❌ Missing '## Behavior Notes' section."
+        success_msg: "✅ Found '## Behavior Notes'."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    - name: Verify 'Molecule' section exists
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is search('(?m)^##\\s+Molecule')
+        fail_msg: "❌ Missing '## Molecule' section."
+        success_msg: "✅ Found '## Molecule'."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    - name: Verify Molecule sequence mentions all stages in order
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is regex(molecule_seq_regex)
+        fail_msg: "❌ Molecule sequence should list: dependency → lint → syntax → create → converge → idempotence → destroy → verify."
+        success_msg: "✅ Molecule sequence present."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    # Optional but recommended: Auth section presence
+    - name: Verify 'Auth via environment' section exists (optional)
+      ansible.builtin.debug:
+        msg: "ℹ️ 'Auth via environment' section not found — optional."
+      when:
+        - openshift_install_cert_manager_readme_file.stat.exists
+        - not (openshift_install_cert_manager_readme is search('(?m)^###\\s+Auth via environment', multiline=True))
+    - name: Confirm 'Auth via environment' section exists
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is search('(?m)^###\\s+Auth via environment', multiline=True)
+        success_msg: "✅ Found '### Auth via environment'."
+        fail_msg: "❌ Missing '### Auth via environment' section."
+      when:
+        - openshift_install_cert_manager_readme_file.stat.exists
+        - openshift_install_cert_manager_readme is search('(?m)^###\\s+Auth via environment', multiline=True)
+
+    # Repository layout must exist and be last
+    - name: Verify 'Repository layout' section exists
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is search('(?m)^##\\s+Repository layout', multiline=True)
+        fail_msg: "❌ Missing '## Repository layout' section."
+        success_msg: "✅ Found '## Repository layout'."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    - name: Collect H2 headings order
+      ansible.builtin.set_fact:
+        openshift_install_cert_manager_h2_headings: "{{ openshift_install_cert_manager_readme | regex_findall('(?m)^##\\s+([^\\n]+)') }}"
+        openshift_install_cert_manager_h2_last: "{{ (openshift_install_cert_manager_h2_headings | last | default('')) }}"
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    # Repository layout must exist and be last
+
+    - name: Verify 'Repository layout' section exists
+      ansible.builtin.assert:
+        that:
+          - openshift_install_cert_manager_readme is search('(?m)^##\\s+Repository layout', multiline=True)
+        fail_msg: "❌ Missing '## Repository layout' section."
+        success_msg: "✅ Found '## Repository layout'."
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    # Compute headings in two steps to avoid self-reference timing
+    - name: Collect H2 headings
+      ansible.builtin.set_fact:
+        openshift_install_cert_manager_h2_headings: "{{ openshift_install_cert_manager_readme | regex_findall('(?m)^##\\s+([^\\r\\n]+)') }}"
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    - name: Compute last H2 heading
+      ansible.builtin.set_fact:
+        openshift_install_cert_manager_h2_last: "{{ (openshift_install_cert_manager_readme | regex_findall('(?m)^##\\s+([^\\r\\n]+)')) | last | default('') }}"
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    # (Optional) quick debug to see what was found
+    - name: Show H2 headings
+      ansible.builtin.debug:
+        var: openshift_install_cert_manager_h2_headings
+      when: openshift_install_cert_manager_readme_file.stat.exists
+
+    - name: Verify 'Repository layout' is the last section
+      ansible.builtin.assert:
+        that:
+          - (openshift_install_cert_manager_h2_headings | length) > 0
+          - openshift_install_cert_manager_h2_last is regex('(?i)^Repository layout')
+        fail_msg: "❌ 'Repository layout' should be the final '##' section. Found last='{{ openshift_install_cert_manager_h2_last }}'."
+        success_msg: "✅ 'Repository layout' is last."
+      when: openshift_install_cert_manager_readme_file.stat.exists

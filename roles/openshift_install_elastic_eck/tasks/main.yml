@@ -1,0 +1,178 @@
+---
+# roles/eck/tasks/main.yml
+# Install Elastic ECK Operator (OLM) into eck-operator namespace (all namespaces install)
+# and optionally create an Elasticsearch CR.
+
+- name: ECK  Set derived vars
+  ansible.builtin.set_fact:
+    openshift_install_elastic_eck_operator_namespace: "{{ operator_subscription_namespace | default('eck-operator') }}"
+    openshift_install_elastic_eck_operand_namespace: "{{ name_space | default('elastic') }}"
+    openshift_install_elastic_eck_cluster_name: "{{ openshift_install_elastic_eck_cluster_name | default('elasticsearch') }}"
+  changed_when: false
+
+- name: ECK  Ensure operator namespace exists
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ openshift_install_elastic_eck_operator_namespace }}"
+  when: state  default('present') == 'present'
+
+- name: ECK  Ensure operand namespace exists (only when creating CR)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ openshift_install_elastic_eck_operand_namespace }}"
+  when:
+    - state  default('present') == 'present'
+    - openshift_install_elastic_eck_create_elasticsearch_cr  default(false)  bool
+
+# Install OperatorGroup + Subscription via your shared role
+- name: ECK  Install operator (OperatorGroup + Subscription)
+  ansible.builtin.include_role:
+    name: subscription_operator
+
+# If startingCSV not pinned, look up currentCSV for the selected channel
+- name: ECK  Lookup currentCSV for channel when operator_starting_csv not provided
+  kubernetes.core.k8s_info:
+    api_version: packages.operators.coreos.com/v1
+    kind: PackageManifest
+    name: "{{ operator_name }}"
+    namespace: "{{ operator_source_namespace | default('openshift-marketplace') }}"
+  register: openshift_install_elastic_eck_pm
+  when: ((operator_starting_csv  default('')  string)  trim  length) == 0
+
+- name: ECK  Derive effective starting CSV (safe)
+  ansible.builtin.set_fact:
+    openshift_install_elastic_eck_starting_csv_clean: "{{ operator_starting_csv | default('') | string | trim }}"
+    openshift_install_elastic_eck_channel_str: "{{ operator_channel | string }}"
+  changed_when: false
+
+- name: ECK  Set openshift_install_elastic_eck_operator_starting_csv_effective from provided startingCSV
+  ansible.builtin.set_fact:
+    openshift_install_elastic_eck_operator_starting_csv_effective: "{{ openshift_install_elastic_eck_starting_csv_clean }}"
+  when: openshift_install_elastic_eck_starting_csv_clean  length > 0
+  changed_when: false
+
+- name: ECK  Set openshift_install_elastic_eck_operator_starting_csv_effective from PackageManifest currentCSV
+  ansible.builtin.set_fact:
+    openshift_install_elastic_eck_operator_starting_csv_effective: >-
+      {{
+        (
+          openshift_install_elastic_eck_pm.resources[0].status.channels
+          | default([])
+          | selectattr('name','equalto', openshift_install_elastic_eck_channel_str)
+          | map(attribute='currentCSV')
+          | list
+          | first
+          | default('')
+        ) | string | trim
+      }}
+  when:
+    - openshift_install_elastic_eck_starting_csv_clean  length == 0
+    - openshift_install_elastic_eck_pm is defined
+  changed_when: false
+
+- name: ECK  Assert required inputs
+  ansible.builtin.assert:
+    that:
+      - operator_name is defined and (operator_name  string  trim  length) > 0
+      - operator_channel is defined and (operator_channel  string  trim  length) > 0
+      - operator_source is defined and (operator_source  string  trim  length) > 0
+      - operator_source_namespace is defined and (operator_source_namespace  string  trim  length) > 0
+      - openshift_install_elastic_eck_operator_namespace is defined and (openshift_install_elastic_eck_operator_namespace  string  trim  length) > 0
+      - >-
+        openshift_install_elastic_eck_operator_starting_csv_effective is defined and (openshift_install_elastic_eck_operator_starting_csv_effective  string
+        trim  length) > 0
+    fail_msg: |
+      Missing required vars for ECK.
+      Need: operator_name, operator_channel, operator_source, operator_source_namespace,
+            operator_subscription_namespace, and a resolvable CSV (startingCSV or currentCSV).
+  changed_when: false
+
+- name: ECK  Wait for CSV to exist in operator namespace
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ openshift_install_elastic_eck_operator_namespace }}"
+    name: "{{ openshift_install_elastic_eck_operator_starting_csv_effective }}"
+  register: openshift_install_elastic_eck_csv
+  until: openshift_install_elastic_eck_csv.resources is defined and (openshift_install_elastic_eck_csv.resources  length) > 0
+  retries: 40
+  delay: 6
+  changed_when: false
+
+- name: ECK  Wait for CSV to reach Succeeded
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ openshift_install_elastic_eck_operator_namespace }}"
+    name: "{{ openshift_install_elastic_eck_operator_starting_csv_effective }}"
+  register: openshift_install_elastic_eck_csv_recheck
+  until: >
+    openshift_install_elastic_eck_csv_recheck.resources is defined and
+    (openshift_install_elastic_eck_csv_recheck.resources  length) > 0 and
+    (openshift_install_elastic_eck_csv_recheck.resources[0].status.phase  default('')) == 'Succeeded'
+  retries: 60
+  delay: 6
+  changed_when: false
+
+# Derive deployment names from CSV so we don't hardcode
+- name: ECK  Derive operator deployment names from CSV
+  ansible.builtin.set_fact:
+    openshift_install_elastic_eck_operator_deployments: >-
+      {{
+        openshift_install_elastic_eck_csv_recheck.resources[0].spec.install.spec.deployments
+        | default([])
+        | map(attribute='name')
+        | list
+      }}
+  changed_when: false
+
+- name: ECK  Assert at least one operator deployment found
+  ansible.builtin.assert:
+    that:
+      - openshift_install_elastic_eck_operator_deployments is defined
+      - (openshift_install_elastic_eck_operator_deployments  length) > 0
+    fail_msg: "CSV succeeded but no deployments were found in spec.install.spec.deployments"
+  changed_when: false
+
+- name: ECK  Wait for operator Deployments to be Available
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ openshift_install_elastic_eck_operator_namespace }}"
+    name: "{{ item }}"
+  register: openshift_install_elastic_eck_deploy
+  until: >
+    openshift_install_elastic_eck_deploy.resources is defined and
+    (openshift_install_elastic_eck_deploy.resources  length) > 0 and
+    (openshift_install_elastic_eck_deploy.resources[0].status.availableReplicas  default(0)  int) >= 1
+  retries: 40
+  delay: 6
+  changed_when: false
+  loop: "{{ openshift_install_elastic_eck_operator_deployments }}"
+
+# Optional: Create minimal Elasticsearch CR to force operand pods
+- name: ECK  Create Elasticsearch CR (optional)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: elasticsearch.k8s.elastic.co/v1
+      kind: Elasticsearch
+      metadata:
+        name: "{{ openshift_install_elastic_eck_cluster_name }}"
+        namespace: "{{ openshift_install_elastic_eck_operand_namespace }}"
+      spec:
+        version: "{{ openshift_install_elastic_eck_version | default('8.12.0') }}"
+        nodeSets:
+          - name: default
+            count: "{{ openshift_install_elastic_eck_replicas | default(1) | int }}"
+            config:
+              node.store.allow_mmap: false
+  when: openshift_install_elastic_eck_create_elasticsearch_cr  default(false)  bool

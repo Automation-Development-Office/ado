@@ -1,0 +1,66 @@
+---
+- name: Destroy — remove resources
+  hosts: localhost
+  gather_facts: false
+  module_defaults:
+    kubernetes.core.k8s:
+      validate_certs: false
+    kubernetes.core.k8s_info:
+      validate_certs: false
+  vars:
+    name_space: test-namespace-molecule
+    operatorgroup: test-operatorgroup-molecule
+    present: absent
+  tasks:
+    - name: Include the role under test
+      ansible.builtin.include_role:
+        name: ado.openshift.namespace
+      vars:
+        state: absent
+    - name: Include the role under test
+      ansible.builtin.include_role:
+        name: ado.openshift.operatorgroup
+      vars:
+        state: absent
+
+    # ⬇️ Post-create check (no separate verify step needed)
+    # ---- Verify OperatorGroup removal ----
+    - name: Wait for OperatorGroup to be deleted
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1
+        kind: OperatorGroup
+        name: "{{ operatorgroup }}"
+        namespace: "{{ name_space }}"
+        validate_certs: "{{ k8s_validate_certs | default(false) }}" # set true if you trust the CA
+      register: openshift_tools_manage_operator_groups_og_gone
+      failed_when: false # tolerate NotFound / namespace gone
+      until: (openshift_tools_manage_operator_groups_og_gone.resources | default([])) | length == 0
+      retries: 12
+      delay: 5
+
+    - name: Assert OperatorGroup deleted
+      ansible.builtin.assert:
+        that:
+          - (openshift_tools_manage_operator_groups_og_gone.resources | default([])) | length == 0
+        success_msg: >-
+          ✅ k8s confirms OperatorGroup '{{ operatorgroup }}' is not present in namespace '{{ name_space }}'.
+        fail_msg: >-
+          ❌ OperatorGroup '{{ operatorgroup }}' still present in namespace '{{ name_space }}'
+          (found {{ (openshift_tools_manage_operator_groups_og_gone.resources | default([])) | length }} result(s)).
+
+    # ---- Optional: verify the namespace is gone too ----
+    - name: Check namespace after deletion (optional)
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: "{{ name_space }}"
+        validate_certs: "{{ k8s_validate_certs | default(false) }}"
+      register: openshift_tools_manage_operator_groups_ns_after
+      failed_when: false
+
+    - name: Report namespace state (optional)
+      ansible.builtin.debug:
+        msg: >-
+          {{ (openshift_tools_manage_operator_groups_ns_after.resources | default([])) | length == 0
+              | ternary("ℹ️ Namespace '" ~ name_space ~ "' is gone.",
+                        "ℹ️ Namespace '" ~ name_space ~ "' still exists.") }}

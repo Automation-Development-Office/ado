@@ -1,0 +1,5 @@
+# all_namespaces_install: false
+# reconcile_single_ns: true          # <= real default (no recursion)
+# k8s_validate_certs: true
+# k8s_wait: true
+# k8s_wait_timeout: 300

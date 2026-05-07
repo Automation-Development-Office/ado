@@ -1,0 +1,40 @@
+---
+- name: Destroy — subscription_operator
+  hosts: localhost
+  gather_facts: false
+  vars:
+    name_space: test-subscription-operator
+    operator_name: web-terminal
+    validate_certs: false
+    state: absent
+    operator_channel: fast # e.g., fast|stable (verify on your cluster)
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+    operator_approval: Automatic # (if your role supports it; defaults to Automatic)
+
+  tasks:
+    - name: Uninstall operator via subscription_operator (role under test)
+      ansible.builtin.include_role:
+        name: ado.openshift.subscription_operator
+
+    # Optional: remove the namespace (tears down OG as well)
+    - name: Delete namespace
+      ansible.builtin.include_role:
+        name: ado.openshift.namespace
+
+    # Since destroy ran before verify in test_sequence, confirm absence
+    - name: Confirm Subscription absent
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+        name: "{{ operator_name }}"
+        namespace: "{{ name_space }}"
+      register: openshift_tools_subscription_operator_sub_gone
+      failed_when: false
+
+    - name: Assert subscription removed
+      ansible.builtin.assert:
+        that:
+          - (openshift_tools_subscription_operator_sub_gone.resources | default([])) | length == 0
+        success_msg: "✅ Subscription '{{ operator_name }}' is absent as expected."
+        fail_msg: "❌ Subscription '{{ operator_name }}' still present."

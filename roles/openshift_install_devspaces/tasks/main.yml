@@ -1,0 +1,8 @@
+---
+- name: Install Devspaces operator
+  ansible.builtin.import_tasks: install-devspaces.yml
+  when: state == "present"
+
+- name: Delete Devspaces operator
+  ansible.builtin.import_tasks: delete-devspaces.yml
+  when: state == "absent"

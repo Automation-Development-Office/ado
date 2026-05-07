@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-3.0-or-later-0
+---
+- name: Test
+  hosts: localhost
+  remote_user: root
+  roles:
+    - openshift_configure_compliance_scan_schedular

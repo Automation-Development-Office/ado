@@ -1,0 +1,31 @@
+---
+- name: Destroy — remove resources
+  hosts: localhost
+  gather_facts: false
+  vars:
+    name_space: test-namespace-molecule
+  tasks:
+    - name: Include the role under test
+      ansible.builtin.include_role:
+        name: ado.openshift.namespace
+      vars:
+        state: absent
+
+    # ⬇️ Post-create check (no separate verify step needed)
+    - name: Wait for namespace to exist
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Namespace
+        name: "{{ name_space }}"
+        validate_certs: false # or true w/ trusted CA/kubeconfig
+      register: openshift_tools_manage_namespace_ns_gone
+      until: openshift_tools_manage_namespace_ns_gone.resources | length == 0
+      retries: 10
+      delay: 3
+
+    - name: Assert namespace exists
+      ansible.builtin.assert:
+        that:
+          - openshift_tools_manage_namespace_ns_gone.resources | length == 0
+        success_msg: "✅ Namespace {{ name_space }} deleted."
+        fail_msg: "❌ Namespace {{ name_space }} still exists after deletion."

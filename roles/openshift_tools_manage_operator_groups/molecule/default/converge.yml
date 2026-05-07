@@ -1,0 +1,79 @@
+---
+- name: Converge — apply role
+  hosts: localhost
+  gather_facts: false
+  module_defaults:
+    kubernetes.core.k8s:
+      validate_certs: false
+    kubernetes.core.k8s_info:
+      validate_certs: false
+  vars:
+    name_space: test-namespace-molecule
+    operatorgroup: test-operatorgroup-molecule
+    verify_ssl: false
+    state: present
+    all_namespaces_install: false
+    validate_certs: false
+  tasks:
+    # this is just to create a test namespace for the operatorgroup
+    - name: Include the role under test
+      ansible.builtin.include_role:
+        name: ado.openshift.namespace
+      vars:
+        state: present
+
+    - name: Include the role under test
+      ansible.builtin.include_role:
+        name: ado.openshift.operatorgroup
+      vars:
+        state: present
+
+    # ⬇️ Post-create check (no separate verify step needed)
+    # Fetch OG with a couple retries (handles brief API lag)
+    - name: Fetch OperatorGroup
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1
+        kind: OperatorGroup
+        name: "{{ operatorgroup }}"
+        namespace: "{{ name_space }}"
+        validate_certs: "{{ k8s_validate_certs | default(false) }}" # set true if you trust the CA
+      register: openshift_tools_manage_operator_groups_og_info
+      until: (openshift_tools_manage_operator_groups_og_info.resources | default([])) | length in [0, 1]
+      retries: 10
+      delay: 3
+
+    # ✅/❌ message confirming existence from k8s response
+    - name: Assert OperatorGroup exists
+      ansible.builtin.assert:
+        that:
+          - (openshift_tools_manage_operator_groups_og_info.resources | default([])) | length == 1
+        success_msg: >-
+          ✅ k8s confirms OperatorGroup '{{ operatorgroup }}' exists in namespace '{{ name_space }}'
+          (uid={{ openshift_tools_manage_operator_groups_og_info.resources[0].metadata.uid }},
+          targetNamespaces={{
+          (openshift_tools_manage_operator_groups_og_info.resources[0].spec.targetNamespaces
+          | default([])) | to_json }}).
+        fail_msg: >-
+          ❌ k8s reports no OperatorGroup named '{{ operatorgroup }}' in namespace '{{ name_space }}'.
+          (found {{ (openshift_tools_manage_operator_groups_og_info.resources | default([])) | length }} matches)
+
+    # Your existing targetNamespaces check (unchanged)
+    - name: Assert OperatorGroup targetNamespaces is correct
+      vars:
+        expected_tns: "{{ [] if (all_namespaces_install | default(false)) else [name_space] }}"
+        actual_tns: "{{ (openshift_tools_manage_operator_groups_og_info.resources[0].spec.targetNamespaces | default([])) | list }}"
+        is_all_ns: "{{ all_namespaces_install | default(false) }}"
+      ansible.builtin.assert:
+        that:
+          - >-
+            (is_all_ns | bool) | ternary(openshift_tools_manage_operator_groups_og_info.resources[0].spec.targetNamespaces is not defined or (actual_tns
+            | length == 0), actual_tns == expected_tns)
+        success_msg: >-
+          {{ (is_all_ns | bool)
+              | ternary("✅ OG configured for all namespaces (no/empty targetNamespaces).",
+                        "✅ OG targets namespace " ~ name_space) }}
+        fail_msg: >-
+          {{ (is_all_ns | bool)
+              | ternary("❌ Expected OG for all namespaces (no/empty targetNamespaces). Got: " ~ actual_tns | to_json,
+                        "❌ Expected OG to target only " ~ expected_tns | to_json ~ " but got " ~ actual_tns | to_json) }}
+      when: (openshift_tools_manage_operator_groups_og_info.resources | default([])) | length == 1

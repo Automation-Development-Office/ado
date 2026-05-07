@@ -1,0 +1,3 @@
+---
+- name: Print CRD
+  ansible.builtin.import_tasks: print_crd.yml

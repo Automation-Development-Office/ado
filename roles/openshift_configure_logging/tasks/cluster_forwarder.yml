@@ -1,0 +1,47 @@
+---
+- name: Create Cluster Forwarder Splunk Secret
+  kubernetes.core.k8s:
+    state: "{{ cluster_forwarder_state }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ cluster_forwarder_secret }}"
+        namespace: "{{ name_space }}"
+      data:
+        hecToken: "{{ splunk_secret | b64encode }}"
+  when: splunk_secret is defined
+
+- name: Create/Delete Cluster Forwarder
+  kubernetes.core.k8s:
+    state: "{{ cluster_forwarder_state }}"
+    definition:
+      apiVersion: observability.openshift.io/v1
+      kind: ClusterLogForwarder
+      metadata:
+        name: "{{ cluster_forwarder_name }}"
+        namespace: "{{ name_space }}"
+      spec:
+        managementState: Managed
+        outputs:
+          - splunk:
+              authentication:
+                token:
+                  key: "{{ cluster_forwarder_secret_key }}"
+                  secretName: "{{ cluster_forwarder_secret }}"
+              url: "{{ splunk_url }}"
+            tls:
+              insecureSkipVerify: true
+              securityProfile:
+                type: Intermediate
+            name: "{{ splunk_logging_name }}"
+            type: splunk
+        pipelines:
+          - inputRefs:
+              - audit
+            outputRefs:
+              - "{{ splunk_logging_name }}"
+            name: audit-logs
+        serviceAccount:
+          name: logcollector
+  when: state == "present"

@@ -1,0 +1,65 @@
+---
+- name: Converge — subscription_operator
+  hosts: localhost
+  gather_facts: false
+  vars:
+    # Install into a throwaway namespace for isolation
+    name_space: openshift-operators
+    validate_certs: false # set true when you provide a CA
+    state: present
+
+    # Use a lightweight operator by default (override on your cluster if needed)
+    operator_name: web-terminal
+    operator_channel: fast # e.g., fast|stable (verify on your cluster)
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+    operator_approval: Automatic # (if your role supports it; defaults to Automatic)
+
+  tasks:
+    # Role under test — create Subscription
+    - name: Install operator via subscription_operator (role under test)
+      ansible.builtin.include_role:
+        name: ado.openshift.subscription_operator
+
+    # Wait until the Subscription reports an installedCSV
+    - name: Wait for Subscription to surface installedCSV
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: Subscription
+        name: "{{ operator_name }}"
+        namespace: "{{ name_space }}"
+        validate_certs: "{{ validate_certs }}"
+      register: openshift_tools_subscription_operator_sub_info
+      until: >-
+        (openshift_tools_subscription_operator_sub_info.resources
+        | length) == 1 and (openshift_tools_subscription_operator_sub_info.resources[0].status.installedCSV | default('')) | length > 0
+      retries: 40
+      delay: 5
+
+    - name: Set installed CSV name
+      ansible.builtin.set_fact:
+        openshift_tools_subscription_operator_openshift_tools_subscription_operator_installed_csv:
+          >-
+          {{ openshift_tools_subscription_operator_sub_info.resources[0].status.installedCSV }}
+
+    # Wait for CSV to be Succeeded
+    - name: Wait for CSV to be Succeeded
+      kubernetes.core.k8s_info:
+        api_version: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        name: "{{ openshift_tools_subscription_operator_installed_csv }}"
+        namespace: "{{ name_space }}"
+        validate_certs: "{{ validate_certs }}"
+      register: openshift_tools_subscription_operator_csv_info
+      until: >-
+        (openshift_tools_subscription_operator_csv_info.resources
+        | length) == 1 and (openshift_tools_subscription_operator_csv_info.resources[0].status.phase | default('')) == "Succeeded"
+      retries: 60
+      delay: 5
+
+    - name: Assert CSV succeeded
+      ansible.builtin.assert:
+        that:
+          - openshift_tools_subscription_operator_csv_info.resources[0].status.phase == "Succeeded"
+        success_msg: "✅ {{ operator_name }} installed with CSV {{ openshift_tools_subscription_operator_installed_csv }} in {{ name_space }}."
+        fail_msg: "❌ CSV {{ openshift_tools_subscription_operator_installed_csv }} not in Succeeded phase."

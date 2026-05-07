@@ -1,0 +1,208 @@
+---
+- name: Create Certificate Secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      kind: Secret
+      apiVersion: v1
+      metadata:
+        name: "{{ username }}-certificates"
+        namespace: "{{ username }}-devspaces"
+        labels:
+          controller.devfile.io/mount-to-devworkspace: "true"
+          controller.devfile.io/watch-secret: "true"
+        annotations:
+          controller.devfile.io/mount-path: /home/user/certs
+      data:
+        test.cer: "{{ certificate_value }}"
+      type: Opaque
+  when: state == "present"
+
+- name: Create bashrc config map
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "{{ username }}-bashrc"
+        namespace: "{{ username }}-devspaces"
+        labels:
+          controller.devfile.io/mount-to-devworkspace: "true"
+          controller.devfile.io/watch-configmap: "true"
+        annotations:
+          controller.devfile.io/mount-as: subpath
+          controller.devfile.io/mount-path: /home/user
+      data:
+        .bashrc: |
+          # .bashrc
+
+          # Source global definitions
+          if [ -f /etc/bashrc ]; then
+                  . /etc/bashrc
+          fi
+
+          # User specific environment
+          if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:" ]]
+          then
+              PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+          fi
+          export PATH
+          # Save all lines of history in memory
+          # HISTSIZE='INFINITY'
+          # Save 10,000 lines of history in memory
+          HISTSIZE=10000
+          # Save all lines of history to disk (will have to grep ~/.bash_history for full listing)
+          HISTFILESIZE=-1
+          # Save 2,000,000 lines of history to disk (will have to grep ~/.bash_history for full listing)
+          # HISTFILESIZE=2000000
+          # Set time format
+          HISTTIMEFORMAT="%F %T # "
+          # Ignore redundant or space commands:
+          HISTCONTROL=ignoreboth
+          # Ignore common commands:
+          HISTIGNORE='ls:ll:ls -alh:pwd:clear:history'
+          # Append to history instead of overwriting it:
+          shopt -s histappend
+          # Multiple commands on one line show up as a single line
+          shopt -s cmdhist
+          # Append new history lines print the prompt:
+          # export PROMPT_COMMAND="history -a;$PROMPT_COMMAND"
+          # Append new history lines, clear the history list, re-read the history list, print the prompt.
+          export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
+          # Start git-prompt
+          source ~/.git-prompt.sh
+          PS1='[\u@\h \W$(__git_ps1 " (%s)")]\$ '
+
+          GIT_PS1_SHOWDIRTYSTATE="y" # Unstaged (*) and staged (+) changes will be shown next to the branch name.
+
+          GIT_PS1_SHOWSTASHSTATE="y" # If something is stashed,  then a '$' will be shown next to the branch name.
+
+          GIT_PS1_SHOWUNTRACKEDFILES="y" # If there are untracked files, then a '%' will be shown next to the branch name.
+
+          GIT_PS1_SHOWUPSTREAM="auto"
+          GIT_PS1_SHOWCOLORHINTS="y"
+          GIT_PS1_HIDE_IF_PWD_IGNORED="y" # If you would like __git_ps1 to do nothing in the case when the current directory is set up to be ignored by git.
+
+          # End git-prompt
+          alias ll="ls -lah"
+          # Update path:
+          export PATH=${JAVA_HOME}/bin:${CONFLUENT_HOME}/bin:$PATH
+  when: state == "present"
+
+- name: Create PVC
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: "{{ username }}-data"
+        namespace: "{{ username }}-devspaces"
+        labels:
+          controller.devfile.io/mount-to-devworkspace: "true"
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: "{{ pvc_size }}"
+        volumeName: "pvc-{{ username }}-devspaces"
+        storageClassName: "{{ storage_class }}"
+        volumeMode: Filesystem
+  when: state == "present"
+
+- name: Create ssh_config Secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      kind: Secret
+      apiVersion: v1
+      metadata:
+        name: ssh-config
+        namespace: "{{ username }}-devspaces"
+        labels:
+          controller.devfile.io/mount-to-devworkspace: "true"
+          controller.devfile.io/watch-secret: "true"
+        annotations:
+          controller.devfile.io/mount-as: subpath
+          controller.devfile.io/mount-path: /home/user/.ssh
+      data:
+        config: "{{ ssh_config | b64encode }}"
+      type: Opaque
+  when: state == "present"
+
+- name: Check if ssh-pub-key secret exists
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: ssh-pub-key
+    namespace: "{{ username }}-devspaces"
+  register: openshift_configure_devspaces_user_config_ssh_pub_key_test
+
+- name: Check if ssh-priv-key secret exists
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: ssh-priv-key
+    namespace: "{{ username }}-devspaces"
+  register: openshift_configure_devspaces_user_config_ssh_priv_key_test
+
+- name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
+  community.crypto.openssh_keypair:
+    path: /tmp/id_ssh_rsa
+  when: >-
+    openshift_configure_devspaces_user_config_ssh_priv_key_test.resources
+    | length == 0 or openshift_configure_devspaces_user_config_ssh_pub_key_test.resources | length == 0
+
+- name: Create ssh_priv_keys Secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      kind: Secret
+      apiVersion: v1
+      metadata:
+        name: ssh-priv-key
+        namespace: "{{ username }}-devspaces"
+        labels:
+          controller.devfile.io/mount-to-devworkspace: "true"
+          controller.devfile.io/watch-secret: "true"
+        annotations:
+          controller.devfile.io/mount-as: subpath
+          controller.devfile.io/mount-path: /home/user/.ssh
+      data:
+        id_rsa: "{{ lookup('ansible.builtin.file', '/tmp/id_ssh_rsa') | b64encode }}"
+      type: Opaque
+  when: ssh_priv_key_test.resources | length == 0
+
+- name: Create ssh_pub_keys Secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      kind: Secret
+      apiVersion: v1
+      metadata:
+        name: ssh-pub-key
+        namespace: "{{ username }}-devspaces"
+        labels:
+          controller.devfile.io/mount-to-devworkspace: "true"
+          controller.devfile.io/watch-secret: "true"
+        annotations:
+          controller.devfile.io/mount-as: subpath
+          controller.devfile.io/mount-path: /home/user/.ssh
+      data:
+        id_rsa.pub: "{{ lookup('ansible.builtin.file', '/tmp/id_ssh_rsa.pub') | b64encode }}"
+      type: Opaque
+  when: ssh_pub_key_test.resources | length == 0
+
+- name: Create ssh known_hosts Secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      kind: Secret
+      apiVersion: v1
+      metadata:
+        name: ssh-known-hosts
+        namespace: "{{ username }}-devspaces"
+      data:
+        known_hosts: "{{ known_hosts | b64encode }}"
+      type: Opaque
+  when: state == "present"
