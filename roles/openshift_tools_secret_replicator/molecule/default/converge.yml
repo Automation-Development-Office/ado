@@ -25,7 +25,6 @@
       - { context: 'cluster-west', ns: 'prod' }
       - { context: 'cluster-dev',  ns: 'sandbox' }
 
-
     # Hashicorp Vault
     openshift_tools_secret_replicator_vault_url: ""
     openshift_tools_secret_replicator_vault_token: ""
@@ -36,7 +35,7 @@
     openshift_tools_secret_replicator_vault_secret_values_base64: false
     openshift_tools_secret_replicator_vault_store_k8s_secret_type: true
     openshift_tools_secret_replicator_vault_k8s_secret_type_key: "k8s_secret_type"
-    
+
   environment:
     K8S_AUTH_VERIFY_SSL: "no"
   #   K8S_AUTH_HOST: "{{ k8s[env].host }}"

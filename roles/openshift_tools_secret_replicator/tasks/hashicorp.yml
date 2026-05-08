@@ -19,4 +19,3 @@
   ansible.builtin.debug:
     msg: "Vault response: {{ openshift_tools_secret_replicator_vault_response }}"
   when: openshift_tools_secret_replicator_vault_push is true
-

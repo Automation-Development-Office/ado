@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT-0
 ---
 - hosts: localhost
+  name: Test openshift_tools_secret_replicator role
   gather_facts: false
   roles:
     - role: infra.ado.openshift_tools_secret_replicator
