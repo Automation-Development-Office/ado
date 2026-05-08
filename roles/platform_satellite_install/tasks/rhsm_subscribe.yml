@@ -16,7 +16,7 @@
 - name: rhsm_subscribe | Disable amazon-id.conf
   ansible.builtin.lineinfile:
     path: /etc/yum/pluginconf.d/amazon-id.conf
-    regexp: '^enabled=1'
+    regexp: "^enabled=1"
     line: enabled=0
     backrefs: true
   when: platform_satellite_install_stat_result.stat.exists
@@ -37,7 +37,6 @@
 - name: rhsm_subscribe | Subscription block
   when: "'Satellite' not in platform_satellite_install_status.stdout"
   block:
-
     - name: rhsm_subscribe | Remove non-redhat repo files
       ansible.builtin.file:
         path: "{{ item.path }}"
@@ -56,10 +55,13 @@
         regexp: "^{{ item.key }}"
         line: "{{ item.value }}"
       loop:
-        - { key: 'hostname', value: 'hostname = subscription.rhsm.redhat.com' }
-        - { key: 'baseurl', value: 'baseurl = https://cdn.redhat.com' }
-        - { key: 'repo_ca_cert', value: 'repo_ca_cert = %(ca_cert_dir)sredhat-uep.pem' }
-        - { key: 'prefix', value: 'prefix = /subscription' }
+        - { key: "hostname", value: "hostname = subscription.rhsm.redhat.com" }
+        - { key: "baseurl", value: "baseurl = https://cdn.redhat.com" }
+        - {
+            key: "repo_ca_cert",
+            value: "repo_ca_cert = %(ca_cert_dir)sredhat-uep.pem",
+          }
+        - { key: "prefix", value: "prefix = /subscription" }
 
     - name: rhsm_subscribe | Start rhsm service
       ansible.builtin.service:

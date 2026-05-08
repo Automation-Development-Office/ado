@@ -138,17 +138,37 @@ Shared playbooks are located in `extensions/molecule/utils/playbooks/` and inclu
 
 ### Run scenarios locally
 
-Run from the collection root:
+Run from the collection root using the same dependency bootstrap as CI:
 
 ```bash
-cd /path/to/cloned/ado
+cd /path/to/your/git/checkout/infra.ado
+ansible-galaxy collection install . --force -p ~/.ansible/collections
+ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
+export ANSIBLE_COLLECTIONS_PATH="$HOME/.ansible/collections:/usr/share/ansible/collections"
+```
+
+For fish shell:
+
+```fish
+set -gx ANSIBLE_COLLECTIONS_PATH "$HOME/.ansible/collections:/usr/share/ansible/collections"
+```
+
+Run scenarios from `extensions/`:
+
+```bash
+cd /path/to/your/git/checkout/infra.ado/extensions
 molecule test -s integration_utilities_mount_mount_auto_detect
 molecule test -s integration_utilities_mount_mount_explicit_fstype
 molecule test -s integration_utilities_mount_unmount_filesystem
 molecule test -s integration_utilities_mount_remove_from_fstab
 ```
 
-> Note: run Molecule from the collection root so scenario discovery resolves `extensions/molecule` correctly.
+### GitHub Actions manual runs
+
+The `Ansible Collection CI/CD` workflow exposes each utils_mount scenario as a checkbox in `workflow_dispatch`.
+
+- Checked scenarios are included in the Molecule matrix.
+- Matrix jobs run in parallel.
 
 ## 📁 Structure
 

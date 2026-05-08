@@ -27,8 +27,7 @@
     - item['key'] is search("vd") or item['key'] is search("xvd") or item['key'] is search("sd")
     - item['value']['size'] | human_to_bytes >= platform_satellite_install_satellite_data_disk_min_size | string | human_to_bytes(default_unit="G")
     - not item['value']['partitions']
-    - not item['value']['holders']       # Holders = Mountpoints
-
+    - not item['value']['holders'] # Holders = Mountpoints
 
 # TODO multiple when statements for the block, fix if needed
 - name: storage_config | Find suitable disk device for installation
@@ -45,7 +44,7 @@
         - item['key'] is search("vd") or item['key'] is search("xvd") or item['key'] is search("sd")
         - item['value']['size'] | human_to_bytes >= platform_satellite_install_satellite_data_disk_min_size | string | human_to_bytes(default_unit="G")
         - not item['value']['partitions']
-        - not item['value']['holders']       # Holders = Mountpoints
+        - not item['value']['holders'] # Holders = Mountpoints
         - platform_satellite_install_data_disk_list is not defined
 
     - name: storage_config | Print list of suitable disks
@@ -84,7 +83,7 @@
   ansible.builtin.file:
     path: "{{ item['mount_point'] }}"
     state: directory
-    mode: '0755'
+    mode: "0755"
   loop: "{{ platform_satellite_install_satellite_req_dirs }}"
 
 - name: storage_config | Create the volume group.
