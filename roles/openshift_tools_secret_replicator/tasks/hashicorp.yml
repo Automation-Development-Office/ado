@@ -2,20 +2,21 @@
 
 - name: Push source secret to Hashicorp Vault
   community.hashi_vault.vault_kv2_write:
-    url: "{{ vault_url }}"
-    token: "{{ vault_token }}"
-    mount: "{{ vault_kv_mount }}"
-    path: "{{ vault_kv_path }}"
-    data: "{{ clean_secret_data }}"
-    namespace: "{{ vault_namespace }}"
-    validate_certs: "{{ vault_validate_certs }}"
-    secret_values_base64: "{{ vault_secret_values_base64 }}"
-    store_k8s_secret_type: "{{ vault_store_k8s_secret_type }}"
-    k8s_secret_type_key: "{{ vault_k8s_secret_type_key }}"
-  register: vault_response
-  when: vault_push is true
+    url: "{{ openshift_tools_secret_replicator_vault_url }}"
+    token: "{{ openshift_tools_secret_replicator_vault_token }}"
+    mount: "{{ openshift_tools_secret_replicator_vault_kv_mount }}"
+    path: "{{ openshift_tools_secret_replicator_vault_kv_path }}"
+    data: "{{ openshift_tools_secret_replicator_clean_secret_data }}"
+    namespace: "{{ openshift_tools_secret_replicator_vault_namespace }}"
+    validate_certs: "{{ openshift_tools_secret_replicator_vault_validate_certs }}"
+    secret_values_base64: "{{ openshift_tools_secret_replicator_vault_secret_values_base64 }}"
+    store_k8s_secret_type: "{{ openshift_tools_secret_replicator_vault_store_k8s_secret_type }}"
+    k8s_secret_type_key: "{{ openshift_tools_secret_replicator_vault_k8s_secret_type_key }}"
+  register: openshift_tools_secret_replicator_vault_response
+  when: openshift_tools_secret_replicator_vault_push is true
 
 - name: Debug Vault output
   ansible.builtin.debug:
-    msg: "Vault response: {{ vault_response }}"
-  when: vault_push is true
+    msg: "Vault response: {{ openshift_tools_secret_replicator_vault_response }}"
+  when: openshift_tools_secret_replicator_vault_push is true
+

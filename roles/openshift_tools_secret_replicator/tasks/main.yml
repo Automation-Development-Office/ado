@@ -5,23 +5,23 @@
 - name: Fetch the source secret
   kubernetes.core.k8s_info:
     kind: Secret
-    name: "{{ source_secret_name }}"
-    namespace: "{{ source_namespace }}"
-  register: original_secret
+    name: "{{ openshift_tools_secret_replicator_source_secret_name }}"
+    namespace: "{{ openshift_tools_secret_replicator_source_namespace }}"
+  register: openshift_tools_secret_replicator_original_secret
 
 - name: Fail if source secret is missing
   ansible.builtin.fail:
-    msg: "Source secret {{ source_secret_name }} not found in {{ source_namespace }}!"
-  when: original_secret.resources | length == 0
+    msg: "Source secret {{ openshift_tools_secret_replicator_source_secret_name }} not found in {{ openshift_tools_secret_replicator_source_namespace }}!"
+  when: openshift_tools_secret_replicator_original_secret.resources | length == 0
 
 - name: Prepare the secret for replication
   ansible.builtin.set_fact:
-    clean_secret_data: "{{ original_secret.resources[0].data }}"
-    secret_type: "{{ original_secret.resources[0].type }}"
+    openshift_tools_secret_replicator_clean_secret_data: "{{ openshift_tools_secret_replicator_original_secret.resources[0].data }}"
+    openshift_tools_secret_replicator_secret_type: "{{ openshift_tools_secret_replicator_original_secret.resources[0].type }}"
 
 - name: Replicate source secret to Hashicorp Vault
   ansible.builtin.include_tasks: hashicorp.yml
-  when: vault_push is true
+  when: openshift_tools_secret_replicator_vault_push is true
 
 - name: Replicate secret to target namespaces
   kubernetes.core.k8s:
@@ -30,17 +30,17 @@
       apiVersion: v1
       kind: Secret
       metadata:
-        name: "{{ source_secret_name }}"
+        name: "{{ openshift_tools_secret_replicator_source_secret_name }}"
         namespace: "{{ item }}"
         labels:
           replicated-by: "secret-replicator"
-          source-ns: "{{ source_namespace }}"
-      type: "{{ secret_type }}"
-      data: "{{ clean_secret_data }}"
-  loop: "{{ target_namespaces }}"
+          source-ns: "{{ openshift_tools_secret_replicator_source_namespace }}"
+      type: "{{ openshift_tools_secret_replicator_secret_type }}"
+      data: "{{ openshift_tools_secret_replicator_clean_secret_data }}"
+  loop: "{{ openshift_tools_secret_replicator_target_namespaces }}"
   loop_control:
     label: "Replicating to namespace -> {{ item }}"
-  when: namespace_replication is true
+  when: openshift_tools_secret_replicator_namespace_replication is true
 
 - name: Replicate to different clusters
   kubernetes.core.k8s:
@@ -50,14 +50,14 @@
       apiVersion: v1
       kind: Secret
       metadata:
-        name: "{{ source_secret_name }}"
+        name: "{{ openshift_tools_secret_replicator_source_secret_name }}"
         labels:
           replicated-by: "secret-replicator"
-          source-ns: "{{ target_clusters[0].ns }}"
-          source-cluster: "{{ target_clusters[0].context }}"
-      type: "{{ secret_type }}"
-      data: "{{ clean_secret_data }}"
-  loop: "{{ target_clusters }}"
+          source-ns: "{{ openshift_tools_secret_replicator_target_clusters[0].ns }}"
+          source-cluster: "{{ openshift_tools_secret_replicator_target_clusters[0].context }}"
+      type: "{{ openshift_tools_secret_replicator_secret_type }}"
+      data: "{{ openshift_tools_secret_replicator_clean_secret_data }}"
+  loop: "{{ openshift_tools_secret_replicator_target_clusters }}"
   loop_control:
     label: "Replicating to cluster -> {{ item.context }} in namespace -> {{ item.ns }}"
-  when: cluster_replication is true
+  when: openshift_tools_secret_replicator_cluster_replication is true
