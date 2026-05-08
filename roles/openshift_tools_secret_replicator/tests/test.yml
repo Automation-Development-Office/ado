@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: MIT-0
+---
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: infra.ado.openshift_tools_secret_replicator
+      vars:
+        source_secret_name: "test-secret"
+        source_namespace: "secret-replicator-2"
+        target_namespaces:
+          - "secret-replicator-1"
+          - "secret-replicator-3"
+        # target_clusters:
+          # - { context: 'prod-primary', ns: 'core' }
+          # - { context: 'prod-backup', ns: 'core' }
+        namespace_replication: true
+        cluster_replication: false

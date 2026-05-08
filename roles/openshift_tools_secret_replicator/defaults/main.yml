@@ -1,0 +1,32 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for openshift_tools_secret_replicator
+
+# Replication toggles
+cluster_replication: true
+namespace_replication: true
+vault_push: false
+
+source_secret_name: "source-secret-name"
+source_namespace: "source-namespace"
+
+target_namespaces:
+  - "dev-app"
+  - "staging-app"
+  - "qa-app"
+
+target_clusters:
+  - { context: 'cluster-east', ns: 'prod' }
+  - { context: 'cluster-west', ns: 'prod' }
+  - { context: 'cluster-dev',  ns: 'sandbox' }
+
+# Hashicorp Vault (KV v2) — optional push of the source secret
+vault_url: ""
+vault_token: ""
+vault_kv_mount: "secret"
+vault_kv_path: "{{ source_namespace }}/{{ source_secret_name }}"
+vault_namespace: ""
+vault_validate_certs: true
+vault_secret_values_base64: false
+vault_store_k8s_secret_type: true
+vault_k8s_secret_type_key: "k8s_secret_type"
