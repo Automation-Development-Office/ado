@@ -57,10 +57,7 @@
       loop:
         - { key: "hostname", value: "hostname = subscription.rhsm.redhat.com" }
         - { key: "baseurl", value: "baseurl = https://cdn.redhat.com" }
-        - {
-            key: "repo_ca_cert",
-            value: "repo_ca_cert = %(ca_cert_dir)sredhat-uep.pem",
-          }
+        - { key: "repo_ca_cert", value: "repo_ca_cert = %(ca_cert_dir)sredhat-uep.pem" }
         - { key: "prefix", value: "prefix = /subscription" }
 
     - name: rhsm_subscribe | Start rhsm service
