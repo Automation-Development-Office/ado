@@ -1,0 +1,10 @@
+---
+- name: Converge — rhel_facts smoke test
+  hosts: all
+  gather_facts: false
+  become: false
+  remote_user: root
+  tasks:
+    - name: Include role under test (local path)
+      ansible.builtin.include_role:
+        name: "{{ playbook_dir | dirname | dirname }}"
