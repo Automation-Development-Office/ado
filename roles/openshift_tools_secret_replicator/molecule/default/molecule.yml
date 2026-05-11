@@ -1,0 +1,44 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+
+platforms:
+  - name: localhost
+    managed: false
+
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      all:
+        hosts:
+          localhost:
+            ansible_connection: local
+            ansible_python_interpreter: "/bin/python"
+  playbooks:
+    converge: converge.yml
+    destroy: destroy.yml        
+  env:
+    # Use a safe callback (your earlier error came from a broken yaml callback plugin)
+    ANSIBLE_STDOUT_CALLBACK: default
+    # Let Ansible find THIS role (we are inside roles/namespace/)
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/.."
+    K8S_AUTH_API_KEY: "${K8S_AUTH_API_KEY}"
+    K8S_AUTH_HOST: "${K8S_AUTH_HOST}"
+    K8S_AUTH_VERIFY_SSL: "${K8S_AUTH_VERIFY_SSL}"
+
+scenario:
+  name: default
+  # Keep resources by default (skip destroy). Uncomment 'destroy' anytime you want cleanup.
+  test_sequence:
+    - dependency
+    - create
+    - converge
+    - idempotence
+    - verify
+
+verifier:
+  name: ansible
