@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+collections:
+  - name: kubernetes.core
+  - name: community.hashi_vault
+    version: ">=4.2.0"
