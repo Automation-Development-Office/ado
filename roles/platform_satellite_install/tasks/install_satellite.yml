@@ -11,7 +11,7 @@
 
 # TODO look for warnings and decide to stop/continue (disk speed)
 # Check installer_output.std_err and std_out
-- name: block if satellite is not installed
+- name: Block if satellite is not installed
   when: platform_satellite_install_service.rc != 0
   block:
     - name: install_satellite | Run satellite installer
