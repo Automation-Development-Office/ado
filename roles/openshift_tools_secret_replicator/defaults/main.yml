@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: GPL-3.0-or-later
 ---
 # defaults file for openshift_tools_secret_replicator
 
@@ -18,13 +18,17 @@ openshift_tools_secret_replicator_target_namespaces:
 openshift_tools_secret_replicator_target_clusters:
   - { context: 'cluster-east', ns: 'prod' }
   - { context: 'cluster-west', ns: 'prod' }
-  - { context: 'cluster-dev',  ns: 'sandbox' }
+  - { context: 'cluster-dev', ns: 'sandbox' }
 
 # Hashicorp Vault (KV v2) — optional push of the source secret
 openshift_tools_secret_replicator_vault_url: ""
 openshift_tools_secret_replicator_vault_token: ""
 openshift_tools_secret_replicator_vault_kv_mount: "secret"
-openshift_tools_secret_replicator_vault_kv_path: "{{ openshift_tools_secret_replicator_source_namespace }}/{{ openshift_tools_secret_replicator_source_secret_name }}"
+openshift_tools_secret_replicator_vault_kv_path: >-
+  {{
+    openshift_tools_secret_replicator_source_namespace ~ '/'
+    ~ openshift_tools_secret_replicator_source_secret_name
+  }}
 openshift_tools_secret_replicator_vault_namespace: ""
 openshift_tools_secret_replicator_vault_validate_certs: true
 openshift_tools_secret_replicator_vault_secret_values_base64: false

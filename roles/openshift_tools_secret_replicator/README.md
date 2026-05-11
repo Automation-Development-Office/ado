@@ -215,6 +215,10 @@ The sample `molecule/default/converge.yml` sets `K8S_AUTH_VERIFY_SSL: "no"` on t
   - Cluster targets label `source-ns` and `source-cluster` using `openshift_tools_secret_replicator_target_clusters[0].ns` and `openshift_tools_secret_replicator_target_clusters[0].context` for every cluster iteration (see `tasks/main.yml`); adjust `openshift_tools_secret_replicator_target_clusters` order if that metadata must reflect a specific primary cluster.
 - **Vault**: With `openshift_tools_secret_replicator_vault_push: true`, the module receives the Kubernetes `data` map plus Vault-specific options (`openshift_tools_secret_replicator_vault_secret_values_base64`, `openshift_tools_secret_replicator_vault_store_k8s_secret_type`, `openshift_tools_secret_replicator_vault_k8s_secret_type_key`). Consult `community.hashi_vault.vault_kv2_write` for encoding and metadata behavior.
 
+### License
+
+This role is licensed under the [GNU General Public License](https://www.gnu.org/licenses/gpl-3.0.html) version 3.0 or later (SPDX-License-Identifier: GPL-3.0-or-later). The full license text is in the [`LICENSE`](../../LICENSE) file at the repository root.
+
 ## Repository layout
 
 ```text

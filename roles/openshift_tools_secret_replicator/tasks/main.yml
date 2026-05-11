@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: GPL-3.0-or-later
 ---
 # tasks file for openshift_tools_secret_replicator
 
