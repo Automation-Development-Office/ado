@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MIT-0
+---
+# defaults file for platform_patching
+
+# This file contains default variables for the platform_patching role.
+
+
+# Configure whether to check server mountpoints.
+# platform_patching_check_mountpoints: true This can be added to the playbook to enable checking mountpoints.
+
+# Configure whether to reboot servers.
+platform_patching_reboot: false
+# Configure whether to clean up old kernels from /boot.
+platform_patching_package_cleanup: false
+platform_patching_versions: latest
+platform_patching_update_cache: false
+platform_patching_disable_repos: []
+platform_patching_exclude_list: []
+platform_patching_skip_broken: false
+
+# List of specific packages to update. If not defined, all packages will be updated.
+platform_patching_package_list: ["*"] # This can be defined in the playbook to specify particular packages.
