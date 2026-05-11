@@ -3,34 +3,6 @@
 # defaults file for openshift_tools_secret_replicator
 
 # Replication toggles
-openshift_tools_secret_replicator_cluster_replication: true
+openshift_tools_secret_replicator_cluster_replication: false
 openshift_tools_secret_replicator_namespace_replication: true
 openshift_tools_secret_replicator_vault_push: false
-
-openshift_tools_secret_replicator_source_secret_name: "source-secret-name"
-openshift_tools_secret_replicator_source_namespace: "source-namespace"
-
-openshift_tools_secret_replicator_target_namespaces:
-  - "dev-app"
-  - "staging-app"
-  - "qa-app"
-
-openshift_tools_secret_replicator_target_clusters:
-  - { context: 'cluster-east', ns: 'prod' }
-  - { context: 'cluster-west', ns: 'prod' }
-  - { context: 'cluster-dev', ns: 'sandbox' }
-
-# Hashicorp Vault (KV v2) — optional push of the source secret
-openshift_tools_secret_replicator_vault_url: ""
-openshift_tools_secret_replicator_vault_token: ""
-openshift_tools_secret_replicator_vault_kv_mount: "secret"
-openshift_tools_secret_replicator_vault_kv_path: >-
-  {{
-    openshift_tools_secret_replicator_source_namespace ~ '/'
-    ~ openshift_tools_secret_replicator_source_secret_name
-  }}
-openshift_tools_secret_replicator_vault_namespace: ""
-openshift_tools_secret_replicator_vault_validate_certs: true
-openshift_tools_secret_replicator_vault_secret_values_base64: false
-openshift_tools_secret_replicator_vault_store_k8s_secret_type: true
-openshift_tools_secret_replicator_vault_k8s_secret_type_key: "k8s_secret_type"
