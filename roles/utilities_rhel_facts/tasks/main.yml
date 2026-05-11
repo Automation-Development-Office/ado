@@ -45,7 +45,9 @@
   failed_when: false
 
 - name: Primary IP/CIDR on default interface
-  ansible.builtin.raw: "IF='{{ utilities_rhel_facts_def_if.stdout | trim }}'; [ -n \"$IF\" ] && ip -o -4 addr show dev \"$IF\" | awk '{print $4}' | head -n1 || echo ''"
+  ansible.builtin.raw: >
+    IF='{{ utilities_rhel_facts_def_if.stdout | trim }}';
+    [ -n "$IF" ] && ip -o -4 addr show dev "$IF" | awk '{print $4}' | head -n1 || echo ''
   register: utilities_rhel_facts_ipcidr_primary
   changed_when: false
   failed_when: false
