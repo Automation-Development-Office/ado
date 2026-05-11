@@ -3,6 +3,6 @@
 # defaults file for openshift_tools_secret_replicator
 
 # Replication toggles
-openshift_tools_secret_replicator_cluster_replication: false
+openshift_tools_secret_replicator_cluster_replication: true
 openshift_tools_secret_replicator_namespace_replication: true
 openshift_tools_secret_replicator_vault_push: false
