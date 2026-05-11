@@ -7,7 +7,7 @@
   ansible.builtin.command: satellite-maintain service status > /dev/null
   ignore_errors: true
   register: platform_satellite_install_service
-  failed_when: true
+  changed_when: true
 
 # TODO look for warnings and decide to stop/continue (disk speed)
 # Check installer_output.std_err and std_out
@@ -29,5 +29,5 @@
 - name: install_satellite | Ensure successful installation
   ansible.builtin.command: satellite-maintain service status
   register: platform_satellite_install_satellite_status
-  failed_when: platform_satellite_install_satellite_status.rc != 0
+  changed_when: platform_satellite_install_satellite_status.rc != 0
 ...
