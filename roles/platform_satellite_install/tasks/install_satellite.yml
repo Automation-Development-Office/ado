@@ -1,0 +1,33 @@
+---
+- name: install_satellite | Get package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: install_satellite | Checking if services are running
+  ansible.builtin.shell: satellite-maintain service status > /dev/null
+  ignore_errors: true
+  register: platform_satellite_install_service
+  failed_when: true
+
+# TODO look for warnings and decide to stop/continue (disk speed)
+# Check installer_output.std_err and std_out
+- name: block if satellite is not installed
+  block:
+    - name: install_satellite | Run satellite installer
+      ansible.builtin.command: >-
+        satellite-installer --scenario satellite
+      register: platform_satellite_install_installer_output
+    
+    - name: install_satellite | Define tuning profile
+      ansible.builtin.set_fact:
+        satellite_tuning_profile: "{{ lookup('ansible.builtin.template', 'tuning_profile.j2') }}"
+    
+    - name: install_satellite | Run performance tuning command
+      ansible.builtin.shell: "satellite-installer --scenario satellite --tuning {{ satellite_tuning_profile }}"
+  when: platform_satellite_install_service.rc == 1
+    
+- name: install_satellite | Ensure successful installation
+  ansible.builtin.shell: satellite-maintain service status
+  register: platform_satellite_install_satellite_status
+  failed_when: platform_satellite_install_satellite_status.rc != 0
+...
