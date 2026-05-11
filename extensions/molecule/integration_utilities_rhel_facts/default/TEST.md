@@ -4,7 +4,6 @@
 
 dependency → syntax → create → converge → idempotence → destroy → verify
 
-
 ## What these tests cover
 
 1. **Dependency**
@@ -34,8 +33,8 @@ dependency → syntax → create → converge → idempotence → destroy → ve
    - Confirms the role reported no changes on the idempotence run.
    - Checks **README.md** exists and has basic structure (see below).
 
-
 ## README.md checks (verify step)
+
 The verify play performs:
 
 - ✅ **Existence**: `README.md` must be present at the role root.
@@ -43,13 +42,12 @@ The verify play performs:
   (regex: `(?m)^#\s+Role:`)
 - ✅ **Variables table**: contains a header row like `| Variable | Description |`  
   (regex: `\|\s*Variable\s*\|\s*Description\s*\|`)
-- ✅ **Example code block**: fenced block like ```yaml … ``` (yaml/yml/ansible/bash)  
-  (regex: ```(yaml|yml|ansible|bash)[\s\S]*?```) 
-
+- ✅ **Example code block**: fenced block like ```yaml …``` (yaml/yml/ansible/bash)  
+  (regex: ```(yaml|yml|ansible|bash)[\s\S]*?```)
 
 ## Python version note
-- Managed hosts must have **Python ≥ 3.7**. Python **3.6 and older cannot use `service_facts`**, so the role will no-op (and the scenario marks converge-related checks as **skipped** on those hosts).
 
+- Managed hosts must have **Python ≥ 3.7**. Python **3.6 and older cannot use `service_facts`**, so the role will no-op (and the scenario marks converge-related checks as **skipped** on those hosts).
 
 ## How to run
 
@@ -65,6 +63,7 @@ molecule verify
 ```
 
 ## Customizing the tested services
+
 Override via environment or edit `molecule/default/group_vars/all`:
 
 ```yaml
@@ -76,16 +75,20 @@ service_state: started
 ```
 
 ## Linting
+
 - **Ansible syntax** runs automatically in the **`syntax`** step.
 - **ansible-lint**: recommended to run locally/CI:
+
   ```bash
   ansible-lint --offline roles/namespace
 
 
 # full cycle
+
 molecule test
 
 # or step-by-step
+
 molecule converge
 molecule idempotence
 molecule destroy

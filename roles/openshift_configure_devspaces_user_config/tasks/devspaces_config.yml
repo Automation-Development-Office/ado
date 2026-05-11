@@ -148,7 +148,7 @@
 
 - name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
   community.crypto.openssh_keypair:
-    path: /tmp/id_ssh_rsa
+    private_key_path: /tmp/id_ssh_rsa
   when: >-
     openshift_configure_devspaces_user_config_ssh_priv_key_test.resources
     | length == 0 or openshift_configure_devspaces_user_config_ssh_pub_key_test.resources | length == 0
@@ -171,7 +171,7 @@
       data:
         id_rsa: "{{ lookup('ansible.builtin.file', '/tmp/id_ssh_rsa') | b64encode }}"
       type: Opaque
-  when: ssh_priv_key_test.resources | length == 0
+  when: openshift_configure_devspaces_user_config_ssh_priv_key_test | length == 0
 
 - name: Create ssh_pub_keys Secret
   kubernetes.core.k8s:
@@ -191,7 +191,7 @@
       data:
         id_rsa.pub: "{{ lookup('ansible.builtin.file', '/tmp/id_ssh_rsa.pub') | b64encode }}"
       type: Opaque
-  when: ssh_pub_key_test.resources | length == 0
+  when: openshift_configure_devspaces_user_config_ssh_pub_key_test.resources | length == 0
 
 - name: Create ssh known_hosts Secret
   kubernetes.core.k8s:

@@ -52,6 +52,7 @@ This role has **no required input variables**. It gathers and normalizes facts a
 ## Examples
 
 ### Collect and print the human summary
+
 ```yaml
 - hosts: all
   gather_facts: false
@@ -66,6 +67,7 @@ This role has **no required input variables**. It gathers and normalizes facts a
 ```
 
 ### Use a specific value in another task
+
 ```yaml
 - name: Fail if SELinux is disabled
   ansible.builtin.fail:
@@ -84,17 +86,14 @@ This role has **no required input variables**. It gathers and normalizes facts a
 
 ---
 
-## Molecule
+## 🧪 Molecule
 
-A default Molecule scenario can converge this role and validate idempotence. Typical flow:
+This role no longer includes a dedicated Molecule scenario or platform-specific Molecule playbooks.
 
-```
-dependency → lint → syntax → create → converge → idempotence → destroy → verify
-```
-
----
+> Molecule tests for `platform_satellite_install` have been removed from the repository.
 
 ## Author
+
 - Chad Elliott (<chelliot@redhat.com>)
 
 ---
