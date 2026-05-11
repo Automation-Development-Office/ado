@@ -20,10 +20,10 @@
     
     - name: install_satellite | Define tuning profile
       ansible.builtin.set_fact:
-        satellite_tuning_profile: "{{ lookup('ansible.builtin.template', 'tuning_profile.j2') }}"
+        platform_satellite_install_tuning_profile: "{{ lookup('ansible.builtin.template', 'tuning_profile.j2') }}"
     
     - name: install_satellite | Run performance tuning command
-      ansible.builtin.shell: "satellite-installer --scenario satellite --tuning {{ satellite_tuning_profile }}"
+      ansible.builtin.shell: "satellite-installer --scenario satellite --tuning {{ platform_satellite_install_tuning_profile }}"
   when: platform_satellite_install_service.rc == 1
     
 - name: install_satellite | Ensure successful installation
