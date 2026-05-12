@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT-0
-#---
-#- name: Test services_management role
-#  hosts: localhost
-#  remote_user: root
-#  roles:
-#   - services_management
+---
+- name: Test services_management role
+  hosts: localhost
+  remote_user: root
+  roles:
+ - services_management
 #   - utilities_rhel_facts
