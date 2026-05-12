@@ -18,13 +18,16 @@
       ansible.builtin.command: >-
         satellite-installer --scenario satellite
       register: platform_satellite_install_installer_output
+      changed_when: true
 
     - name: install_satellite | Define tuning profile
       ansible.builtin.set_fact:
         platform_satellite_install_tuning_profile: "{{ lookup('ansible.builtin.template', 'tuning_profile.j2') }}"
 
+
     - name: install_satellite | Run performance tuning command
       ansible.builtin.command: "satellite-installer --scenario satellite --tuning {{ platform_satellite_install_tuning_profile }}"
+      changed_when: true
 
 - name: install_satellite | Ensure successful installation
   ansible.builtin.command: satellite-maintain service status
