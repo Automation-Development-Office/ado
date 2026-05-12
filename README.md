@@ -93,10 +93,32 @@ See the
 
 Collection integration scenarios live under `extensions/molecule/` and are executed by the CI workflow.
 
-Run a scenario locally from the collection root:
+Run scenarios locally before opening a PR.
+
+From the collection root:
 
 ```bash
-cd extensions/molecule
+cd /path/to/your/git/checkout/infra.ado
+ansible-galaxy collection install . --force -p ~/.ansible/collections
+ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
+```
+
+Set collection path in your shell:
+
+```bash
+export ANSIBLE_COLLECTIONS_PATH="$HOME/.ansible/collections:/usr/share/ansible/collections"
+```
+
+For fish shell:
+
+```fish
+set -gx ANSIBLE_COLLECTIONS_PATH "$HOME/.ansible/collections:/usr/share/ansible/collections"
+```
+
+Run a scenario from `extensions/`:
+
+```bash
+cd /path/to/your/git/checkout/infra.ado/extensions
 molecule test -s integration_utilities_cron_full_special
 ```
 
