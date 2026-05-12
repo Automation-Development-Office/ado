@@ -123,8 +123,18 @@ python -m molecule test -s default
 Run the extension-level CI-aligned scenario from the collection root:
 
 ```bash
-cd extensions/molecule
+cd /path/to/your/git/checkout/infra.ado
+ansible-galaxy collection install . --force -p ~/.ansible/collections
+ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
+export ANSIBLE_COLLECTIONS_PATH="$HOME/.ansible/collections:/usr/share/ansible/collections"
+cd extensions
 molecule test -s integration_manage_vm_image
+```
+
+For fish shell:
+
+```fish
+set -gx ANSIBLE_COLLECTIONS_PATH "$HOME/.ansible/collections:/usr/share/ansible/collections"
 ```
 
 ### GitHub Actions manual runs

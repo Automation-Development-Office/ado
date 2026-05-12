@@ -33,7 +33,7 @@
   ansible.builtin.template:
     dest: /etc/resolv.conf
     src: resolv.conf.j2
-    mode: '0644'
+    mode: "0644"
     owner: root
     group: root
   when: platform_satellite_install_satellite_dns_servers is defined
