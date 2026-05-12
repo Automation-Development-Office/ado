@@ -29,4 +29,4 @@
       ansible.builtin.include_tasks: dns_config.yml
 
     - name: Satellite Install
-      ansible.builtin.include_tasks: satellite_install.yml
+      ansible.builtin.include_tasks: install_satellite.yml
