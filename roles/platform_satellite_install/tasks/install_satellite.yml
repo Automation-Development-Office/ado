@@ -24,7 +24,6 @@
       ansible.builtin.set_fact:
         platform_satellite_install_tuning_profile: "{{ lookup('ansible.builtin.template', 'tuning_profile.j2') }}"
 
-
     - name: install_satellite | Run performance tuning command
       ansible.builtin.command: "satellite-installer --scenario satellite --tuning {{ platform_satellite_install_tuning_profile }}"
       changed_when: true
