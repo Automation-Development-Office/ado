@@ -1,0 +1,100 @@
+---
+- name: settings | Set Red Hat Satellite Settings
+  redhat.satellite.setting:
+    username: "{{ platform_satellite_install_admin_username }}"
+    password: "{{ platform_satellite_install_admin_password }}"
+    server_url: "{{ platform_satellite_install_server_url }}"
+    name: "{{ item['name'] }}"
+    value: "{{ item['value'] }}"
+    validate_certs: "{{ platform_satellite_install_validate_certs }}"
+  loop: "{{ platform_satellite_install_settings }}"
+
+- name: settings | Disable subscription connection for disconnected satellite
+  when: platform_satellite_install_rhn_connected is false
+  redhat.satellite.setting:
+    username: "{{ platform_satellite_install_admin_username }}"
+    password: "{{ platform_satellite_install_admin_password }}"
+    server_url: "{{ platform_satellite_install_server_url }}"
+    name: "subscription_connection_enabled"
+    value: "No"
+    validate_certs: "{{ platform_satellite_install_validate_certs }}"
+
+- name: settings | Create HTTP proxy object
+  redhat.satellite.http_proxy:
+    username: "{{ platform_satellite_install_admin_username }}"
+    password: "{{ platform_satellite_install_admin_password }}"
+    server_url: "{{ platform_satellite_install_server_url }}"
+    name: "{{ platform_satellite_install_proxy_server }}"
+    url: "{{ platform_satellite_install_proxy_scheme }}://{{ platform_satellite_install_proxy_server }}:{{ platform_satellite_install_proxy_port }}"
+    validate_certs: "{{ platform_satellite_install_validate_certs }}"
+  when:
+    - platform_satellite_install_proxy_server is defined
+    - platform_satellite_install_rhn_connected is true
+
+- name: settings | Set HTTP proxy setting
+  redhat.satellite.setting:
+    username: "{{ platform_satellite_install_admin_username }}"
+    password: "{{ platform_satellite_install_admin_password }}"
+    server_url: "{{ platform_satellite_install_server_url }}"
+    name: content_default_http_proxy
+    value: "{{ platform_satellite_install_proxy_server }}"
+    validate_certs: "{{ platform_satellite_install_validate_certs }}"
+  when:
+    - platform_satellite_install_proxy_server is defined
+    - platform_satellite_install_rhn_connected is true
+
+- name: settings | Download katello-server certificate from connected satellite # noqa: risky-file-permissions
+  ansible.builtin.get_url:
+    url: "https://{{ platform_satellite_install_connected_fqdn }}/pub/katello-server-ca.crt"
+    dest: "/etc/rhsm/ca/katello-server-ca.crt"
+    validate_certs: false
+  when: platform_satellite_install_rhn_connected is false
+
+- name: settings | Grab cert content from file
+  ansible.builtin.slurp:
+    src: "/etc/rhsm/ca/katello-server-ca.crt"
+  register: platform_satellite_install_katello_cert_content
+  when: platform_satellite_install_rhn_connected is false
+
+- name: settings | Create content credential for disconnected satellite
+  redhat.satellite.content_credential:
+    username: "{{ platform_satellite_install_admin_username }}"
+    password: "{{ platform_satellite_install_admin_password }}"
+    server_url: "{{ platform_satellite_install_server_url }}"
+    organization: "{{ platform_satellite_install_organization }}"
+    name: "{{ platform_satellite_install_connected_fqdn }}"
+    content_type: cert
+    content: "{{ katello_cert_content['content'] | b64decode }}"
+    validate_certs: "{{ platform_satellite_install_validate_certs }}"
+  when: platform_satellite_install_rhn_connected is false
+
+- name: settings | Get ID of content credential for cdn
+  redhat.satellite.content_credential:
+    username: "{{ platform_satellite_install_admin_username }}"
+    password: "{{ platform_satellite_install_admin_password }}"
+    server_url: "{{ platform_satellite_install_server_url }}"
+    organization: "{{ platform_satellite_install_organization }}"
+    name: "{{ platform_satellite_install_connected_fqdn }}"
+    validate_certs: "{{ platform_satellite_install_validate_certs }}"
+  register: platform_satellite_install_cred_output
+  when: platform_satellite_install_rhn_connected is false
+
+- name: settings | Set variable for credential ID
+  ansible.builtin.set_fact:
+    cdn_credential_id: "{{ content_cred_output['entity']['content_credentials'] | map(attribute='id') | join(', ') | int }}"
+  when: platform_satellite_install_rhn_connected is false
+
+- name: settings | Set CDN to sync from connected satellite # noqa: no-changed-when
+  ansible.builtin.command: >-
+    hammer organization configure-cdn
+    --name={{ platform_satellite_install_organization }}
+    --type=network_sync
+    --url https://{{ platform_satellite_install_connected_fqdn }}
+    --username {{ platform_satellite_install_upstream_admin_username }}
+    --password {{ platform_satellite_install_upstream_admin_password }}
+    --ssl-ca-credential-id "{{ cdn_credential_id }}"
+    --upstream-organization-label="{{ platform_satellite_install_organization }}"
+    --upstream-lifecycle-environment-label="Library"
+    --upstream-content-view-label="Default_Organization_View"
+  when: platform_satellite_install_rhn_connected is false
+...
