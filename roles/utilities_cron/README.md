@@ -56,10 +56,25 @@ Shared playbooks are located in `extensions/molecule/utils/playbooks/` and inclu
 
 ### Run scenarios locally
 
-Run from the collection root:
+Run from the collection root using the same dependency bootstrap as CI:
 
 ```bash
-cd extensions/molecule
+cd /path/to/your/git/checkout/infra.ado
+ansible-galaxy collection install . --force -p ~/.ansible/collections
+ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
+export ANSIBLE_COLLECTIONS_PATH="$HOME/.ansible/collections:/usr/share/ansible/collections"
+```
+
+For fish shell:
+
+```fish
+set -gx ANSIBLE_COLLECTIONS_PATH "$HOME/.ansible/collections:/usr/share/ansible/collections"
+```
+
+Run scenarios from `extensions/`:
+
+```bash
+cd /path/to/your/git/checkout/infra.ado/extensions
 molecule test -s integration_utilities_cron_full_special
 molecule test -s integration_utilities_cron_full_special_removal
 molecule test -s integration_utilities_cron_single_special
