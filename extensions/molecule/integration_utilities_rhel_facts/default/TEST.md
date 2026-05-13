@@ -1,100 +1,74 @@
-# Molecule Tests — service_management (default scenario)
+Molecule Test Documentation — utilities_rhel_facts Role
+Purpose
 
-## Test sequence
+This document describes the testing approach for the rhel_facts Ansible role using Molecule and Testinfra.
+The goal is to ensure the role reliably gathers and exposes RHEL‑specific system facts across supported platforms.
+Test Layout
+Code
 
-dependency → syntax → create → converge → idempotence → destroy → verify
+molecule/
+└── default/
+    ├── converge.yml
+    ├── molecule.yml
+    ├── prepare.yml
+    └── tests/
+        └── test_rhel_facts.py
 
-## What these tests cover
+Components
 
-1. **Dependency**
-   - Installs role/collection deps via `ansible-galaxy`.
+    molecule.yml — defines platforms, drivers, and test sequence
 
-2. **Syntax**
-   - Runs `ansible-playbook --syntax-check` on scenario playbooks (basic YAML/Jinja sanity).
+    prepare.yml — installs prerequisites before running the role
 
-3. **Create**
-   - Prepares the local runner/connection (localhost driver). Ensures the test variables are set.
+    converge.yml — applies the rhel_facts role
 
-4. **Converge**
-   - Applies the `ado.utilities.service_management` role with:
-     - `service_names`: a list of services (with and without `.service`) such as `['sshd', 'crond']` on EL-based systems.
-     - `service_state`: e.g., `started`, `stopped`, `restarted`, or `reloaded`.
-     - Optional `service_enabled`: boolean to enable/disable the units.
-   - Role gathers `service_facts` and only manages services that actually exist on the host, mapping names without `.service` (e.g., `sshd` → `sshd.service`).
+    test_rhel_facts.py — Testinfra tests validating fact collection
 
-5. **Idempotence**
-   - Re-runs converge and expects **`changed=0`** (no re-applies).
-
-6. **Destroy**
-   - No teardown is strictly required for service state; step runs as a no-op unless the scenario includes explicit cleanup.
-
-7. **Verify**
-   - When Python ≥ 3.7, asserts `ansible_facts.services` is defined and is a mapping.
-   - Confirms the role reported no changes on the idempotence run.
-   - Checks **README.md** exists and has basic structure (see below).
-
-## README.md checks (verify step)
-
-The verify play performs:
-
-- ✅ **Existence**: `README.md` must be present at the role root.
-- ✅ **Heading**: first heading starts with `# Role:`  
-  (regex: `(?m)^#\s+Role:`)
-- ✅ **Variables table**: contains a header row like `| Variable | Description |`  
-  (regex: `\|\s*Variable\s*\|\s*Description\s*\|`)
-- ✅ **Example code block**: fenced block like ```yaml …``` (yaml/yml/ansible/bash)  
-  (regex: ```(yaml|yml|ansible|bash)[\s\S]*?```)
-
-## Python version note
-
-- Managed hosts must have **Python ≥ 3.7**. Python **3.6 and older cannot use `service_facts`**, so the role will no-op (and the scenario marks converge-related checks as **skipped** on those hosts).
-
-## How to run
-
-```bash
-# full cycle
-molecule test
-
-# or step-by-step
-molecule converge
-molecule idempotence
-molecule destroy
-molecule verify
-```
-
-## Customizing the tested services
-
-Override via environment or edit `molecule/default/group_vars/all`:
-
-```yaml
-service_names:
-  - sshd
-  - crond
-service_state: started
-# service_enabled: true
-```
-
-## Linting
-
-- **Ansible syntax** runs automatically in the **`syntax`** step.
-- **ansible-lint**: recommended to run locally/CI:
-
-  ```bash
-  ansible-lint --offline roles/namespace
-
-
-# full cycle
+Test Execution
+Full Test Cycle
+Code
 
 molecule test
 
-# or step-by-step
+Runs lint → create → prepare → converge → verify → destroy.
+Individual Steps
 
+Useful for debugging:
+Code
+
+molecule create
+molecule prepare
 molecule converge
-molecule idempotence
-molecule destroy
 molecule verify
+molecule destroy
 
-Auth/TLS notes
-Provide either:
+Linting
+Code
 
-molecule_root_password: "YOURPASSWORD"
+molecule lint
+
+What the Tests Validate
+
+    RHEL fact gathering runs without errors
+
+    Custom facts are added to ansible_facts
+
+    Distribution and version detection logic is correct
+
+    Role is idempotent
+
+    Behavior is consistent across configured platforms (RHEL 8, RHEL 9, Rocky/Alma optional)
+
+
+
+Supported Platforms
+
+Defined in molecule.yml:
+
+    RHEL 8.x
+
+    RHEL 9.x
+
+    Rocky Linux / AlmaLinux (optional)
+
+

@@ -1,179 +1,108 @@
-OpenShift Token Setup & Running Molecule (READM.txt)
-=====================================================
+utilities_rhel_facts — Molecule Testing Guide
+Overview
 
-This guide shows how to:
+This document explains how Molecule is used to test the rhel_facts Ansible role. The role is designed to gather, validate, and expose Red Hat Enterprise Linux–specific system facts. Molecule provides a repeatable, automated workflow to ensure the role behaves consistently across supported RHEL versions and environments.
+Testing Framework
 
-1) Create a service account and long‑lived API token in OpenShift
-2) Grant it cluster‑admin for testing
-3) Run Molecule against your roles using that token
+The test suite uses:
 
-⚠️ SECURITY NOTE
-----------------
+    Molecule — scenario-based role testing
 
-Granting **cluster-admin** is powerful. Use only in lab/test environments.
-For production, scope a narrower ClusterRole & RoleBinding to only the resources your role needs.
+    Testinfra — Python assertions for system state validation
 
-1) Prerequisites
+    Ansible Lint — static analysis for role quality
 
-----------------
+    Docker or Podman — ephemeral test instances
 
-- OpenShift CLI (`oc`) installed and logged in as a cluster-admin user
-- Python 3.10+ and pip
-- Ansible and Molecule
-- Required collections and Python libs
+Each scenario validates that the role collects expected facts, exposes them correctly, and handles OS‑specific differences.
+Directory Structure
+Code
 
-Install helpful tools (adjust as needed):
-    python3 -m pip install --user ansible-core molecule molecule-plugins[docker] kubernetes
-    ansible-galaxy collection install kubernetes.core
+utilities_rhel_facts/
+├── molecule/
+│   └── default/
+│       ├── converge.yml
+│       ├── molecule.yml
+│       ├── prepare.yml
+│       └── tests/
+│           └── test_rhel_facts.py
 
-(If you lint Markdown or Ansible, also consider: ansible-lint, markdownlint, etc.)
+Key Files
 
-1) Create namespace, service account, and permissions
+    molecule.yml — defines platforms, drivers, and test sequence
 
-----------------
-Use the example namespace: **openshift-ansible**
-(Namespaces prefixed with 'openshift-' are protected. You need cluster-admin to create it.)
+    prepare.yml — optional setup tasks (package installs, repo config)
 
-Create namespace (ok if it already exists):
-    oc new-project openshift-ansible || true
-    # or: oc create namespace openshift-ansible || true
+    converge.yml — applies the rhel_facts role
 
-Create the service account:
-    oc create sa ansible-sa -n openshift-ansible || true
+    test_rhel_facts.py — Testinfra tests validating collected facts
 
-Grant cluster-admin to the service account (two equivalent ways; pick one):
+Running Tests
+Full Test Run
+Code
 
-    # (A) Using 'oc adm policy' (recommended)
-    oc adm policy add-cluster-role-to-user cluster-admin \
-      -z ansible-sa -n openshift-ansible
+molecule test
 
-    # (B) Using an explicit ClusterRoleBinding
-    oc create clusterrolebinding ansible-sa-admin \
-      --clusterrole=cluster-admin \
-      --serviceaccount=openshift-ansible:ansible-sa \
-      || true
+Runs linting, dependency resolution, create → converge → verify → destroy.
+Step-by-Step Execution
 
-Verify access (optional):
-    oc auth can-i get namespaces \
-      --as=system:serviceaccount:openshift-ansible:ansible-sa
+Useful for debugging:
+Code
 
-1) Obtain a long-lived token
+molecule create
+molecule converge
+molecule verify
+molecule destroy
 
-----------------
-OpenShift 4.11+:
-    export TOKEN="$(oc create token ansible-sa -n openshift-ansible --duration=876000h)"
-    echo "$TOKEN"   # will look like: sha256~…
+Linting Only
+Code
 
-Older OpenShift (fallback if 'oc create token' not available):
-    SA_SECRET="$(oc -n openshift-ansible get sa ansible-sa -o jsonpath='{.secrets[0].name}')"
-    export TOKEN="$(oc -n openshift-ansible get secret "$SA_SECRET" -o jsonpath='{.data.token}' | base64 -d)"
-    echo "$TOKEN"
+molecule lint
 
-1) Choose one authentication method for Molecule
+What the Tests Validate
 
-----------------
+The Molecule suite ensures that:
 
-Option A — Environment variables (no kubeconfig needed)
+    RHEL fact gathering completes without errors
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Set the API server URL and token:
-    export K8S_AUTH_HOST="https://api.<cluster-domain>:6443"
-    export K8S_AUTH_API_KEY="$TOKEN"
+    Expected custom facts are present in ansible_facts
 
-TLS options (pick ONE):
-    # Quick/untrusted lab cluster (self-signed):
-    export K8S_AUTH_VERIFY_SSL=false
+    OS version detection logic behaves correctly across RHEL variants
 
-    # Preferred: verify SSL with a CA file
-    export K8S_AUTH_VERIFY_SSL=true
-    # Extract cluster CA from your kubeconfig (context #0 as a simple default):
-    oc config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d > ca.crt
-    export K8S_AUTH_SSL_CA_CERT="$PWD/ca.crt"
+    The role remains idempotent
 
-Option B — Use kubeconfig instead of env vars
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Login as any user that can reach the cluster:
-    oc login https://api.<cluster-domain>:6443 --username <user> --password <pass>
-    # or use an SSO/login method appropriate for your environment
+    No deprecated modules or patterns are used
 
-Then point Ansible at your kubeconfig (default is ~/.kube/config):
-    export KUBECONFIG=~/.kube/config
+    The role works on all configured platforms (e.g., RHEL 8, RHEL 9)
 
+Example Testinfra Assertions
+python
 
-5) Wire variables into Molecule (per-scenario example)
-----------------
-In your role’s scenario file: roles/<role>/molecule/default/molecule.yml
+def test_rhel_major_version(host):
+    facts = host.ansible("setup")["ansible_facts"]
+    assert "ansible_distribution_major_version" in facts
+    assert facts["ansible_distribution"] == "RedHat"
 
-Add environment passthrough for the Ansible provisioner:
-    provisioner:
-      name: ansible
-      env:
-        # Use env‑var auth (Option A)
-        K8S_AUTH_HOST: "${K8S_AUTH_HOST}"
-        K8S_AUTH_API_KEY: "${K8S_AUTH_API_KEY}"
-        K8S_AUTH_VERIFY_SSL: "${K8S_AUTH_VERIFY_SSL:-true}"
-        K8S_AUTH_SSL_CA_CERT: "${K8S_AUTH_SSL_CA_CERT:-}"
-        # Locate adjacent roles when testing inside a collection
-        ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/.."
+Supported Platforms
 
-If you use the docker driver and rely on KUBECONFIG (Option B), mount it:
-    platforms:
-      - name: instance
-        image: registry.access.redhat.com/ubi9/ubi
-        volumes:
-          - "${KUBECONFIG:-$HOME/.kube/config}:/root/.kube/config:ro"
+Defined in molecule.yml, typically:
 
+    RHEL 8.x
 
-6) Run Molecule
----------------
-From the role directory (e.g., openshift/roles/namespace):
+    RHEL 9.x
 
-Full test sequence:
-    molecule test
+    Rocky Linux / AlmaLinux (optional compatibility)
 
-Or individual steps:
-    molecule converge
-    molecule idempotence
-    molecule verify
-    molecule destroy
+Contributing
 
-Tip: if your verify tasks call the API and your lab uses self‑signed certs,
-either provide the CA file (preferred) or set K8S_AUTH_VERIFY_SSL=false.
+When adding new facts or logic:
 
+    Update the Molecule scenario to reflect new behavior
 
-7) Troubleshooting
-------------------
-- SSL self-signed errors:
-    Use a real CA bundle: export K8S_AUTH_SSL_CA_CERT=/path/to/ca.crt
-    or temporarily: export K8S_AUTH_VERIFY_SSL=false
+    Add or modify Testinfra tests
 
-- 403/Forbidden using the token:
-    Ensure the ClusterRoleBinding exists and references the correct SA:
-      oc get clusterrolebinding ansible-sa-admin -o yaml
-    Re-verify access:
-      oc auth can-i get namespaces --as=system:serviceaccount:openshift-ansible:ansible-sa
+    Run molecule test before submitting changes
 
-- 401/Unauthorized:
-    Token missing/expired/typo. Recreate the token and re-export K8S_AUTH_API_KEY.
-
-- Connection errors:
-    Confirm K8S_AUTH_HOST is correct and reachable (https://api.<cluster-domain>:6443).
-
-- Molecule can’t find your role:
-    Set ANSIBLE_ROLES_PATH to the parent of the role (often ${MOLECULE_PROJECT_DIRECTORY}/..).
-
-
-Appendix — Minimal verify task example (README check)
-----------------
-Add to your scenario’s verify.yml to assert a role README exists:
-    - name: Check README.md exists
-      ansible.builtin.stat:
-        path: "{{ lookup('env','MOLECULE_PROJECT_DIRECTORY') }}/README.md"
-      register: readme_file
-
-    - name: Fail if missing
-      ansible.builtin.fail:
-        msg: "README.md required for this role."
-      when: not readme_file.stat.exists
+    Ensure idempotency and linting pass
 
 
