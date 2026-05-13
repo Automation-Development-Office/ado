@@ -50,6 +50,11 @@ on:
         required: false
         default: true
         type: boolean
+      run_readme_verification:
+        description: "Run README format verification"
+        required: false
+        default: false
+        type: boolean
 
 env:
   NAMESPACE: ado
@@ -91,6 +96,39 @@ jobs:
         with:
           name: ansible-lint-report
           path: ansible-lint.xml
+
+  readme-format-check:
+    name: README Format Verification
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.run_readme_verification == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run README format verification
+        id: verify
+        run: |
+          python scripts/verify_readme.py | tee readme-verification.txt
+        continue-on-error: true
+
+      - name: Upload README verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: readme-verification-report
+          path: readme-verification.txt
+
+      - name: Check verification result
+        run: |
+          python scripts/verify_readme.py > /dev/null
+        if: always()
 
   # Testing stage
   discover-molecule-scenarios:
