@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT-0
+---
+# tasks file for patching
+
+
+- name: Importing patching tasks
+  ansible.builtin.import_tasks: patch.yml

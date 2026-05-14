@@ -1,0 +1,36 @@
+---
+
+- name: Server reboot
+  ansible.builtin.reboot:
+    msg: "Rebooting the server after patching."
+    connect_timeout: 5
+    reboot_timeout: 3600
+    pre_reboot_delay: 5
+    post_reboot_delay: 20
+  when: platform_patching_reboot | bool and platform_patching_yum_patch.changed|default(false)
+
+- name: Wait for forced reboot
+  ansible.builtin.wait_for_connection:
+    timeout: 600
+    delay: 20
+  register: platform_patching_reboot_result
+
+- name: Display reboot time
+  ansible.builtin.debug:
+    msg: "{{ ansible_hostname }} rebooted in {{ platform_patching_reboot_result.elapsed }} seconds."
+
+- name: Re-gather Ansible Facts
+  ansible.builtin.setup:
+
+- name: Register post-patching statistics
+  ansible.builtin.set_fact:
+    platform_patching_post_kernel: "{{ ansible_kernel }}"
+    platform_patching_post_uptime: "{{ (ansible_facts.uptime_seconds / 86400) | round }}"
+
+- name: Display Patching Statistics
+  ansible.builtin.debug:
+    msg:
+      - "Pre-patch Uptime: {{ platform_patching_pre_uptime }} days"
+      - "Post-patch Uptime: {{ platform_patching_post_uptime }} days"
+      - "Pre-Kernel Version: {{ platform_patching_pre_kernel }}"
+      - "Post-Kernel Version: {{ platform_patching_post_kernel }}"

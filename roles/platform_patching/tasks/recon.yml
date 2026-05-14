@@ -1,0 +1,69 @@
+---
+- name: Report on Current Distribution and Virtualization
+  ansible.builtin.debug:
+    msg:
+      - "Distribution and version: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}"
+      - "Virtualization role:  {{ ansible_facts.virtualization_role }}"
+
+- name: Get Nameservers
+  ansible.builtin.debug:
+    msg: "Nameservers: {{ ansible_facts.dns.nameservers | join(', ') }}"
+
+- name: Show Mountpoints with less than 20% free
+  ansible.builtin.debug:
+    msg: "{% set output = [] %}\
+          {% for item in ansible_facts.mounts %}\
+          {% if (item.fstype != 'nfs4' and item.fstype != 'nfs3') %}\
+          {% if (item.size_available != 0) %}\
+          {% if (item.size_available / item.size_total) | float < 0.2 %}\
+          {{ output.append(
+            item.mount ~ ' has less than 20% free space - ' ~
+            (((item.size_available / item.size_total) * 100) | round(2)) ~ '% free. (' ~
+            (item.size_available | human_readable) ~ ' / ' ~
+            (item.size_total | human_readable) ~ ').'
+          ) }}\
+          {% endif %}\
+          {% endif %}\
+          {% endif %}\
+          {% endfor %}\
+          {% if output|length > 0 %}\
+          {{ output }}\
+          {% else %}\
+          All Mountpoints OK.\
+          {% endif %}"
+  when: (check_mountpoints | default('true')) | bool
+
+- name: Get Server Uptime
+  ansible.builtin.debug:
+    msg: "Server Uptime: {{ (ansible_facts.uptime_seconds / 86400) | round }} days."
+
+- name: Obtain Information on Enabled Repositories
+  ansible.builtin.include_tasks: repo_facts.yml
+
+- name: Warn if EPEL Repo Detected
+  ansible.builtin.debug:
+    msg: "WARNING: EPEL Repo has been enabled on {{ ansible_facts.nodename }}"
+  when: '(yum_repo.results | map(attribute="repoid") | list) | select("search", "EPEL") | list | length > 0'
+
+- name: Obtain Information on Installed Packages
+  ansible.builtin.include_tasks: package_facts.yml
+
+- name: Display number and name of repositories available
+  ansible.builtin.debug:
+    msg:
+      - "Number of Repos: {{ yum_repo.results | map(attribute='repoid') | list | length }}"
+      - "{{ yum_repo.results | map(attribute='repoid') | list }}"
+
+- name: Display Update Overview
+  ansible.builtin.debug:
+    msg:
+      - "Current Kernel: {{ ansible_facts.kernel }}"
+      - "Kernel Update: {{ (yum_updates.results | map(attribute='envra') | list | sort | select('search', 'kernel') | first)[2:] | default('N/A') }}"
+      # - "Kernel Update: {{ (yum_updates.results | selectattr('name', 'match', 'kernel') | first).envra | default('N/A') }}"
+      - "Number of Updates: {{ yum_updates.results | map(attribute='envra') | list | length }}"
+
+- name: (Debug) Display Full List of Updates
+  ansible.builtin.debug:
+    msg:
+      - "{{ yum_updates.results | map(attribute='envra') | list }}"
+  when: debug is defined and debug | bool

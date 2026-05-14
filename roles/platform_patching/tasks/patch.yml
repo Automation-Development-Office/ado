@@ -1,0 +1,100 @@
+---
+
+
+# - name: Inform about unsupported OS
+#   ansible.builtin.debug:
+#     msg: "RHEL{{ ansible_distribution_major_version }} is out-of-support and will not be registered."
+#   when: ansible_distribution_major_version | int < 8
+
+# - name: Stop playbook for unsupported RHEL
+#   ansible.builtin.meta: end_host
+#   when: ansible_distribution_major_version | int < 8
+
+- name: Gather facts (when not defined)
+  ansible.builtin.setup:
+    gather_subset:
+      - distribution
+      - hardware
+  when:
+    - ansible_facts['distribution_major_version'] is not defined or
+      ansible_facts['uptime_seconds'] is not defined
+
+- name: Fail if RHEL6 is detected (Out of Support)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == "RedHat"
+      - (ansible_facts['distribution_major_version'] | int >= 8)
+    fail_msg: "RHEL{{ ansible_facts['distribution_major_version'] }} and earlier machines are out-of-support and will not be patched."
+    success_msg: "RHEL{{ ansible_facts['distribution_major_version'] }} detected. Proceeding with patching."
+
+
+- name: Obtain Information on Repositories
+  ansible.builtin.include_tasks: repo_facts.yml
+
+- name: (RHEL7) Fail if ELS Repos not Present (Out of Support)
+  ansible.builtin.assert:
+    that:
+      - (yum_repo.results | map(attribute="repoid") | list) | select("search", "els") | list | length > 0
+    fail_msg: "RHEL7 machines that don't have an ELS subscription are out-of-support."
+    success_msg: "ELS repositories detected. Proceeding with patching."
+  when: ansible_facts['distribution_major_version'] == '7'
+
+- name: Register pre-patching statistics
+  ansible.builtin.set_fact:
+    platform_patching_pre_kernel: "{{ ansible_kernel }}"
+    platform_patching_pre_uptime: "{{ (ansible_facts.uptime_seconds / 86400) | round }}"
+
+- name: Cleanup yum cache
+  ansible.builtin.dnf:
+    update_cache: "{{ platform_patching_update_cache }}"
+
+- name: Remove old kernels from /boot
+  ansible.builtin.dnf:
+    name: kernel
+    state: absent
+    autoremove: true
+    exclude: "kernel-{{ ansible_kernel }}"
+  when: platform_patching_package_cleanup | bool
+
+- name: Obtain Information on Installed Packages
+  ansible.builtin.include_tasks: package_facts.yml
+
+- name: Display Number of of patches needed
+  ansible.builtin.debug:
+    msg: "Number of Updates: {{ platform_patching_yum_updates.results | map(attribute='envra') | list | length }}"
+
+- name: Updating packages with dnf
+  ansible.builtin.dnf:
+    name: "{{ platform_patching_package_list | default('*') }}"
+    state: "{{ platform_patching_versions }}"
+    exclude: "{{ platform_patching_exclude_list }}"
+    disablerepo: "{{ platform_patching_disable_repos }}"
+    skip_broken: "{{ platform_patching_skip_broken }}"
+  register: platform_patching_yum_patch
+  when: platform_patching_package_list is defined and platform_patching_package_list | length > 0
+
+- name: (debug) Show platform_patching_yum_patch
+  ansible.builtin.debug:
+    var: platform_patching_yum_patch.results
+    verbosity: 1
+  when: platform_patching_yum_patch is defined
+
+- name: Reboot if needed or requested
+  ansible.builtin.include_tasks: reboot.yml
+  when: platform_patching_reboot | bool  and platform_patching_yum_patch.changed|default(false)
+
+- name: Obtain Information on Installed Packages
+  ansible.builtin.include_tasks: package_facts.yml
+
+- name: Display Number of of patches needed
+  ansible.builtin.debug:
+    msg: "Number of Updates: {{ platform_patching_yum_updates.results | map(attribute='envra') | list | length }}"
+
+- name: Display Patching Statistics (When rebooted)
+  ansible.builtin.debug:
+    msg:
+      - "Pre-patch Uptime: {{ platform_patching_pre_uptime }} days"
+      - "Post-patch Uptime: {{ platform_patching_post_uptime }} days"
+      - "Pre-Kernel Version: {{ platform_patching_pre_kernel }}"
+      - "Post-Kernel Version: {{ platform_patching_post_kernel }}"
+  when: platform_patching_post_uptime is defined and platform_patching_post_kernel is defined

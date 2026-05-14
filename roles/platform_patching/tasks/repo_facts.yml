@@ -1,0 +1,13 @@
+---
+
+- name: Obtaining Repo Information
+  ansible.builtin.command:
+    cmd: "dnf repolist"
+  register: platform_patching_repo_facts
+  changed_when: false
+
+- name: (debug) Show platform_patching_yum_repo
+  ansible.builtin.debug:
+    var: platform_patching_repo_facts.stdout_lines
+    verbosity: 1
+  when: platform_patching_repo_facts is defined
