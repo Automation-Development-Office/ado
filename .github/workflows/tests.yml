@@ -34,10 +34,9 @@ jobs:
           python-version: '3.11'
 
       - name: Run README format verification
-        id: verify
         run: |
-          python scripts/verify_readme.py | tee readme-verification.txt
-        continue-on-error: true
+          set -o pipefail
+          python scripts/verify_readme.py 2>&1 | tee readme-verification.txt
 
       - name: Upload README verification report
         if: always()
@@ -45,11 +44,6 @@ jobs:
         with:
           name: readme-verification-report
           path: readme-verification.txt
-
-      - name: Check verification result
-        run: |
-          python scripts/verify_readme.py > /dev/null
-        if: always()
   sanity:
     uses: ansible/ansible-content-actions/.github/workflows/sanity.yaml@main
     if: false
