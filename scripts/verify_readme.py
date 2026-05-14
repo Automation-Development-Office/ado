@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 
 
-_TEMPLATE_ROLE = "openshift_configure_awspca"
+_TEMPLATE_ROLE = "openshift_tools_manage_namespace"
 TEMPLATE_RELATIVE_PATH = Path("roles") / _TEMPLATE_ROLE / "README.md"
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 
