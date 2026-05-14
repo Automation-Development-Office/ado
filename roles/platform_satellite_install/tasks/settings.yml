@@ -81,8 +81,14 @@
 
 - name: settings | Set variable for credential ID
   ansible.builtin.set_fact:
-    platform_satellite_install_cdn_credential_id: "{{ platform_satellite_install_cred_output['entity']['content_credentials'] | map(attribute='id') | join(', ') | int }}"
-  when: platform_satellite_install_rhn_connected is false
+    platform_satellite_install_cdn_credential_id: >-
+      {{
+        platform_satellite_install_cred_output['entity']['content_credentials']
+        | map(attribute='id')
+        | join(', ')
+        | int
+      }}
+  when: not platform_satellite_install_rhn_connected
 
 - name: settings | Set CDN to sync from connected satellite # noqa: no-changed-when
   ansible.builtin.command: >-
