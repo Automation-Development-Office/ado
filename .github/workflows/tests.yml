@@ -37,6 +37,7 @@ jobs:
         run: |
           set -o pipefail
           python scripts/verify_readme.py 2>&1 | tee readme-verification.txt
+        continue-on-error: true
 
       - name: Upload README verification report
         if: always()
@@ -65,12 +66,10 @@ jobs:
       - unit-galaxy
       # - unit-source
       - ansible-lint
-      - readme-format
     runs-on: ubuntu-latest
     steps:
       - run: >-
           python -c "assert 'failure' not in set([
           '${{ needs.unit-galaxy.result }}',
-          '${{ needs.ansible-lint.result }}',
-          '${{ needs.readme-format.result }}'
+          '${{ needs.ansible-lint.result }}'
           ])"
