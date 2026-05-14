@@ -24,7 +24,8 @@ import sys
 from pathlib import Path
 
 
-TEMPLATE_RELATIVE_PATH = Path("roles") / "utilities_cron" / "README.md"
+_TEMPLATE_ROLE = "openshift_configure_awspca"
+TEMPLATE_RELATIVE_PATH = Path("roles") / _TEMPLATE_ROLE / "README.md"
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 
 
