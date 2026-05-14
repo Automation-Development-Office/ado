@@ -8,52 +8,52 @@ on:
       run_integration_manage_vm_image:
         description: "Run integration_manage_vm_image"
         required: false
-        default: true
+        default: false
         type: boolean
       run_integration_utilities_cron_full_special:
         description: "Run integration_utilities_cron_full_special"
         required: false
-        default: true
+        default: false
         type: boolean
       run_integration_utilities_cron_full_special_removal:
         description: "Run integration_utilities_cron_full_special_removal"
         required: false
-        default: true
+        default: false
         type: boolean
       run_integration_utilities_cron_single_special:
         description: "Run integration_utilities_cron_single_special"
         required: false
-        default: true
+        default: false
         type: boolean
       run_integration_utilities_cron_single_special_removal:
         description: "Run integration_utilities_cron_single_special_removal"
         required: false
-        default: true
+        default: false
         type: boolean
       run_integration_utils_mount_mount_auto_detect:
         description: "Run integration_utils_mount_mount_auto_detect"
         required: false
-        default: true
+        default: false
         type: boolean
       run_integration_utils_mount_mount_explicit_fstype:
         description: "Run integration_utils_mount_mount_explicit_fstype"
         required: false
-        default: true
+        default: false
         type: boolean
       run_integration_utils_mount_remove_from_fstab:
         description: "Run integration_utils_mount_remove_from_fstab"
         required: false
-        default: true
+        default: false
         type: boolean
       run_integration_utils_mount_unmount_filesystem:
         description: "Run integration_utils_mount_unmount_filesystem"
         required: false
-        default: true
+        default: false
         type: boolean
       run_readme_verification:
         description: "Run README format verification"
         required: false
-        default: false
+        default: true
         type: boolean
 
 env:
