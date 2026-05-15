@@ -1,0 +1,220 @@
+---
+# tasks file for rhel_facts
+
+# ---------- Collect with raw-friendly commands ----------
+- name: Tuned status
+  ansible.builtin.raw: "systemctl is-active tuned 2>/dev/null || echo inactive"
+  register: utilities_rhel_facts_tuned
+  changed_when: false
+  failed_when: false
+
+- name: Firewalld status
+  ansible.builtin.raw: "systemctl is-active firewalld 2>/dev/null || echo inactive"
+  register: utilities_rhel_facts_fw
+  changed_when: false
+  failed_when: false
+
+- name: Memory used/total (MB)
+  ansible.builtin.raw: "free -m | awk 'NR==2{print $3\" \" $2}'"
+  register: utilities_rhel_facts_mem
+  changed_when: false
+  failed_when: false
+
+- name: Redhat release
+  ansible.builtin.raw: "cat /etc/redhat-release 2>/dev/null || echo ''"
+  register: utilities_rhel_facts_rel
+  changed_when: false
+  failed_when: false
+
+- name: UTC time
+  ansible.builtin.raw: "date -u +%Y-%m-%dT%H:%M:%SZ"
+  register: utilities_rhel_facts_time
+  changed_when: false
+  failed_when: false
+
+- name: Hostname (FQDN preferred)
+  ansible.builtin.raw: "(hostname -f 2>/dev/null || hostname) | tr -d '\\n'"
+  register: utilities_rhel_facts_host
+  changed_when: false
+  failed_when: false
+
+- name: Default interface (via route lookup)
+  ansible.builtin.raw: "ip route get 1.1.1.1 2>/dev/null | awk '/dev/ {for(i=1;i<=NF;i++) if ($i==\"dev\") print $(i+1)}' | head -n1"
+  register: utilities_rhel_facts_def_if
+  changed_when: false
+  failed_when: false
+
+- name: Primary IP/CIDR on default interface
+  ansible.builtin.raw: >
+    IF='{{ utilities_rhel_facts_def_if.stdout | trim }}';
+    [ -n "$IF" ] && ip -o -4 addr show dev "$IF" | awk '{print $4}' | head -n1 || echo ''
+  register: utilities_rhel_facts_ipcidr_primary
+  changed_when: false
+  failed_when: false
+
+- name: Fallback IP/CIDR (first global address)
+  ansible.builtin.raw: "ip -o -4 addr show scope global 2>/dev/null | awk '{print $4}' | head -n1"
+  register: utilities_rhel_facts_ipcidr_fallback
+  changed_when: false
+  failed_when: false
+
+- name: Default route line
+  ansible.builtin.raw: "ip route 2>/dev/null | awk '/^default/ {print $0; exit}'"
+  register: utilities_rhel_facts_gw
+  changed_when: false
+  failed_when: false
+
+- name: DNS nameservers (CSV)
+  ansible.builtin.raw: "awk '/^nameserver/ {print $2}' /etc/resolv.conf 2>/dev/null | paste -sd, - 2>/dev/null || echo ''"
+  register: utilities_rhel_facts_dns
+  changed_when: false
+  failed_when: false
+
+- name: SELinux status
+  ansible.builtin.raw: "getenforce 2>/dev/null || echo Disabled"
+  register: utilities_rhel_facts_sel
+  changed_when: false
+  failed_when: false
+
+- name: RHSM hostname (Satellite vs CDN)
+  ansible.builtin.raw: "test -f /etc/rhsm/rhsm.conf && awk -F= '/^hostname *=/ {gsub(/ /,\"\",$2); print $2; exit}' /etc/rhsm/rhsm.conf || echo ''"
+  register: utilities_rhel_facts_rhsm_host
+  changed_when: false
+  failed_when: false
+
+- name: Enabled repos (id \t name)
+  ansible.builtin.raw: >
+    sh -lc '({ command -v dnf >/dev/null && dnf -q repolist -v; } 2>/dev/null
+    || { command -v yum >/dev/null && yum -q repolist -v; } 2>/dev/null)
+    | awk "/Repo-id/ {rid=\$3} /Repo-name/ {nm=substr(\$0,index(\$0,\$3)); print rid \"\t\" nm}" || true'
+  register: utilities_rhel_facts_repolines
+  changed_when: false
+  failed_when: false
+
+# ---------- Seed defaults so missing registers don't crash ----------
+- name: Seed default register objects (avoid undefined)
+  ansible.builtin.set_fact:
+    utilities_rhel_facts_tuned: "{{ utilities_rhel_facts_tuned | default({'stdout': ''}, true) }}"
+    utilities_rhel_facts_fw: "{{ utilities_rhel_facts_fw | default({'stdout': ''}, true) }}"
+    utilities_rhel_facts_mem: "{{ utilities_rhel_facts_mem | default({'stdout': ''}, true) }}"
+    utilities_rhel_facts_rel: "{{ utilities_rhel_facts_rel | default({'stdout': ''}, true) }}"
+    utilities_rhel_facts_time: "{{ utilities_rhel_facts_time | default({'stdout': ''}, true) }}"
+    utilities_rhel_facts_host: "{{ utilities_rhel_facts_host | default({'stdout': ''}, true) }}"
+    utilities_rhel_facts_gw: "{{ utilities_rhel_facts_gw | default({'stdout': ''}, true) }}"
+    utilities_rhel_facts_sel: "{{ utilities_rhel_facts_sel | default({'stdout': ''}, true) }}"
+    utilities_rhel_facts_rhsm_host: "{{ utilities_rhel_facts_rhsm_host | default({'stdout': ''}, true) }}"
+    utilities_rhel_facts_repolines: "{{ utilities_rhel_facts_repolines | default({'stdout_lines': []}, true) }}"
+    utilities_rhel_facts_dns: "{{ utilities_rhel_facts_dns | default({'stdout': ''}, true) }}"
+    utilities_rhel_facts_ipcidr_primary: "{{ utilities_rhel_facts_ipcidr_primary | default({'stdout': ''}, true) }}"
+    utilities_rhel_facts_ipcidr_fallback: "{{ utilities_rhel_facts_ipcidr_fallback | default({'stdout': ''}, true) }}"
+
+# ---------- Normalize raw outputs into rhel_facts_* ----------
+- name: Normalize raw outputs
+  ansible.builtin.set_fact:
+    utilities_rhel_facts_tuned_active: "{{ (utilities_rhel_facts_tuned.stdout | default('') | trim) == 'active' }}"
+    utilities_rhel_facts_fw_active: "{{ (utilities_rhel_facts_fw.stdout | default('') | trim) == 'active' }}"
+    utilities_rhel_facts_used_mb: "{{ ((utilities_rhel_facts_mem.stdout | default('') | trim).split() | first) | default('0') | int }}"
+    utilities_rhel_facts_total_mb: "{{ ((utilities_rhel_facts_mem.stdout | default('') | trim).split() | last) | default('0') | int }}"
+    utilities_rhel_facts_rel_line: "{{ utilities_rhel_facts_rel.stdout | default('') | trim }}"
+    utilities_rhel_facts_time_iso: "{{ utilities_rhel_facts_time.stdout | default('') | trim }}"
+    utilities_rhel_facts_hostname: "{{ utilities_rhel_facts_host.stdout | default('') | trim }}"
+    utilities_rhel_facts_gw_line: "{{ utilities_rhel_facts_gw.stdout | default('') | trim }}"
+    utilities_rhel_facts_sel_raw: "{{ utilities_rhel_facts_sel.stdout | default('') | trim | lower }}"
+    utilities_rhel_facts_rhsm_host: "{{ utilities_rhel_facts_rhsm_host.stdout | default('') | trim }}"
+    utilities_rhel_facts_repo_lines: "{{ utilities_rhel_facts_repolines.stdout_lines | default([]) }}"
+    utilities_rhel_facts_dns_csv: "{{ utilities_rhel_facts_dns.stdout | default('') | trim }}"
+
+- name: Normalize derived values
+  ansible.builtin.set_fact:
+    utilities_rhel_facts_used_g: "{{ (utilities_rhel_facts_used_mb | float / 1024) | round(1) }}"
+    utilities_rhel_facts_total_g: "{{ (utilities_rhel_facts_total_mb | float / 1024) | round(1) }}"
+    utilities_rhel_facts_rel_sane: >
+      {{
+        (utilities_rhel_facts_rel_line
+          | regex_replace('^Red Hat Enterprise Linux Server','Red Hat Enterprise Linux')
+          | regex_replace('^Red Hat Enterprise Linux','RedHat'))
+      }}
+    utilities_rhel_facts_sel_text: >
+      {% if utilities_rhel_facts_sel_raw in ['enforcing'] %}enabled
+      {% elif utilities_rhel_facts_sel_raw in ['permissive'] %}permissive
+      {% else %}disabled{% endif %}
+    utilities_rhel_facts_dns_list: "{{ (utilities_rhel_facts_dns_csv | length > 0) | ternary(utilities_rhel_facts_dns_csv.split(','), []) }}"
+
+# ---------- IP/CIDR (two-step; no forward refs) ----------
+- name: Compute IP/CIDR candidates (primary & fallback)
+  ansible.builtin.set_fact:
+    utilities_rhel_facts_ipcidr_primary_val: "{{ utilities_rhel_facts_ipcidr_primary.stdout | default('') | trim }}"
+    utilities_rhel_facts_ipcidr_fallback_val: "{{ utilities_rhel_facts_ipcidr_fallback.stdout | default('') | trim }}"
+
+# Decide the final IP/CIDR first (no other refs here)
+- name: Choose final IP/CIDR
+  ansible.builtin.set_fact:
+    utilities_rhel_facts_ip_cidr: >
+      {{
+        (utilities_rhel_facts_ipcidr_primary_val | default('') | length > 0)
+        | ternary(utilities_rhel_facts_ipcidr_primary_val, utilities_rhel_facts_ipcidr_fallback_val | default(''))
+      }}
+
+# Now split it safely
+- name: Split IP and prefix from IP/CIDR
+  ansible.builtin.set_fact:
+    utilities_rhel_facts_ip_only: "{{ (utilities_rhel_facts_ip_cidr | default('') | string).split('/') | first }}"
+    utilities_rhel_facts_prefix: >
+      {{
+        ((utilities_rhel_facts_ip_cidr | default('') | string).find('/') != -1)
+        | ternary((utilities_rhel_facts_ip_cidr | string).split('/')[1], '')
+      }}
+
+
+# ---------- Repo summary ----------
+- name: Repo summary fields (count + satellite flag)
+  ansible.builtin.set_fact:
+    utilities_rhel_facts_repo_count: "{{ utilities_rhel_facts_repo_lines | length }}"
+    utilities_rhel_facts_is_satellite: >
+      {{ (utilities_rhel_facts_rhsm_host | length > 0)
+          and ('redhat.com' not in (utilities_rhel_facts_rhsm_host | lower)) }}
+
+- name: Build repo summary string
+  ansible.builtin.set_fact:
+    utilities_rhel_facts_repo_summary: >
+      {{
+        utilities_rhel_facts_repo_count ~ ' repo'
+        ~ ((utilities_rhel_facts_repo_count|int == 1) | ternary('', 's'))
+        ~ '; ' ~ (utilities_rhel_facts_is_satellite | ternary('satellite','rhsm'))
+      }}
+
+# ---------- Build output lines ----------
+- name: Build lines for human output
+  ansible.builtin.set_fact:
+    utilities_rhel_facts_fact_lines:
+      - "tuned_active: {{ (utilities_rhel_facts_tuned_active | bool | string | lower) }}"
+      - "firewalld: {{ (utilities_rhel_facts_fw_active | bool | string | lower) }}"
+      - "memory: {{ utilities_rhel_facts_used_g }}G of {{ utilities_rhel_facts_total_g }} G used"
+      - "repos:   {{ utilities_rhel_facts_repo_summary }}"
+      - "selinux: {{ utilities_rhel_facts_sel_text }}"
+      - "time: {{ utilities_rhel_facts_time_iso }}"
+      - "rhel version: {{ utilities_rhel_facts_rel_sane }}"
+      - "hostname: {{ utilities_rhel_facts_hostname }}"
+      - "ip: {{ utilities_rhel_facts_ip_only }}"
+      - "subnet: {{ (utilities_rhel_facts_prefix | length > 0) | ternary('/' ~ utilities_rhel_facts_prefix, '') }}"
+      - "gateway: {{ utilities_rhel_facts_gw_line }}"
+      - "dns: {{ utilities_rhel_facts_dns_list | join(', ') }}"
+
+- name: Append each enabled repo as separate line
+  ansible.builtin.set_fact:
+    utilities_rhel_facts_fact_lines: >
+      {{
+        utilities_rhel_facts_fact_lines
+        + (utilities_rhel_facts_repo_lines
+            | map('regex_replace', '^(.*)\\t(.*)$', 'repos: "\\1  \\2"')
+            | list)
+      }}
+
+# ---------- Output ----------
+- name: Show RHEL facts (array)
+  ansible.builtin.debug:
+    var: utilities_rhel_facts_fact_lines
+
+# - name: Pretty print lines
+#  ansible.builtin.debug:
+#    msg: "{{ utilities_rhel_facts_fact_lines | join('\n') }}"
