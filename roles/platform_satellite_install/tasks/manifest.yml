@@ -1,0 +1,40 @@
+---
+- name: manifest | Copy the manifest to Satellite
+  ansible.builtin.copy:
+    src: "{{ satellite_manifest_src }}"
+    dest: "{{ satellite_manifest_path }}"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: manifest | Remove the manifest
+  redhat.satellite.subscription_manifest:
+    username: "{{ satellite_admin_username }}"
+    password: "{{ satellite_admin_password }}"
+    server_url: "{{ satellite_server_url }}"
+    organization: "{{ satellite_organization }}"
+    state: absent
+    validate_certs: "{{ satellite_validate_certs }}"
+  ignore_errors: True
+
+- name: manifest | Upload the manifest for Satellite
+  redhat.satellite.subscription_manifest:
+    username: "{{ satellite_admin_username }}"
+    password: "{{ satellite_admin_password }}"
+    server_url: "{{ satellite_server_url }}"
+    organization: "{{ satellite_organization }}"
+    state: present
+    manifest_path: "{{ satellite_manifest_path }}"
+    validate_certs: "{{ satellite_validate_certs }}"
+  ignore_errors: True
+
+- name: manifest | Refresh the manifest
+  redhat.satellite.subscription_manifest:
+    username: "{{ satellite_admin_username }}"
+    password: "{{ satellite_admin_password }}"
+    server_url: "{{ satellite_server_url }}"
+    organization: "{{ satellite_organization }}"
+    state: refreshed
+    validate_certs: "{{ satellite_validate_certs }}"
+  ignore_errors: True
+...
