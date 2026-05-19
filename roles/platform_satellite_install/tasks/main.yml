@@ -30,3 +30,6 @@
 
     - name: Satellite Install
       ansible.builtin.include_tasks: install_satellite.yml
+
+    - name: Settings Config
+      ansible.builtin.include_tasks: settings.yml
