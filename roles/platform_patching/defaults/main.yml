@@ -6,7 +6,7 @@
 
 
 # Configure whether to check server mountpoints.
-# platform_patching_check_mountpoints: true This can be added to the playbook to enable checking mountpoints.
+# platform_patching_check_mountpoints: true # This can be added to the playbook to enable checking mountpoints.
 
 # Configure whether to reboot servers.
 platform_patching_reboot: false
