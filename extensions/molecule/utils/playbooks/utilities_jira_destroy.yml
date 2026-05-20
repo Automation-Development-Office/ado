@@ -1,0 +1,17 @@
+---
+- name: Destroy — no-op (delegated driver)
+  hosts: all
+  gather_facts: false
+  become: false
+  remote_user: root
+  vars:
+    # Example services that exist on all RHELs
+    service_names:
+      - crond
+      - tuned
+      - httpd
+      - tomcat
+    service_state: started
+    service_enabled: true
+  roles:
+    - role: ado.utilities.services_management

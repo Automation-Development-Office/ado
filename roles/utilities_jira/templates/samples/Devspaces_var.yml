@@ -1,0 +1,114 @@
+template_stories:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Validate prerequisites and architectural readiness for Red Hat OpenShift Dev Spaces  
+      *So that:* developers can use secure, scalable, and consistent development environments.
+
+      Notes / Context:
+      This phase focuses on environment readiness, access validation, and design decisions
+      prior to deploying Dev Spaces.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * Target clusters identified and categorized (shared, dedicated, sandbox)
+      * Network connectivity validated (Dev Spaces, Git, container registries)
+      * Identity integration reviewed (IdM, SSO, RBAC)
+      * Workspace isolation and security requirements defined
+      * Storage requirements reviewed (PVCs, performance, retention)
+      * Resource quotas and limits defined
+      * Automation expectations documented
+      * Gaps in automotion and risks captured and converted to backlog items
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Conduct Dev Spaces readiness and architecture workshop"
+      - summary: "Validate cluster networking and external access"
+      - summary: "Review authentication and RBAC requirements"
+      - summary: "Define workspace storage and lifecycle requirements"
+      - summary: "Document automation expectations and constraints"
+      - summary: "Create backlog items for identified gaps and missing automation"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Deploy and configure Red Hat OpenShift Dev Spaces  
+      *So that:* developers can create and manage workspaces reliably.
+
+    custom_ac: |
+      * Dev Spaces operator installed and healthy
+      * Dev Spaces instance deployed and accessible
+      * Workspace routing and networking validated
+      * Identity and RBAC enforcement verified
+      * Workspace storage provisioning validated
+      * Devfile registry configured
+      * Automation is repeatable and idempotent
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Install Dev Spaces operator"
+      - summary: "Deploy Dev Spaces instance"
+      - summary: "Configure routing and access"
+      - summary: "Configure RBAC and identity integration"
+      - summary: "Validate workspace storage provisioning"
+      - summary: "Configure devfile registry"
+      - summary: "Validate automation and repeatability"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Validation, Adoption, and Developer Enablement"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Validate developer workflows using Dev Spaces  
+      *So that:* teams can confidently adopt the platform for daily development.
+
+    custom_ac: |
+      * Sample workspaces successfully launched
+      * Developer workflows validated end-to-end
+      * Git operations and CI/CD integrations verified
+      * Resource consumption and scaling validated
+      * Developer experience feedback collected
+      * Stakeholder sign-off obtained
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Launch sample workspaces"
+      - summary: "Validate developer workflows"
+      - summary: "Test Git and CI/CD integrations"
+      - summary: "Verify workspace scaling and performance"
+      - summary: "Collect developer feedback"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Long-Term Support"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Operationalize Dev Spaces for long-term use  
+      *So that:* the platform remains stable, secure, and maintainable.
+
+    custom_ac: |
+      * Runbooks completed
+      * Support ownership defined
+      * Backup and recovery procedures validated
+      * Upgrade and lifecycle management documented
+      * Resource usage and quotas monitored
+      * Governance policies enforced
+      * Operational handoff completed
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create operational runbooks"
+      - summary: "Define support and escalation model"
+      - summary: "Validate backup and restore procedures"
+      - summary: "Document upgrade and maintenance processes"
+      - summary: "Define governance and quota policies"
+      - summary: "Finalize operational handoff documentation"

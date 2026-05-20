@@ -1,0 +1,43 @@
+---
+- name: Verify — namespace exists
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    verify_services:
+      - crond
+      - httpd
+      - tomcat
+    readme_path: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/README.md"
+  tasks:
+    - name: Check if README.md exists
+      ansible.builtin.stat:
+        path: "{{ readme_path }}"
+      register: readme_file
+
+    - name: Print message if README.md exists
+      ansible.builtin.debug:
+        msg: "README.md file exists in the role."
+      when: readme_file.stat.exists
+
+    - name: Print message if README.md does not exist
+      ansible.builtin.debug:
+        msg: "README.md file is missing in the role."
+      when: not readme_file.stat.exists
+
+    - name: Load README.md if present
+      ansible.builtin.slurp:
+        path: "{{ readme_path }}"
+      register: readme_raw
+      when: readme_file.stat.exists
+
+    - name: Set README content fact
+      ansible.builtin.set_fact:
+        readme: "{{ readme_raw.content | b64decode }}"
+      when: readme_file.stat.exists
+
+    - name: Verify README has required heading
+      ansible.builtin.assert:
+        that:
+          - readme is regex('(?m)^#\s+Role:')
+      when: readme_file.stat.exists

@@ -1,0 +1,106 @@
+template_stories:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate prerequisites and architecture for RHEL systems
+      *So that:* hosts can be provisioned securely, consistently, and at scale.
+
+      Notes / Context:
+      This phase focuses on system design, access, security requirements,
+      and integration with enterprise services prior to provisioning.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * Use cases defined (server roles, workloads, environments)
+      * Infrastructure readiness validated (compute, storage, network)
+      * Identity integration reviewed (IdM, LDAP, AD)
+      * Security baseline requirements defined
+      * Automation and configuration standards documented
+      * Gaps in automotion and risks captured and converted to backlog items
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Conduct RHEL readiness and architecture workshop"
+      - summary: "Define server roles and workload expectations"
+      - summary: "Review identity and authentication integration"
+      - summary: "Validate network, DNS, and time synchronization"
+      - summary: "Document automation and configuration expectations"
+      - summary: "Create backlog items for identified gaps and missing automation"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: System Provisioning and Configuration"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Provision and configure RHEL systems using approved standards
+      *So that:* systems are secure, consistent, and supportable.
+
+    custom_ac: |
+      * RHEL installed using approved methods (PXE, ISO, image, automation)
+      * System registration and subscription completed
+      * Baseline security configuration applied
+      * Required packages and repositories configured
+      * Automation is repeatable and idempotent
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Provision RHEL systems"
+      - summary: "Register systems with subscription management"
+      - summary: "Apply baseline security configuration"
+      - summary: "Configure repositories and package sources"
+      - summary: "Validate automation and repeatability"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Platform Integration and Validation"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Integrate RHEL with enterprise platforms
+      *So that:* systems operate securely within the ecosystem.
+
+    custom_ac: |
+      * Identity and access integration validated
+      * Monitoring and logging configured
+      * Backup and recovery verified
+      * Security hardening validated
+      * Application or service workloads validated
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Integrate with identity and access management"
+      - summary: "Configure monitoring and logging"
+      - summary: "Validate backup and recovery procedures"
+      - summary: "Apply and validate security hardening"
+      - summary: "Validate application or service functionality"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Handoff"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Operationalize RHEL systems for long-term support
+      *So that:* they remain stable, secure, and maintainable.
+
+    custom_ac: |
+      * Operational runbooks completed
+      * Patch and lifecycle management defined
+      * Monitoring and alerting thresholds validated
+      * Compliance posture reviewed
+      * Ownership and escalation paths defined
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create operational runbooks"
+      - summary: "Define patching and lifecycle processes"
+      - summary: "Validate monitoring and alerting"
+      - summary: "Review compliance and security posture"
+      - summary: "Complete operational handoff"
+
+

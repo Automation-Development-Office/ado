@@ -1,0 +1,117 @@
+template_stories_spike:
+
+  - story_summary: "{{ product }} - {{ group }} - SPIKE: {{ spike_topic }}"
+    story_description: |
+      *As a:* "{{ role_name | default('Consultant') }}"
+      *I want to:* Investigate and define requirements/options for {{ spike_topic }}
+      *So that:* stakeholders can make an informed decision and follow-on work can be planned.
+
+      *Purpose:*
+      Investigate and define requirements for {{ spike_topic }}.
+
+      *Decision needed:*
+      {{ spike_decision_needed | default('TBD') }}
+
+      *Scope:*
+      {{ spike_scope | default('TBD') }}
+
+      *Out of scope:*
+      {{ spike_out_of_scope | default('TBD') }}
+
+      *Stakeholders:*
+      - Requestor: {{ requestor | default('TBD') }}
+      - Engineering / Owner Group: {{ group }}
+      - Approver: {{ approver | default('TBD') }}
+
+      *Questions to answer:*
+      - {{ question_1 | default('TBD') }}
+      - {{ question_2 | default('TBD') }}
+      - {{ question_3 | default('TBD') }}
+
+      *Assumptions / constraints:*
+      {{ spike_constraints | default('TBD') }}
+
+      *Deliverables:*
+      - Written summary of findings
+      - Recommended approach
+      - Risks / constraints identified
+      - Follow-on stories created
+
+      *Links:*
+      - Doc: {{ spike_doc_link | default('TBD') }}
+      - Repo/PR: {{ spike_repo_link | default('TBD') }}
+      - Slack/Thread: {{ spike_thread_link | default('TBD') }}
+
+      *Timebox:* {{ spike_timebox | default('2 business days') }}
+      *Due date:* {{ spike_due_date | default('TBD') }}
+
+    custom_ac: |
+      * Stakeholders consulted
+      * Technical constraints documented
+      * Options compared with recommendation
+      * Risks / tradeoffs identified
+      * Decision recorded
+      * Follow-on work created in backlog
+      * Documentation link attached
+
+    labels:
+      - "spike"
+      - "{{ product }}"
+      - "discovery"
+
+    subtasks:
+      - summary: "Meet with stakeholders to gather requirements"
+        description: |
+          *As a:* "{{ role_name | default('Consultant') }}"
+          *I want to:* Meet with stakeholders to gather requirements for {{ spike_topic }}
+          *So that:* the spike reflects real constraints and expectations.
+
+          Notes / Context:
+          Capture functional requirements, non-functional requirements, and success criteria.
+        labels:
+          - "spike"
+          - "{{ product }}"
+          - "discovery"
+        component: "{{ group }}"
+
+      - summary: "Research technical feasibility / constraints"
+        description: |
+          *As a:* "{{ role_name | default('Consultant') }}"
+          *I want to:* Research feasibility and constraints for {{ spike_topic }}
+          *So that:* recommendations are grounded in reality.
+
+          Notes / Context:
+          Validate dependencies, permissions, platform limitations, integrations, and risks.
+        labels:
+          - "spike"
+          - "{{ product }}"
+          - "discovery"
+        component: "{{ group }}"
+
+      - summary: "Document findings and recommendation"
+        description: |
+          *As a:* "{{ role_name | default('Consultant') }}"
+          *I want to:* Document findings and a recommendation
+          *So that:* stakeholders can make a decision quickly.
+
+          Notes / Context:
+          Include: options considered, pros/cons, risks, and the recommended approach.
+        labels:
+          - "spike"
+          - "{{ product }}"
+          - "discovery"
+        component: "{{ group }}"
+
+      - summary: "Create follow-on backlog items"
+        description: |
+          *As a:* "{{ role_name | default('Consultant') }}"
+          *I want to:* Create follow-on backlog items
+          *So that:* the decision translates into actionable delivery work.
+
+          Notes / Context:
+          Create stories/tasks for implementation, validation, docs, and automation as needed.
+        labels:
+          - "spike"
+          - "{{ product }}"
+          - "discovery"
+        component: "{{ group }}"

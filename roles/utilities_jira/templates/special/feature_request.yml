@@ -1,0 +1,117 @@
+template_stories_feature:
+
+  - story_summary: "{{ product }} - {{ group }} - FEATURE: {{ feature_summary }}"
+    story_description: |
+      *As a:* "{{ role_name | default('Engineer') }}"
+      *I want to:* {{ feature_summary }}
+      *So that:* automation is more reusable, consistent, and scalable.
+
+      *Request / Problem:*
+      {{ feature_description }}
+
+      *Why now / value:*
+      {{ feature_value | default('TBD') }}
+
+      *Scope:*
+      {{ scope | default('TBD') }}
+
+      *Out of scope:*
+      {{ out_of_scope | default('TBD') }}
+
+      *Target users / consumers:*
+      {{ consumers | default('TBD') }}
+
+      *Constraints / assumptions:*
+      {{ constraints | default('TBD') }}
+
+      *Design notes (optional):*
+      {{ design_notes | default('TBD') }}
+
+      *Links:*
+      - Doc/Spec: {{ doc_link | default('TBD') }}
+      - Repo/Issue: {{ repo_link | default('TBD') }}
+      - Examples: {{ examples_link | default('TBD') }}
+
+      *Target version/release:* {{ target_version | default('TBD') }}
+
+    custom_ac: |
+      * Feature behavior defined and approved
+      * Implementation completed
+      * Backwards compatibility confirmed (or documented breaking change)
+      * Tests added/updated (molecule/CI)
+      * Documentation updated (README/examples)
+      * Verified in target environment
+      * Release notes / changelog updated if applicable
+
+    labels:
+      - "feature"
+      - "{{ product }}"
+      - "{{ section | default('delivery') }}"
+
+    subtasks:
+      - summary: "Define requirements and acceptance criteria"
+        description: |
+          *As a:* "{{ role_name | default('Engineer') }}"
+          *I want to:* Define requirements and acceptance criteria
+          *So that:* implementation is unambiguous and testable.
+
+          Notes / Context:
+          Include inputs/outputs, examples, edge cases, and non-goals.
+        labels:
+          - "feature"
+          - "{{ product }}"
+          - "{{ section | default('delivery') }}"
+        component: "{{ group }}"
+
+      - summary: "Design approach (variables, interfaces, backwards-compatibility)"
+        description: |
+          *As a:* "{{ role_name | default('Engineer') }}"
+          *I want to:* Design the implementation approach
+          *So that:* the role interface is consistent with the collection patterns.
+
+          Notes / Context:
+          Define variable names, defaults, idempotency behavior, and compatibility approach.
+        labels:
+          - "feature"
+          - "{{ product }}"
+          - "{{ section | default('delivery') }}"
+        component: "{{ group }}"
+
+      - summary: "Implement feature"
+        description: |
+          *As a:* "{{ role_name | default('Engineer') }}"
+          *I want to:* Implement the feature
+          *So that:* the requested capability is available for use.
+
+          Notes / Context:
+          Keep changes modular and consistent with collection style (FQCN modules, no shell unless necessary).
+        labels:
+          - "feature"
+          - "{{ product }}"
+          - "{{ section | default('delivery') }}"
+        component: "{{ group }}"
+
+      - summary: "Add/update tests (molecule/CI) and validate"
+        description: |
+          *As a:* "{{ role_name | default('Engineer') }}"
+          *I want to:* Add or update tests and validate in CI
+          *So that:* the feature is reliable and regressions are prevented.
+        labels:
+          - "feature"
+          - "{{ product }}"
+          - "{{ section | default('delivery') }}"
+        component: "{{ group }}"
+
+      - summary: "Update docs/examples and release notes"
+        description: |
+          *As a:* "{{ role_name | default('Engineer') }}"
+          *I want to:* Update documentation and examples
+          *So that:* users can adopt the feature quickly.
+
+          Notes / Context:
+          Include example playbook snippets and variable documentation.
+        labels:
+          - "feature"
+          - "{{ product }}"
+          - "{{ section | default('delivery') }}"
+        component: "{{ group }}"

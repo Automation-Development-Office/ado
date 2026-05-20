@@ -1,0 +1,17 @@
+---
+- name: Converge — apply service_management across RHEL 7/8/9/10
+  hosts: all
+  gather_facts: false
+  become: false
+  remote_user: root
+  vars:
+    # Example services that exist on all RHELs
+    service_names:
+      - crond
+      - tuned
+      - httpd
+      - tomcat
+    service_state: stopped
+    service_enabled: false
+  roles:
+    - role: ado.utilities.services_management

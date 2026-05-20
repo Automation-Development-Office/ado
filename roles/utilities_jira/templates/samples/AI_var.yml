@@ -1,0 +1,118 @@
+template_stories:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
+    story_description: |
+      *As a:* {{ role_name }}  
+      *I want to:* Validate prerequisites and architectural readiness for Red Hat AI  
+      *So that:* AI workloads can be deployed securely, repeatably, and at scale.
+
+      Notes / Context:
+      This phase focuses on aligning stakeholders, validating platform readiness,
+      and defining architecture and operational expectations before implementation.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * Target clusters identified and categorized (training, inference, shared services)
+      * GPU and accelerator availability validated
+      * Network connectivity validated (cluster, storage, model access)
+      * Identity integration reviewed (IdM, SSO, RBAC)
+      * Certificate and trust requirements documented
+      * Data access patterns and sources identified
+      * Model lifecycle expectations defined (train, deploy, retrain, retire)
+      * Automation expectations documented
+      * Gaps and risks identified and converted into backlog items
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Conduct Red Hat AI readiness and architecture workshop"
+      - summary: "Validate GPU and accelerator availability"
+      - summary: "Review identity, RBAC, and access model"
+      - summary: "Document data sources and access patterns"
+      - summary: "Define model lifecycle expectations"
+      - summary: "Identify automation requirements and constraints"
+      - summary: "Create backlog items for identified gaps and missing automation"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation"
+    story_description: |
+      *As a:* {{ role_name }}  
+      *I want to:* Deploy and configure Red Hat AI components using approved architecture  
+      *So that:* AI workloads can be executed securely and consistently across environments.
+
+    custom_ac: |
+      * Red Hat AI components deployed and healthy
+      * GPU resources available and schedulable
+      * Model serving framework configured (e.g., KServe, OpenVINO, Triton)
+      * Storage and data access validated
+      * RBAC and access controls enforced
+      * CI/CD workflows support model build and deployment
+      * Automation is repeatable and idempotent
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Deploy Red Hat AI platform components"
+      - summary: "Configure GPU and accelerator scheduling"
+      - summary: "Deploy model serving components"
+      - summary: "Validate storage and data access"
+      - summary: "Configure RBAC and security policies"
+      - summary: "Validate CI/CD integration for AI workloads"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Validation, Adoption, and Application Enablement"
+    story_description: |
+      *As a:* {{ role_name }}  
+      *I want to:* Validate AI workloads and enable application teams  
+      *So that:* AI capabilities are reliable, observable, and trusted.
+
+    custom_ac: |
+      * AI workloads successfully deployed and executed
+      * Model inference and performance validated
+      * Resource utilization and scaling verified
+      * Monitoring and observability validated (GPU, memory, latency)
+      * Model versioning and promotion workflows validated
+      * Application teams onboarded and enabled
+      * Stakeholder sign-off obtained
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Deploy sample AI workloads"
+      - summary: "Validate model inference and performance"
+      - summary: "Validate observability and metrics"
+      - summary: "Test scaling and resource utilization"
+      - summary: "Onboard application teams"
+      - summary: "Collect stakeholder feedback"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Long-Term Support"
+    story_description: |
+      *As a:* {{ role_name }}  
+      *I want to:* Operationalize Red Hat AI for long-term support  
+      *So that:* AI workloads remain secure, scalable, and cost-effective.
+
+    custom_ac: |
+      * Operational runbooks completed
+      * Ownership and escalation paths defined
+      * Backup and recovery procedures validated
+      * Upgrade and lifecycle management documented
+      * Governance policies enforced and auditable
+      * Cost and resource usage visibility established
+      * Operational handoff completed
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create operational runbooks"
+      - summary: "Define support and escalation model"
+      - summary: "Validate backup and recovery workflows"
+      - summary: "Document upgrade and lifecycle procedures"
+      - summary: "Validate governance and compliance controls"
+      - summary: "Finalize operational handoff"
+

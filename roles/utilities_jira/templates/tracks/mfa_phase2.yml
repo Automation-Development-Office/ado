@@ -1,0 +1,27 @@
+template_stories_mfa_phase2:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: MFA Validation, Operations, and Handoff"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate and operationalize MFA
+      *So that:* it can be supported long term without impacting users.
+
+    custom_ac: |
+      * MFA behavior validated with real users
+      * Monitoring and alerting reviewed
+      * Runbooks and troubleshooting guides completed
+      * Support and escalation model defined
+      * Backup and recovery considerations documented
+      * Ownership transferred to operations
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Validate MFA with representative users"
+      - summary: "Review monitoring and audit visibility"
+      - summary: "Create MFA runbooks and troubleshooting guides"
+      - summary: "Define support and escalation paths"
+      - summary: "Validate backup and recovery considerations"
+      - summary: "Complete operational handoff"
