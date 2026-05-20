@@ -85,7 +85,12 @@
     _name: "{{ _svc.name }}"
     _cand1: "{{ _name }}"
     _cand2: "{{ _name ~ '.service' }}"
-    _unit: "{{ _cand1 if _cand1 in utilities_services_management_known_units else (_cand2 if _cand2 in utilities_services_management_known_units else _cand1) }}"
+    _unit: >-
+      {{
+        _cand1
+        if _cand1 in utilities_services_management_known_units
+        else (_cand2 if _cand2 in utilities_services_management_known_units else _cand1)
+      }}
     _one: "{{ _svc | combine({'unit': _unit}) }}"
   loop: "{{ utilities_services_management_svc_items }}"
   loop_control:
