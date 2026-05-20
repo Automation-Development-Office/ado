@@ -9,12 +9,12 @@ galaxy_info:
 
   # Choose a valid license ID from https://spdx.org - some suggested licenses:
   # - BSD-3-Clause (default)
-  # - MIT
-  # - GPL-2.0-or-later
+  # - GPL-3.0-or-later
   # - GPL-3.0-only
+  # - GPL-2.0-or-later
   # - Apache-2.0
   # - CC-BY-4.0
-  license: MIT
+  license: GPL-3.0-or-later
 
   min_ansible_version: '2.16.0'
 

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 ---
 # Decide legacy (RHEL 7/8) vs modern (RHEL 9/10) without Python
 - name: Read RHEL major version (raw)
