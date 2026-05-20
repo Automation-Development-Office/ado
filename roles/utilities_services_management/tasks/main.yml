@@ -1,0 +1,182 @@
+---
+# Decide legacy (RHEL 7/8) vs modern (RHEL 9/10) without Python
+- name: Read RHEL major version (raw)
+  ansible.builtin.raw: |
+    sh -c '
+      if [ -r /etc/redhat-release ]; then
+        # Print the first integer token (major version)
+        awk '"'"'{for(i=1;i<=NF;i++){if($i ~ /^[0-9]+(\.[0-9]+)?$/){split($i,a,"."); print a[1]; exit}}}'"'"' /etc/redhat-release
+      elif [ -r /etc/os-release ]; then
+        . /etc/os-release 2>/dev/null || true
+        echo "${VERSION_ID%%.*}"
+      else
+        echo 0
+      fi
+    '
+  register: _rel
+  changed_when: false
+  failed_when: false
+  tags: [skip_ansible_lint]
+
+- name: Parse major version from raw output
+  ansible.builtin.set_fact:
+    utilities_services_management_major: "{{ (_rel.stdout | default('') | regex_search('[0-9]+') | default('0')) | int }}"
+
+- name: Choose path booleans from major
+  ansible.builtin.set_fact:
+    utilities_services_management_legacy: "{{ utilities_services_management_major in [7, 8] }}"
+    utilities_services_management_modern: "{{ utilities_services_management_major in [9, 10] }}"
+
+# Build list of known service units
+- name: Gather service facts (RHEL 9/10)
+  ansible.builtin.service_facts:
+  when: utilities_services_management_modern
+
+- name: Known units from service_facts (RHEL 9/10)
+  ansible.builtin.set_fact:
+    utilities_services_management_known_units: "{{ (ansible_facts.services | default({})).keys() | list }}"
+  when: utilities_services_management_modern
+
+- name: List systemd services (RHEL 7/8)
+  ansible.builtin.raw: |
+    # RHEL7-compatible: list all unit files and keep only *.service names
+    systemctl list-unit-files --no-legend --no-pager 2>/dev/null \
+      | awk '{print $1}' \
+      | awk '/\.service$/ {print $1}'
+  register: utilities_services_management_unit_files
+  changed_when: false
+  failed_when: false
+  when: utilities_services_management_legacy
+  tags: [skip_ansible_lint]
+
+- name: Known units from systemctl (RHEL 7/8)
+  ansible.builtin.set_fact:
+    utilities_services_management_known_units: "{{ utilities_services_management_unit_files.stdout_lines | default([]) | list }}"
+  when: utilities_services_management_legacy
+
+- name: Ensure known units list exists
+  ansible.builtin.set_fact:
+    utilities_services_management_known_units: "{{ utilities_services_management_known_units | default([]) }}"
+
+# Normalize user input (accept strings or dicts)
+- name: Start normalized list
+  ansible.builtin.set_fact:
+    utilities_services_management_svc_items: []
+
+- name: Normalize each service entry
+  ansible.builtin.set_fact:
+    utilities_services_management_svc_items: >-
+      {{ utilities_services_management_svc_items + [{
+        'name': (item.name | default(item)),
+        'state': (item.state | default(service_state | default(omit))),
+        'enabled': (item.enabled | default(service_enabled | default(omit)))
+      }] }}
+  loop: "{{ service_names | default([]) }}"
+
+# final names (.service if needed)
+- name: Init final descriptors
+  ansible.builtin.set_fact:
+    utilities_services_management_svc_final: []
+
+- name: Compute final unit per service
+  ansible.builtin.set_fact:
+    utilities_services_management_svc_final: "{{ utilities_services_management_svc_final + [_one] }}"
+  vars:
+    _name: "{{ _svc.name }}"
+    _cand1: "{{ _name }}"
+    _cand2: "{{ _name ~ '.service' }}"
+    _unit: "{{ _cand1 if _cand1 in utilities_services_management_known_units else (_cand2 if _cand2 in utilities_services_management_known_units else _cand1) }}"
+    _one: "{{ _svc | combine({'unit': _unit}) }}"
+  loop: "{{ utilities_services_management_svc_items }}"
+  loop_control:
+    loop_var: _svc
+
+# Apply state — RHEL 9/10
+- name: Manage service state (RHEL 9/10)
+  ansible.builtin.service:
+    name: "{{ _svc.unit }}"
+    state: "{{ _svc.state }}"
+  loop: "{{ utilities_services_management_svc_final | selectattr('state', 'defined') | list }}"
+  loop_control:
+    loop_var: _svc
+  when:
+    - utilities_services_management_modern
+    - _svc.unit in utilities_services_management_known_units
+
+# Apply state — RHEL 7/8
+- name: RHEL 7/8 — apply desired state
+  ansible.builtin.raw: |
+    sh -c '
+      unit="{{ _svc.unit }}"
+      want="{{ _sys_action }}"
+      curr="$(systemctl is-active "$unit" 2>/dev/null || true)"
+      changed=0
+      case "$want" in
+        start)
+          if [ "$curr" != "active" ]; then systemctl start "$unit" && changed=1; fi
+          ;;
+        stop)
+          if [ "$curr" = "active" ]; then systemctl stop "$unit" && changed=1; fi
+          ;;
+        restart|reload)
+          systemctl "$want" "$unit" && changed=1
+          ;;
+        *)
+          echo "Unknown action $want" >&2; exit 2
+          ;;
+      esac
+      echo "changed=$changed curr=$curr want=$want unit=$unit"
+    '
+  register: _state_raw
+  changed_when: _state_raw.stdout is search('changed=1')
+  failed_when: _state_raw.rc|int != 0
+  loop: "{{ utilities_services_management_svc_final | selectattr('state', 'defined') | list }}"
+  loop_control:
+    loop_var: _svc
+  vars:
+    _action_map:
+      started: start
+      stopped: stop
+      restarted: restart
+      reloaded: reload
+    _sys_action: "{{ _action_map.get((_svc.state | lower), _svc.state) }}"
+  when:
+    - utilities_services_management_legacy
+    - _svc.unit in utilities_services_management_known_units
+  tags: [skip_ansible_lint]
+
+# Enable/disable — RHEL 9/10
+- name: Enable/disable service (RHEL 9/10)
+  ansible.builtin.service:
+    name: "{{ _svc.unit }}"
+    enabled: "{{ _svc.enabled }}"
+  loop: "{{ utilities_services_management_svc_final | selectattr('enabled', 'defined') | list }}"
+  loop_control:
+    loop_var: _svc
+  when:
+    - utilities_services_management_modern
+    - _svc.unit in utilities_services_management_known_units
+
+# Enable/disable — RHEL 7/8
+- name: RHEL 7/8 — apply enable/disable if needed
+  ansible.builtin.raw: |
+    sh -c '
+      unit="{{ _svc.unit }}"
+      want="{{ (_svc.enabled | bool) | ternary("enabled","disabled") }}"
+      curr="$(systemctl is-enabled "$unit" 2>/dev/null || true)"
+      if [ "$want" != "$curr" ]; then
+        systemctl {{ (_svc.enabled | bool) | ternary("enable","disable") }} "$unit" && echo "changed=1"
+      else
+        echo "changed=0"
+      fi
+    '
+  register: utilities_services_management_enabled_raw
+  changed_when: utilities_services_management_enabled_raw.stdout is search('changed=1')
+  failed_when: utilities_services_management_enabled_raw.rc|int != 0
+  loop: "{{ utilities_services_management_svc_final | selectattr('enabled', 'defined') | list }}"
+  loop_control:
+    loop_var: _svc
+  when:
+    - utilities_services_management_legacy
+    - _svc.unit in utilities_services_management_known_units
+  tags: [skip_ansible_lint]
