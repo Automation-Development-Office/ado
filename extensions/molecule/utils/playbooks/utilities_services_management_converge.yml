@@ -1,0 +1,17 @@
+---
+- name: Converge - utilities_services_management scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  vars:
+    service_names:
+      - crond
+      - tuned
+      - httpd
+      - tomcat
+    service_state: stopped
+    service_enabled: false
+
+  roles:
+    - role: infra.ado.utilities_services_management
