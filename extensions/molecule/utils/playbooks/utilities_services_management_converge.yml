@@ -14,5 +14,18 @@
     service_state: stopped
     service_enabled: false
 
+  tasks:
+    # #region agent log H4
+    - name: Debug log H4 - converge playbook reached execution
+      ansible.builtin.lineinfile:
+        path: "/home/ckyle/Documents/ado/.cursor/debug-ce4b3a.log"
+        create: true
+        insertafter: EOF
+        line: "{{ {'sessionId':'ce4b3a','runId':'pre-fix','hypothesisId':'H4','location':'utilities_services_management_converge.yml:entry','message':'Converge playbook entry reached before role include','data':{'inventoryHost':inventory_hostname,'roleFqcn':'infra.ado.utilities_services_management'},'timestamp':(lookup('pipe','date +%s%3N') | int)} | to_json }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+    # #endregion agent log H4
+
   roles:
     - role: infra.ado.utilities_services_management

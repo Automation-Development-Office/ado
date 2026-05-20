@@ -14,5 +14,18 @@
     service_state: started
     service_enabled: true
 
+  tasks:
+    # #region agent log H5
+    - name: Debug log H5 - destroy playbook reached execution
+      ansible.builtin.lineinfile:
+        path: "/home/ckyle/Documents/ado/.cursor/debug-ce4b3a.log"
+        create: true
+        insertafter: EOF
+        line: "{{ {'sessionId':'ce4b3a','runId':'pre-fix','hypothesisId':'H5','location':'utilities_services_management_destroy.yml:entry','message':'Destroy playbook entry reached before role include','data':{'inventoryHost':inventory_hostname,'roleFqcn':'infra.ado.utilities_services_management'},'timestamp':(lookup('pipe','date +%s%3N') | int)} | to_json }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+    # #endregion agent log H5
+
   roles:
     - role: infra.ado.utilities_services_management

@@ -5,6 +5,65 @@
   become: false
 
   tasks:
+    - name: Capture prepare path candidates
+      ansible.builtin.set_fact:
+        utilities_services_management_prepare_scenario_dir: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}"
+        utilities_services_management_prepare_converge_rel: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/../utils/playbooks/utilities_services_management_converge.yml"
+        utilities_services_management_prepare_destroy_rel: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/../utils/playbooks/utilities_services_management_destroy.yml"
+        utilities_services_management_prepare_converge_double_molecule: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/molecule/utils/playbooks/utilities_services_management_converge.yml"
+        utilities_services_management_prepare_roles_path: "{{ lookup('env', 'ANSIBLE_ROLES_PATH') }}"
+        utilities_services_management_prepare_roles_first: "{{ (lookup('env', 'ANSIBLE_ROLES_PATH') | default('', true)).split(':')[0] }}"
+
+    - name: Check expected converge playbook path
+      ansible.builtin.stat:
+        path: "{{ utilities_services_management_prepare_converge_rel }}"
+      register: utilities_services_management_prepare_converge_stat
+
+    - name: Check expected destroy playbook path
+      ansible.builtin.stat:
+        path: "{{ utilities_services_management_prepare_destroy_rel }}"
+      register: utilities_services_management_prepare_destroy_stat
+
+    - name: Check mistaken double-molecule converge path
+      ansible.builtin.stat:
+        path: "{{ utilities_services_management_prepare_converge_double_molecule }}"
+      register: utilities_services_management_prepare_converge_double_stat
+
+    - name: Check first ANSIBLE_ROLES_PATH segment
+      ansible.builtin.stat:
+        path: "{{ utilities_services_management_prepare_roles_first }}"
+      register: utilities_services_management_prepare_roles_first_stat
+
+    # #region agent log H1
+    - name: Debug log H1 - scenario directory and role path context
+      ansible.builtin.lineinfile:
+        path: "/home/ckyle/Documents/ado/.cursor/debug-ce4b3a.log"
+        create: true
+        insertafter: EOF
+        line: "{{ {'sessionId':'ce4b3a','runId':'pre-fix','hypothesisId':'H1','location':'utilities_services_management_prepare.yml:scenario_context','message':'Prepare environment context','data':{'scenarioDir':utilities_services_management_prepare_scenario_dir,'ansibleRolesPath':utilities_services_management_prepare_roles_path,'rolesFirstSegment':utilities_services_management_prepare_roles_first,'rolesFirstExists':utilities_services_management_prepare_roles_first_stat.stat.exists | default(false)},'timestamp':(lookup('pipe','date +%s%3N') | int)} | to_json }}"
+      changed_when: false
+    # #endregion agent log H1
+
+    # #region agent log H2
+    - name: Debug log H2 - expected playbook relative paths
+      ansible.builtin.lineinfile:
+        path: "/home/ckyle/Documents/ado/.cursor/debug-ce4b3a.log"
+        create: true
+        insertafter: EOF
+        line: "{{ {'sessionId':'ce4b3a','runId':'pre-fix','hypothesisId':'H2','location':'utilities_services_management_prepare.yml:playbook_relative_paths','message':'Validate ../utils playbook paths from scenario dir','data':{'convergePath':utilities_services_management_prepare_converge_rel,'convergeExists':utilities_services_management_prepare_converge_stat.stat.exists | default(false),'destroyPath':utilities_services_management_prepare_destroy_rel,'destroyExists':utilities_services_management_prepare_destroy_stat.stat.exists | default(false)},'timestamp':(lookup('pipe','date +%s%3N') | int)} | to_json }}"
+      changed_when: false
+    # #endregion agent log H2
+
+    # #region agent log H3
+    - name: Debug log H3 - detect doubled molecule path symptom
+      ansible.builtin.lineinfile:
+        path: "/home/ckyle/Documents/ado/.cursor/debug-ce4b3a.log"
+        create: true
+        insertafter: EOF
+        line: "{{ {'sessionId':'ce4b3a','runId':'pre-fix','hypothesisId':'H3','location':'utilities_services_management_prepare.yml:double_molecule_probe','message':'Check alternate doubled molecule path','data':{'doubleMoleculeConvergePath':utilities_services_management_prepare_converge_double_molecule,'doubleMoleculeConvergeExists':utilities_services_management_prepare_converge_double_stat.stat.exists | default(false)},'timestamp':(lookup('pipe','date +%s%3N') | int)} | to_json }}"
+      changed_when: false
+    # #endregion agent log H3
+
     - name: Prepare step is intentionally minimal
       ansible.builtin.debug:
         msg: "No explicit prepare actions required for utilities_services_management."
