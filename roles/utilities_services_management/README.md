@@ -1,4 +1,4 @@
-# Role: ado.utilities.utilities_services_management
+# Role: infra.ado.utilities_services_management
 
 Manage the state (start/stop/restart/reload) and enable/disable settings of one or
 more **system services** in a consistent, idempotent way.
@@ -21,7 +21,7 @@ more **system services** in a consistent, idempotent way.
 ## Variables
 
 | Variable | Description |
-|---------|-------------|
+| --- | --- |
 | `service_names` | **Required.** A list of service names to manage (with or without `.service`). |
 | `service_state` | **Required.** Desired state for each service. Common values: `started`, `stopped`, `restarted`, `reloaded`. |
 | `service_enabled` | Optional boolean. If set, enables (`true`) or disables (`false`) each service. |
@@ -34,6 +34,7 @@ more **system services** in a consistent, idempotent way.
 ## Examples
 
 ### Start and enable multiple services
+
 ```yaml
 - hosts: all
   gather_facts: false
@@ -44,10 +45,11 @@ more **system services** in a consistent, idempotent way.
     service_state: started
     service_enabled: true
   roles:
-    - role: ado.utilities.utilities_services_management
+    - role: infra.ado.utilities_services_management
 ```
 
 ### Stop and disable a service
+
 ```yaml
 - hosts: app_servers
   gather_facts: false
@@ -57,10 +59,11 @@ more **system services** in a consistent, idempotent way.
     service_state: stopped
     service_enabled: false
   roles:
-    - role: ado.utilities.utilities_services_management
+    - role: infra.ado.utilities_services_management
 ```
 
 ### Restart services without changing enablement
+
 ```yaml
 - hosts: db_servers
   gather_facts: false
@@ -70,7 +73,7 @@ more **system services** in a consistent, idempotent way.
       - firewalld
     service_state: restarted
   roles:
-    - role: ado.utilities.utilities_services_management
+    - role: infra.ado.utilities_services_management
 ```
 
 ---
@@ -86,17 +89,34 @@ more **system services** in a consistent, idempotent way.
 
 ## Molecule
 
-A default Molecule scenario is included for this role. It runs:
+This role is tested using the extension-level Molecule scenario:
 
-```
-dependency → lint → syntax → create → converge → idempotence → destroy → verify
+- `integration_utilities_services_management`
+
+Scenario definition lives under `extensions/molecule/integration_utilities_services_management/`,
+and shared scenario playbooks are under `extensions/molecule/utils/playbooks/`:
+
+- `utilities_services_management_prepare.yml`
+- `utilities_services_management_converge.yml`
+- `utilities_services_management_verify.yml`
+- `utilities_services_management_destroy.yml`
+
+The scenario test sequence is:
+
+```text
+prepare → converge → idempotence → verify
 ```
 
-> Tip: If testing on images with self‑managed init, ensure systemd is running so `service_facts` can populate.
+Destroy sequence:
+
+```text
+destroy
+```
 
 ---
 
 ## Author
+
 - Chad Elliott (<chelliot@redhat.com>)
 
 ---
@@ -111,23 +131,9 @@ dependency → lint → syntax → create → converge → idempotence → destr
 │   └── main.yml
 ├── meta
 │   └── main.yml
-├── molecule
-│   └── default
-│       ├── converge.yml
-│       ├── destroy.yml
-│       ├── group_vars
-│       │   └── all
-│       │       └── vault.yml
-│       ├── molecule.yml
-│       ├── README.md
-│       ├── TEST.md
-│       └── verify.yml
 ├── README.md                # ← this file
 ├── tasks
 │   └── main.yml
-├── tests
-│   ├── inventory
-│   └── test.yml
 └── vars
     └── main.yml
 ```
