@@ -1,0 +1,111 @@
+template_stories:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ environment }}: Kickoff, Readiness, and Design"
+    story_description: |
+      *As a:* "{{ role_name }}"   
+      *I want to:* Validate prerequisites and define the security architecture for ACS  
+      *So that:* cluster security posture, visibility, and enforcement are consistent and scalable.
+
+      Notes / Context:
+      This phase ensures security goals, scope, and technical readiness are aligned
+      before deploying ACS components.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * Target clusters identified and categorized (secured vs monitored)
+      * Network connectivity validated (ACS ↔ cluster communication)
+      * Authentication and authorization model reviewed (RBAC, IdM, SSO)
+      * Certificate and trust requirements documented
+      * Data retention and compliance requirements reviewed
+      * ACS deployment model defined (central, secured clusters)
+      * Automation expectations documented
+      * Gaps in automotion and risks captured and converted to backlog items
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Conduct ACS readiness and architecture review"
+      - summary: "Validate network connectivity between ACS and managed clusters"
+      - summary: "Review authentication and RBAC requirements"
+      - summary: "Define compliance and data retention expectations"
+      - summary: "Document automation scope and constraints"
+      - summary: "Create backlog items for identified gaps and missing automation"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ environment }}: Deployment and Implementation"
+    story_description: |
+      *As a:* "{{ role_name }}"   
+      *I want to:* Deploy and configure ACS using approved architecture and automation  
+      *So that:* security visibility and enforcement are consistently applied across clusters.
+
+    custom_ac: |
+      * ACS Central deployed and healthy
+      * Secured clusters registered successfully
+      * Sensor and Collector components operational
+      * RBAC implemented and validated
+      * Vulnerability scanning enabled
+      * Image and runtime policies configured
+      * Automation repeatable and idempotent
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Deploy ACS Central components"
+      - summary: "Register and validate secured clusters"
+      - summary: "Configure RBAC and access control"
+      - summary: "Enable vulnerability scanning"
+      - summary: "Configure runtime and image policies"
+      - summary: "Validate automation repeatability"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ environment }}: Validation, Adoption, and Policy Enforcement"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Validate ACS functionality using real workloads  
+      *So that:* security policies are enforced and trusted by application teams.
+
+    custom_ac: |
+      * Policies enforced across managed clusters
+      * Vulnerability data validated and reviewed
+      * Runtime detection tested
+      * Policy violations observable and actionable
+      * Application teams onboarded and trained
+      * Stakeholder sign-off obtained
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Validate policy enforcement behavior"
+      - summary: "Test vulnerability scanning and reporting"
+      - summary: "Validate runtime threat detection"
+      - summary: "Onboard application teams"
+      - summary: "Collect stakeholder feedback"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ environment }}: Operations, Governance, and Long-Term Support"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Operationalize ACS for long-term support  
+      *So that:* security posture is maintained, auditable, and scalable.
+
+    custom_ac: |
+      * Operational runbooks completed
+      * Ownership and escalation paths defined
+      * Backup and recovery procedures validated
+      * Upgrade and lifecycle management documented
+      * Compliance reporting validated
+      * Operational handoff completed
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create operational runbooks"
+      - summary: "Define escalation and ownership model"
+      - summary: "Validate backup and restore procedures"
+      - summary: "Document upgrade and maintenance processes"
+      - summary: "Finalize operational handoff"

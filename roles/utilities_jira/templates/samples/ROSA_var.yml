@@ -1,0 +1,108 @@
+template_stories:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate prerequisites and architecture for ROSA
+      *So that:* the managed cluster can be deployed securely and aligned with AWS and organizational standards.
+
+      Notes / Context:
+      This phase focuses on account readiness, networking, identity integration,
+      and alignment with AWS and Red Hat managed service requirements.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * AWS account ownership and access validated
+      * ROSA deployment model confirmed (classic / HCP)
+      * Network architecture validated (VPC, subnets, routing)
+      * IAM roles and permissions reviewed
+      * Identity integration approach defined (IdM / OIDC / SSO)
+      * Automation and provisioning approach documented
+      * Gaps in automotion and risks captured and converted to backlog items
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Conduct ROSA readiness and architecture workshop"
+      - summary: "Validate AWS account access and permissions"
+      - summary: "Review network design and connectivity"
+      - summary: "Confirm identity and authentication approach"
+      - summary: "Document automation and provisioning expectations"
+      - summary: "Create backlog items for identified gaps and missing automation"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: ROSA Deployment and Core Configuration"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Deploy and configure ROSA using approved standards
+      *So that:* the cluster is secure, stable, and ready for workloads.
+
+    custom_ac: |
+      * ROSA cluster successfully provisioned
+      * Cluster operators healthy and stable
+      * AWS integrations validated (IAM, STS, networking)
+      * Identity provider configured and verified
+      * Storage and ingress operational
+      * Automation is repeatable and idempotent
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Provision ROSA cluster"
+      - summary: "Validate cluster health and operators"
+      - summary: "Configure identity provider and RBAC"
+      - summary: "Validate AWS IAM and STS configuration"
+      - summary: "Configure ingress and storage"
+      - summary: "Verify automation and repeatability"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Platform Enablement and Validation"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Enable platform services and validate operational readiness
+      *So that:* application teams can onboard and operate reliably.
+
+    custom_ac: |
+      * Platform services enabled (monitoring, logging, operators)
+      * Resource governance validated (quotas, limits, policies)
+      * Workloads deployed successfully
+      * Observability validated
+      * Upgrade and lifecycle workflows tested
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Enable platform services and operators"
+      - summary: "Validate monitoring and logging"
+      - summary: "Configure resource governance"
+      - summary: "Deploy and validate sample workloads"
+      - summary: "Test upgrade and lifecycle workflows"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Handoff"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Operationalize ROSA for long-term support
+      *So that:* the platform is secure, observable, and sustainable.
+
+    custom_ac: |
+      * Operational runbooks completed
+      * Support and escalation model defined
+      * Backup and recovery validated
+      * Cost management and visibility reviewed
+      * Ownership and operational handoff completed
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create operational runbooks"
+      - summary: "Define support and escalation processes"
+      - summary: "Validate backup and recovery strategy"
+      - summary: "Review cost management and usage"
+      - summary: "Complete operational handoff"
+

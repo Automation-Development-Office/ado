@@ -1,0 +1,123 @@
+template_stories:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Validate all prerequisites and architectural decisions for Red Hat Developer Hub  
+      *So that:* a scalable, secure, and self-service developer experience can be delivered.
+
+      Notes / Context:
+      This phase focuses on discovery, access validation, architectural alignment, and defining
+      automation expectations before platform enablement begins.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * Meet with Red Hat architects/SMEs to validate Developer Hub architecture
+      * Meet with customer platform and application teams to align expectations
+      * Target clusters identified and categorized (hub, build, runtime)
+      * Network connectivity validated (Developer Hub, Git, CI/CD, cluster access)
+      * Identity integration reviewed (IdM, SSO, RBAC)
+      * Catalog ownership and governance model defined
+      * Plugin and integration requirements identified
+      * Git provider integrations reviewed (GitHub, GitLab, Bitbucket)
+      * Automation expectations documented (catalog ingestion, templates, pipelines)
+      * Gaps in automotion and risks captured and converted to backlog items
+      * Follow-on backlog items created and prioritized (Automation, Plugins, Templates, Observability)
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Conduct Developer Hub readiness workshop / kickoff"
+      - summary: "Review architecture and design with Red Hat and customer SMEs"
+      - summary: "Validate network connectivity and identity integration"
+      - summary: "Define ownership model for catalog and templates"
+      - summary: "Review Git and CI/CD integration requirements"
+      - summary: "Document automation expectations and constraints"
+      - summary: "Create backlog items for identified gaps and missing automation"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Deploy and configure Red Hat Developer Hub using approved architecture  
+      *So that:* developers can self-service safely and consistently.
+
+    custom_ac: |
+      * Developer Hub operator installed and healthy
+      * Core platform components deployed and accessible
+      * Authentication and RBAC configured and validated
+      * Catalog sources configured and synchronized
+      * Plugins installed and validated
+      * CI/CD integrations validated
+      * Automation is repeatable and idempotent
+      * Configuration stored in version control
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Install Red Hat Developer Hub operator"
+      - summary: "Configure authentication and RBAC"
+      - summary: "Configure catalog sources and entities"
+      - summary: "Install and validate required plugins"
+      - summary: "Validate CI/CD integration"
+      - summary: "Document deployment and configuration details"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Validation, Adoption, and Platform Enablement"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Validate Developer Hub functionality using real workflows  
+      *So that:* development teams can confidently adopt the platform.
+
+    custom_ac: |
+      * Developer workflows validated end-to-end
+      * Software templates tested and usable
+      * Catalog accuracy and visibility confirmed
+      * Access controls validated across roles
+      * Observability and logging validated
+      * Application teams onboarded
+      * Stakeholder sign-off obtained
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Validate software templates and scaffolding"
+      - summary: "Test developer workflows end-to-end"
+      - summary: "Verify catalog accuracy and ownership"
+      - summary: "Validate observability and logging"
+      - summary: "Onboard application teams"
+      - summary: "Collect stakeholder feedback"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Long-Term Support"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Operationalize Developer Hub for long-term use  
+      *So that:* platform usage remains secure, reliable, and scalable.
+
+    custom_ac: |
+      * Runbooks completed
+      * Support ownership defined
+      * TAMS engaged and trained
+      * Backup and recovery validated
+      * Upgrade and lifecycle management documented
+      * Governance and content ownership enforced
+      * Observability dashboards finalized
+      * Missing automation identified and planned
+      * Operational handoff completed
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create operational runbooks"
+      - summary: "Define support and escalation model"
+      - summary: "Validate backup and restore procedures"
+      - summary: "Document upgrade and lifecycle processes"
+      - summary: "Train platform and support teams"
+      - summary: "Identify automation gaps and create backlog items"
+      - summary: "Finalize operational handoff documentation"

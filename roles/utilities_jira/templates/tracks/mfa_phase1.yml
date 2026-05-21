@@ -1,0 +1,35 @@
+template_stories_mfa_phase1:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: MFA Readiness, Design, and Enablement"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Design and enable MFA for OpenShift authentication
+      *So that:* access is secured while maintaining usability and operational clarity.
+
+      Notes / Context:
+      This phase validates prerequisites, confirms identity architecture,
+      enables MFA, and ensures authentication flows function as expected.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * MFA use cases and scope defined
+      * Identity provider and RBAC model reviewed
+      * Certificate and trust requirements documented
+      * Network and redirect flows validated
+      * MFA enabled and enforced per design
+      * Automation approach documented
+      * Gaps and risks captured and tracked
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Conduct MFA readiness and architecture workshop"
+      - summary: "Validate identity provider, RBAC, and access model"
+      - summary: "Review certificate, trust, and redirect requirements"
+      - summary: "Validate network flows and DNS"
+      - summary: "Enable and configure MFA"
+      - summary: "Validate authentication flows and failure scenarios"
+      - summary: "Document automation and GitOps expectations"
+      - summary: "Create backlog items for gaps and improvements"

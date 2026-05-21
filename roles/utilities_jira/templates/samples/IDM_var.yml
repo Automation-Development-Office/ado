@@ -1,0 +1,116 @@
+template_stories:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Validate prerequisites and architectural readiness for Red Hat Identity Management  
+      *So that:* identity, authentication, and authorization services can be delivered securely and consistently.
+
+      Notes / Context:
+      This phase focuses on understanding identity requirements, integration points,
+      and operational expectations prior to implementing IdM.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * Identity use cases defined (authentication, authorization, host enrollment)
+      * Integration points identified (OpenShift, RHEL, Keycloak, external IdPs)
+      * Network connectivity validated (IdM nodes, replicas, clients)
+      * Certificate and trust requirements documented
+      * RBAC and group strategy defined
+      * High availability and replication strategy reviewed
+      * Automation expectations documented
+      * Gaps in automotion and risks captured and converted to backlog items
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Conduct IdM readiness and architecture workshop"
+      - summary: "Identify identity use cases and integration points"
+      - summary: "Review networking and DNS requirements"
+      - summary: "Define RBAC and group management strategy"
+      - summary: "Review certificate and trust requirements"
+      - summary: "Document automation expectations and constraints"
+      - summary: "Create backlog items for identified gaps and missing automation"
+      
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Deploy and configure Red Hat Identity Management  
+      *So that:* identity services are reliable, secure, and scalable.
+
+    custom_ac: |
+      * IdM servers deployed and operational
+      * Replication configured and verified
+      * DNS and CA services operational
+      * Client enrollment functional
+      * RBAC and group mappings implemented
+      * Integration with external systems validated
+      * Automation is repeatable and idempotent
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Install and configure IdM servers"
+      - summary: "Configure replication and topology"
+      - summary: "Validate DNS and certificate services"
+      - summary: "Enroll client systems"
+      - summary: "Configure RBAC and group policies"
+      - summary: "Validate automation workflows"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Validation, Adoption, and Integration"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Validate IdM functionality across integrated systems  
+      *So that:* identity services are trusted and broadly usable.
+
+    custom_ac: |
+      * Authentication and authorization flows validated
+      * User and group lifecycle management verified
+      * Integration with dependent platforms validated
+      * Failover and recovery scenarios tested
+      * Logging and auditing verified
+      * Stakeholder sign-off obtained
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Validate authentication and authorization flows"
+      - summary: "Test user and group lifecycle management"
+      - summary: "Validate integration with dependent systems"
+      - summary: "Test failover and recovery scenarios"
+      - summary: "Verify logging and auditing"
+      - summary: "Collect stakeholder feedback"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Long-Term Support"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Operationalize Red Hat Identity Management for long-term use  
+      *So that:* identity services remain secure, resilient, and manageable.
+
+    custom_ac: |
+      * Runbooks completed
+      * Support ownership defined
+      * Backup and recovery procedures validated
+      * Upgrade and lifecycle management documented
+      * Security and compliance controls enforced
+      * Monitoring and alerting validated
+      * Operational handoff completed
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create operational runbooks"
+      - summary: "Define support and escalation model"
+      - summary: "Validate backup and restore procedures"
+      - summary: "Document upgrade and lifecycle processes"
+      - summary: "Validate monitoring and alerting"
+      - summary: "Finalize operational handoff"
+

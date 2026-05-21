@@ -1,0 +1,108 @@
+template_stories:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate prerequisites and architecture for Red Hat Satellite
+      *So that:* systems can be managed consistently, securely, and at scale.
+
+      Notes / Context:
+      This phase establishes architectural alignment, lifecycle management expectations,
+      and integration requirements prior to deployment.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * Satellite use cases defined (provisioning, patching, compliance, lifecycle)
+      * Infrastructure requirements validated (compute, storage, network)
+      * Identity and authentication integration reviewed (IdM, LDAP, SSO)
+      * Content lifecycle and repository strategy defined
+      * Automation and configuration standards documented
+      * Gaps in automotion and risks captured and converted to backlog items
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Conduct Satellite readiness and architecture workshop"
+      - summary: "Define system lifecycle and management use cases"
+      - summary: "Validate infrastructure and storage requirements"
+      - summary: "Review identity and authentication integrations"
+      - summary: "Define content lifecycle and repository strategy"
+      - summary: "Create backlog items for identified gaps and missing automation"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Core Configuration"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Deploy and configure Red Hat Satellite
+      *So that:* systems can be managed consistently and securely.
+
+    custom_ac: |
+      * Satellite server installed and accessible
+      * Required repositories synchronized
+      * Capsule configuration validated (if applicable)
+      * Content views and lifecycle environments created
+      * Authentication and access control configured
+      * Automation is repeatable and idempotent
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Install and configure Satellite server"
+      - summary: "Sync Red Hat repositories"
+      - summary: "Configure lifecycle environments"
+      - summary: "Configure content views and promotion workflows"
+      - summary: "Configure authentication and RBAC"
+      - summary: "Validate automation and repeatability"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Platform Enablement and Validation"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Enable system management capabilities
+      *So that:* managed hosts operate securely and predictably.
+
+    custom_ac: |
+      * Hosts successfully registered to Satellite
+      * Patch management workflows validated
+      * Configuration management verified
+      * Compliance and security scanning enabled
+      * Remote execution validated
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Register hosts to Satellite"
+      - summary: "Validate patching and update workflows"
+      - summary: "Enable configuration management"
+      - summary: "Configure compliance and security policies"
+      - summary: "Validate remote execution"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Handoff"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Operationalize Red Hat Satellite for long-term use
+      *So that:* system lifecycle management is stable, auditable, and scalable.
+
+    custom_ac: |
+      * Operational runbooks completed
+      * Patch and lifecycle cadence defined
+      * Backup and recovery validated
+      * Monitoring and alerting integrated
+      * Ownership and support model established
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create operational runbooks"
+      - summary: "Define patching and lifecycle cadence"
+      - summary: "Validate backup and restore procedures"
+      - summary: "Integrate monitoring and alerting"
+      - summary: "Complete operational handoff"
+
+
