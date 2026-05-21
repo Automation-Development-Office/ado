@@ -11,8 +11,6 @@ Creates an EC2 instance, creates a snapshot from the attached EBS device, and cr
 
 ## Variables
 
-All role variables are currently defined in `vars/main.yml`.
-
 | Variable | Default | Required | Description |
 | --- | --- | --- | --- |
 | `instance_name` | `""` | yes | Name for the EC2 instance created by the role. |
@@ -20,8 +18,8 @@ All role variables are currently defined in `vars/main.yml`.
 | `aws_secret_key` | `""` | yes | AWS secret key used by the AWS modules. |
 | `image_id` | `""` | yes | Source AMI ID for the instance launch. |
 | `vpc_subnet_id` | `""` | no | VPC subnet ID passed to `ec2_instance`. |
-| `region` | `"us-east-1"` | no | AWS region used for all module calls. |
-| `instance_type` | `"t3.micro"` | no | EC2 instance type to launch. |
+| `region` | `""` | yes | AWS region used for all module calls. |
+| `instance_type` | `""` | yes | EC2 instance type to launch. |
 | `key_name` | `""` | yes | EC2 key pair name for SSH access. |
 | `security_group` | `""` | yes | Security group assigned at instance launch. |
 | `subnet_id` | `""` | no | Additional subnet field passed to `ec2_instance`. |
@@ -36,11 +34,14 @@ All role variables are currently defined in `vars/main.yml`.
 
 The role performs these actions in order:
 
+0. Validates required inputs and fails fast with a clear message if values are missing.
 1. Launches an EC2 instance with an attached EBS volume.
 2. Extracts the created instance ID.
 3. Creates an EBS snapshot from `volume_device_name`.
 4. Extracts the created snapshot ID.
 5. Creates an AMI from the launched instance.
+
+Credentialed AWS module tasks run with `no_log: true` to reduce secret exposure in logs.
 
 ## Facts Set By Role
 

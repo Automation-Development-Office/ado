@@ -1,3 +1,23 @@
+- name: Validate required role inputs
+  ansible.builtin.assert:
+    that:
+      - instance_name | length > 0
+      - aws_access_key | length > 0
+      - aws_secret_key | length > 0
+      - image_id | length > 0
+      - region | length > 0
+      - instance_type | length > 0
+      - key_name | length > 0
+      - security_group | length > 0
+      - new_instance_name | length > 0
+      - volume_device_name | length > 0
+      - (volume_size | int) > 0
+    fail_msg: >-
+      platform_ec2 is missing required inputs. Set instance_name, aws_access_key,
+      aws_secret_key, image_id, region, instance_type, key_name, security_group,
+      new_instance_name, volume_device_name, and a positive volume_size.
+    success_msg: platform_ec2 input validation passed.
+
 - name: Start an instance and Add EBS
   amazon.aws.ec2_instance:
     name: "{{ instance_name }}"
@@ -13,9 +33,10 @@
     volumes:
       - device_name: "{{ volume_device_name }}"
         ebs:
-          volume_size: "{{ volume_size }}"
+          volume_size: "{{ volume_size | int }}"
           delete_on_termination: "{{ volume_delete_on_termination }}"
   register: platform_ec2_instance_result
+  no_log: true
 
 - name: Set ec2 instance id
   ansible.builtin.set_fact:
@@ -30,6 +51,7 @@
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
   register: platform_ec2_snapshot_result
+  no_log: true
 
 - name: Set ec2 snapshot id
   ansible.builtin.set_fact:
@@ -46,6 +68,7 @@
     tags:
       Name: "{{ name_tag }}"
       Service: TestService
+  no_log: true
 
 # Uncomment if you want to use a snapshot
 # - name: Basic AMI Creation with snapshot
