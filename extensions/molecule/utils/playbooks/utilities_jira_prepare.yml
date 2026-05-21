@@ -2,9 +2,15 @@
 - name: Prepare - utilities_jira scenario
   hosts: localhost
   gather_facts: false
-  become: false
+  become: true
 
   tasks:
     - name: Prepare - utilities_jira scenario
-      ansible.builtin.debug:
-        msg: "No explicit prepare actions required for utilities_jira."
+      ansible.builtin.include_role:
+        name: infra.ado.utilities_jira
+      vars:
+        utilities_jira_url: "https://example.com"
+        utilities_jira_username: "admin"
+        utilities_jira_token: "token"
+        utilities_jira_project_key: "PROJ"
+        utilities_jira_track: "platform_4phase"
