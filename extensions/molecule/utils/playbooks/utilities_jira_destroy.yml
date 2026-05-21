@@ -3,11 +3,11 @@
   hosts: localhost
   gather_facts: false
   become: true
-    vars:
+  vars:
     utilities_jira_url: "https://example.com"
     utilities_jira_username: "admin"
     utilities_jira_token: "token"
     utilities_jira_project_key: "PROJ"
     utilities_jira_track: "platform_4phase"
   roles:
-    - role: ado.utilities.jira
+    - role: infra.ado.utilities_jira
