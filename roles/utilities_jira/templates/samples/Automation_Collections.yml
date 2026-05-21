@@ -1,0 +1,95 @@
+template_stories:
+  - story_summary: "Collections - {{ group }}: Role {{ role_name }} - Build, Test, and Validate"
+    story_description: |
+      *As a:* Platform / Automation Engineer  
+      *I want to:* Develop a reusable and well-tested Ansible role  
+      *So that:* teams can reliably automate {{ role_name }} using GitOps or AAP.
+
+      *Definition of Done:*
+      - Role structure follows collection standards
+      - Defaults are safe and documented
+      - Role is idempotent
+      - Molecule tests pass
+      - Example usage is provided
+
+    custom_ac: |
+      * Role structure created following collection conventions
+      * Defaults support common and edge use cases
+      * Role executes idempotently (no changes on re-run)
+      * Molecule tests pass locally and in CI
+      * ansible-lint passes or exceptions documented
+      * Example playbook included
+
+    labels:
+      - "collections"
+      - "automation"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create role skeleton and defaults"
+      - summary: "Implement core role logic"
+      - summary: "Ensure idempotency and error handling"
+      - summary: "Create Molecule scenario and tests"
+      - summary: "Add example playbook and documentation"
+
+  - story_summary: "Collections - {{ group }}: Role {{ role_name }} - Integration and Automation"
+    story_description: |
+      *As a:* Platform / Automation Engineer  
+      *I want to:* Integrate the role into automation workflows  
+      *So that:* it can be reliably consumed by pipelines and playbooks.
+
+      *Definition of Done:*
+      - Role integrated into CI pipeline
+      - Role works in target environments
+      - Dependencies clearly documented
+      - Versioning and compatibility validated
+
+    custom_ac: |
+      * Role executes successfully in target environments
+      * CI pipeline runs ansible-lint and Molecule
+      * Dependencies documented and validated
+      * Variables and inputs clearly defined
+      * Collection versioning aligned with release process
+
+    labels:
+      - "collections"
+      - "automation"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Integrate role into CI pipeline"
+      - summary: "Validate role in target environments"
+      - summary: "Document required variables and dependencies"
+      - summary: "Validate collection versioning strategy"
+      - summary: "Confirm compatibility with AAP execution environments"
+
+  - story_summary: "Collections - {{ group }}: Role {{ role_name }} - Adoption and Lifecycle"
+    story_description: |
+      *As a:* Platform / Automation Engineer  
+      *I want to:* Ensure the role is documented, supported, and maintainable  
+      *So that:* teams can safely adopt and extend automation over time.
+
+      *Definition of Done:*
+      - Documentation is complete and accessible
+      - Usage patterns are clear
+      - Maintenance and ownership are defined
+      - Technical debt and enhancements are tracked
+
+    custom_ac: |
+      * Documentation published and discoverable
+      * Example usage validated by consumers
+      * Ownership and support model defined
+      * Known limitations documented
+      * Backlog items created for enhancements
+
+    labels:
+      - "collections"
+      - "automation"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Finalize documentation and examples"
+      - summary: "Validate role usability with consumers"
+      - summary: "Define ownership and support expectations"
+      - summary: "Identify and log follow-on improvements"
+

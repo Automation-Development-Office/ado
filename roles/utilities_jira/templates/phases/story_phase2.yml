@@ -1,0 +1,125 @@
+template_stories_phase2:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation - Phase 2"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Deploy and configure {{ product }} using the approved architecture and automation  
+      *So that:* clusters can be managed consistently, securely, and repeatably.
+
+      Notes / Context:
+      This phase focuses on executing the approved design by deploying {{ product }}, configuring the hub cluster,
+      onboarding managed clusters, enforcing RBAC, and validating observability and GitOps integration.
+      All configuration should be automated, repeatable, and stored in version control.
+
+    custom_ac: |
+      * {{ product }} operator installed and healthy
+      * Hub cluster configured using declared configuration
+      * Managed clusters successfully imported
+      * RBAC enforced and validated
+      * Observability components verified
+      * GitOps integration functional
+      * Automation is idempotent and repeatable
+      * Configuration stored in version control
+      * Documentation updated with deployment details
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Install {{ product }} operator"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Install the {{ product }} operator on the hub cluster  
+          *So that:* the platform is available for configuration and cluster management.
+
+          Notes / Context:
+          This subtask covers installing the operator using supported installation methods
+          and validating that all operator components are healthy and running.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Configure hub cluster settings"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Configure the hub cluster according to the approved architecture  
+          *So that:* {{ product }} operates consistently and aligns with design decisions.
+
+          Notes / Context:
+          This includes configuring core hub settings, integrations, certificates,
+          storage, and any required platform-level options.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Import managed clusters"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Import managed clusters into the {{ product }} hub  
+          *So that:* they can be centrally managed and governed.
+
+          Notes / Context:
+          This subtask includes validating connectivity, credentials, and successful
+          registration of managed clusters.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Validate RBAC and access control"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Validate RBAC and access control configuration  
+          *So that:* users and automation have appropriate permissions.
+
+          Notes / Context:
+          This includes validating roles, role bindings, group mappings,
+          and least-privilege access.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Configure observability"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Configure observability for the {{ product }} environment  
+          *So that:* cluster health, performance, and policy status are visible.
+
+          Notes / Context:
+          This may include metrics, alerts, dashboards, and log integration as required.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Validate GitOps integration"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Validate GitOps integration with {{ product }}  
+          *So that:* configuration and policy changes are managed declaratively.
+
+          Notes / Context:
+          This includes verifying repository access, sync behavior,
+          and reconciliation workflows.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Document deployment and configuration details"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Document the deployment and configuration of {{ product }}  
+          *So that:* the implementation is supportable and repeatable.
+
+          Notes / Context:
+          Documentation should capture architecture decisions, configuration,
+          automation workflows, and operational considerations.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"

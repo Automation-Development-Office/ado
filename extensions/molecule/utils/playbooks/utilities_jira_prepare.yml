@@ -1,0 +1,17 @@
+---
+- name: Prepare - utilities_jira scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Prepare - validate Jira scenario files are present
+      ansible.builtin.stat:
+        path: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/README.md"
+      register: utilities_jira_prepare_readme_stat
+
+    - name: Prepare - print offline test mode
+      ansible.builtin.debug:
+        msg: >-
+          Running utilities_jira Molecule scenario in offline mode.
+          README present={{ utilities_jira_prepare_readme_stat.stat.exists }}

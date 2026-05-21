@@ -1,0 +1,31 @@
+template_stories:
+  - story_summary: "{{ product }} - Day 2: {{ issue_summary }}"
+    story_description: |
+      *Issue:* {{ issue_description }}
+
+      *Impact:*
+      {{ impact }}
+
+      *Environment:* {{ enviroment }}
+
+      *Detected via:* {{ detection_method }}
+
+    custom_ac: |
+      * Root cause identified
+      * Fix or workaround applied
+      * Verification completed
+      * Runbook or documentation updated
+      * Monitoring updated if applicable
+      * Automation identified for future prevention
+
+    labels:
+      - day2
+      - operations
+      - "{{ product }}"
+
+    subtasks:
+      - summary: "Identify root cause"
+      - summary: "Implement fix or workaround"
+      - summary: "Validate resolution"
+      - summary: "Update runbook / documentation"
+      - summary: "Automation identified for future prevention"

@@ -1,0 +1,126 @@
+template_stories_phase4:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations Handoff and Long-Term Support - Phase 4"
+    story_description: |
+      *As a:* "{{ role_name }}"   
+      *I want to:* Operationalize {{ product }} for long-term support  
+      *So that:* the platform is stable, maintainable, and auditable.
+
+      Notes / Context:
+      This phase focuses on transitioning {{ product }} into steady-state operations.
+      Operational ownership, support processes, runbooks, backup and recovery, upgrade
+      procedures, observability, and training should be finalized to ensure the platform
+      can be supported long-term by customer and Red Hat teams.
+
+    custom_ac: |
+      * Runbooks completed
+      * Support ownership defined
+      * TAMS engaged and trained
+      * Backup and recovery validated
+      * Upgrade procedures documented
+      * Observability dashboards finalized
+      * Missing automation identified and planned
+      * Operational handoff completed
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create operational runbooks"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Create operational runbooks for {{ product }}  
+          *So that:* day-to-day operations, troubleshooting, and recovery are well documented.
+
+          Notes / Context:
+          Runbooks should cover normal operations, common failure scenarios,
+          escalation paths, and recovery procedures.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Define support and escalation model"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Define the support and escalation model for {{ product }}  
+          *So that:* ownership, responsibilities, and escalation paths are clearly understood.
+
+          Notes / Context:
+          This includes defining L1/L2/L3 ownership, on-call expectations,
+          and Red Hat / customer responsibilities.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Validate backup and recovery"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Validate backup and recovery procedures  
+          *So that:* {{ product }} can be recovered in the event of failure.
+
+          Notes / Context:
+          This includes validating backup schedules, restore procedures,
+          and documenting recovery time expectations.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Document upgrade procedures"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Document upgrade procedures for {{ product }}  
+          *So that:* upgrades can be performed safely and repeatably.
+
+          Notes / Context:
+          Procedures should cover prerequisites, execution steps,
+          validation, and rollback considerations.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Customer and TAMS training conducted"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Conduct training for customer teams and TAMS  
+          *So that:* teams are prepared to operate and support {{ product }}.
+
+          Notes / Context:
+          Training may include workshops, walkthroughs, documentation reviews,
+          and hands-on exercises.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Automation gaps identified and backlog created"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Identify automation gaps and create backlog items  
+          *So that:* future automation improvements are tracked and prioritized.
+
+          Notes / Context:
+          Gaps identified during operations should be documented
+          and added to the backlog for future iterations.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"
+
+      - summary: "Finalize handoff documentation"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Finalize handoff documentation for {{ product }}  
+          *So that:* operational ownership is clearly transferred.
+
+          Notes / Context:
+          Documentation should include architecture, configuration,
+          runbooks, support contacts, and escalation procedures.
+        labels:
+          - "{{ product }}"
+          - "{{ section }}"
+        component: "{{ group }}"

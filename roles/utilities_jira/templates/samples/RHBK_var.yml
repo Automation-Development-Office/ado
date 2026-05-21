@@ -1,0 +1,113 @@
+template_stories:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate prerequisites and architecture for Red Hat build of Keycloak
+      *So that:* identity services can be deployed securely and integrated across platforms.
+
+      Notes / Context:
+      This phase establishes identity architecture, trust boundaries, and integration
+      requirements before deploying RHBK.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * Identity use cases defined (SSO, MFA, federation, service auth)
+      * Integration targets identified (OpenShift, apps, APIs)
+      * Authentication sources reviewed (IdM, LDAP, OIDC, SAML)
+      * Certificate and trust model defined
+      * Network and ingress requirements validated
+      * Automation and GitOps expectations documented
+      * Gaps in automotion and risks captured and converted to backlog items
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Conduct RHBK readiness and architecture workshop"
+      - summary: "Identify identity providers and federation requirements"
+      - summary: "Define trust, certificate, and TLS requirements"
+      - summary: "Review network and ingress design"
+      - summary: "Document automation and configuration expectations"
+      - summary: "Create backlog items for identified gaps and missing automation"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Core Configuration"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Deploy and configure Red Hat build of Keycloak
+      *So that:* identity services are secure, scalable, and repeatable.
+
+    custom_ac: |
+      * RHBK operator installed and healthy
+      * Keycloak instance deployed successfully
+      * Database connectivity validated
+      * TLS certificates configured and trusted
+      * Authentication realms created
+      * Automation is idempotent and repeatable
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Install RHBK operator"
+      - summary: "Deploy Keycloak instance"
+      - summary: "Configure database and persistence"
+      - summary: "Configure TLS and certificate trust"
+      - summary: "Create base realms and clients"
+      - summary: "Validate automation repeatability"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Integration, Validation, and Enablement"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Integrate RHBK with platforms and applications
+      *So that:* authentication, authorization, and access management are reliable.
+
+    custom_ac: |
+      * Integrations with target platforms validated (OpenShift, apps, APIs)
+      * Federation and identity sources validated
+      * Role and group mappings verified
+      * MFA and conditional access tested
+      * Token flows and session management validated
+      * Audit and event logging verified
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Integrate RHBK with OpenShift"
+      - summary: "Configure identity federation"
+      - summary: "Validate role and group mappings"
+      - summary: "Enable and test MFA"
+      - summary: "Validate token lifecycles and session behavior"
+      - summary: "Verify audit logging and events"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Handoff"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Operationalize Red Hat build of Keycloak
+      *So that:* identity services are secure, resilient, and supportable long term.
+
+    custom_ac: |
+      * Operational runbooks completed
+      * Backup and restore procedures validated
+      * Upgrade and patching processes documented
+      * Monitoring and alerting configured
+      * Governance and ownership defined
+      * Platform formally handed off
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create operational runbooks"
+      - summary: "Validate backup and recovery"
+      - summary: "Document upgrade and patching procedures"
+      - summary: "Configure monitoring and alerting"
+      - summary: "Define ownership and support model"
+      - summary: "Complete operational handoff"
+
+
