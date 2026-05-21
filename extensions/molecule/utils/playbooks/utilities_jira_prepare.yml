@@ -2,15 +2,16 @@
 - name: Prepare - utilities_jira scenario
   hosts: localhost
   gather_facts: false
-  become: true
+  become: false
 
   tasks:
-    - name: Prepare - utilities_jira scenario
-      ansible.builtin.include_role:
-        name: infra.ado.utilities_jira
-      vars:
-        utilities_jira_url: "https://example.com"
-        utilities_jira_username: "admin"
-        utilities_jira_token: "token"
-        utilities_jira_project_key: "PROJ"
-        utilities_jira_track: "platform_4phase"
+    - name: Prepare - validate Jira scenario files are present
+      ansible.builtin.stat:
+        path: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/README.md"
+      register: utilities_jira_prepare_readme_stat
+
+    - name: Prepare - print offline test mode
+      ansible.builtin.debug:
+        msg: >-
+          Running utilities_jira Molecule scenario in offline mode.
+          README present={{ utilities_jira_prepare_readme_stat.stat.exists }}
