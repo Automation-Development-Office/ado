@@ -1,17 +1,13 @@
 ---
-- name: Destroy — no-op (delegated driver)
-  hosts: all
+- name: Destroy — destroy jira role
+  hosts: localhost
   gather_facts: false
-  become: false
-  remote_user: root
-  vars:
-    # Example services that exist on all RHELs
-    service_names:
-      - crond
-      - tuned
-      - httpd
-      - tomcat
-    service_state: started
-    service_enabled: true
+  become: true
+    vars:
+    utilities_jira_url: "https://example.com"
+    utilities_jira_username: "admin"
+    utilities_jira_token: "token"
+    utilities_jira_project_key: "PROJ"
+    utilities_jira_track: "platform_4phase"
   roles:
-    - role: ado.utilities.services_management
+    - role: ado.utilities.jira

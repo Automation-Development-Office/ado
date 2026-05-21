@@ -1,17 +1,13 @@
 ---
-- name: Converge — apply service_management across RHEL 7/8/9/10
-  hosts: all
+- name: Converge — apply jira role
+  hosts: localhost
   gather_facts: false
-  become: false
-  remote_user: root
-  vars:
-    # Example services that exist on all RHELs
-    service_names:
-      - crond
-      - tuned
-      - httpd
-      - tomcat
-    service_state: stopped
-    service_enabled: false
+  become: true
+    vars:
+    utilities_jira_url: "https://example.com"
+    utilities_jira_username: "admin"
+    utilities_jira_token: "token"
+    utilities_jira_project_key: "PROJ"
+    utilities_jira_track: "platform_4phase"
   roles:
-    - role: ado.utilities.services_management
+    - role: ado.utilities.jira

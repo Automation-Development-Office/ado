@@ -5,6 +5,6 @@
   become: false
 
   tasks:
-    - name: Prepare step is intentionally minimal
+    - name: Prepare - utilities_jira scenario
       ansible.builtin.debug:
         msg: "No explicit prepare actions required for utilities_jira."
