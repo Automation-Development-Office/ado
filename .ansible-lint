@@ -11,6 +11,7 @@ exclude_paths:
     - galaxy.yml
     - "**/changelogs/**"
     - devfile.yaml
+    - collections/requirements.yml
 
 mock_modules:
   - ansible.posix.mount

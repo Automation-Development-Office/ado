@@ -1,0 +1,17 @@
+---
+- name: Destroy - utilities_services_management scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  vars:
+    service_names:
+      - crond
+      - tuned
+      - httpd
+      - tomcat
+    service_state: started
+    service_enabled: true
+
+  roles:
+    - role: infra.ado.utilities_services_management

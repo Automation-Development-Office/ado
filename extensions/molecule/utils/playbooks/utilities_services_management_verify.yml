@@ -5,7 +5,7 @@
   become: false
 
   vars:
-    readme_path: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/README.md"
+    readme_path: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/../../../roles/utilities_services_management/README.md"
 
   tasks:
     - name: Check if README.md exists

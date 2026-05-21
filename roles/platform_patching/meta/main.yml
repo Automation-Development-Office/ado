@@ -1,7 +1,12 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 galaxy_info:
-  author: Chad Elliott
-  description: 'An collection.'
-  company: Automation Development Office
+  author: Jeff Radabaugh
+  description:
+    This role patches the Ansible control node and managed nodes.
+    It is designed to be used with the platform_infrastructure_automation collection.
+    It can be used to patch the Ansible control node and managed nodes.
+    It can also be used to patch the Ansible control node and managed nodes in a container.
+  # company:
 
   # If the issue tracker for your role is not on github, uncomment the
   # next line and provide a value
@@ -9,14 +14,14 @@ galaxy_info:
 
   # Choose a valid license ID from https://spdx.org - some suggested licenses:
   # - BSD-3-Clause (default)
-  # - GPL-3.0-or-later
-  # - GPL-3.0-only
+  # - MIT
   # - GPL-2.0-or-later
+  # - GPL-3.0-only
   # - Apache-2.0
   # - CC-BY-4.0
   license: GPL-3.0-or-later
 
-  min_ansible_version: '2.16.0'
+  min_ansible_version: "2.14"
 
   # If this a Container Enabled role, provide the minimum Ansible Container version.
   # min_ansible_container_version:
