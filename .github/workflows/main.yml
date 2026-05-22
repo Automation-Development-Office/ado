@@ -79,9 +79,24 @@ jobs:
 
       - name: Install Ansible collections
         run: |
+          set -euo pipefail
           if [ -f collections/requirements.yml ]; then
-            ansible-galaxy collection install -r collections/requirements.yml;
+            attempts=3
+            for attempt in $(seq 1 "$attempts"); do
+              if ansible-galaxy collection install -r collections/requirements.yml; then
+                break
+              fi
+              if [ "$attempt" -eq "$attempts" ]; then
+                echo "Collection install failed after ${attempts} attempts."
+                exit 1
+              fi
+              sleep_seconds=$((attempt * 15))
+              echo "Collection install failed on attempt ${attempt}/${attempts}. Retrying in ${sleep_seconds}s..."
+              sleep "$sleep_seconds"
+            done
           fi
+        env:
+          ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
 
       - name: Run ansible-lint
         run: |
@@ -160,7 +175,7 @@ jobs:
             done
             IFS=$'\n' dirs=($(sort <<< "${dirs[*]}"))
           else
-            mapfile -t dirs < <(find extensions/molecule -type f -name molecule.yml -printf '%h\n' | sort)
+            mapfile -t dirs < <(find extensions/molecule -mindepth 2 -maxdepth 2 -type f -name molecule.yml -printf '%h\n' | sort)
           fi
           if [ ${#dirs[@]} -eq 0 ]; then
             echo "No Molecule scenarios found under extensions/molecule"
@@ -202,6 +217,7 @@ jobs:
         run: |
           ansible-galaxy collection install . --force -p ~/.ansible/collections
           ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
+          ansible-galaxy collection install community.general --force -p ~/.ansible/collections
         env:
           ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
 

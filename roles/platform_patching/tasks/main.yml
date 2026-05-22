@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# tasks file for patching
+
+
+- name: Importing patching tasks
+  ansible.builtin.import_tasks: patch.yml

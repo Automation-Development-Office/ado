@@ -1,0 +1,112 @@
+template_stories_bugfix:
+
+  - story_summary: "{{ product }} - {{ group }} - BUGFIX: {{ bug_summary }}"
+    story_description: |
+      *As a:* "{{ role_name | default('Engineer') }}"
+      *I want to:* Fix {{ bug_summary }}
+      *So that:* automation is reliable, repeatable, and does not regress.
+
+      *Problem statement:*
+      {{ bug_description }}
+
+      *Environment:* {{ enviroment }}
+      *Area/Component:* {{ bug_component | default(group) }}
+      *Detected via:* {{ detection_method | default('TBD') }}
+
+      *Severity:* {{ severity | default('medium') }}
+      *Customer impact:* {{ customer_impact | default('unknown') }}
+
+      *Repro steps:*
+      {{ repro_steps | default('TBD') }}
+
+      *Expected behavior:*
+      {{ expected_behavior | default('TBD') }}
+
+      *Actual behavior:*
+      {{ actual_behavior | default('TBD') }}
+
+      *Suspected root cause:*
+      {{ suspected_root_cause | default('TBD') }}
+
+      *Scope:*
+      {{ scope | default('TBD') }}
+
+      *Links:*
+      - Issue/Log: {{ log_link | default('TBD') }}
+      - PR/MR: {{ pr_link | default('TBD') }}
+      - Runbook/Doc: {{ doc_link | default('TBD') }}
+
+      *Target release/version:* {{ target_version | default('TBD') }}
+
+    custom_ac: |
+      * Root cause confirmed
+      * Fix implemented
+      * Tests added/updated to prevent regression
+      * Lint/molecule (or equivalent) passes
+      * Documentation updated if applicable
+      * Verified in target environment
+      * Follow-up work created if needed
+
+    labels:
+      - "bugfix"
+      - "{{ product }}"
+      - "{{ section | default('delivery') }}"
+
+    subtasks:
+      - summary: "Reproduce and isolate the issue"
+        description: |
+          *As a:* "{{ role_name | default('Engineer') }}"
+          *I want to:* Reproduce and isolate the bug
+          *So that:* I can confidently validate the fix.
+
+          Notes / Context:
+          Capture exact inputs, versions, and a minimal reproduction.
+        labels:
+          - "bugfix"
+          - "{{ product }}"
+          - "{{ section | default('delivery') }}"
+        component: "{{ bug_component | default(group) }}"
+
+      - summary: "Identify root cause"
+        description: |
+          *As a:* "{{ role_name | default('Engineer') }}"
+          *I want to:* Identify the root cause
+          *So that:* the fix addresses the underlying problem.
+        labels:
+          - "bugfix"
+          - "{{ product }}"
+          - "{{ section | default('delivery') }}"
+        component: "{{ bug_component | default(group) }}"
+
+      - summary: "Implement fix"
+        description: |
+          *As a:* "{{ role_name | default('Engineer') }}"
+          *I want to:* Implement the fix
+          *So that:* the bug no longer occurs.
+        labels:
+          - "bugfix"
+          - "{{ product }}"
+          - "{{ section | default('delivery') }}"
+        component: "{{ bug_component | default(group) }}"
+
+      - summary: "Add/update tests and validate (lint/molecule/CI)"
+        description: |
+          *As a:* "{{ role_name | default('Engineer') }}"
+          *I want to:* Add or update tests and validate in CI
+          *So that:* we prevent regressions.
+        labels:
+          - "bugfix"
+          - "{{ product }}"
+          - "{{ section | default('delivery') }}"
+        component: "{{ bug_component | default(group) }}"
+
+      - summary: "Update documentation and close out"
+        description: |
+          *As a:* "{{ role_name | default('Engineer') }}"
+          *I want to:* Update docs and close out the issue
+          *So that:* future troubleshooting is easier and context is preserved.
+        labels:
+          - "bugfix"
+          - "{{ product }}"
+          - "{{ section | default('delivery') }}"
+        component: "{{ bug_component | default(group) }}"

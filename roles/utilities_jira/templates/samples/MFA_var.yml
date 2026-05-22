@@ -1,0 +1,108 @@
+template_stories:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate prerequisites and architectural decisions for OpenShift
+      *So that:* the platform can be deployed consistently and supported long term.
+
+      Notes / Context:
+      This phase ensures infrastructure readiness, access alignment, and architectural clarity
+      before cluster deployment begins.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * Cluster purpose and usage model defined
+      * Infrastructure readiness validated (compute, network, storage)
+      * Identity and access integration reviewed (IdM / SSO / RBAC)
+      * Certificate and trust requirements documented
+      * Network design validated (ingress, egress, DNS, load balancers)
+      * Automation and GitOps expectations documented
+      * Gaps in automotion and risks captured and converted to backlog items
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Conduct OpenShift readiness and architecture workshop"
+      - summary: "Validate infrastructure prerequisites"
+      - summary: "Review identity, RBAC, and access model"
+      - summary: "Review certificate and trust requirements"
+      - summary: "Validate network and DNS design"
+      - summary: "Document automation and GitOps expectations"
+      - summary: "Create backlog items for identified gaps and missing automation"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Cluster Deployment and Core Configuration"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Deploy and configure OpenShift using approved standards
+      *So that:* the platform is stable, secure, and ready for workloads.
+
+    custom_ac: |
+      * OpenShift cluster installed successfully
+      * Cluster operators healthy and stable
+      * Identity provider integrated
+      * Storage classes configured and validated
+      * Networking and ingress functional
+      * Automation is repeatable and idempotent
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Install OpenShift cluster"
+      - summary: "Validate cluster operators and health"
+      - summary: "Configure identity provider and RBAC"
+      - summary: "Configure storage classes and defaults"
+      - summary: "Validate ingress, routes, and networking"
+      - summary: "Verify automation repeatability"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Platform Enablement and Validation"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Enable platform services and validate functionality
+      *So that:* application teams can safely onboard and operate workloads.
+
+    custom_ac: |
+      * Platform services enabled (monitoring, logging, operators)
+      * Resource governance enforced (quotas, limits)
+      * Workloads successfully deployed
+      * Observability validated
+      * Upgrade and lifecycle workflows tested
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Enable monitoring and alerting"
+      - summary: "Configure logging and observability"
+      - summary: "Deploy and validate platform operators"
+      - summary: "Validate resource governance (quotas, limits)"
+      - summary: "Test upgrades and lifecycle workflows"
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Handoff"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Operationalize OpenShift for long-term support
+      *So that:* the platform remains stable, secure, and maintainable.
+
+    custom_ac: |
+      * Runbooks completed and reviewed
+      * Support and escalation model defined
+      * Backup and recovery validated
+      * Security posture reviewed
+      * Operational ownership transferred
+
+    labels:
+      - "{{ product }}"
+      - "{{ section }}"
+
+    subtasks:
+      - summary: "Create operational runbooks"
+      - summary: "Define support and escalation paths"
+      - summary: "Validate backup and recovery processes"
+      - summary: "Review security posture and compliance"
+      - summary: "Complete operational handoff"
