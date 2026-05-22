@@ -33,3 +33,6 @@
 
     - name: Settings Config
       ansible.builtin.include_tasks: settings.yml
+
+    - name: Manifest Config
+      ansible.builtin.include_tasks: manifest.yml
