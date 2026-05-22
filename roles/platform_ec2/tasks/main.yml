@@ -1,0 +1,91 @@
+- name: Validate required role inputs
+  ansible.builtin.assert:
+    that:
+      - instance_name | length > 0
+      - aws_access_key | length > 0
+      - aws_secret_key | length > 0
+      - image_id | length > 0
+      - region | length > 0
+      - instance_type | length > 0
+      - key_name | length > 0
+      - security_group | length > 0
+      - new_instance_name | length > 0
+      - volume_device_name | length > 0
+      - (volume_size | int) > 0
+    fail_msg: >-
+      platform_ec2 is missing required inputs. Set instance_name, aws_access_key,
+      aws_secret_key, image_id, region, instance_type, key_name, security_group,
+      new_instance_name, volume_device_name, and a positive volume_size.
+    success_msg: platform_ec2 input validation passed.
+
+- name: Start an instance and Add EBS
+  amazon.aws.ec2_instance:
+    name: "{{ instance_name }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    image_id: "{{ image_id }}"
+    vpc_subnet_id: "{{ vpc_subnet_id }}"
+    region: "{{ region }}"
+    instance_type: "{{ instance_type }}"
+    key_name: "{{ key_name }}"
+    security_group: "{{ security_group }}"
+    subnet_id: "{{ subnet_id }}"
+    volumes:
+      - device_name: "{{ volume_device_name }}"
+        ebs:
+          volume_size: "{{ volume_size | int }}"
+          delete_on_termination: "{{ volume_delete_on_termination }}"
+  register: platform_ec2_instance_result
+  no_log: true
+
+- name: Set ec2 instance id
+  ansible.builtin.set_fact:
+    platform_ec2_instance_id: "{{ platform_ec2_instance_result.instances[0].instance_id }}"
+
+- name: Create snapshot
+  amazon.aws.ec2_snapshot:
+    instance_id: "{{ platform_ec2_instance_id }}"
+    device_name: "{{ volume_device_name }}"
+    description: "{{ snapshot_description }}"
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+  register: platform_ec2_snapshot_result
+  no_log: true
+
+- name: Set ec2 snapshot id
+  ansible.builtin.set_fact:
+    platform_ec2_snapshot_id: "{{ platform_ec2_snapshot_result['snapshots'][0]['snapshot_id'] }}"
+
+- name: Create AMI from instance
+  amazon.aws.ec2_ami:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    instance_id: "{{ platform_ec2_instance_id }}"
+    wait: true
+    name: "{{ new_instance_name }}"
+    region: "{{ region }}"
+    tags:
+      Name: "{{ name_tag }}"
+      Service: TestService
+  no_log: true
+
+# Uncomment if you want to use a snapshot
+# - name: Basic AMI Creation with snapshot
+#  amazon.aws.ec2_ami:
+#    aws_access_key: "{{ aws_access_key }}"
+#    aws_secret_key: "{{ aws_secret_key }}"
+#    #instance_id: "{{ instance_id }}"
+#    wait: true
+#    name: "{{ new_instance_name }}"
+#    region: "{{ region }}"
+#    root_device_name: "{{ volume_device_name }}"
+#    device_mapping:
+#      - device_name: "{{ volume_device_name }}"
+#        volume_size: "{{ volume_size }}"
+#        snapshot_id: "{{ snapshot_instance_id }}"
+#        delete_on_termination: "{{ volume_delete_on_termination }}"
+#        volume_type: "{{ volume_type }}"
+#    tags:
+#      Name: "{{ name_tag }}"
+#      Service: "{{ service_tag }}"

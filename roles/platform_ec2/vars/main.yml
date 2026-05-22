@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# vars file for platform_ec2
+instance_name: ""
+aws_access_key: ""
+aws_secret_key: ""
+image_id: ""
+vpc_subnet_id: ""
+region: ""
+instance_type: ""
+key_name: ""
+security_group: ""
+subnet_id: ""
+volume_device_name: "/dev/xvdf"
+volume_size: 8
+volume_delete_on_termination: true
+snapshot_description: "Snapshot created by platform_ec2 role"
+new_instance_name: ""
+name_tag: ""
