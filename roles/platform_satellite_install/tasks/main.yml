@@ -36,3 +36,6 @@
 
     - name: Manifest Config
       ansible.builtin.include_tasks: manifest.yml
+
+    - name: Enable Repos
+      ansible.builtin.include_tasks: enable_repos.yml
