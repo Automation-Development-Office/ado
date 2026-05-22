@@ -5,7 +5,7 @@
     dest: "{{ satellite_manifest_path }}"
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
 
 - name: manifest | Remove the manifest
   redhat.satellite.subscription_manifest:
@@ -15,7 +15,7 @@
     organization: "{{ satellite_organization }}"
     state: absent
     validate_certs: "{{ satellite_validate_certs }}"
-  ignore_errors: True
+  failed_when: false
 
 - name: manifest | Upload the manifest for Satellite
   redhat.satellite.subscription_manifest:
@@ -26,7 +26,7 @@
     state: present
     manifest_path: "{{ satellite_manifest_path }}"
     validate_certs: "{{ satellite_validate_certs }}"
-  ignore_errors: True
+  failed_when: false
 
 - name: manifest | Refresh the manifest
   redhat.satellite.subscription_manifest:
@@ -36,5 +36,5 @@
     organization: "{{ satellite_organization }}"
     state: refreshed
     validate_certs: "{{ satellite_validate_certs }}"
-  ignore_errors: True
+  failed_when: false
 ...
