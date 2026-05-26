@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: GPL-3.0-or-later-0
+---
+# tasks file for utilities_build_execution_environment
+
+- name: Assert required role inputs are not blank
+  ansible.builtin.assert:
+    that:
+      - utilities_build_execution_environment_base_ee | trim | length > 0
+      - utilities_build_execution_environment_source_image_repository | trim | length > 0
+      - utilities_build_execution_environment_collections | length > 0
+    fail_msg: >-
+      Required variables utilities_build_execution_environment_base_ee,
+      utilities_build_execution_environment_source_image_repository, and
+      utilities_build_execution_environment_collections must be provided with values.
+
+- name: Set resolved base EE image reference
+  ansible.builtin.set_fact:
+    utilities_build_execution_environment_base_image: >-
+      {{ utilities_build_execution_environment_source_image_repository | regex_replace('/$', '') }}/{{ utilities_build_execution_environment_base_ee }}
+
+- name: Ensure ansible-builder executable is available
+  ansible.builtin.command:
+    argv:
+      - "{{ utilities_build_execution_environment_builder_executable }}"
+      - --version
+  register: utilities_build_execution_environment_builder_check
+  changed_when: false
+
+- name: Ensure build context directory exists
+  ansible.builtin.file:
+    path: "{{ utilities_build_execution_environment_build_context }}"
+    state: directory
+    mode: "0755"
+
+- name: Create execution environment definition file
+  ansible.builtin.template:
+    src: execution-environment.yml.j2
+    dest: "{{ utilities_build_execution_environment_build_context }}/execution-environment.yml"
+    mode: "0644"
+
+- name: Create collection requirements file
+  ansible.builtin.template:
+    src: requirements.yml.j2
+    dest: "{{ utilities_build_execution_environment_build_context }}/requirements.yml"
+    mode: "0644"
+
+- name: Build custom execution environment image
+  ansible.builtin.command:
+    argv:
+      - "{{ utilities_build_execution_environment_builder_executable }}"
+      - build
+      - --context
+      - "{{ utilities_build_execution_environment_build_context }}"
+      - --file
+      - "{{ utilities_build_execution_environment_build_context }}/execution-environment.yml"
+      - --tag
+      - "{{ utilities_build_execution_environment_output_image }}"
+  register: utilities_build_execution_environment_build
+  changed_when: utilities_build_execution_environment_build.rc == 0

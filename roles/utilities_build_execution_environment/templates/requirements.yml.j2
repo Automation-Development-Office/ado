@@ -1,0 +1,5 @@
+---
+collections:
+{% for collection_name in utilities_build_execution_environment_collections %}
+  - name: "{{ collection_name }}"
+{% endfor %}
