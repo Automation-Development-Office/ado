@@ -1,0 +1,36 @@
+---
+
+- name: Validate required variables for promotion
+  ansible.builtin.assert:
+    that:
+      - satellite_url is defined
+      - satellite_username is defined
+      - satellite_password is defined
+      - organization is defined
+      - content_view is defined
+      - lifecycle_environments is defined
+      - published_content_view is defined
+      - published_content_view_version is defined
+    fail_msg: "One or more required variables for promoting the Content View are missing."
+    success_msg: "All required variables for promotion are defined."
+
+- name: Promote Content View to Lifecycle Environment
+  redhat.satellite.content_view_version:
+    server_url: "{{ satellite_url }}"
+    username: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    validate_certs: false
+    content_view: "{{ content_view }}"
+    organization: "{{ organization }}"
+    lifecycle_environments: "{{ lifecycle_environments }}"
+    version: "{{ published_content_view_version }}"
+    state: present
+  delegate_to: localhost
+  register: platform_content_view_promote_result
+
+- name: Debug promoted Content View
+  ansible.builtin.debug:
+    var: platform_content_view_promote_result
+    verbosity: 1
+  when:
+    - platform_content_view_promote_result is defined

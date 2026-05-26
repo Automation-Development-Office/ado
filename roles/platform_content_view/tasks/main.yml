@@ -1,0 +1,22 @@
+---
+
+- name: Create Content View
+  ansible.builtin.import_tasks: create_content_view.yml
+  when:
+    - content_view is defined
+    - sat_content_view_action is defined
+    - sat_content_view_action == "create"
+
+- name: Publish Content View
+  ansible.builtin.import_tasks: publish_content_view.yml
+  when:
+    - content_view is defined
+    - sat_content_view_action is defined
+    - sat_content_view_action == "publish"
+
+- name: Promote Content View
+  ansible.builtin.import_tasks: promote_content_view.yml
+  when:
+    - content_view is defined
+    - sat_content_view_action is defined
+    - sat_content_view_action == "promote"
