@@ -2,21 +2,47 @@
 ---
 
 - name: Push source secret to Hashicorp Vault
-  community.hashi_vault.vault_kv2_write:
-    url: "{{ openshift_tools_secret_replicator_vault_url }}"
-    token: "{{ openshift_tools_secret_replicator_vault_token }}"
-    mount: "{{ openshift_tools_secret_replicator_vault_kv_mount }}"
+  ansible.builtin.set_fact:
+    openshift_tools_secret_replicator_vault_data: >-
+      {{
+        openshift_tools_secret_replicator_clean_secret_data
+        | combine(
+            (
+              (openshift_tools_secret_replicator_vault_store_k8s_secret_type | default(true) | bool)
+              | ternary(
+                  {
+                    (openshift_tools_secret_replicator_vault_k8s_secret_type_key | default('k8s_secret_type')):
+                      openshift_tools_secret_replicator_secret_type
+                  },
+                  {}
+                )
+            ),
+            recursive=True
+          )
+      }}
+  when: openshift_tools_secret_replicator_vault_push | bool
+
+- name: Push source secret to Hashicorp Vault
+  hashicorp.vault.kv2_secret:
+    url: "{{ openshift_tools_secret_replicator_vault_url | default(lookup('env', 'VAULT_ADDR'), true) }}"
+    token: >-
+      {{
+        (openshift_tools_secret_replicator_vault_token | default('') | length > 0)
+        | ternary(openshift_tools_secret_replicator_vault_token, omit)
+      }}
+    engine_mount_point: "{{ openshift_tools_secret_replicator_vault_kv_mount }}"
     path: "{{ openshift_tools_secret_replicator_vault_kv_path }}"
-    data: "{{ openshift_tools_secret_replicator_clean_secret_data }}"
-    namespace: "{{ openshift_tools_secret_replicator_vault_namespace }}"
-    validate_certs: "{{ openshift_tools_secret_replicator_vault_validate_certs }}"
-    secret_values_base64: "{{ openshift_tools_secret_replicator_vault_secret_values_base64 }}"
-    store_k8s_secret_type: "{{ openshift_tools_secret_replicator_vault_store_k8s_secret_type }}"
-    k8s_secret_type_key: "{{ openshift_tools_secret_replicator_vault_k8s_secret_type_key }}"
+    data: "{{ openshift_tools_secret_replicator_vault_data }}"
+    namespace: >-
+      {{
+        (openshift_tools_secret_replicator_vault_namespace | default('') | length > 0)
+        | ternary(openshift_tools_secret_replicator_vault_namespace, omit)
+      }}
+    state: present
   register: openshift_tools_secret_replicator_vault_response
-  when: openshift_tools_secret_replicator_vault_push is true
+  when: openshift_tools_secret_replicator_vault_push | bool
 
 - name: Debug Vault output
   ansible.builtin.debug:
-    msg: "Vault response: {{ openshift_tools_secret_replicator_vault_response }}"
-  when: openshift_tools_secret_replicator_vault_push is true
+    var: openshift_tools_secret_replicator_vault_response
+  when: openshift_tools_secret_replicator_vault_push | bool
