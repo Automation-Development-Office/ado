@@ -5,7 +5,7 @@
     dest: "/etc/pki/rpm-gpg/"
     owner: root
     group: root
-    mode: 0644
+    mode: '0644'
   loop: "{{ platform_satellite_install_gpg_key_files }}"
 
 - name: third_party_products | Create content credentials on Satellite
@@ -22,7 +22,7 @@
     path: "{{ platform_satellite_install_custom_repo_dest }}"
     owner: root
     group: root
-    mode: 0700
+    mode: '0700'
     state: directory
 
 - name: third_party_products | Unarchive custom repo files
@@ -31,7 +31,7 @@
     dest: "{{ platform_satellite_install_custom_repo_dest }}"
     owner: root
     group: root
-    mode: 0600
+    mode: '0600'
     remote_src: true
   loop: "{{ platform_satellite_install_custom_repo_files }}"
 
