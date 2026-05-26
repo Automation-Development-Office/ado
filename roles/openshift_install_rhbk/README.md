@@ -44,7 +44,7 @@ Install or remove a Red Hat Build of Keycloak deployment with PostgreSQL and TLS
         rhbk_db_password: "{{ vault_rhbk_db_password }}"
         cert_manager: false
         tls_crt: "{{ vault_rhbk_tls_crt }}"
-        tls_key: "{{ vault_rhbk_tls_key }}
+        tls_key: "{{ vault_rhbk_tls_key }}"
 ```
 
 ---
