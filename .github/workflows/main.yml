@@ -130,7 +130,7 @@ jobs:
       - name: Run README format verification
         run: |
           set -o pipefail
-          python scripts/verify_readme.py 2>&1 | tee readme-verification.txt
+          python scripts/verify_readme.py --template docs/templates/role_readme_format_template.md 2>&1 | tee readme-verification.txt
 
       - name: Upload README verification report
         if: always()

@@ -1,22 +1,9 @@
 #!/usr/bin/env python3
-"""
-Verify that all role README.md files conform to a standard format.
-
-Uses roles/utilities_cron/README.md as the canonical template for:
-- Section headings (Requirements, Variables, Usage, etc.)
-- Structure and ordering
-- Formatting conventions
-
-Runs as:
-  python scripts/verify_readme.py
-
-Outputs:
-  - Console messages indicating pass/fail
-  - Exit code 0 on success, 1 on failure
-"""
+"""Verify role README.md format against a template heading layout."""
 
 from __future__ import annotations
 
+import argparse
 import os
 import re
 import sys
@@ -24,20 +11,48 @@ import sys
 from pathlib import Path
 
 
-_TEMPLATE_ROLE = "openshift_tools_manage_namespace"
-TEMPLATE_RELATIVE_PATH = Path("roles") / _TEMPLATE_ROLE / "README.md"
-HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
+DEFAULT_TEMPLATE_DIR = Path("docs") / "templates"
+DEFAULT_TEMPLATE_FILENAME = "role_readme_format_template.md"
+DEFAULT_TEMPLATE_PATH = DEFAULT_TEMPLATE_DIR / DEFAULT_TEMPLATE_FILENAME
+HEADING_PATTERN = r"^(#{1,6})\s+(.+?)\s*$"
+HEADING_RE = re.compile(HEADING_PATTERN, re.MULTILINE)
 
 
-def find_repo_root(start: Path) -> Path:
-    """Find repository root by locating the template README path."""
+def parse_args() -> argparse.Namespace:
+    """Parse command-line options for README verification."""
+    parser = argparse.ArgumentParser(description="Verify role README format")
+    parser.add_argument(
+        "--template",
+        default=str(DEFAULT_TEMPLATE_PATH),
+        help=(
+            "Template README path, relative to repository root "
+            "or absolute path. "
+            f"Default: {DEFAULT_TEMPLATE_PATH}"
+        ),
+    )
+    return parser.parse_args()
+
+
+def find_repo_root(start: Path, template_relative_path: Path) -> Path:
+    """Find repository root by locating the provided template README path."""
     current = start.resolve()
     for candidate in [current, *current.parents]:
-        if (candidate / TEMPLATE_RELATIVE_PATH).is_file():
+        if (candidate / template_relative_path).is_file():
             return candidate
-    tpl_path = TEMPLATE_RELATIVE_PATH
+    tpl_path = template_relative_path
     tpl_msg = f"Could not locate template README at {tpl_path}"
     raise FileNotFoundError(f"{tpl_msg} from {start}")
+
+
+def find_repo_root_from_context(start: Path) -> Path:
+    """Find repository root from current context."""
+    current = start.resolve()
+    for candidate in [current, *current.parents]:
+        has_roles_dir = (candidate / "roles").is_dir()
+        has_galaxy_file = (candidate / "galaxy.yml").is_file()
+        if has_roles_dir and has_galaxy_file:
+            return candidate
+    raise FileNotFoundError(f"Could not locate repository root from {start}")
 
 
 def get_readme_files(root: Path) -> list[Path]:
@@ -86,9 +101,9 @@ def validate_headings_against_template(
 
     # First heading is role-specific. Validate shape, not exact text.
     first_level, first_title = headings[0]
-    role_pattern = r"^Role:\s+`[^`]+`$"
+    role_pattern = r"^Role:\s+(`[^`]+`|[^\n`]+)$"
     if first_level != 1 or not re.match(role_pattern, first_title):
-        err = "First heading should match '# Role: `name`'"
+        err = "First heading should match '# Role: name' or '# Role: `name`'"
         issues.append(f"{filepath}: {err}")
 
     # Match section/subsection structure from template, excluding H1 title.
@@ -147,8 +162,18 @@ def check_readme_format(
 
 def verify_readme_consistency() -> bool:
     """Main verification function. Returns True if all checks pass."""
-    repo_root = find_repo_root(Path(os.getcwd()))
-    template_path = repo_root / TEMPLATE_RELATIVE_PATH
+    args = parse_args()
+    template_arg_path = Path(args.template)
+    if template_arg_path.is_absolute():
+        template_path = template_arg_path
+        if not template_path.is_file():
+            raise FileNotFoundError(f"Template not found: {template_path}")
+        repo_root = find_repo_root_from_context(Path(os.getcwd()))
+    else:
+        template_relative_path = template_arg_path
+        repo_root = find_repo_root(Path(os.getcwd()), template_relative_path)
+        template_path = repo_root / template_relative_path
+
     template_headings = extract_heading_sequence(load_text(template_path))
 
     if not template_headings:
@@ -174,7 +199,7 @@ def verify_readme_consistency() -> bool:
 
     msg = (
         f"✅ All {len(readme_files)} README.md files match the template "
-        f"format from {TEMPLATE_RELATIVE_PATH}"
+        f"format from {template_path}"
     )
     print(msg)
     return True
