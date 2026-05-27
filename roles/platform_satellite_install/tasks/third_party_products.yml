@@ -1,7 +1,7 @@
 ---
 - name: third_party_products | Copy the gpg-key files to Satellite
   ansible.builtin.copy:
-    src: "{{item}}"
+    src: "{{ item }}"
     dest: "/etc/pki/rpm-gpg/"
     owner: root
     group: root
