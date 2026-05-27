@@ -22,6 +22,8 @@ mock_modules:
   - redhat.rhel_idm.ipareplica
   - redhat.rhel_idm.ipaserver
   - redhat.rhel_system_roles.mount
+  - redhat.satellite.content_view
+  - redhat.satellite.content_view_version
   - awx.awx.organization
   - awx.awx.credential
   - awx.awx.project
