@@ -1,0 +1,80 @@
+---
+- name: Test side effects and edge cases
+  hosts: all
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Test duplicate repository enabling (should be idempotent)
+      ansible.builtin.include_role:
+        name: repos
+      vars:
+        repos_action: "enable"
+        repos_to_enable:
+          - epel
+        repos_enable_method: "yum_repository"
+      register: duplicate_enable
+
+    - name: Verify idempotency
+      ansible.builtin.assert:
+        that:
+          - not duplicate_enable.changed
+        fail_msg: "Role should be idempotent when enabling already enabled repositories"
+        success_msg: "Idempotency test passed"
+
+    - name: Test with empty repository list (should skip gracefully)
+      ansible.builtin.include_role:
+        name: repos
+      vars:
+        repos_action: "enable"
+        repos_to_enable: []
+      ignore_errors: true
+      register: empty_list_test
+
+    - name: Test method fallback behavior
+      block:
+        - name: Test with unsupported method
+          ansible.builtin.include_role:
+            name: repos
+          vars:
+            repos_action: "enable"
+            repos_to_enable:
+              - test-repo-disabled
+            repos_enable_method: "invalid_method"
+          ignore_errors: true
+          register: invalid_method_test
+
+        - name: Verify graceful handling of invalid method
+          ansible.builtin.debug:
+            msg: "Invalid method test result: {{ 'PASSED' if invalid_method_test is failed else 'FAILED' }}"
+
+    - name: Test repository state persistence
+      block:
+        - name: Record initial repository states
+          ansible.builtin.shell: |
+            set -o pipefail
+            {{ ansible_pkg_mgr }} repolist all --quiet | wc -l
+          register: initial_repo_count
+          changed_when: false
+
+        - name: Run role operations
+          ansible.builtin.include_role:
+            name: repos
+          vars:
+            repos_action: "disable"
+            repos_to_disable:
+              - test-repo-disabled
+            repos_disable_method: "file-edit"
+
+        - name: Check repository states after operations
+          ansible.builtin.shell: |
+            set -o pipefail
+            {{ ansible_pkg_mgr }} repolist all --quiet | wc -l
+          register: final_repo_count
+          changed_when: false
+
+        - name: Verify repository count consistency
+          ansible.builtin.assert:
+            that:
+              - initial_repo_count.stdout == final_repo_count.stdout
+            fail_msg: "Repository count changed unexpectedly"
+            success_msg: "Repository count remained consistent"
