@@ -19,7 +19,7 @@ requirements for each plugin or module you use in the documentation to find out
 which requirements are needed.
 
 ## Included content
-
+1
 <!--start collection content-->
 ### Filter plugins
 Name | Description
