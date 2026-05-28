@@ -1,0 +1,39 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  - name: platform-repos-rhel8-rhsm
+    image: quay.io/ansible/creator-ee:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    command: /usr/sbin/init
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}"
+  playbooks:
+    prepare: ../utils/playbooks/platform_repos_prepare_rhsm.yml
+    converge: ../utils/playbooks/platform_repos_converge_rhsm.yml
+    verify: ../utils/playbooks/platform_repos_verify_rhsm.yml
+    destroy: ../utils/playbooks/platform_repos_destroy_rhsm.yml
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+
+scenario:
+  test_sequence:
+    - prepare
+    - converge
+    - idempotence
+    - verify
+  destroy_sequence:
+    - destroy

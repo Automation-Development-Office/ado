@@ -1,0 +1,2 @@
+---
+- import_playbook: platform_repos_prepare_default.yml

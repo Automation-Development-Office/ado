@@ -1,0 +1,29 @@
+---
+- name: Destroy - platform_repos default scenario
+  hosts: all
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Remove test repository fixture file
+      ansible.builtin.file:
+        path: /etc/yum.repos.d/test-repos.repo
+        state: absent
+      failed_when: false
+
+    - name: Find test repository backup files
+      ansible.builtin.find:
+        paths: /etc/yum.repos.d/
+        patterns: "test-repos.repo.*"
+      register: platform_repos_destroy_backup_files
+
+    - name: Remove test repository backup files
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ platform_repos_destroy_backup_files.files }}"
+      failed_when: false
+
+    - name: Clean package manager cache
+      ansible.builtin.command: "{{ ansible_pkg_mgr }} clean all"
+      changed_when: true
+      failed_when: false

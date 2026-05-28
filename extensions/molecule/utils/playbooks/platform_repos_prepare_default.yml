@@ -1,0 +1,34 @@
+---
+- name: Prepare - platform_repos default scenario
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Install required package management utilities
+      ansible.builtin.raw: |
+        if command -v dnf >/dev/null 2>&1; then
+          dnf install -y yum-utils dnf-plugins-core
+        elif command -v yum >/dev/null 2>&1; then
+          yum install -y yum-utils
+        fi
+      changed_when: false
+
+    - name: Create test repository fixture
+      ansible.builtin.raw: |
+        cat > /etc/yum.repos.d/test-repos.repo << 'EOF'
+        [test-repo-disabled]
+        name=Test Repository Disabled
+        baseurl=https://example.com/test-repo/
+        enabled=0
+        gpgcheck=0
+
+        [test-repo-enabled]
+        name=Test Repository Enabled
+        baseurl=https://example.com/test-repo-enabled/
+        enabled=1
+        gpgcheck=0
+        EOF
+      changed_when: false
+
+    - name: Gather facts after bootstrap
+      ansible.builtin.setup:
