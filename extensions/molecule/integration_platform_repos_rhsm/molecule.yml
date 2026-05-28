@@ -1,21 +1,7 @@
 ---
-dependency:
-  name: galaxy
-  options:
-    requirements-file: requirements.yml
-
-driver:
-  name: docker
-
 platforms:
-  - name: platform-repos-rhel8-rhsm
-    image: quay.io/ansible/creator-ee:latest
-    pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    command: /usr/sbin/init
-
+  - name: na
+  
 provisioner:
   name: ansible
   env:

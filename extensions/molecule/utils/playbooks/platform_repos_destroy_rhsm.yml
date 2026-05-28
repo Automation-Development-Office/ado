@@ -1,6 +1,6 @@
 ---
 - name: Destroy - platform_repos RHSM scenario
-  hosts: all
+  hosts: localhost
   gather_facts: true
   become: true
   tasks:

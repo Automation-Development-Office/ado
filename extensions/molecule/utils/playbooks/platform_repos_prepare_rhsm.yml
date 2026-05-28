@@ -1,6 +1,6 @@
 ---
 - name: Prepare - platform_repos RHSM scenario
-  hosts: all
+  hosts: localhost
   gather_facts: false
   become: true
   tasks:
