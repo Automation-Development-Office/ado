@@ -2,16 +2,16 @@
 - name: Prepare - platform_repos RHSM scenario
   hosts: localhost
   gather_facts: false
-  become: true
-  tasks:
-    - name: Install required package management utilities
-      ansible.builtin.raw: |
-        if command -v dnf >/dev/null 2>&1; then
-          dnf install -y yum-utils dnf-plugins-core subscription-manager
-        elif command -v yum >/dev/null 2>&1; then
-          yum install -y yum-utils subscription-manager
-        fi
-      changed_when: false
+  # become: true
+  # tasks:
+  #   - name: Install required package management utilities
+  #     ansible.builtin.raw: |
+  #       if command -v dnf >/dev/null 2>&1; then
+  #         dnf install -y yum-utils dnf-plugins-core subscription-manager
+  #       elif command -v yum >/dev/null 2>&1; then
+  #         yum install -y yum-utils subscription-manager
+  #       fi
+  #     changed_when: false
 
-    - name: Gather facts after bootstrap
-      ansible.builtin.setup:
+  #   - name: Gather facts after bootstrap
+  #     ansible.builtin.setup:

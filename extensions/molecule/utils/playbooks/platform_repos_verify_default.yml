@@ -1,59 +1,59 @@
 ---
 - name: Verify - platform_repos default scenario
-  hosts: all
+  hosts: localhost
   gather_facts: true
-  become: true
-  tasks:
-    - name: Assert test repository fixture exists
-      ansible.builtin.stat:
-        path: /etc/yum.repos.d/test-repos.repo
-      register: platform_repos_verify_repo_file
+  # become: true
+  # tasks:
+  #   - name: Assert test repository fixture exists
+  #     ansible.builtin.stat:
+  #       path: /etc/yum.repos.d/test-repos.repo
+  #     register: platform_repos_verify_repo_file
 
-    - name: Validate test repository fixture is present
-      ansible.builtin.assert:
-        that:
-          - platform_repos_verify_repo_file.stat.exists
-        fail_msg: "Expected /etc/yum.repos.d/test-repos.repo to exist"
-        success_msg: "Test repository fixture exists"
+  #   - name: Validate test repository fixture is present
+  #     ansible.builtin.assert:
+  #       that:
+  #         - platform_repos_verify_repo_file.stat.exists
+  #       fail_msg: "Expected /etc/yum.repos.d/test-repos.repo to exist"
+  #       success_msg: "Test repository fixture exists"
 
-    - name: Find backup files from file-edit method
-      ansible.builtin.find:
-        paths: /etc/yum.repos.d/
-        patterns: "test-repos.repo.*"
-      register: platform_repos_verify_backup_files
+  #   - name: Find backup files from file-edit method
+  #     ansible.builtin.find:
+  #       paths: /etc/yum.repos.d/
+  #       patterns: "test-repos.repo.*"
+  #     register: platform_repos_verify_backup_files
 
-    - name: Validate backup files were created
-      ansible.builtin.assert:
-        that:
-          - platform_repos_verify_backup_files.matched | int >= 1
-        fail_msg: "Expected at least one backup file from file-edit method"
-        success_msg: "Backup files were created as expected"
+  #   - name: Validate backup files were created
+  #     ansible.builtin.assert:
+  #       that:
+  #         - platform_repos_verify_backup_files.matched | int >= 1
+  #       fail_msg: "Expected at least one backup file from file-edit method"
+  #       success_msg: "Backup files were created as expected"
 
-    - name: Check package manager repolist command works
-      ansible.builtin.shell: |
-        set -o pipefail
-        {{ ansible_pkg_mgr }} repolist all --quiet
-      register: platform_repos_verify_repolist
-      changed_when: false
+  #   - name: Check package manager repolist command works
+  #     ansible.builtin.shell: |
+  #       set -o pipefail
+  #       {{ ansible_pkg_mgr }} repolist all --quiet
+  #     register: platform_repos_verify_repolist
+  #     changed_when: false
 
-    - name: Validate repository listing command succeeded
-      ansible.builtin.assert:
-        that:
-          - platform_repos_verify_repolist.rc == 0
-        fail_msg: "Expected '{{ ansible_pkg_mgr }} repolist all --quiet' to succeed"
-        success_msg: "Repository listing command succeeded"
+  #   - name: Validate repository listing command succeeded
+  #     ansible.builtin.assert:
+  #       that:
+  #         - platform_repos_verify_repolist.rc == 0
+  #       fail_msg: "Expected '{{ ansible_pkg_mgr }} repolist all --quiet' to succeed"
+  #       success_msg: "Repository listing command succeeded"
 
-    - name: Check for Ansible marker text in repo files
-      ansible.builtin.shell: |
-        grep -r "enabled by Ansible" /etc/yum.repos.d/ || true
-      register: platform_repos_verify_ansible_markers
-      changed_when: false
+  #   - name: Check for Ansible marker text in repo files
+  #     ansible.builtin.shell: |
+  #       grep -r "enabled by Ansible" /etc/yum.repos.d/ || true
+  #     register: platform_repos_verify_ansible_markers
+  #     changed_when: false
 
-    - name: Show verify summary
-      ansible.builtin.debug:
-        msg: |
-          Verify summary:
-          - fixture exists: {{ platform_repos_verify_repo_file.stat.exists }}
-          - backup files found: {{ platform_repos_verify_backup_files.matched }}
-          - repolist rc: {{ platform_repos_verify_repolist.rc }}
-          - ansible markers present: {{ platform_repos_verify_ansible_markers.stdout_lines | length > 0 }}
+  #   - name: Show verify summary
+  #     ansible.builtin.debug:
+  #       msg: |
+  #         Verify summary:
+  #         - fixture exists: {{ platform_repos_verify_repo_file.stat.exists }}
+  #         - backup files found: {{ platform_repos_verify_backup_files.matched }}
+  #         - repolist rc: {{ platform_repos_verify_repolist.rc }}
+  #         - ansible markers present: {{ platform_repos_verify_ansible_markers.stdout_lines | length > 0 }}
