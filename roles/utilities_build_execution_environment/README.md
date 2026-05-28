@@ -1,11 +1,12 @@
-# Role: `utilities_build_execution_environment`
+# Role: ado.utilities_build_execution_environment
 
-This role builds a custom Ansible execution environment (EE) image with `ansible-builder`.
+Build a custom Ansible **Execution Environment (EE)** image with `ansible-builder`.
 
-The end user provides:
-- The base EE image name and tag to start from.
-- The source image repository path to pull that base EE image from.
-- The list of collections to include in the built EE image.
+- Uses a caller-provided base EE image
+- Pulls the base image from a caller-provided source repository
+- Adds caller-provided collections during the EE build
+
+---
 
 ## Requirements
 
@@ -13,33 +14,93 @@ The end user provides:
 - `ansible-builder` available on the managed host where the role runs
 - Container runtime dependencies required by `ansible-builder`
 
-## Required Variables
+---
 
-The following variables are required by this role and enforced through role argument specs:
+## Variables
 
-- `utilities_build_execution_environment_base_ee`
-- `utilities_build_execution_environment_source_image_repository`
-- `utilities_build_execution_environment_collections`
+| Variable | Description |
+|---------|-------------|
+| `utilities_build_execution_environment_base_ee` | Base EE image name and tag (for example `ee-minimal-rhel9:latest`). **Required.** |
+| `utilities_build_execution_environment_source_image_repository` | Source image repository path used with the base EE image name (for example `registry.redhat.io/ansible-automation-platform-24`). **Required.** |
+| `utilities_build_execution_environment_collections` | List of Ansible collections to include in the EE image. **Required.** |
+| `utilities_build_execution_environment_output_image` | Output image name and tag for the built EE. Default: `custom-ee:latest`. |
+| `utilities_build_execution_environment_build_context` | Build context directory used by `ansible-builder`. Default: `/tmp/utilities_build_execution_environment`. |
+| `utilities_build_execution_environment_builder_executable` | `ansible-builder` executable name or full path. Default: `ansible-builder`. |
 
-## Optional Variables
+### Auth via environment (optional)
 
-- `utilities_build_execution_environment_output_image` (default: `custom-ee:latest`)
-- `utilities_build_execution_environment_build_context` (default: `/tmp/utilities_build_execution_environment`)
-- `utilities_build_execution_environment_builder_executable` (default: `ansible-builder`)
+No role-specific environment authentication variables are required by this role.
 
-## Example Playbook
+---
 
+## Examples
+
+### Build a custom EE image
 ```yaml
-- name: Build custom execution environment
-  hosts: localhost
+- hosts: localhost
   gather_facts: false
-  vars:
-    utilities_build_execution_environment_base_ee: "ee-minimal-rhel9:latest"
-    utilities_build_execution_environment_source_image_repository: "registry.redhat.io/ansible-automation-platform-24"
-    utilities_build_execution_environment_collections:
-      - "ansible.posix"
-      - "kubernetes.core"
-    utilities_build_execution_environment_output_image: "localhost/custom-ee:latest"
   roles:
     - role: ado.utilities_build_execution_environment
+      vars:
+        utilities_build_execution_environment_base_ee: ee-minimal-rhel9:latest
+        utilities_build_execution_environment_source_image_repository: registry.redhat.io/ansible-automation-platform-24
+        utilities_build_execution_environment_collections:
+          - ansible.posix
+          - kubernetes.core
+        utilities_build_execution_environment_output_image: localhost/custom-ee:latest
+```
+
+### Build with a custom context directory
+```yaml
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: ado.utilities_build_execution_environment
+      vars:
+        utilities_build_execution_environment_base_ee: ee-supported-rhel9:latest
+        utilities_build_execution_environment_source_image_repository: quay.io/ansible
+        utilities_build_execution_environment_collections:
+          - community.general
+        utilities_build_execution_environment_build_context: /tmp/ee-build-demo
+        utilities_build_execution_environment_output_image: localhost/custom-ee:demo
+```
+
+---
+
+## Behavior Notes
+
+- The role composes the base image reference from repository + base EE image.
+- It renders `execution-environment.yml` and `requirements.yml` into the build context.
+- It runs `ansible-builder build` using the rendered files and selected output tag.
+- Required inputs are enforced by role argument specs and runtime assertions.
+
+---
+
+## Molecule
+
+No role-local Molecule scenario is currently defined for this role.
+
+---
+
+## Author
+- Automation Development Office
+
+---
+
+## Repository layout (role)
+
+```text
+roles/
+└─ utilities_build_execution_environment/
+   ├─ README.md
+   ├─ defaults/
+   │  └─ main.yml
+   ├─ meta/
+   │  ├─ main.yml
+   │  └─ argument_specs.yml
+   ├─ tasks/
+   │  └─ main.yml
+   └─ templates/
+      ├─ execution-environment.yml.j2
+      └─ requirements.yml.j2
 ```
