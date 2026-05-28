@@ -6,11 +6,11 @@ Brief one-line role description.
 
 List role runtime prerequisites.
 
-## Role Variables
+## Variables
 
 Document required and optional variables.
 
-## Usage Example
+## Examples
 
 Provide at least one role usage example.
 
@@ -22,6 +22,6 @@ Describe scenario location and local run steps.
 
 List maintainer/team ownership details.
 
-## Structure (role)
+## Repository layout (role)
 
 Show the role directory structure.
