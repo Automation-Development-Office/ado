@@ -133,7 +133,30 @@ When no method is explicitly set:
 
 ## Testing
 
-The role includes Molecule scenarios under `molecule/default` and `molecule/rhsm`.
+Molecule testing for this role is normalized to the extension scenarios:
+
+- `extensions/molecule/integration_platform_repos_default`
+- `extensions/molecule/integration_platform_repos_rhsm`
+
+These scenarios run shared stage playbooks from:
+
+- `extensions/molecule/utils/playbooks/platform_repos_prepare_default.yml`
+- `extensions/molecule/utils/playbooks/platform_repos_converge_default.yml`
+- `extensions/molecule/utils/playbooks/platform_repos_verify_default.yml`
+- `extensions/molecule/utils/playbooks/platform_repos_destroy_default.yml`
+- `extensions/molecule/utils/playbooks/platform_repos_prepare_rhsm.yml`
+- `extensions/molecule/utils/playbooks/platform_repos_converge_rhsm.yml`
+- `extensions/molecule/utils/playbooks/platform_repos_verify_rhsm.yml`
+- `extensions/molecule/utils/playbooks/platform_repos_destroy_rhsm.yml`
+
+Run tests from `extensions/molecule`:
+
+```bash
+molecule test -s integration_platform_repos_default
+molecule test -s integration_platform_repos_rhsm
+```
+
+The role-level `tests/` directory is optional legacy skeleton content and is not used by the extension Molecule CI flow.
 
 ## License
 
