@@ -6,3 +6,14 @@
 openshift_tools_secret_replicator_cluster_replication: true
 openshift_tools_secret_replicator_namespace_replication: true
 openshift_tools_secret_replicator_vault_push: false
+
+# Vault push settings
+openshift_tools_secret_replicator_vault_kv_version: 2
+openshift_tools_secret_replicator_vault_kv_mount: "secret"
+openshift_tools_secret_replicator_vault_kv_path: >-
+  {{ openshift_tools_secret_replicator_source_namespace }}/{{ openshift_tools_secret_replicator_source_secret_name }}
+openshift_tools_secret_replicator_vault_url: ""
+openshift_tools_secret_replicator_vault_token: ""
+openshift_tools_secret_replicator_vault_namespace: ""
+openshift_tools_secret_replicator_vault_store_k8s_secret_type: true
+openshift_tools_secret_replicator_vault_k8s_secret_type_key: "k8s_secret_type"

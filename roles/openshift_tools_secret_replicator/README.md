@@ -1,13 +1,13 @@
 # Role: `infra.ado.openshift_tools_secret_replicator`
 
-An Ansible role that reads a Kubernetes `Secret` once, optionally writes the same payload to HashiCorp Vault KV v2, then replicates the `type` and `data` to other namespaces and/or clusters via `kubernetes.core.k8s`.
+An Ansible role that reads a Kubernetes `Secret` once, optionally writes the same payload to HashiCorp Vault KV (v1 or v2), then replicates the `type` and `data` to other namespaces and/or clusters via `kubernetes.core.k8s`.
 
 ## Requirements
 
 - **Ansible**: 2.2 or later per `meta/main.yml`; use an Ansible Core release compatible with the collections below (they typically expect a current Core release).
 - **Collections** (see `meta/requirements.yml`):
   - `kubernetes.core` — `kubernetes.core.k8s` / `kubernetes.core.k8s_info`
-- `hashicorp.vault` (>= 1.0.0) — `hashicorp.vault.kv2_secret` when `openshift_tools_secret_replicator_vault_push` is enabled
+- `hashicorp.vault` (>= 1.0.0) — `hashicorp.vault.kv1_secret` or `hashicorp.vault.kv2_secret` when `openshift_tools_secret_replicator_vault_push` is enabled
 - **Python packages**:
   - `kubernetes` — required by `kubernetes.core`
   - `PyYAML`
@@ -58,18 +58,19 @@ openshift_tools_secret_replicator_target_clusters:
   - { context: 'cluster-dev',  ns: 'sandbox' }
 ```
 
-### HashiCorp Vault KV v2 (optional)
+### HashiCorp Vault KV (optional)
 
-When `openshift_tools_secret_replicator_vault_push: true`, the role runs `tasks/hashicorp.yml` immediately after loading the source secret (before namespace and cluster replication). The play registers the result of `hashicorp.vault.kv2_secret` and prints a debug message with the Vault response when push is enabled.
+When `openshift_tools_secret_replicator_vault_push: true`, the role runs `tasks/hashicorp.yml` immediately after loading the source secret (before namespace and cluster replication). The role writes using `hashicorp.vault.kv1_secret` or `hashicorp.vault.kv2_secret` based on `openshift_tools_secret_replicator_vault_kv_version`, then prints a debug message with the Vault response when push is enabled.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `openshift_tools_secret_replicator_vault_push` | `false` | Enable push of the secret payload to Vault KV v2. |
+| `openshift_tools_secret_replicator_vault_push` | `false` | Enable push of the secret payload to Vault KV. |
+| `openshift_tools_secret_replicator_vault_kv_version` | `2` | KV engine version to use (`1` or `2`). |
 | `openshift_tools_secret_replicator_vault_url` | `""` | Vault API URL; if empty, the module relies on `VAULT_ADDR` and other usual Vault environment variables. |
 | `openshift_tools_secret_replicator_vault_token` | `""` | Token; if empty, omitted so environment-based auth can be used. |
-| `openshift_tools_secret_replicator_vault_kv_mount` | `"secret"` | KV v2 secrets engine mount path. |
+| `openshift_tools_secret_replicator_vault_kv_mount` | `"secret"` | KV secrets engine mount path. |
 | `openshift_tools_secret_replicator_vault_kv_path` | `"{{ openshift_tools_secret_replicator_source_namespace }}/{{ openshift_tools_secret_replicator_source_secret_name }}"` | Secret path under the mount (mount name not included). |
-| `openshift_tools_secret_replicator_vault_namespace` | `""` | Vault Enterprise namespace (optional); empty omits the parameter. |
+| `openshift_tools_secret_replicator_vault_namespace` | `""` | Vault Enterprise namespace (optional); empty targets the root namespace. |
 | `openshift_tools_secret_replicator_vault_store_k8s_secret_type` | `true` | If `true`, include the Kubernetes secret `type` in the Vault data using `openshift_tools_secret_replicator_vault_k8s_secret_type_key`. |
 | `openshift_tools_secret_replicator_vault_k8s_secret_type_key` | `"k8s_secret_type"` | Key name used when `openshift_tools_secret_replicator_vault_store_k8s_secret_type` is true. |
 
@@ -138,7 +139,7 @@ No other Ansible Galaxy **roles** are required (`dependencies: []` in `meta/main
         openshift_tools_secret_replicator_cluster_replication: true
 ```
 
-### Optional: push source secret to Vault KV v2
+### Optional: push source secret to Vault KV
 
 ```yaml
 ---
@@ -150,6 +151,7 @@ No other Ansible Galaxy **roles** are required (`dependencies: []` in `meta/main
         openshift_tools_secret_replicator_source_secret_name: "app-credentials"
         openshift_tools_secret_replicator_source_namespace: "platform"
         openshift_tools_secret_replicator_vault_push: true
+        openshift_tools_secret_replicator_vault_kv_version: 2
         openshift_tools_secret_replicator_vault_kv_mount: "secret"
         openshift_tools_secret_replicator_vault_kv_path: "platform/app-credentials"
         # Optional: set explicitly or rely on VAULT_ADDR / VAULT_TOKEN
@@ -211,7 +213,7 @@ The sample `molecule/default/converge.yml` sets `K8S_AUTH_VERIFY_SSL: "no"` on t
 - **Labels on replicated Secrets**
   - Namespace targets: `replicated-by: secret-replicator`, `source-ns: <openshift_tools_secret_replicator_source_namespace>`.
   - Cluster targets label `source-ns` and `source-cluster` using `openshift_tools_secret_replicator_target_clusters[0].ns` and `openshift_tools_secret_replicator_target_clusters[0].context` for every cluster iteration (see `tasks/main.yml`); adjust `openshift_tools_secret_replicator_target_clusters` order if that metadata must reflect a specific primary cluster.
-- **Vault**: With `openshift_tools_secret_replicator_vault_push: true`, the role writes to Vault with `hashicorp.vault.kv2_secret`. The payload is the Kubernetes `data` map, optionally merged with the source secret `type` when `openshift_tools_secret_replicator_vault_store_k8s_secret_type` is enabled.
+- **Vault**: With `openshift_tools_secret_replicator_vault_push: true`, the role writes to Vault with `hashicorp.vault.kv1_secret` or `hashicorp.vault.kv2_secret` based on `openshift_tools_secret_replicator_vault_kv_version`. The payload is the Kubernetes `data` map, optionally merged with the source secret `type` when `openshift_tools_secret_replicator_vault_store_k8s_secret_type` is enabled.
 
 ### License
 

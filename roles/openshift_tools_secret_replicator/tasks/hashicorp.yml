@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 ---
 
-- name: Push source secret to Hashicorp Vault
+- name: Set Secret Data for Hashicorp Vault Push
   ansible.builtin.set_fact:
     openshift_tools_secret_replicator_vault_data: >-
       {{
@@ -22,7 +22,42 @@
       }}
   when: openshift_tools_secret_replicator_vault_push | bool
 
-- name: Push source secret to Hashicorp Vault
+- name: Validate Vault KV Version for Push
+  ansible.builtin.assert:
+    that:
+      - (openshift_tools_secret_replicator_vault_kv_version | default(2) | int) in [1, 2]
+    fail_msg: >-
+      openshift_tools_secret_replicator_vault_kv_version must be 1 or 2.
+  when: openshift_tools_secret_replicator_vault_push | bool
+
+- name: Show effective Vault write settings
+  ansible.builtin.debug:
+    msg:
+      kv_version: "{{ openshift_tools_secret_replicator_vault_kv_version | default(2) | int }}"
+      mount: "{{ openshift_tools_secret_replicator_vault_kv_mount }}"
+      path: "{{ openshift_tools_secret_replicator_vault_kv_path }}"
+      namespace: "{{ openshift_tools_secret_replicator_vault_namespace | default('') }}"
+  when: openshift_tools_secret_replicator_vault_push | bool
+
+- name: Push source secret to Hashicorp Vault KV v1
+  hashicorp.vault.kv1_secret:
+    url: "{{ openshift_tools_secret_replicator_vault_url | default(lookup('env', 'VAULT_ADDR'), true) }}"
+    token: >-
+      {{
+        (openshift_tools_secret_replicator_vault_token | default('') | length > 0)
+        | ternary(openshift_tools_secret_replicator_vault_token, omit)
+      }}
+    engine_mount_point: "{{ openshift_tools_secret_replicator_vault_kv_mount }}"
+    path: "{{ openshift_tools_secret_replicator_vault_kv_path }}"
+    data: "{{ openshift_tools_secret_replicator_vault_data }}"
+    namespace: "{{ openshift_tools_secret_replicator_vault_namespace | default('') }}"
+    state: present
+  register: openshift_tools_secret_replicator_vault_response
+  when:
+    - openshift_tools_secret_replicator_vault_push | bool
+    - (openshift_tools_secret_replicator_vault_kv_version | default(2) | int) == 1
+
+- name: Push source secret to Hashicorp Vault KV v2
   hashicorp.vault.kv2_secret:
     url: "{{ openshift_tools_secret_replicator_vault_url | default(lookup('env', 'VAULT_ADDR'), true) }}"
     token: >-
@@ -33,16 +68,9 @@
     engine_mount_point: "{{ openshift_tools_secret_replicator_vault_kv_mount }}"
     path: "{{ openshift_tools_secret_replicator_vault_kv_path }}"
     data: "{{ openshift_tools_secret_replicator_vault_data }}"
-    namespace: >-
-      {{
-        (openshift_tools_secret_replicator_vault_namespace | default('') | length > 0)
-        | ternary(openshift_tools_secret_replicator_vault_namespace, omit)
-      }}
+    namespace: "{{ openshift_tools_secret_replicator_vault_namespace | default('') }}"
     state: present
   register: openshift_tools_secret_replicator_vault_response
-  when: openshift_tools_secret_replicator_vault_push | bool
-
-- name: Debug Vault output
-  ansible.builtin.debug:
-    var: openshift_tools_secret_replicator_vault_response
-  when: openshift_tools_secret_replicator_vault_push | bool
+  when:
+    - openshift_tools_secret_replicator_vault_push | bool
+    - (openshift_tools_secret_replicator_vault_kv_version | default(2) | int) == 2
