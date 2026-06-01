@@ -1,0 +1,16 @@
+---
+version: 3
+images:
+  base_image:
+    name: "{{ utilities_build_execution_environment_base_image }}"
+options:
+  package_manager_path: "{{ utilities_build_execution_environment_package_manager_path }}"
+{% if utilities_build_execution_environment_collection_files | length > 0 %}
+additional_build_files:
+{% for collection_file in utilities_build_execution_environment_collection_files %}
+  - src: "{{ collection_file }}"
+    dest: "collection-artifacts"
+{% endfor %}
+{% endif %}
+dependencies:
+  galaxy: requirements.yml

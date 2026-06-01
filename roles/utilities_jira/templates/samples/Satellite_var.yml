@@ -104,5 +104,3 @@ template_stories:
       - summary: "Validate backup and restore procedures"
       - summary: "Integrate monitoring and alerting"
       - summary: "Complete operational handoff"
-
-

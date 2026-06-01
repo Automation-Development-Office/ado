@@ -58,7 +58,7 @@ Wait until matching Pods are **Running** and **Ready** in an OpenShift namespace
   - Every container in each pod reports `Ready=true`.
 - If `expected_pods` is **not** set, the role requires a **non-empty** matched set, and all containers Ready.
 - Fails on timeout or when no pods match.
-- Emits **no changes** (idempotent “wait”).
+- Emits **no changes** (idempotent "wait").
 
 ---
 
@@ -77,7 +77,7 @@ dependency → lint → syntax → create → converge → idempotence → verif
 ---
 
 ## Author
-- Chad Elliott (<chelliot@redhat.com>) 
+- Chad Elliott (<chelliot@redhat.com>)
 
 ---
 

@@ -4,7 +4,7 @@ Create, reconcile, or remove an **OperatorGroup** in OpenShift.
 
 - Supports **Single Namespace** mode (default) and **All Namespaces** mode.
 - Idempotent: safely skips/updates when objects already match the desired state.
-- Delete path is **namespace-aware** (won’t fail if the namespace is already gone).
+- Delete path is **namespace-aware** (won't fail if the namespace is already gone).
 
 
 ---
@@ -88,7 +88,7 @@ Create, reconcile, or remove an **OperatorGroup** in OpenShift.
 - **All Namespaces** mode omits `targetNamespaces` (or leaves it empty).
 - Delete path:
   - Checks if operator namespace exists; if missing, treats OG as absent.
-  - Deletes only when OG is present; otherwise logs “already absent”.
+  - Deletes only when OG is present; otherwise logs "already absent".
 
 ---
 
@@ -105,7 +105,7 @@ dependency → lint → syntax → create → converge → idempotence → destr
 ---
 
 ## Author
-- Chad Elliott (<chelliot@redhat.com>) 
+- Chad Elliott (<chelliot@redhat.com>)
 
 ---
 

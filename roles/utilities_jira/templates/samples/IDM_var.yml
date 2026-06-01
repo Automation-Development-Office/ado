@@ -2,8 +2,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Validate prerequisites and architectural readiness for Red Hat Identity Management  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate prerequisites and architectural readiness for Red Hat Identity Management
       *So that:* identity, authentication, and authorization services can be delivered securely and consistently.
 
       Notes / Context:
@@ -33,11 +33,11 @@ template_stories:
       - summary: "Review certificate and trust requirements"
       - summary: "Document automation expectations and constraints"
       - summary: "Create backlog items for identified gaps and missing automation"
-      
+
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Deploy and configure Red Hat Identity Management  
+      *As a:* "{{ role_name }}"
+      *I want to:* Deploy and configure Red Hat Identity Management
       *So that:* identity services are reliable, secure, and scalable.
 
     custom_ac: |
@@ -63,8 +63,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Validation, Adoption, and Integration"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Validate IdM functionality across integrated systems  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate IdM functionality across integrated systems
       *So that:* identity services are trusted and broadly usable.
 
     custom_ac: |
@@ -89,8 +89,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Long-Term Support"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Operationalize Red Hat Identity Management for long-term use  
+      *As a:* "{{ role_name }}"
+      *I want to:* Operationalize Red Hat Identity Management for long-term use
       *So that:* identity services remain secure, resilient, and manageable.
 
     custom_ac: |
@@ -113,4 +113,3 @@ template_stories:
       - summary: "Document upgrade and lifecycle processes"
       - summary: "Validate monitoring and alerting"
       - summary: "Finalize operational handoff"
-

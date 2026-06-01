@@ -6,7 +6,7 @@ more **system services** in a consistent, idempotent way.
 - Accepts a list of `service_names` and a target `service_state`.
 - **Smart unit resolution:** accepts names with or without the `.service` suffix.
 - Optional `service_enabled` toggles enablement state.
-- Skips cleanly when a given service isn’t present on the host.
+- Skips cleanly when a given service isn't present on the host.
 
 ---
 
@@ -83,7 +83,7 @@ more **system services** in a consistent, idempotent way.
 - Uses `ansible.builtin.service_facts` to discover available services.
 - For each name in `service_names`, the role manages it **only if** the service (or `${name}.service`) exists in `ansible_facts.services`.
 - On non‑systemd hosts (or where `service_facts` is unavailable), the role performs no changes.
-- Operations are idempotent; repeated runs won’t introduce changes unless service state drifts.
+- Operations are idempotent; repeated runs won't introduce changes unless service state drifts.
 
 ---
 

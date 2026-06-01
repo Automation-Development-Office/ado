@@ -8,7 +8,7 @@ openshift_tools_rhbk_get_client_secrets_client_id: "" # e.g. "grafana" or "opens
 # If provided, set this variable name with the fetched secret (example: openshift_install_grafana_oidc_client_secret)
 openshift_tools_rhbk_get_client_secrets_set_var_name: ""
 
-# Don’t clobber if var already exists (keeps precedence contract)
+# Don't clobber if var already exists (keeps precedence contract)
 openshift_tools_rhbk_get_client_secrets_do_not_override_existing: true
 
 # TLS verification for Keycloak API calls

@@ -2,8 +2,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: kickoff, Readiness and Design"
     story_description: |
-      *As a:* "{{ role_name }}" 
-      *I want to:* Validate all prerequisites and architectural decisions for ACM  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate all prerequisites and architectural decisions for ACM
       *So that:* ACM can be deployed consistently and support multi-cluster governance at scale.
 
       Notes / Context:
@@ -15,7 +15,7 @@ template_stories:
       * Meet with Red Hat architects/SMEs to validate design
       * Meet with Customer architects/SMEs to validate design and Implementation
       * Target clusters identified, categorized, and ownership confirmed
-      * Network connectivity validated 
+      * Network connectivity validated
       * Identity integration reviewed (IdM, SSO, RBAC)
       * Certificate and trust requirements documented
       * RBAC model defined for ACM users and automation
@@ -40,8 +40,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Deploy and configure ACM using approved architecture and automation  
+      *As a:* "{{ role_name }}"
+      *I want to:* Deploy and configure ACM using approved architecture and automation
       *So that:* clusters can be managed consistently and securely.
 
     custom_ac: |
@@ -71,8 +71,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Validation, Adoption, and application migration"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Validate ACM functionality using real workloads  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate ACM functionality using real workloads
       *So that:* the platform is production-ready and trusted by teams.
 
     custom_ac: |
@@ -100,8 +100,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations handoff and long-term support"
     story_description: |
-      *As a:* "{{ role_name }}"   
-      *I want to:* Operationalize ACM for long-term support  
+      *As a:* "{{ role_name }}"
+      *I want to:* Operationalize ACM for long-term support
       *So that:* the platform is stable, maintainable, and auditable.
 
     custom_ac: |
@@ -126,4 +126,3 @@ template_stories:
       - summary: "Customer and TAMS training conducted"
       - summary: "Automation gaps identified and backlog created"
       - summary: "Finalize handoff documentation"
-
