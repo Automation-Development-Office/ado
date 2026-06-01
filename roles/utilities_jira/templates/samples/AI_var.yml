@@ -2,8 +2,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
     story_description: |
-      *As a:* {{ role_name }}  
-      *I want to:* Validate prerequisites and architectural readiness for Red Hat AI  
+      *As a:* {{ role_name }}
+      *I want to:* Validate prerequisites and architectural readiness for Red Hat AI
       *So that:* AI workloads can be deployed securely, repeatably, and at scale.
 
       Notes / Context:
@@ -37,8 +37,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation"
     story_description: |
-      *As a:* {{ role_name }}  
-      *I want to:* Deploy and configure Red Hat AI components using approved architecture  
+      *As a:* {{ role_name }}
+      *I want to:* Deploy and configure Red Hat AI components using approved architecture
       *So that:* AI workloads can be executed securely and consistently across environments.
 
     custom_ac: |
@@ -64,8 +64,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Validation, Adoption, and Application Enablement"
     story_description: |
-      *As a:* {{ role_name }}  
-      *I want to:* Validate AI workloads and enable application teams  
+      *As a:* {{ role_name }}
+      *I want to:* Validate AI workloads and enable application teams
       *So that:* AI capabilities are reliable, observable, and trusted.
 
     custom_ac: |
@@ -91,8 +91,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Long-Term Support"
     story_description: |
-      *As a:* {{ role_name }}  
-      *I want to:* Operationalize Red Hat AI for long-term support  
+      *As a:* {{ role_name }}
+      *I want to:* Operationalize Red Hat AI for long-term support
       *So that:* AI workloads remain secure, scalable, and cost-effective.
 
     custom_ac: |
@@ -115,4 +115,3 @@ template_stories:
       - summary: "Document upgrade and lifecycle procedures"
       - summary: "Validate governance and compliance controls"
       - summary: "Finalize operational handoff"
-

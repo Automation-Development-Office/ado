@@ -1,8 +1,8 @@
 template_stories:
   - story_summary: "Collections - {{ group }}: Role {{ role_name }} - Build, Test, and Validate"
     story_description: |
-      *As a:* Platform / Automation Engineer  
-      *I want to:* Develop a reusable and well-tested Ansible role  
+      *As a:* Platform / Automation Engineer
+      *I want to:* Develop a reusable and well-tested Ansible role
       *So that:* teams can reliably automate {{ role_name }} using GitOps or AAP.
 
       *Definition of Done:*
@@ -34,8 +34,8 @@ template_stories:
 
   - story_summary: "Collections - {{ group }}: Role {{ role_name }} - Integration and Automation"
     story_description: |
-      *As a:* Platform / Automation Engineer  
-      *I want to:* Integrate the role into automation workflows  
+      *As a:* Platform / Automation Engineer
+      *I want to:* Integrate the role into automation workflows
       *So that:* it can be reliably consumed by pipelines and playbooks.
 
       *Definition of Done:*
@@ -65,8 +65,8 @@ template_stories:
 
   - story_summary: "Collections - {{ group }}: Role {{ role_name }} - Adoption and Lifecycle"
     story_description: |
-      *As a:* Platform / Automation Engineer  
-      *I want to:* Ensure the role is documented, supported, and maintainable  
+      *As a:* Platform / Automation Engineer
+      *I want to:* Ensure the role is documented, supported, and maintainable
       *So that:* teams can safely adopt and extend automation over time.
 
       *Definition of Done:*
@@ -92,4 +92,3 @@ template_stories:
       - summary: "Validate role usability with consumers"
       - summary: "Define ownership and support expectations"
       - summary: "Identify and log follow-on improvements"
-

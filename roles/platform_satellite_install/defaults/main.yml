@@ -82,9 +82,9 @@ platform_satellite_install_settings:
   - name: "unregister_delete_host"
     value: "true"
   - name: "ignored_interface_identifiers"
-    value: [ "lo","en*v*", "usb*", "vnet*", "macvtap*", "_vdsmdummy_", "veth*", "docker*", "tap*", "qbr*", "qvb*", "qvo*", "qr-*", "qg-*", "vlinuxbr*", "vovsbr*" ,"bond*" ]
+    value: [ "lo","en*v*", "usb*", "vnet*", "macvtap*", "_vdsmdummy_", "veth*", "docker*", "tap*", "qbr*", "qvb*", "qvo*", "qr-*", "qg-*", "vlinuxbr*", "vovsbr*", "bond*" ]
   - name: "host_tasks_workers_pool_size"
     value: "100"
 platform_satellite_install_server_url: "https://{{ ansible_fqdn }}"
-platform_satellite_install_gpg_key_files: 
+platform_satellite_install_gpg_key_files:
   - files/RPM-GPG-KEY-EPEL-9
