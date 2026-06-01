@@ -102,7 +102,33 @@ At least one of `utilities_build_execution_environment_collections` or
 
 ## Molecule
 
-No role-local Molecule scenario is currently defined for this role.
+Use the extension integration scenario at
+`extensions/molecule/integration_utilities_build_execution_environment`.
+
+Install collection and dependencies before running locally:
+
+```bash
+cd /path/to/your/git/checkout/infra.ado
+ansible-galaxy collection install . --force -p ~/.ansible/collections
+ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
+ansible-galaxy collection install community.general --force -p ~/.ansible/collections
+export ANSIBLE_COLLECTIONS_PATH="$HOME/.ansible/collections:/usr/share/ansible/collections"
+```
+
+Run integration scenario locally:
+
+```bash
+cd extensions
+molecule test -s integration_utilities_build_execution_environment
+```
+
+If your environment restricts writes under `~/.ansible/tmp`, set writable temp paths:
+
+```bash
+mkdir -p .ansible/tmp
+export ANSIBLE_LOCAL_TEMP="$PWD/.ansible/tmp"
+export ANSIBLE_REMOTE_TMP="$PWD/.ansible/tmp"
+```
 
 ---
 

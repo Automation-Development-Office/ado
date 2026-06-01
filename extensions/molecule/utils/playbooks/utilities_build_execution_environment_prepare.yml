@@ -1,0 +1,71 @@
+---
+- name: Prepare integration_utilities_build_execution_environment scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    utilities_build_execution_environment_test_root: /tmp/utilities_build_execution_environment_integration
+    utilities_build_execution_environment_mock_builder: >-
+      {{ utilities_build_execution_environment_test_root }}/bin/ansible-builder-mock
+    utilities_build_execution_environment_local_tarball: >-
+      {{ utilities_build_execution_environment_test_root }}/infra-ado-1.0.0.tar.gz
+
+  tasks:
+    - name: Ensure integration test directories exist
+      ansible.builtin.file:
+        path: "{{ utilities_build_execution_environment_test_root }}/bin"
+        state: directory
+        mode: "0755"
+
+    - name: Create local collection artifact fixture
+      ansible.builtin.copy:
+        dest: "{{ utilities_build_execution_environment_local_tarball }}"
+        content: "integration test artifact"
+        mode: "0644"
+
+    - name: Create mock ansible-builder executable
+      ansible.builtin.copy:
+        dest: "{{ utilities_build_execution_environment_mock_builder }}"
+        mode: "0755"
+        content: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          context=""
+          file=""
+          tag=""
+          if [ "${1:-}" = "--version" ]; then
+            echo "ansible-builder mock 1.0.0"
+            exit 0
+          fi
+          while [ "$#" -gt 0 ]; do
+            case "$1" in
+              build)
+                shift
+                ;;
+              --context)
+                context="$2"
+                shift 2
+                ;;
+              --file)
+                file="$2"
+                shift 2
+                ;;
+              --tag)
+                tag="$2"
+                shift 2
+                ;;
+              *)
+                shift
+                ;;
+            esac
+          done
+          [ -n "$context" ]
+          [ -n "$file" ]
+          [ -f "$file" ]
+          [ -f "$context/requirements.yml" ]
+          grep -q 'additional_build_files:' "$file"
+          grep -q 'dest: "collection-artifacts"' "$file"
+          grep -q 'name: "ansible.posix"' "$context/requirements.yml"
+          grep -q 'collection-artifacts/infra-ado-1.0.0.tar.gz' "$context/requirements.yml"
+          printf '%s\n' "$tag" > "$context/.mock-built-image-tag"
