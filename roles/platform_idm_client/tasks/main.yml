@@ -1,0 +1,2 @@
+- name: Register IDM Client
+  ansible.builtin.import_tasks: idm_register_client.yml
