@@ -91,7 +91,7 @@
       {{
         utilities_build_execution_environment_collection_files
         | map('basename')
-        | map('regex_replace', '^(.*)$', 'collection-artifacts/\\1')
+        | map('regex_replace', '^', 'collection-artifacts/')
         | list
       }}
 
