@@ -3,7 +3,7 @@ collections:
 {% for collection_name in utilities_build_execution_environment_collections %}
   - name: "{{ collection_name }}"
 {% endfor %}
-{% for collection_file in utilities_build_execution_environment_collection_files %}
+{% for collection_file in utilities_build_execution_environment_staged_collection_files | default([]) %}
   - name: "{{ collection_file }}"
     type: file
 {% endfor %}

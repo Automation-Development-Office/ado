@@ -23,7 +23,7 @@ Build a custom Ansible **Execution Environment (EE)** image with `ansible-builde
 | `utilities_build_execution_environment_base_ee` | Base EE image name and tag (for example `ee-minimal-rhel9:latest`). **Required.** |
 | `utilities_build_execution_environment_source_image_repository` | Source image repository path used with the base EE image name (for example `registry.redhat.io/ansible-automation-platform-24`). **Required.** |
 | `utilities_build_execution_environment_collections` | List of Ansible collections to include in the EE image. Default: `[]`. |
-| `utilities_build_execution_environment_collection_files` | List of local built collection artifact files (`*.tar.gz`) to install in the EE build with `type: file`. Default: `[]`. |
+| `utilities_build_execution_environment_collection_files` | List of local built collection artifact files (`*.tar.gz`). The role copies them into build context and installs them with `type: file`. Default: `[]`. |
 | `utilities_build_execution_environment_output_image` | Output image name and tag for the built EE. Default: `custom-ee:latest`. |
 | `utilities_build_execution_environment_build_context` | Build context directory used by `ansible-builder`. Default: `/tmp/utilities_build_execution_environment`. |
 | `utilities_build_execution_environment_builder_executable` | `ansible-builder` executable name or full path. Default: `ansible-builder`. |
@@ -94,6 +94,7 @@ At least one of `utilities_build_execution_environment_collections` or
 - It renders `execution-environment.yml` and `requirements.yml` into the build context.
 - It runs `ansible-builder build` using the rendered files and selected output tag.
 - It validates local artifact paths from `utilities_build_execution_environment_collection_files` before build.
+- It stages local collection artifacts under `collection-artifacts/` inside the build context.
 - It sets `options.package_manager_path` in the EE definition to match the selected base image.
 - Required inputs are enforced by role argument specs and runtime assertions.
 

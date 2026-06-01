@@ -55,6 +55,46 @@
   loop_control:
     loop_var: utilities_build_execution_environment_collection_file_stat
 
+- name: Assert local collection artifact file names are unique
+  ansible.builtin.assert:
+    that:
+      - >-
+        (utilities_build_execution_environment_collection_files | map('basename') | list | unique | length) ==
+        (utilities_build_execution_environment_collection_files | length)
+    fail_msg: >-
+      Local collection artifact file names must be unique when copied to build context.
+      Rename duplicate basenames before running this role.
+  when: utilities_build_execution_environment_collection_files | length > 0
+
+- name: Ensure local collection artifact staging directory exists
+  ansible.builtin.file:
+    path: "{{ utilities_build_execution_environment_build_context }}/collection-artifacts"
+    state: directory
+    mode: "0755"
+  when: utilities_build_execution_environment_collection_files | length > 0
+
+- name: Copy local collection artifacts into build context
+  ansible.builtin.copy:
+    src: "{{ utilities_build_execution_environment_collection_file }}"
+    dest: >-
+      {{ utilities_build_execution_environment_build_context }}/collection-artifacts/{{
+      utilities_build_execution_environment_collection_file | basename }}
+    remote_src: true
+    mode: "0644"
+  loop: "{{ utilities_build_execution_environment_collection_files }}"
+  loop_control:
+    loop_var: utilities_build_execution_environment_collection_file
+
+- name: Set staged local collection artifact paths
+  ansible.builtin.set_fact:
+    utilities_build_execution_environment_staged_collection_files: >-
+      {{
+        utilities_build_execution_environment_collection_files
+        | map('basename')
+        | map('regex_replace', '^(.*)$', 'collection-artifacts/\\1')
+        | list
+      }}
+
 - name: Create execution environment definition file
   ansible.builtin.template:
     src: execution-environment.yml.j2
