@@ -94,7 +94,7 @@ At least one of `utilities_build_execution_environment_collections` or
 - It renders `execution-environment.yml` and `requirements.yml` into the build context.
 - It runs `ansible-builder build` using the rendered files and selected output tag.
 - It validates local artifact paths from `utilities_build_execution_environment_collection_files` before build.
-- It stages local collection artifacts under `collection-artifacts/` inside the build context.
+- It injects local collection artifacts via `additional_build_files` into `collection-artifacts/` inside `_build`.
 - It sets `options.package_manager_path` in the EE definition to match the selected base image.
 - Required inputs are enforced by role argument specs and runtime assertions.
 

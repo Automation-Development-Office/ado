@@ -73,28 +73,6 @@
     mode: "0755"
   when: utilities_build_execution_environment_collection_files | length > 0
 
-- name: Copy local collection artifacts into build context
-  ansible.builtin.copy:
-    src: "{{ utilities_build_execution_environment_collection_file }}"
-    dest: >-
-      {{ utilities_build_execution_environment_build_context }}/collection-artifacts/{{
-      utilities_build_execution_environment_collection_file | basename }}
-    remote_src: true
-    mode: "0644"
-  loop: "{{ utilities_build_execution_environment_collection_files }}"
-  loop_control:
-    loop_var: utilities_build_execution_environment_collection_file
-
-- name: Set staged local collection artifact paths
-  ansible.builtin.set_fact:
-    utilities_build_execution_environment_staged_collection_files: >-
-      {{
-        utilities_build_execution_environment_collection_files
-        | map('basename')
-        | map('regex_replace', '^', 'collection-artifacts/')
-        | list
-      }}
-
 - name: Create execution environment definition file
   ansible.builtin.template:
     src: execution-environment.yml.j2
