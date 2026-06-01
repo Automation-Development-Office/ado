@@ -55,6 +55,16 @@ on:
         required: false
         default: true
         type: boolean
+      run_platform_repos_default:
+        description: "Run platform_repos default scenario"
+        required: false
+        default: false
+        type: boolean
+      run_platform_repos_rhsm:
+        description: "Run platform_repos RHSM scenario"
+        required: false
+        default: false
+        type: boolean
 
 env:
   NAMESPACE: ado
