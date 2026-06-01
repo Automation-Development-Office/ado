@@ -33,3 +33,7 @@ argument_specs:
         type: str
         description: ansible-builder executable name or full path.
         default: ansible-builder
+      utilities_build_execution_environment_package_manager_path:
+        type: str
+        description: Package manager executable path used by ansible-builder in the base image.
+        default: /usr/bin/microdnf

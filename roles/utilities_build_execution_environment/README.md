@@ -26,6 +26,7 @@ Build a custom Ansible **Execution Environment (EE)** image with `ansible-builde
 | `utilities_build_execution_environment_output_image` | Output image name and tag for the built EE. Default: `custom-ee:latest`. |
 | `utilities_build_execution_environment_build_context` | Build context directory used by `ansible-builder`. Default: `/tmp/utilities_build_execution_environment`. |
 | `utilities_build_execution_environment_builder_executable` | `ansible-builder` executable name or full path. Default: `ansible-builder`. |
+| `utilities_build_execution_environment_package_manager_path` | Package manager path inside the base image used by `ansible-builder` (for example `/usr/bin/microdnf` or `/usr/bin/dnf`). Default: `/usr/bin/microdnf`. |
 
 ### Auth via environment (optional)
 
@@ -72,6 +73,7 @@ No role-specific environment authentication variables are required by this role.
 - The role composes the base image reference from repository + base EE image.
 - It renders `execution-environment.yml` and `requirements.yml` into the build context.
 - It runs `ansible-builder build` using the rendered files and selected output tag.
+- It sets `options.package_manager_path` in the EE definition to match the selected base image.
 - Required inputs are enforced by role argument specs and runtime assertions.
 
 ---
