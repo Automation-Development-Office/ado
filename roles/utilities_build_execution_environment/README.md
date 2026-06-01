@@ -45,13 +45,13 @@ At least one of `utilities_build_execution_environment_collections` or
 - hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.utilities_build_execution_environment
+    - role: infra.ado.utilities_build_execution_environment
       vars:
         utilities_build_execution_environment_base_ee: ee-minimal-rhel9:latest
         utilities_build_execution_environment_source_image_repository: registry.redhat.io/ansible-automation-platform-24
         utilities_build_execution_environment_collections:
           - ansible.posix
-          - kubernetes.core
+          - community.general
         utilities_build_execution_environment_output_image: localhost/custom-ee:latest
 ```
 
@@ -60,7 +60,7 @@ At least one of `utilities_build_execution_environment_collections` or
 - hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.utilities_build_execution_environment
+    - role: infra.ado.utilities_build_execution_environment
       vars:
         utilities_build_execution_environment_base_ee: ee-supported-rhel9:latest
         utilities_build_execution_environment_source_image_repository: quay.io/ansible
@@ -75,7 +75,7 @@ At least one of `utilities_build_execution_environment_collections` or
 - hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.utilities_build_execution_environment
+    - role: infra.ado.utilities_build_execution_environment
       vars:
         utilities_build_execution_environment_base_ee: ee-minimal-rhel9:latest
         utilities_build_execution_environment_source_image_repository: registry.redhat.io/ansible-automation-platform-24
