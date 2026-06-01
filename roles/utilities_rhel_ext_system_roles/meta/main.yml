@@ -1,5 +1,5 @@
 ---
-# Keep minimal; don’t auto-depend on roles (we dispatch dynamically).
+# Keep minimal; don't auto-depend on roles (we dispatch dynamically).
 galaxy_info:
   author: Corey Kyle
   description: Thin adapter/wrapper to call RHEL System Roles by short keys.

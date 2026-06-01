@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Verify role README.md format against a template heading layout."""
 
 from __future__ import annotations

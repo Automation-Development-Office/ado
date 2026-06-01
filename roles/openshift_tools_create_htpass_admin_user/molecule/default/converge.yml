@@ -75,7 +75,7 @@
           {{ openshift_tools_create_htpass_admin_user_idps_after | selectattr('type', 'equalto', 'HTPasswd') | list }}
       no_log: true
 
-    # 1) We did not remove anyone else’s IdP
+    # 1) We did not remove anyone else's IdP
     - name: Assert no existing IdPs were removed
       ansible.builtin.assert:
         that:
