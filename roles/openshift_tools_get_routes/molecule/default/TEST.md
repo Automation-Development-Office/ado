@@ -15,7 +15,7 @@ dependency → lint → syntax → create → converge → idempotence → destr
    - Installs required collections (e.g., `kubernetes.core`) via `ansible-galaxy`.
 
 2. **Lint**
-   - Runs `ansible-lint` over this role directory (`--offline`). Uses the repo’s root `.ansible-lint` if present.
+   - Runs `ansible-lint` over this role directory (`--offline`). Uses the repo's root `.ansible-lint` if present.
 
 3. **Syntax**
    - `ansible-playbook --syntax-check` on scenario playbooks.
@@ -62,7 +62,7 @@ The verify play performs:
 
 ## Linting
 
-- Molecule runs `ansible-lint` during the **`lint`** stage thanks to the scenario’s `lint:` block.
+- Molecule runs `ansible-lint` during the **`lint`** stage thanks to the scenario's `lint:` block.
 - Run directly if needed:
   ```bash
   ansible-lint --offline roles/get_routes

@@ -1,0 +1,33 @@
+---
+- name: Verify integration_utilities_build_execution_environment scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    utilities_build_execution_environment_test_root: /tmp/utilities_build_execution_environment_integration
+    utilities_build_execution_environment_context: >-
+      {{ utilities_build_execution_environment_test_root }}/build-context
+
+  tasks:
+    - name: Check generated execution-environment definition
+      ansible.builtin.stat:
+        path: "{{ utilities_build_execution_environment_context }}/execution-environment.yml"
+      register: utilities_build_execution_environment_definition_stat
+
+    - name: Check generated requirements definition
+      ansible.builtin.stat:
+        path: "{{ utilities_build_execution_environment_context }}/requirements.yml"
+      register: utilities_build_execution_environment_requirements_stat
+
+    - name: Check mock build output marker
+      ansible.builtin.stat:
+        path: "{{ utilities_build_execution_environment_context }}/.mock-built-image-tag"
+      register: utilities_build_execution_environment_mock_marker_stat
+
+    - name: Assert generated files and marker exist
+      ansible.builtin.assert:
+        that:
+          - utilities_build_execution_environment_definition_stat.stat.exists
+          - utilities_build_execution_environment_requirements_stat.stat.exists
+          - utilities_build_execution_environment_mock_marker_stat.stat.exists

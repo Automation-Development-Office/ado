@@ -1,0 +1,27 @@
+---
+- name: Converge integration_utilities_build_execution_environment scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    utilities_build_execution_environment_test_root: /tmp/utilities_build_execution_environment_integration
+    utilities_build_execution_environment_mock_builder: >-
+      {{ utilities_build_execution_environment_test_root }}/bin/ansible-builder-mock
+    utilities_build_execution_environment_local_tarball: >-
+      {{ utilities_build_execution_environment_test_root }}/infra-ado-1.0.0.tar.gz
+    utilities_build_execution_environment_context: >-
+      {{ utilities_build_execution_environment_test_root }}/build-context
+
+    utilities_build_execution_environment_base_ee: ee-minimal-rhel9:latest
+    utilities_build_execution_environment_source_image_repository: quay.io/ansible
+    utilities_build_execution_environment_collections:
+      - ansible.posix
+    utilities_build_execution_environment_collection_files:
+      - "{{ utilities_build_execution_environment_local_tarball }}"
+    utilities_build_execution_environment_builder_executable: "{{ utilities_build_execution_environment_mock_builder }}"
+    utilities_build_execution_environment_build_context: "{{ utilities_build_execution_environment_context }}"
+    utilities_build_execution_environment_output_image: localhost/custom-ee:latest
+
+  roles:
+    - role: infra.ado.utilities_build_execution_environment

@@ -1,0 +1,14 @@
+---
+# SPDX-License-Identifier: GPL-3.0-or-later-0
+galaxy_info:
+  author: Automation Development Office
+  description: Build custom Ansible execution environment images with ansible-builder.
+  company: Red Hat
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.14"
+  galaxy_tags:
+    - ansible
+    - executionenvironment
+    - automation
+
+dependencies: []
