@@ -20,7 +20,12 @@ argument_specs:
         type: list
         elements: str
         description: List of Ansible collections to include in the built EE image.
-        required: true
+        default: []
+      utilities_build_execution_environment_collection_files:
+        type: list
+        elements: str
+        description: List of local collection artifact paths (*.tar.gz) to include in the built EE image.
+        default: []
       utilities_build_execution_environment_output_image:
         type: str
         description: Target image name and tag for the built EE image.

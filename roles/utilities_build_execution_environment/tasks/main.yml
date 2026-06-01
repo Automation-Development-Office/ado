@@ -7,11 +7,14 @@
     that:
       - utilities_build_execution_environment_base_ee | trim | length > 0
       - utilities_build_execution_environment_source_image_repository | trim | length > 0
-      - utilities_build_execution_environment_collections | length > 0
+      - >-
+        (utilities_build_execution_environment_collections | length > 0) or
+        (utilities_build_execution_environment_collection_files | length > 0)
     fail_msg: >-
       Required variables utilities_build_execution_environment_base_ee,
-      utilities_build_execution_environment_source_image_repository, and
-      utilities_build_execution_environment_collections must be provided with values.
+      utilities_build_execution_environment_source_image_repository, and at least
+      one of utilities_build_execution_environment_collections or
+      utilities_build_execution_environment_collection_files must be provided with values.
 
 - name: Set resolved base EE image reference
   ansible.builtin.set_fact:
@@ -31,6 +34,26 @@
     path: "{{ utilities_build_execution_environment_build_context }}"
     state: directory
     mode: "0755"
+
+- name: Check local collection artifact files
+  ansible.builtin.stat:
+    path: "{{ utilities_build_execution_environment_collection_file }}"
+  loop: "{{ utilities_build_execution_environment_collection_files }}"
+  loop_control:
+    loop_var: utilities_build_execution_environment_collection_file
+  register: utilities_build_execution_environment_collection_file_stats
+
+- name: Assert local collection artifact files exist
+  ansible.builtin.assert:
+    that:
+      - utilities_build_execution_environment_collection_file_stat.stat.exists
+      - utilities_build_execution_environment_collection_file_stat.stat.isreg
+    fail_msg: >-
+      Local collection artifact not found or not a regular file:
+      {{ utilities_build_execution_environment_collection_file_stat.stat.path | default('undefined path') }}
+  loop: "{{ utilities_build_execution_environment_collection_file_stats.results }}"
+  loop_control:
+    loop_var: utilities_build_execution_environment_collection_file_stat
 
 - name: Create execution environment definition file
   ansible.builtin.template:
