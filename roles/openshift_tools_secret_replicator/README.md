@@ -17,7 +17,7 @@ An Ansible role that reads a Kubernetes `Secret` once, optionally writes the sam
 - **HashiCorp Vault** (only when `openshift_tools_secret_replicator_vault_push: true`):
   - Reachable Vault API; authenticate using module parameters and/or environment (`VAULT_ADDR`, `VAULT_TOKEN`, etc.)
 
-Install collections from this role’s requirements file:
+Install collections from this role's requirements file:
 
 ```bash
 ansible-galaxy collection install -r meta/requirements.yml
@@ -35,7 +35,7 @@ pip install kubernetes pyyaml hvac
 
 | Variable | Description |
 | --- | --- |
-| `openshift_tools_secret_replicator_cluster_replication` | When `true`, replicate to each entry in `openshift_tools_secret_replicator_target_clusters` using that entry’s kube `context` and `ns`. **Default:** `true`. |
+| `openshift_tools_secret_replicator_cluster_replication` | When `true`, replicate to each entry in `openshift_tools_secret_replicator_target_clusters` using that entry's kube `context` and `ns`. **Default:** `true`. |
 | `openshift_tools_secret_replicator_namespace_replication` | When `true`, replicate to each namespace in `openshift_tools_secret_replicator_target_namespaces` on the default/current cluster context. **Default:** `true`. |
 | `openshift_tools_secret_replicator_source_secret_name` | Name of the Kubernetes Secret to read. **Default:** `source-secret-name`. |
 | `openshift_tools_secret_replicator_source_namespace` | Namespace containing the source Secret. **Default:** `source-namespace`. |

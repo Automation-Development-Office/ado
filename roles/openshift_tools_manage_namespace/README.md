@@ -3,7 +3,7 @@
 Ensure an OpenShift **Namespace** is present or absent.
 
 - Idempotent creation/update of a namespace (labels/annotations optional)
-- Safe deletion path (handles “already gone” cleanly)
+- Safe deletion path (handles "already gone" cleanly)
 - Works with kubeconfig **or** host+token auth
 
 ---
@@ -67,7 +67,7 @@ Ensure an OpenShift **Namespace** is present or absent.
 
 - Creation uses `kubernetes.core.k8s` with `state: present`; deletion uses `state: absent`.
 - When `state: present`, labels/annotations are **merged** with existing metadata where supported.
-- Delete path is tolerant of “NotFound” and logs an informational message.
+- Delete path is tolerant of "NotFound" and logs an informational message.
 - For clusters with self-signed certs, either provide a CA file and keep `k8s_validate_certs: true`, or set `K8S_AUTH_VERIFY_SSL=false` for tests/labs.
 
 ---
@@ -90,7 +90,7 @@ dependency → lint → syntax → create → converge → idempotence → destr
 ---
 
 ## Author
-- Chad Elliott (<chelliot@redhat.com>) 
+- Chad Elliott (<chelliot@redhat.com>)
 
 ---
 

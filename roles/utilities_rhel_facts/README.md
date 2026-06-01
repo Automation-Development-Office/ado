@@ -41,7 +41,7 @@ This role has **no required input variables**. It gathers and normalizes facts a
 | `utilities_rhel_facts_rhsm_host` | string | Hostname from `/etc/rhsm/rhsm.conf` (if any). |
 | `utilities_rhel_facts_repo_lines` | list[str] | Enabled repo lines (`<id>\t<name>`). |
 | `utilities_rhel_facts_repo_count` | int | Count of enabled repos. |
-| `utilities_rhel_facts_is_satellite` | bool | True if RHSM hostname doesn’t contain `redhat.com`. |
+| `utilities_rhel_facts_is_satellite` | bool | True if RHSM hostname doesn't contain `redhat.com`. |
 | `utilities_rhel_facts_repo_summary` | string | e.g., `5 repos; satellite` or `0 repos; rhsm`. |
 | `utilities_rhel_facts_fact_lines` | list[str] | Prebuilt one‑line summaries ready to print. |
 
@@ -79,7 +79,7 @@ This role has **no required input variables**. It gathers and normalizes facts a
 
 ## Behavior Notes
 
-- Designed for **RHEL 7/8/9/10**; avoids fragile `gather_subset` and works even if Python isn’t installed on the target.
+- Designed for **RHEL 7/8/9/10**; avoids fragile `gather_subset` and works even if Python isn't installed on the target.
 - Repository info is extracted with `dnf -q repolist -v` or `yum -q repolist -v` (whichever exists).
 - Networking is derived from `ip route` and `ip -o -4 addr` with safe fallbacks.
 - All outputs are computed in **separate tasks** to avoid Ansible forward‑reference pitfalls.
