@@ -102,7 +102,7 @@ dependency → lint → syntax → create → converge → idempotence → destr
 ---
 
 ## Author
-- Chad Elliott (<chelliot@redhat.com>) 
+- Chad Elliott (<chelliot@redhat.com>)
 
 ---
 
