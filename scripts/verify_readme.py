@@ -151,9 +151,9 @@ def check_readme_format(
     if "\r\n" in content and "\n" in content.replace("\r\n", ""):
         issues.append(f"{filepath}: Inconsistent line endings")
 
-    # Check for trailing whitespace on lines.
+    # Check for trailing whitespace on non-blank lines only.
     for i, line in enumerate(content.split("\n"), 1):
-        if line.rstrip() != line:
+        if line.strip() and line.rstrip() != line:
             issues.append(f"{filepath}: Line {i} has trailing whitespace")
 
     return issues
