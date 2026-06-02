@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# defaults file for applications_elastic
+
+# Canonical role inputs
+applications_elastic_state: status
+applications_elastic_systemd_enabled: true
+applications_elastic_systemd_unit: elasticsearch
+applications_elastic_start_cmd: ""
+applications_elastic_pid_file: /var/run/elasticsearch.pid
+applications_elastic_url: http://localhost:9200
+applications_elastic_user: ""
+applications_elastic_pass: ""
+applications_elastic_http_timeout: 60
+
+# Optional compatibility controls for Vault-style scenario docs
+applications_elastic_enable_live_checks: false
