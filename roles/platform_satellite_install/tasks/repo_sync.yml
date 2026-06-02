@@ -14,7 +14,7 @@
   ansible.builtin.set_fact:
     platform_satellite_install_enabled_products: "{{ platform_satellite_install_enabled_products | default([]) + [item['name']] }}"
   loop: "{{ products_output['json']['results'] }}"
-  when: 
+  when:
     - item['repository_count'] > 0
 
 - name: repo_sync | Sync all repos for enabled products
