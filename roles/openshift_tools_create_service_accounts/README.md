@@ -151,13 +151,13 @@ Per-item `state` is supported (`present`/`absent`). You can target a single name
 ## Behavior Notes
 
 - **ServiceAccount**: `<namespace>/sa/<service_account>`
-- **ClusterRoleBinding** (cluster scope):  
+- **ClusterRoleBinding** (cluster scope):
   `rb-<service_account>-<namespace>-<role-with-colons-replaced-by-dashes>`
-- **RoleBinding** (namespace scope):  
+- **RoleBinding** (namespace scope):
   same pattern as above, in the namespace
-- **SCC RoleBinding** (namespace scope):  
+- **SCC RoleBinding** (namespace scope):
   `use-<scc>-scc-<service_account>` in the namespace
-- **Token Secret** (optional):  
+- **Token Secret** (optional):
   `<service_account>-token` in the namespace
 
 These are mirrored during deletion.
