@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# tasks file for repos
+
+- name: Include repository disable tasks
+  ansible.builtin.include_tasks: disable_repo.yml
+  when:
+    - repos_to_disable is defined
+    - repos_to_disable | length > 0
+    - repos_action is defined and repos_action == "disable"
+
+- name: Include repository enable tasks
+  ansible.builtin.include_tasks: enable_repo.yml
+  when:
+    - repos_to_enable is defined
+    - repos_to_enable | length > 0
+    - repos_action is defined and repos_action == "enable"

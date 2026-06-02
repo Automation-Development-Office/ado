@@ -1,7 +1,7 @@
 # Role: ado.openshift.print_crd
 
 Assemble and output an **ordered manifest** where all **CustomResourceDefinitions (CRDs)**
-are listed **before** their dependent resources. This prevents “CRD not found” errors
+are listed **before** their dependent resources. This prevents "CRD not found" errors
 during installs and makes operator/app bundles safe to apply in one shot.
 
 - Splits a mixed YAML bundle into **CRDs first → then everything else**.
@@ -92,7 +92,7 @@ during installs and makes operator/app bundles safe to apply in one shot.
 - **Ordering:** Anything with `kind: CustomResourceDefinition` is emitted first; all other kinds follow in read order.
 - **Safety:** If no CRDs exist in input, the role outputs the non‑CRD resources unchanged.
 - **Apply path:** When `apply_after_print: true`, resources are applied in the same ordered sequence using `kubernetes.core.k8s`.
-- **Output:** With `output_path` set, the ordered manifest is written to disk; otherwise it’s printed/logged.
+- **Output:** With `output_path` set, the ordered manifest is written to disk; otherwise it's printed/logged.
 - **Idempotence:** The same input produces the same ordered output, supporting reproducible CI.
 
 ---

@@ -10,6 +10,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_integration_utilities_build_execution_environment:
+        description: "Run integration_utilities_build_execution_environment"
+        required: false
+        default: false
+        type: boolean
       run_integration_utilities_cron_full_special:
         description: "Run integration_utilities_cron_full_special"
         required: false
@@ -54,6 +59,16 @@ on:
         description: "Run README format verification"
         required: false
         default: true
+        type: boolean
+      run_platform_repos_default:
+        description: "Run platform_repos default scenario"
+        required: false
+        default: false
+        type: boolean
+      run_platform_repos_rhsm:
+        description: "Run platform_repos RHSM scenario"
+        required: false
+        default: false
         type: boolean
 
 env:
@@ -130,7 +145,7 @@ jobs:
       - name: Run README format verification
         run: |
           set -o pipefail
-          python scripts/verify_readme.py 2>&1 | tee readme-verification.txt
+          python scripts/verify_readme.py --template docs/templates/role_readme_format_template.md 2>&1 | tee readme-verification.txt
 
       - name: Upload README verification report
         if: always()
@@ -159,6 +174,7 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             declare -A checks=(
               [integration_manage_vm_image]="${{ github.event.inputs.run_integration_manage_vm_image }}"
+              [integration_utilities_build_execution_environment]="${{ github.event.inputs.run_integration_utilities_build_execution_environment }}"
               [integration_utilities_cron_full_special]="${{ github.event.inputs.run_integration_utilities_cron_full_special }}"
               [integration_utilities_cron_full_special_removal]="${{ github.event.inputs.run_integration_utilities_cron_full_special_removal }}"
               [integration_utilities_cron_single_special]="${{ github.event.inputs.run_integration_utilities_cron_single_special }}"

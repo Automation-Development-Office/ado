@@ -105,4 +105,3 @@ template_stories:
       - summary: "Validate backup and recovery strategy"
       - summary: "Review cost management and usage"
       - summary: "Complete operational handoff"
-

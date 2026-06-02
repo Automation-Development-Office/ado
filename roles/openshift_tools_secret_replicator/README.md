@@ -1,23 +1,23 @@
 # Role: `infra.ado.openshift_tools_secret_replicator`
 
-An Ansible role that reads a Kubernetes `Secret` once, optionally writes the same payload to HashiCorp Vault KV v2, then replicates the `type` and `data` to other namespaces and/or clusters via `kubernetes.core.k8s`.
+An Ansible role that reads a Kubernetes `Secret` once, optionally writes the same payload to HashiCorp Vault KV (v1 or v2), then replicates the `type` and `data` to other namespaces and/or clusters via `kubernetes.core.k8s`.
 
 ## Requirements
 
 - **Ansible**: 2.2 or later per `meta/main.yml`; use an Ansible Core release compatible with the collections below (they typically expect a current Core release).
 - **Collections** (see `meta/requirements.yml`):
   - `kubernetes.core` — `kubernetes.core.k8s` / `kubernetes.core.k8s_info`
-- `community.hashi_vault` (>= 4.2.0) — `community.hashi_vault.vault_kv2_write` when `openshift_tools_secret_replicator_vault_push` is enabled
+- `hashicorp.vault` (>= 1.0.0) — `hashicorp.vault.kv1_secret` or `hashicorp.vault.kv2_secret` when `openshift_tools_secret_replicator_vault_push` is enabled
 - **Python packages**:
   - `kubernetes` — required by `kubernetes.core`
   - `PyYAML`
-  - `hvac` — required by `community.hashi_vault` when using Vault
+- `hvac` — required by `hashicorp.vault` when using Vault
 - **Kubernetes access**:
   - Valid kubeconfig with RBAC to read the source secret and create/update secrets in target namespaces and contexts
 - **HashiCorp Vault** (only when `openshift_tools_secret_replicator_vault_push: true`):
   - Reachable Vault API; authenticate using module parameters and/or environment (`VAULT_ADDR`, `VAULT_TOKEN`, etc.)
 
-Install collections from this role’s requirements file:
+Install collections from this role's requirements file:
 
 ```bash
 ansible-galaxy collection install -r meta/requirements.yml
@@ -34,8 +34,8 @@ pip install kubernetes pyyaml hvac
 ### Replication toggles and source
 
 | Variable | Description |
-|----------|-------------|
-| `openshift_tools_secret_replicator_cluster_replication` | When `true`, replicate to each entry in `openshift_tools_secret_replicator_target_clusters` using that entry’s kube `context` and `ns`. **Default:** `true`. |
+| --- | --- |
+| `openshift_tools_secret_replicator_cluster_replication` | When `true`, replicate to each entry in `openshift_tools_secret_replicator_target_clusters` using that entry's kube `context` and `ns`. **Default:** `true`. |
 | `openshift_tools_secret_replicator_namespace_replication` | When `true`, replicate to each namespace in `openshift_tools_secret_replicator_target_namespaces` on the default/current cluster context. **Default:** `true`. |
 | `openshift_tools_secret_replicator_source_secret_name` | Name of the Kubernetes Secret to read. **Default:** `source-secret-name`. |
 | `openshift_tools_secret_replicator_source_namespace` | Namespace containing the source Secret. **Default:** `source-namespace`. |
@@ -58,20 +58,19 @@ openshift_tools_secret_replicator_target_clusters:
   - { context: 'cluster-dev',  ns: 'sandbox' }
 ```
 
-### HashiCorp Vault KV v2 (optional)
+### HashiCorp Vault KV (optional)
 
-When `openshift_tools_secret_replicator_vault_push: true`, the role runs `tasks/hashicorp.yml` immediately after loading the source secret (before namespace and cluster replication). The play registers the result of `vault_kv2_write` and prints a debug message with the Vault response when push is enabled.
+When `openshift_tools_secret_replicator_vault_push: true`, the role runs `tasks/hashicorp.yml` immediately after loading the source secret (before namespace and cluster replication). The role writes using `hashicorp.vault.kv1_secret` or `hashicorp.vault.kv2_secret` based on `openshift_tools_secret_replicator_vault_kv_version`, then prints a debug message with the Vault response when push is enabled.
 
 | Variable | Default | Description |
-|----------|---------|-------------|
-| `openshift_tools_secret_replicator_vault_push` | `false` | Enable push of the secret payload to Vault KV v2. |
+| --- | --- | --- |
+| `openshift_tools_secret_replicator_vault_push` | `false` | Enable push of the secret payload to Vault KV. |
+| `openshift_tools_secret_replicator_vault_kv_version` | `2` | KV engine version to use (`1` or `2`). |
 | `openshift_tools_secret_replicator_vault_url` | `""` | Vault API URL; if empty, the module relies on `VAULT_ADDR` and other usual Vault environment variables. |
 | `openshift_tools_secret_replicator_vault_token` | `""` | Token; if empty, omitted so environment-based auth can be used. |
-| `openshift_tools_secret_replicator_vault_kv_mount` | `"secret"` | KV v2 secrets engine mount path. |
+| `openshift_tools_secret_replicator_vault_kv_mount` | `"secret"` | KV secrets engine mount path. |
 | `openshift_tools_secret_replicator_vault_kv_path` | `"{{ openshift_tools_secret_replicator_source_namespace }}/{{ openshift_tools_secret_replicator_source_secret_name }}"` | Secret path under the mount (mount name not included). |
-| `openshift_tools_secret_replicator_vault_namespace` | `""` | Vault Enterprise namespace (optional); empty omits the parameter. |
-| `openshift_tools_secret_replicator_vault_validate_certs` | `true` | TLS validation for Vault API. |
-| `openshift_tools_secret_replicator_vault_secret_values_base64` | `false` | If `true`, store the same base64 strings as the Kubernetes API (often better for binary keys); if `false`, values are handled per module defaults. |
+| `openshift_tools_secret_replicator_vault_namespace` | `""` | Vault Enterprise namespace (optional); empty targets the root namespace. |
 | `openshift_tools_secret_replicator_vault_store_k8s_secret_type` | `true` | If `true`, include the Kubernetes secret `type` in the Vault data using `openshift_tools_secret_replicator_vault_k8s_secret_type_key`. |
 | `openshift_tools_secret_replicator_vault_k8s_secret_type_key` | `"k8s_secret_type"` | Key name used when `openshift_tools_secret_replicator_vault_store_k8s_secret_type` is true. |
 
@@ -140,7 +139,7 @@ No other Ansible Galaxy **roles** are required (`dependencies: []` in `meta/main
         openshift_tools_secret_replicator_cluster_replication: true
 ```
 
-### Optional: push source secret to Vault KV v2
+### Optional: push source secret to Vault KV
 
 ```yaml
 ---
@@ -152,6 +151,7 @@ No other Ansible Galaxy **roles** are required (`dependencies: []` in `meta/main
         openshift_tools_secret_replicator_source_secret_name: "app-credentials"
         openshift_tools_secret_replicator_source_namespace: "platform"
         openshift_tools_secret_replicator_vault_push: true
+        openshift_tools_secret_replicator_vault_kv_version: 2
         openshift_tools_secret_replicator_vault_kv_mount: "secret"
         openshift_tools_secret_replicator_vault_kv_path: "platform/app-credentials"
         # Optional: set explicitly or rely on VAULT_ADDR / VAULT_TOKEN
@@ -213,7 +213,7 @@ The sample `molecule/default/converge.yml` sets `K8S_AUTH_VERIFY_SSL: "no"` on t
 - **Labels on replicated Secrets**
   - Namespace targets: `replicated-by: secret-replicator`, `source-ns: <openshift_tools_secret_replicator_source_namespace>`.
   - Cluster targets label `source-ns` and `source-cluster` using `openshift_tools_secret_replicator_target_clusters[0].ns` and `openshift_tools_secret_replicator_target_clusters[0].context` for every cluster iteration (see `tasks/main.yml`); adjust `openshift_tools_secret_replicator_target_clusters` order if that metadata must reflect a specific primary cluster.
-- **Vault**: With `openshift_tools_secret_replicator_vault_push: true`, the module receives the Kubernetes `data` map plus Vault-specific options (`openshift_tools_secret_replicator_vault_secret_values_base64`, `openshift_tools_secret_replicator_vault_store_k8s_secret_type`, `openshift_tools_secret_replicator_vault_k8s_secret_type_key`). Consult `community.hashi_vault.vault_kv2_write` for encoding and metadata behavior.
+- **Vault**: With `openshift_tools_secret_replicator_vault_push: true`, the role writes to Vault with `hashicorp.vault.kv1_secret` or `hashicorp.vault.kv2_secret` based on `openshift_tools_secret_replicator_vault_kv_version`. The payload is the Kubernetes `data` map, optionally merged with the source secret `type` when `openshift_tools_secret_replicator_vault_store_k8s_secret_type` is enabled.
 
 ### License
 

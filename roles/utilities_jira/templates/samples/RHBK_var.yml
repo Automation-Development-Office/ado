@@ -109,5 +109,3 @@ template_stories:
       - summary: "Configure monitoring and alerting"
       - summary: "Define ownership and support model"
       - summary: "Complete operational handoff"
-
-

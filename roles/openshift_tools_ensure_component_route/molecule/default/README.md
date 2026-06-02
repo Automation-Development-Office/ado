@@ -98,7 +98,7 @@ Then point Ansible at your kubeconfig (default is ~/.kube/config):
 
 5) Wire variables into Molecule (per-scenario example)
 ------------------------------------------------------
-In your role’s scenario file: roles/<role>/molecule/default/molecule.yml
+In your role's scenario file: roles/<role>/molecule/default/molecule.yml
 
 Add environment passthrough for the Ansible provisioner:
     provisioner:
@@ -155,13 +155,13 @@ either provide the CA file (preferred) or set K8S_AUTH_VERIFY_SSL=false.
 - Connection errors:
     Confirm K8S_AUTH_HOST is correct and reachable (https://api.<cluster-domain>:6443).
 
-- Molecule can’t find your role:
+- Molecule can't find your role:
     Set ANSIBLE_ROLES_PATH to the parent of the role (often ${MOLECULE_PROJECT_DIRECTORY}/..).
 
 
 Appendix — Minimal verify task example (README check)
 -----------------------------------------------------
-Add to your scenario’s verify.yml to assert a role README exists:
+Add to your scenario's verify.yml to assert a role README exists:
     - name: Check README.md exists
       ansible.builtin.stat:
         path: "{{ lookup('env','MOLECULE_PROJECT_DIRECTORY') }}/README.md"
@@ -171,5 +171,3 @@ Add to your scenario’s verify.yml to assert a role README exists:
       ansible.builtin.fail:
         msg: "README.md required for this role."
       when: not readme_file.stat.exists
-
-

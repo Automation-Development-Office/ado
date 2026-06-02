@@ -1,0 +1,4 @@
+- name: Register IPA client
+  redhat.rhel_idm.ipaclient:
+    state: "{{ state }}"
+    force: true

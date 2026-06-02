@@ -1,0 +1,10 @@
+---
+- name: Destroy - platform_repos RHSM scenario
+  hosts: localhost
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Clean package manager cache
+      ansible.builtin.command: "{{ ansible_pkg_mgr }} clean all"
+      changed_when: true
+      failed_when: false
