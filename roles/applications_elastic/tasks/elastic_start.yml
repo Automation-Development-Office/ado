@@ -19,7 +19,7 @@
   become: true
   ansible.builtin.shell: >
     pgrep -f "{{ applications_elastic_start_cmd }}"
-  register: elastic_running
+  register: applications_elastic_running
   ignore_errors: true
   changed_when: false
   failed_when: false
@@ -27,7 +27,7 @@
 - name: Launch Elasticsearch (background)
   when:
     - not applications_elastic_systemd_enabled
-    - elastic_running.rc != 0
+    - applications_elastic_running.rc != 0
   become: true
   ansible.builtin.shell: |
     nohup {{ applications_elastic_start_cmd }} >/var/log/elasticsearch-ansible-start.out 2>&1 & echo $! > {{ applications_elastic_pid_file }}
@@ -38,7 +38,7 @@
 - name: Report Elasticsearch already running
   when:
     - not applications_elastic_systemd_enabled
-    - elastic_running.rc == 0
+    - applications_elastic_running.rc == 0
   ansible.builtin.debug:
     msg: "Elasticsearch start command already running (pgrep matched)."
 
@@ -51,8 +51,8 @@
     url_username: "{{ applications_elastic_user | default(omit) }}"
     url_password: "{{ applications_elastic_pass | default(omit) }}"
     status_code: 200
-  register: elastic_ready
-  until: elastic_ready.status == 200
+  register: applications_elastic_ready
+  until: applications_elastic_ready.status == 200
   retries: "{{ (applications_elastic_http_timeout // 3) | int }}"
   delay: 3
 
