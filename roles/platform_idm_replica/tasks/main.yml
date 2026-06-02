@@ -1,0 +1,12 @@
+- name: Add IDM Replica entry
+  ansible.builtin.assert:
+    that:
+      - platform_idm_replica_state in ["present", "absent"]
+      - platform_idm_replica_name | length > 0
+    fail_msg: >-
+      Invalid platform_idm_replica inputs. Provide platform_idm_replica_name and a valid
+      platform_idm_replica_state (present/absent).
+    success_msg: platform_idm_replica input validation passed.
+
+- name: Add IDM Replica entry
+  ansible.builtin.import_tasks: install-idm-replica.yml
