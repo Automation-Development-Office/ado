@@ -1,0 +1,103 @@
+---
+- name: Stop via systemd (if enabled)
+  when: applications_elastic_systemd_enabled
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ applications_elastic_systemd_unit }}"
+    state: stopped
+
+- name: Validate custom stop inputs
+  when: not applications_elastic_systemd_enabled
+  ansible.builtin.assert:
+    that:
+      - applications_elastic_start_cmd | length > 0 or applications_elastic_pid_file | length > 0
+    fail_msg: >-
+      Either applications_elastic_start_cmd or applications_elastic_pid_file must be set
+      when applications_elastic_systemd_enabled=false.
+
+- name: Check whether PID file exists
+  when: not applications_elastic_systemd_enabled
+  ansible.builtin.stat:
+    path: "{{ applications_elastic_pid_file }}"
+  register: applications_elastic_stop_pid_file
+
+- name: Read PID file content
+  when:
+    - not applications_elastic_systemd_enabled
+    - applications_elastic_stop_pid_file.stat.exists
+  ansible.builtin.slurp:
+    path: "{{ applications_elastic_pid_file }}"
+  register: applications_elastic_stop_pid_raw
+
+- name: Set PID fact from PID file
+  when:
+    - not applications_elastic_systemd_enabled
+    - applications_elastic_stop_pid_file.stat.exists
+  ansible.builtin.set_fact:
+    applications_elastic_stop_pid: "{{ applications_elastic_stop_pid_raw.content | b64decode | trim }}"
+
+- name: Stop Elasticsearch via PID file
+  when:
+    - not applications_elastic_systemd_enabled
+    - applications_elastic_stop_pid | default('') | length > 0
+  become: true
+  ansible.builtin.command: "kill -TERM {{ applications_elastic_stop_pid }}"
+  register: applications_elastic_stop_kill_pid
+  changed_when: applications_elastic_stop_kill_pid.rc == 0
+  failed_when: false
+
+- name: Stop Elasticsearch via start command match
+  when:
+    - not applications_elastic_systemd_enabled
+    - applications_elastic_start_cmd | length > 0
+  become: true
+  ansible.builtin.command: "pkill -f -- {{ applications_elastic_start_cmd }}"
+  register: applications_elastic_stop_kill_cmd
+  changed_when: applications_elastic_stop_kill_cmd.rc == 0
+  failed_when: false
+
+- name: Wait for custom Elasticsearch process to stop
+  when:
+    - not applications_elastic_systemd_enabled
+    - applications_elastic_start_cmd | length > 0
+  become: true
+  ansible.builtin.command: "pgrep -f -- {{ applications_elastic_start_cmd }}"
+  register: applications_elastic_stop_pgrep
+  until: applications_elastic_stop_pgrep.rc != 0
+  retries: 10
+  delay: 1
+  changed_when: false
+  failed_when: false
+
+- name: Remove stale PID file
+  when:
+    - not applications_elastic_systemd_enabled
+    - applications_elastic_stop_pid_file.stat.exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ applications_elastic_pid_file }}"
+    state: absent
+
+- name: Probe Elasticsearch endpoint after stop
+  ansible.builtin.uri:
+    url: "{{ applications_elastic_url }}/_cluster/health"
+    method: GET
+    return_content: false
+    force_basic_auth: "{{ applications_elastic_user != '' }}"
+    url_username: "{{ applications_elastic_user | default(omit) }}"
+    url_password: "{{ applications_elastic_pass | default(omit) }}"
+    status_code:
+      - 200
+      - 401
+      - 403
+      - 404
+      - 503
+  register: applications_elastic_stop_probe
+  failed_when: false
+  changed_when: false
+
+- name: Report stop verification
+  ansible.builtin.debug:
+    msg: >-
+      Endpoint probe after stop returned status={{ applications_elastic_stop_probe.status | default('unreachable') }}.
+      Treating this as informational to keep stop idempotent across environments.

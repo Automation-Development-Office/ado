@@ -1,0 +1,28 @@
+---
+- name: Get cluster health
+  ansible.builtin.uri:
+    url: "{{ applications_elastic_url }}/_cluster/health"
+    method: GET
+    return_content: true
+    force_basic_auth: "{{ applications_elastic_user != '' }}"
+    url_username: "{{ applications_elastic_user | default(omit) }}"
+    url_password: "{{ applications_elastic_pass | default(omit) }}"
+    status_code: 200
+  register: applications_elastic_health
+
+- name: Assert cluster is balanced
+  ansible.builtin.assert:
+    that:
+      - applications_elastic_health.json.status == 'green'
+      - (applications_elastic_health.json.relocating_shards | int) == 0
+      - (applications_elastic_health.json.initializing_shards | int) == 0
+      - (applications_elastic_health.json.unassigned_shards | int) == 0
+      - (applications_elastic_health.json.number_of_pending_tasks | default(0) | int) == 0
+    fail_msg: >-
+      Cluster not balanced:
+      status={{ applications_elastic_health.json.status }},
+      relocating={{ applications_elastic_health.json.relocating_shards }},
+      initializing={{ applications_elastic_health.json.initializing_shards }},
+      unassigned={{ applications_elastic_health.json.unassigned_shards }},
+      pending={{ applications_elastic_health.json.number_of_pending_tasks | default('n/a') }}.
+    success_msg: "Cluster is green and balanced."
