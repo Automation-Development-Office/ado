@@ -1,0 +1,12 @@
+---
+- name: lifecycle_envs | Ensure lifecycle environments are created
+  redhat.satellite.lifecycle_environment:
+    username: "{{ platform_satellite_install_admin_username }}"
+    password: "{{ platform_satellite_install_admin_password }}"
+    server_url: "{{ platform_satellite_install_server_url }}"
+    organization: "{{ platform_satellite_install_organization }}"
+    name: "{{ item['env_name'] }}"
+    prior: "{{ item['prior'] }}"
+    validate_certs: "{{ platform_satellite_install_validate_certs }}"
+  loop: "{{ platform_satellite_install_lifecycle_envs }}"
+...
