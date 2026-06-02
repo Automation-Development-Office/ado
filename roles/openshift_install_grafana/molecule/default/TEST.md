@@ -176,14 +176,14 @@ done
 ## 5) Negative cases
 
 - **Invalid role_kind** → expect module failure.
-- **SCC that doesn’t exist** → RoleBinding still created, but SCC effect depends on cluster setup.
+- **SCC that doesn't exist** -> RoleBinding still created, but SCC effect depends on cluster setup.
 - **token: true + state: absent** → no token created; token Secret deletion attempted (ok if not found).
 
 ---
 
 ## 6) Security checks
 
-- Ensure tokens aren’t printed unless you explicitly add a print task.
+- Ensure tokens aren't printed unless you explicitly add a print task.
 - Keep `no_log: true` on token-handling tasks; enable temporarily for debugging only.
 
 ---

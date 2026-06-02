@@ -1,0 +1,14 @@
+---
+- name: Destroy integration_utilities_build_execution_environment scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    utilities_build_execution_environment_test_root: /tmp/utilities_build_execution_environment_integration
+
+  tasks:
+    - name: Remove integration test directory
+      ansible.builtin.file:
+        path: "{{ utilities_build_execution_environment_test_root }}"
+        state: absent

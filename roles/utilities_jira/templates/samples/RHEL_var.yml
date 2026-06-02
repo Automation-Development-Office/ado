@@ -102,5 +102,3 @@ template_stories:
       - summary: "Validate monitoring and alerting"
       - summary: "Review compliance and security posture"
       - summary: "Complete operational handoff"
-
-

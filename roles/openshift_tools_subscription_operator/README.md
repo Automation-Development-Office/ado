@@ -5,7 +5,7 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 - Installs an Operator by creating a `Subscription`
 - Uninstalls by deleting the `Subscription` (and optionally CSV via OLM)
 - Works with kubeconfig **or** host+token auth
-- **Important:** Your OperatorGroup **must** match the operator’s supported `installModes`
+- **Important:** Your OperatorGroup **must** match the operator's supported `installModes`
 
 ---
 
@@ -13,7 +13,7 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 
 - OpenShift/Kubernetes API access (via kubeconfig or env vars)
 - `kubernetes.core` collection installed
-- A compatible **OperatorGroup** in the target namespace (single-namespace or all-namespaces).  
+- A compatible **OperatorGroup** in the target namespace (single-namespace or all-namespaces).
   _Tip:_ Use your `ado.openshift.operatorgroup` role to create it appropriately.
 
 ---
@@ -72,7 +72,7 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 ```
 
 ### Install a **SingleNamespace** operator into an app namespace
-> Use only if the operator’s CSV supports `SingleNamespace`. Ensure a single-ns OperatorGroup exists first.
+> Use only if the operator's CSV supports `SingleNamespace`. Ensure a single-ns OperatorGroup exists first.
 
 ```yaml
 - hosts: localhost
@@ -106,7 +106,7 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 
 ## Behavior Notes
 
-- **OperatorGroup vs installModes**: The Operator’s CSV defines supported modes. The OG must match:
+- **OperatorGroup vs installModes**: The Operator's CSV defines supported modes. The OG must match:
   - **AllNamespaces** → install Subscription in `openshift-operators` with **no** `targetNamespaces`.
   - **SingleNamespace** → install in your app namespace with OG `spec.targetNamespaces: [ name_space ]`.
 - **How to check channels/installModes**:
@@ -132,7 +132,7 @@ dependency → lint → syntax → create → converge → idempotence → destr
 ---
 
 ## Author
-- Chad Elliott (<chelliot@redhat.com>) 
+- Chad Elliott (<chelliot@redhat.com>)
 
 ---
 

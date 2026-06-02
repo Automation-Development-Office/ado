@@ -1,0 +1,22 @@
+---
+platforms:
+  - name: na
+
+provisioner:
+  name: ansible
+  playbooks:
+    prepare: ../utils/playbooks/utilities_build_execution_environment_prepare.yml
+    converge: ../utils/playbooks/utilities_build_execution_environment_converge.yml
+    verify: ../utils/playbooks/utilities_build_execution_environment_verify.yml
+    destroy: ../utils/playbooks/utilities_build_execution_environment_destroy.yml
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+
+scenario:
+  test_sequence:
+    - prepare
+    - converge
+    - verify
+  destroy_sequence:
+    - destroy

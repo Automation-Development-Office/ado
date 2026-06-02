@@ -134,7 +134,7 @@ This role does not return structured outputs by default. It applies cluster reso
 ## Troubleshooting
 
 - **Operator Degraded=True**: Check for invalid IdPs (e.g., OIDC issuer unresolvable) or missing Secrets referenced by any HTPasswd IdP.
-- **Password mismatch**: Verify the Secret’s `htpasswd` content and test with `htpasswd -vb`.
+- **Password mismatch**: Verify the Secret's `htpasswd` content and test with `htpasswd -vb`.
 - **Username collision**: Use `update_htpass: true` to force `mappingMethod: add`, or choose a unique break-glass username.
 
 ---

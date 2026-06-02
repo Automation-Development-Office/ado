@@ -2,5 +2,5 @@
 ---
 collections:
   - name: kubernetes.core
-  - name: community.hashi_vault
-    version: ">=4.2.0"
+  - name: hashicorp.vault
+    version: ">=1.0.0"

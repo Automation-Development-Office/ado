@@ -1,0 +1,9 @@
+---
+collections:
+{% for collection_name in utilities_build_execution_environment_collections %}
+  - name: "{{ collection_name }}"
+{% endfor %}
+{% for collection_file in utilities_build_execution_environment_collection_files %}
+  - name: "{{ 'collection-artifacts/' ~ (collection_file | basename) }}"
+    type: file
+{% endfor %}
