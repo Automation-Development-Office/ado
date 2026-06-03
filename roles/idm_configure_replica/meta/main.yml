@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 galaxy_info:
-  author: Chad Elliott
-  description: 'An IDM replica role for managing identity management replicas.'
+  author: ADO
+  description: 'An IdM replica role for managing identity management replicas.'
   company: Automation Development Office
 
   #

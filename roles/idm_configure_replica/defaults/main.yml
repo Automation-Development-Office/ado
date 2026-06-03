@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# defaults file for idm_configure_replica
+idm_configure_replica_state: present
+idm_configure_replica_hostname: ""
+idm_configure_replica_domain: ""
+idm_configure_replica_realm: ""
+idm_configure_replica_server: ""
+idm_configure_replica_principal: ""
+idm_configure_replica_admin_password: ""
+idm_configure_replica_dm_password: ""
+idm_configure_replica_setup_dns: false
+idm_configure_replica_setup_ca: false
+idm_configure_replica_no_host_dns: false
+idm_configure_replica_no_ntp: false
+idm_configure_replica_ip_addresses: []
+idm_configure_replica_auto_forwarders: false
+idm_configure_replica_forwarders: []

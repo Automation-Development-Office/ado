@@ -1,0 +1,18 @@
+- name: Install IdM replica
+  redhat.rhel_idm.ipareplica:
+    state: "{{ idm_configure_replica_state }}"
+    hostname: "{{ idm_configure_replica_hostname }}"
+    domain: "{{ idm_configure_replica_domain }}"
+    realm: "{{ idm_configure_replica_realm }}"
+    server: "{{ idm_configure_replica_server }}"
+    principal: "{{ idm_configure_replica_principal | default(omit, true) }}"
+    password: "{{ (idm_configure_replica_state == 'present') | ternary(idm_configure_replica_admin_password, omit) }}"
+    dm_password: "{{ (idm_configure_replica_state == 'present') | ternary(idm_configure_replica_dm_password, omit) }}"
+    setup_dns: "{{ idm_configure_replica_setup_dns }}"
+    setup_ca: "{{ idm_configure_replica_setup_ca }}"
+    no_host_dns: "{{ idm_configure_replica_no_host_dns }}"
+    no_ntp: "{{ idm_configure_replica_no_ntp }}"
+    ip_addresses: "{{ idm_configure_replica_ip_addresses | default(omit, true) }}"
+    auto_forwarders: "{{ idm_configure_replica_auto_forwarders | default(omit) }}"
+    forwarders: "{{ idm_configure_replica_forwarders | default(omit, true) }}"
+  no_log: true
