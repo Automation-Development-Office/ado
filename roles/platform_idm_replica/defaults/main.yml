@@ -2,4 +2,17 @@
 ---
 # defaults file for idm_replica
 platform_idm_replica_state: present
-platform_idm_replica_name: ""
+platform_idm_replica_hostname: ""
+platform_idm_replica_domain: ""
+platform_idm_replica_realm: ""
+platform_idm_replica_server: ""
+platform_idm_replica_principal: ""
+platform_idm_replica_admin_password: ""
+platform_idm_replica_dm_password: ""
+platform_idm_replica_setup_dns: false
+platform_idm_replica_setup_ca: false
+platform_idm_replica_no_host_dns: false
+platform_idm_replica_no_ntp: false
+platform_idm_replica_ip_addresses: []
+platform_idm_replica_auto_forwarders: false
+platform_idm_replica_forwarders: []

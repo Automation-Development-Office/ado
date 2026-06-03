@@ -2,10 +2,17 @@
   ansible.builtin.assert:
     that:
       - platform_idm_replica_state in ["present", "absent"]
-      - platform_idm_replica_name | length > 0
+      - platform_idm_replica_hostname | length > 0
+      - platform_idm_replica_domain | length > 0
+      - platform_idm_replica_realm | length > 0
+      - platform_idm_replica_server | length > 0
+      - platform_idm_replica_state == "absent" or platform_idm_replica_dm_password | length > 0
+      - platform_idm_replica_state == "absent" or platform_idm_replica_admin_password | length > 0
     fail_msg: >-
-      Invalid platform_idm_replica inputs. Provide platform_idm_replica_name and a valid
-      platform_idm_replica_state (present/absent).
+      Invalid platform_idm_replica inputs. For present state, provide
+      platform_idm_replica_hostname, platform_idm_replica_domain, platform_idm_replica_realm,
+      platform_idm_replica_server, platform_idm_replica_admin_password, and
+      platform_idm_replica_dm_password.
     success_msg: platform_idm_replica input validation passed.
 
 - name: Add IDM Replica entry
