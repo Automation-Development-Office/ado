@@ -1,0 +1,36 @@
+---
+- name: Converge - grafana_manage_folders scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    grafana_manage_folders_enable_live_checks: >-
+      {{
+        (lookup('env', 'GRAFANA_MANAGE_FOLDERS_ENABLE_LIVE_CHECKS')
+        | default('false', true)) | bool
+      }}
+
+  tasks:
+    - name: Explain live-check toggle
+      ansible.builtin.debug:
+        msg: >-
+          grafana_manage_folders execution is skipped by default in Molecule.
+          Set GRAFANA_MANAGE_FOLDERS_ENABLE_LIVE_CHECKS=true and provide
+          required Grafana credentials to run live checks.
+      when: not grafana_manage_folders_enable_live_checks
+
+    - name: Run grafana_manage_folders role with live checks enabled
+      ansible.builtin.include_role:
+        name: infra.ado.grafana_manage_folders
+      vars:
+        grafana_manage_folders_state: present
+        grafana_manage_folders_name: >-
+          {{ lookup('env', 'GRAFANA_MANAGE_FOLDERS_NAME') | default('General', true) }}
+        grafana_manage_folders_hostname: >-
+          {{ lookup('env', 'GRAFANA_MANAGE_FOLDERS_HOSTNAME') | default('', true) }}
+        grafana_manage_folders_admin_user: >-
+          {{ lookup('env', 'GRAFANA_MANAGE_FOLDERS_ADMIN_USER') | default('', true) }}
+        grafana_manage_folders_admin_password: >-
+          {{ lookup('env', 'GRAFANA_MANAGE_FOLDERS_ADMIN_PASSWORD') | default('', true) }}
+      when: grafana_manage_folders_enable_live_checks

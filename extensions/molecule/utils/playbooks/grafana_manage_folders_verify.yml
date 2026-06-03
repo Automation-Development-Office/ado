@@ -1,0 +1,20 @@
+---
+- name: Verify - grafana_manage_folders scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    readme_path: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/../../../roles/grafana_manage_folders/README.md"
+
+  tasks:
+    - name: Check if role README.md exists
+      ansible.builtin.stat:
+        path: "{{ readme_path }}"
+      register: grafana_manage_folders_verify_readme_file
+
+    - name: Assert role README.md exists
+      ansible.builtin.assert:
+        that:
+          - grafana_manage_folders_verify_readme_file.stat.exists
+        fail_msg: "README.md is missing for grafana_manage_folders."
