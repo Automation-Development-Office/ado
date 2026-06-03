@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# defaults file for applications_grafana_manage_folder
+
+applications_grafana_manage_folder_state: present
+applications_grafana_manage_folder_name: General
+applications_grafana_manage_folder_hostname: ""
+applications_grafana_manage_folder_admin_user: ""
+applications_grafana_manage_folder_admin_password: ""
+applications_grafana_manage_folder_validate_certs: false
