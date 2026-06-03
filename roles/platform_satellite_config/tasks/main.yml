@@ -1,0 +1,20 @@
+- name: Settings Config
+  ansible.builtin.include_tasks: settings.yml
+
+- name: Manifest Config
+  ansible.builtin.include_tasks: manifest.yml
+
+- name: Enable Repos
+  ansible.builtin.include_tasks: enable_repos.yml
+
+- name: Third Party Products
+  ansible.builtin.include_tasks: third_party_products.yml
+
+- name: Repo Sync
+  ansible.builtin.include_tasks: repo_sync.yml
+
+- name: Lifecycle Envs
+  ansible.builtin.include_tasks: lifecycle_envs.yml
+
+- name: Content Views
+  ansible.builtin.include_tasks: content_views.yml
