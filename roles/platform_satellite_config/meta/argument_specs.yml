@@ -1,8 +1,9 @@
 ---
-# argument spec file for infra.ado.platform_satellite_install
+# argument spec file for infra.ado.platform_satellite_config
+
 argument_specs:
   main:
-    short_description: Role to install Red Hat Satellite
+    short_description: Role to configure Red Hat Satellite
     options:
       my_variable:
         type: str
