@@ -12,9 +12,3 @@
 
 - name: Repo Sync
   ansible.builtin.include_tasks: repo_sync.yml
-
-- name: Lifecycle Envs
-  ansible.builtin.include_tasks: lifecycle_envs.yml
-
-- name: Content Views
-  ansible.builtin.include_tasks: content_views.yml
