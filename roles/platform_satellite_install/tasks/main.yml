@@ -30,4 +30,3 @@
 
     - name: Satellite Install
       ansible.builtin.include_tasks: install_satellite.yml
-
