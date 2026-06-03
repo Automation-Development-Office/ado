@@ -45,3 +45,6 @@
 
     - name: Repo Sync
       ansible.builtin.include_tasks: repo_sync.yml
+
+    - name: Content Views
+      ansible.builtin.include_tasks: content_views.yml
