@@ -12,7 +12,7 @@ Current collection set:
 - `community.general`
 - `community.kubernetes`
 - `kubernetes.core`
-- `grafana.grafana`
+- `grafana.grafana'
 - `freeipa.ansible_freeipa`
 - `infra.aap_configuration`
 - `community.hashi_vault`
