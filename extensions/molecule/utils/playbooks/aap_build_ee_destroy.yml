@@ -1,0 +1,14 @@
+---
+- name: Destroy integration_aap_build_ee scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    aap_build_ee_test_root: /tmp/aap_build_ee_integration
+
+  tasks:
+    - name: Remove integration test directory
+      ansible.builtin.file:
+        path: "{{ aap_build_ee_test_root }}"
+        state: absent
