@@ -130,10 +130,6 @@ Define the Satellite configuration in your playbook or inventory using the varia
   - Copies GPG keys, includes content credential and repository roles, and uploads custom repository content.
 - **Repo Sync** (`repo_sync.yml`):
   - Discovers enabled products and synchronizes all repositories asynchronously.
-- **Lifecycle Envs** (`lifecycle_envs.yml`):
-  - Creates lifecycle environments with the configured prior environment chain.
-- **Content Views** (`content_views.yml`):
-  - Includes the `redhat.satellite.content_views` role and publishes initial content view versions.
 
 ## 🧪 Molecule
 
