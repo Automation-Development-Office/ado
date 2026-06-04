@@ -1,0 +1,22 @@
+---
+platforms:
+  - name: na
+
+provisioner:
+  name: ansible
+  playbooks:
+    prepare: ../utils/playbooks/aap_build_ee_prepare.yml
+    converge: ../utils/playbooks/aap_build_ee_converge.yml
+    verify: ../utils/playbooks/aap_build_ee_verify.yml
+    destroy: ../utils/playbooks/aap_build_ee_destroy.yml
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+
+scenario:
+  test_sequence:
+    - prepare
+    - converge
+    - verify
+  destroy_sequence:
+    - destroy
