@@ -1,0 +1,27 @@
+---
+- name: Converge integration_aap_build_ee scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    aap_build_ee_test_root: /tmp/aap_build_ee_integration
+    aap_build_ee_mock_builder: >-
+      {{ aap_build_ee_test_root }}/bin/ansible-builder-mock
+    aap_build_ee_local_tarball: >-
+      {{ aap_build_ee_test_root }}/infra-ado-1.0.0.tar.gz
+    aap_build_ee_context: >-
+      {{ aap_build_ee_test_root }}/build-context
+
+    aap_build_ee_base_ee: ee-minimal-rhel9:latest
+    aap_build_ee_source_image_repository: quay.io/ansible
+    aap_build_ee_collections:
+      - ansible.posix
+    aap_build_ee_collection_files:
+      - "{{ aap_build_ee_local_tarball }}"
+    aap_build_ee_builder_executable: "{{ aap_build_ee_mock_builder }}"
+    aap_build_ee_build_context: "{{ aap_build_ee_context }}"
+    aap_build_ee_output_image: localhost/custom-ee:latest
+
+  roles:
+    - role: infra.ado.aap_build_ee
