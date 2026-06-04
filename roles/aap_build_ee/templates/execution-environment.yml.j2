@@ -1,0 +1,16 @@
+---
+version: 3
+images:
+  base_image:
+    name: "{{ aap_build_ee_base_image }}"
+options:
+  package_manager_path: "{{ aap_build_ee_package_manager_path }}"
+{% if aap_build_ee_collection_files | length > 0 %}
+additional_build_files:
+{% for collection_file in aap_build_ee_collection_files %}
+  - src: "{{ collection_file }}"
+    dest: "collection-artifacts"
+{% endfor %}
+{% endif %}
+dependencies:
+  galaxy: requirements.yml

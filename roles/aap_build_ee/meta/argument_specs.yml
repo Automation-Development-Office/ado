@@ -1,5 +1,5 @@
 ---
-# argument spec file for ado.utilities_build_execution_environment
+# argument spec file for ado.aap_build_ee
 
 argument_specs:
   main:
@@ -8,37 +8,37 @@ argument_specs:
       This role builds an Ansible execution environment (EE) image from a caller-selected
       base EE image and a caller-provided list of collections.
     options:
-      utilities_build_execution_environment_base_ee:
+      aap_build_ee_base_ee:
         type: str
         description: Base EE image name and tag, for example ee-minimal-rhel9:latest.
         required: true
-      utilities_build_execution_environment_source_image_repository:
+      aap_build_ee_source_image_repository:
         type: str
         description: Source container repository path used to pull the base EE image.
         required: true
-      utilities_build_execution_environment_collections:
+      aap_build_ee_collections:
         type: list
         elements: str
         description: List of Ansible collections to include in the built EE image.
         default: []
-      utilities_build_execution_environment_collection_files:
+      aap_build_ee_collection_files:
         type: list
         elements: str
         description: List of local collection artifact paths (*.tar.gz) to include in the built EE image.
         default: []
-      utilities_build_execution_environment_output_image:
+      aap_build_ee_output_image:
         type: str
         description: Target image name and tag for the built EE image.
         default: custom-ee:latest
-      utilities_build_execution_environment_build_context:
+      aap_build_ee_build_context:
         type: str
         description: Directory path used as ansible-builder context.
-        default: /tmp/utilities_build_execution_environment
-      utilities_build_execution_environment_builder_executable:
+        default: /tmp/aap_build_ee
+      aap_build_ee_builder_executable:
         type: str
         description: ansible-builder executable name or full path.
         default: ansible-builder
-      utilities_build_execution_environment_package_manager_path:
+      aap_build_ee_package_manager_path:
         type: str
         description: Package manager executable path used by ansible-builder in the base image.
         default: /usr/bin/microdnf

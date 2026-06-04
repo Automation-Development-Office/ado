@@ -10,8 +10,8 @@ on:
         required: false
         default: false
         type: boolean
-      run_integration_utilities_build_execution_environment:
-        description: "Run integration_utilities_build_execution_environment"
+      run_integration_aap_build_ee:
+        description: "Run integration_aap_build_ee"
         required: false
         default: false
         type: boolean
@@ -174,7 +174,7 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             declare -A checks=(
               [integration_manage_vm_image]="${{ github.event.inputs.run_integration_manage_vm_image }}"
-              [integration_utilities_build_execution_environment]="${{ github.event.inputs.run_integration_utilities_build_execution_environment }}"
+              [integration_aap_build_ee]="${{ github.event.inputs.run_integration_aap_build_ee }}"
               [integration_utilities_cron_full_special]="${{ github.event.inputs.run_integration_utilities_cron_full_special }}"
               [integration_utilities_cron_full_special_removal]="${{ github.event.inputs.run_integration_utilities_cron_full_special_removal }}"
               [integration_utilities_cron_single_special]="${{ github.event.inputs.run_integration_utilities_cron_single_special }}"
