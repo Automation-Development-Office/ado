@@ -1,13 +1,13 @@
 # Role: infra.ado.grafana_manage_folders
 
-This role manages Grafana folders through the `community.grafana.grafana_folder`
+This role manages Grafana folders through the `grafana.grafana.folder`
 module using canonical `grafana_manage_folders_*` variables.
 
 ## Requirements
 
 - Network access from the Ansible controller to the Grafana API endpoint.
-- `community.grafana` collection available for `grafana_folder` operations.
-- Valid Grafana admin credentials.
+- `grafana.grafana` collection available for `folder` operations.
+- A Grafana API key with permission to create/update folders.
 
 ## Variables
 
@@ -16,26 +16,19 @@ module using canonical `grafana_manage_folders_*` variables.
 | `grafana_manage_folders_state` | `present` | Desired folder state. |
 | `grafana_manage_folders_name` | `General` | Folder title and UID prefix (`<name>-folder`). |
 | `grafana_manage_folders_hostname` | `""` | Grafana hostname (without scheme). |
-| `grafana_manage_folders_admin_user` | `""` | Grafana admin username. |
-| `grafana_manage_folders_admin_password` | `""` | Grafana admin password. |
-| `grafana_manage_folders_validate_certs` | `false` | Whether to validate Grafana TLS certificates. |
+| `grafana_manage_folders_api_key` | `""` | Grafana API key used by `grafana.grafana.folder`. |
+| `grafana_manage_folders_overwrite` | `true` | Whether folder updates overwrite existing definition. |
 
 ### Compatibility aliases
 
-The role still accepts legacy aliases and normalizes them internally:
+The role accepts these compatibility aliases:
 
-- `applications_grafana_manage_folder_state` -> `grafana_manage_folders_state`
-- `applications_grafana_manage_folder_name` -> `grafana_manage_folders_name`
-- `applications_grafana_manage_folder_hostname` -> `grafana_manage_folders_hostname`
-- `applications_grafana_manage_folder_admin_user` -> `grafana_manage_folders_admin_user`
-- `applications_grafana_manage_folder_admin_password` -> `grafana_manage_folders_admin_password`
-- `applications_grafana_manage_folder_validate_certs` -> `grafana_manage_folders_validate_certs`
 - `state` -> `grafana_manage_folders_state`
 - `grafana_folder` -> `grafana_manage_folders_name`
 - `grafana_hostname` -> `grafana_manage_folders_hostname`
-- `grafana_admin_user` -> `grafana_manage_folders_admin_user`
-- `grafana_admin_password` -> `grafana_manage_folders_admin_password`
-- `grafana_validate_certs` -> `grafana_manage_folders_validate_certs`
+- `grafana_api_key` -> `grafana_manage_folders_api_key`
+- `grafana_admin_password` -> `grafana_manage_folders_api_key` (legacy fallback)
+- `grafana_folder_overwrite` -> `grafana_manage_folders_overwrite`
 
 ## Example
 
@@ -48,8 +41,7 @@ The role still accepts legacy aliases and normalizes them internally:
         grafana_manage_folders_state: present
         grafana_manage_folders_name: Platform
         grafana_manage_folders_hostname: grafana.example.com
-        grafana_manage_folders_admin_user: admin
-        grafana_manage_folders_admin_password: "{{ vault_grafana_admin_password }}"
+        grafana_manage_folders_api_key: "{{ vault_grafana_api_key }}"
 ```
 
 ## Molecule
