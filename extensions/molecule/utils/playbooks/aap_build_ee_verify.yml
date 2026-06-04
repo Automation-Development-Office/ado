@@ -1,0 +1,33 @@
+---
+- name: Verify integration_aap_build_ee scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    aap_build_ee_test_root: /tmp/aap_build_ee_integration
+    aap_build_ee_context: >-
+      {{ aap_build_ee_test_root }}/build-context
+
+  tasks:
+    - name: Check generated execution-environment definition
+      ansible.builtin.stat:
+        path: "{{ aap_build_ee_context }}/execution-environment.yml"
+      register: aap_build_ee_definition_stat
+
+    - name: Check generated requirements definition
+      ansible.builtin.stat:
+        path: "{{ aap_build_ee_context }}/requirements.yml"
+      register: aap_build_ee_requirements_stat
+
+    - name: Check mock build output marker
+      ansible.builtin.stat:
+        path: "{{ aap_build_ee_context }}/.mock-built-image-tag"
+      register: aap_build_ee_mock_marker_stat
+
+    - name: Assert generated files and marker exist
+      ansible.builtin.assert:
+        that:
+          - aap_build_ee_definition_stat.stat.exists
+          - aap_build_ee_requirements_stat.stat.exists
+          - aap_build_ee_mock_marker_stat.stat.exists
