@@ -3,6 +3,7 @@ collections:
   - name: community.general
   - name: community.kubernetes
   - name: kubernetes.core
+  - name: ansible.posix
   - name: community.grafana
   - name: grafana.grafana
   - name: freeipa.ansible_freeipa
