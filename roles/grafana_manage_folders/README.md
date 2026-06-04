@@ -6,8 +6,25 @@ module using canonical `grafana_manage_folders_*` variables.
 ## Requirements
 
 - Network access from the Ansible controller to the Grafana API endpoint.
-- `grafana.grafana` collection available for `folder` operations.
 - A Grafana API key with permission to create/update folders.
+
+Install collections from `collections/requirements.yml`:
+
+```bash
+ansible-galaxy collection install -r collections/requirements.yml
+```
+
+Current collection set:
+
+- `ansible.utils`
+- `community.general`
+- `community.kubernetes`
+- `kubernetes.core`
+- `community.grafana`
+- `freeipa.ansible_freeipa`
+- `infra.aap_configuration`
+- `community.hashi_vault`
+- `amazon.aws`
 
 ## Variables
 
