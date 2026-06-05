@@ -22,14 +22,15 @@ This role is intentionally focused and currently does:
 | `idm_dns_ip_address` | yes | `""` | IPv4 address used for A record value. |
 | `idm_dns_record_ttl` | no | `3600` | TTL for the DNS record. |
 | `idm_dns_validate_certs` | no | `true` | TLS certificate validation toggle for API calls. |
-| `idm_dns_ipa_host` | no | `""` | Optional explicit IPA host override. |
-| `idm_dns_ipa_user` | no | `""` | Optional explicit IPA user override. |
-| `idm_dns_ipa_pass` | no | `""` | Optional explicit IPA password override. |
+| `idm_dns_ipa_host` | yes | `""` | IPA host used for DNS API operations. |
+| `idm_dns_ipa_user` | yes | `""` | IPA user used for DNS API operations. |
+| `idm_dns_ipa_pass` | yes | `""` | IPA password used for DNS API operations. |
 
 ## Behavior Notes
 
 - Validation currently enforces:
   - `idm_dns_state` must be `present` or `absent`
+  - `idm_dns_ipa_host`, `idm_dns_ipa_user`, and `idm_dns_ipa_pass` must be non-empty
   - `idm_dns_zone`, `idm_dns_record`, and `idm_dns_ip_address` must be non-empty
 - The module task is marked `no_log: true` to avoid leaking credentials in logs.
 - `idm_dns_validate_certs` defaults to `true`. Set it to `false` only for trusted lab/self-signed environments.
