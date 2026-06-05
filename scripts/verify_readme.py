@@ -102,14 +102,34 @@ def load_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def extract_heading_sequence(content: str) -> list[tuple[int, str]]:
-    """Return heading tuples as (level, normalized_title) in document order."""
-    headings: list[tuple[int, str]] = []
+def format_issue(filepath: Path, line: int | None, message: str) -> str:
+    """Format a verification issue with an optional source line number."""
+    if line is not None:
+        return f"{filepath}: Line {line}: {message}"
+    return f"{filepath}: {message}"
+
+
+def extract_heading_sequence(content: str) -> list[tuple[int, str, int]]:
+    """Return heading tuples as (level, normalized_title, line_number)."""
+    headings: list[tuple[int, str, int]] = []
     for match in HEADING_RE.finditer(content):
         level = len(match.group(1))
         title = re.sub(r"\s+", " ", match.group(2).strip())
-        headings.append((level, title))
+        line_no = content[: match.start()].count("\n") + 1
+        headings.append((level, title, line_no))
     return headings
+
+
+def next_same_level_heading(
+    headings: list[tuple[int, str, int]],
+    start: int,
+    level: int,
+) -> tuple[int, tuple[int, str, int]] | None:
+    """Return the index and next heading at the requested level, if any."""
+    for index in range(start, len(headings)):
+        if headings[index][0] == level:
+            return index, headings[index]
+    return None
 
 
 def validate_headings_against_template(
@@ -122,31 +142,67 @@ def validate_headings_against_template(
     headings = extract_heading_sequence(content)
 
     if not headings:
-        issues.append(f"{filepath}: Missing headings")
+        issues.append(format_issue(filepath, 1, "Missing headings"))
         return issues
 
     # First heading is role-specific. Validate shape, not exact text.
-    first_level, first_title = headings[0]
+    first_level, first_title, first_line = headings[0]
     role_pattern = r"^Role:\s+(`[^`]+`|[^\n`]+)$"
     if first_level != 1 or not re.match(role_pattern, first_title):
         err = "First heading should match '# Role: name' or '# Role: `name`'"
-        issues.append(f"{filepath}: {err}")
+        issues.append(format_issue(filepath, first_line, err))
 
     # Match section/subsection structure from template, excluding H1 title.
     expected_sections = [h for h in template_headings if h[0] >= 2]
     position = 0
+    last_matched_line = first_line
+    eof_suggest_line: int | None = None
     for expected in expected_sections:
+        expected_level, expected_title = expected[0], expected[1]
         found = False
         for i in range(position, len(headings)):
-            if headings[i] == expected:
+            level, title, line_no = headings[i]
+            if (level, title) == (expected_level, expected_title):
                 found = True
                 position = i + 1
+                last_matched_line = line_no
+                eof_suggest_line = None
                 break
         if not found:
-            heading_str = "#" * expected[0]
-            heading_title = expected[1]
-            err = f"Missing heading: {heading_str} {heading_title}"
-            issues.append(f"{filepath}: {err}")
+            heading_str = "#" * expected_level
+            substitute = next_same_level_heading(
+                headings,
+                position,
+                expected_level,
+            )
+            if substitute is not None:
+                substitute_index, heading = substitute
+                _level, wrong_title, wrong_line = heading
+                position = substitute_index + 1
+                eof_suggest_line = None
+                err = (
+                    f"Missing heading: {heading_str} {expected_title} "
+                    f"(found '{heading_str} {wrong_title}' instead)"
+                )
+                issues.append(format_issue(filepath, wrong_line, err))
+                continue
+
+            if eof_suggest_line is None:
+                fallback_line = last_matched_line
+                for level, _title, line_no in headings[position:]:
+                    if level >= expected_level:
+                        fallback_line = line_no
+                        break
+                else:
+                    if headings:
+                        fallback_line = headings[-1][2]
+                    else:
+                        fallback_line = last_matched_line
+                eof_suggest_line = fallback_line
+
+            err = f"Missing heading: {heading_str} {expected_title}"
+            issues.append(format_issue(filepath, eof_suggest_line, err))
+            eof_suggest_line += 1
 
     return issues
 
@@ -158,14 +214,20 @@ def check_readme_format(
     """Verify README.md format and structure against the template."""
     content = load_text(filepath)
     issues: list[str] = []
+    headings = extract_heading_sequence(content)
 
     # Verify file starts with a main heading.
     if not re.match(r"^#\s+", content):
-        issues.append(f"{filepath}: Missing main heading (# Title)")
+        issues.append(
+            format_issue(filepath, 1, "Missing main heading (# Title)"),
+        )
 
     # Verify at least one subheading exists.
     if not re.search(r"^##\s+", content, re.MULTILINE):
-        issues.append(f"{filepath}: Missing subheadings (## Section)")
+        line = headings[0][2] if headings else 1
+        issues.append(
+            format_issue(filepath, line, "Missing subheadings (## Section)"),
+        )
 
     template_issues = validate_headings_against_template(
         filepath,
@@ -175,13 +237,30 @@ def check_readme_format(
     issues.extend(template_issues)
 
     # Check for consistent line endings.
-    if "\r\n" in content and "\n" in content.replace("\r\n", ""):
-        issues.append(f"{filepath}: Inconsistent line endings")
+    lines = content.splitlines(keepends=True)
+    crlf_lines: list[int] = []
+    lf_only_lines: list[int] = []
+    for line_no, line in enumerate(lines, 1):
+        if line.endswith("\r\n"):
+            crlf_lines.append(line_no)
+        elif line.endswith("\n"):
+            lf_only_lines.append(line_no)
+    if crlf_lines and lf_only_lines:
+        first_mixed_line = min(crlf_lines[0], lf_only_lines[0])
+        issues.append(
+            format_issue(
+                filepath,
+                first_mixed_line,
+                "Inconsistent line endings",
+            ),
+        )
 
     # Check for trailing whitespace on non-blank lines only.
-    for i, line in enumerate(content.split("\n"), 1):
+    for line_no, line in enumerate(content.split("\n"), 1):
         if line.strip() and line.rstrip() != line:
-            issues.append(f"{filepath}: Line {i} has trailing whitespace")
+            issues.append(
+                format_issue(filepath, line_no, "trailing whitespace"),
+            )
 
     return issues
 

@@ -8,7 +8,7 @@ Build a custom Ansible **Execution Environment (EE)** image with `ansible-builde
 
 ---
 
-## Requirements
+## Role Requirements
 
 - Ansible >= 2.14
 - `ansible-builder` available on the managed host where the role runs
@@ -38,7 +38,7 @@ At least one of `aap_build_ee_collections` or
 
 ---
 
-## Examples
+## 🚀 Role Usage
 
 ### Build a custom EE image
 ```yaml
