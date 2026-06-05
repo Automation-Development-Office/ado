@@ -101,7 +101,7 @@ No inputs are required for a basic install/enable flow.
 - SELinux values are normalized and a policy is chosen when required.
 - Timesync variables avoid passing `omit` into upstream role data paths.
 
-## Molecule
+## Molecule Testing
 
 This role is tested from the extension-level Molecule scenario:
 `extensions/molecule/integration_utilities_rhel_ext_system_roles`.

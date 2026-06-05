@@ -56,7 +56,7 @@ Install or remove a Red Hat Build of Keycloak deployment with PostgreSQL and TLS
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

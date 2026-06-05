@@ -113,7 +113,7 @@ gitlab_root_password: !vault |
 
 ---
 
-## Molecule
+## Molecule Testing
 
 A default Molecule scenario is provided under `molecule/default` and covers:
 - Resource creation and update

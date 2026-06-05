@@ -47,7 +47,7 @@ Trigger an ACS remediation request by calling the ACS API when remediation is en
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

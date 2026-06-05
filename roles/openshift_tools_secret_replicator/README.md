@@ -161,7 +161,7 @@ No other Ansible Galaxy **roles** are required (`dependencies: []` in `meta/main
         openshift_tools_secret_replicator_cluster_replication: false
 ```
 
-## Molecule
+## Molecule Testing
 
 This role includes a Molecule scenario at `molecule/default`. `molecule/default/molecule.yml` sets `ANSIBLE_ROLES_PATH` to the parent of the role directory so the play can resolve `infra.ado.openshift_tools_secret_replicator` during local runs.
 

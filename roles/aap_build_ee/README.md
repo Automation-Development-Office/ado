@@ -100,7 +100,7 @@ At least one of `aap_build_ee_collections` or
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the extension integration scenario at
 `extensions/molecule/integration_aap_build_ee`.

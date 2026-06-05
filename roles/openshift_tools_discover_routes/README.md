@@ -44,7 +44,7 @@ Discover OpenShift routes and expose the resulting route data for downstream aut
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

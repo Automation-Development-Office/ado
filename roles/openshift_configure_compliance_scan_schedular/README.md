@@ -50,7 +50,7 @@ Create Compliance Operator scan resources for scheduled or immediate scan execut
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

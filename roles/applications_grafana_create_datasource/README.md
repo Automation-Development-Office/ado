@@ -58,7 +58,7 @@ The role currently supports these legacy aliases and normalizes them internally:
         applications_grafana_create_datasource_admin_password: "{{ vault_grafana_admin_password }}"
 ```
 
-## Molecule
+## Molecule Testing
 
 This role uses an extension-level integration scenario:
 

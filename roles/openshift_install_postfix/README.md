@@ -99,7 +99,7 @@ Deploy and test a Postfix mail relay server in OpenShift.
 
 ---
 
-## Molecule
+## Molecule Testing
 
 A default Molecule scenario is provided under `molecule/default` and covers:
 - Namespace and resource creation.

@@ -48,7 +48,7 @@ Add or remove a registry authentication entry inside the cluster pull secret.
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

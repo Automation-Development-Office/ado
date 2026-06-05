@@ -62,7 +62,7 @@ Wait until matching Pods are **Running** and **Ready** in an OpenShift namespace
 
 ---
 
-## Molecule
+## Molecule Testing
 
 A default Molecule scenario is provided that:
 ```

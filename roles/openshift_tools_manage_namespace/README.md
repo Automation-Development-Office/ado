@@ -72,7 +72,7 @@ Ensure an OpenShift **Namespace** is present or absent.
 
 ---
 
-## Molecule
+## Molecule Testing
 
 A default Molecule scenario is included for this role. It runs:
 

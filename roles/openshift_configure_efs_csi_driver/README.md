@@ -53,7 +53,7 @@ Create an AWS EFS CSI storage class backed by the EFS CSI provisioner.
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

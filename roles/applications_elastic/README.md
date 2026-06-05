@@ -90,7 +90,7 @@ For custom-process mode (`applications_elastic_systemd_enabled: false`), provide
 `applications_elastic_start_cmd` and/or `applications_elastic_pid_file` so the role
 can find and terminate the process safely.
 
-## Molecule
+## Molecule Testing
 
 This role's scenario is normalized at:
 

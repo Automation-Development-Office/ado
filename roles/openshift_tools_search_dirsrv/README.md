@@ -47,7 +47,7 @@ Run LDAP search queries inside a running directory server pod and print or captu
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 
