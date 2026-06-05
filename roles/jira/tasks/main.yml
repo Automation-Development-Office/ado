@@ -1,0 +1,24 @@
+---
+
+- name: Jira | Validate required vars
+  ansible.builtin.assert:
+    that:
+      - jira_url | length > 0
+      - jira_username | length > 0
+      - jira_token | length > 0
+      - jira_project_key | length > 0
+      - jira_track in jira_track_map
+    fail_msg: >-
+      Missing/invalid vars. Need jira_url/jira_username/jira_token/
+      jira_project_key and jira_track must be one of: {{ jira_track_map.keys() | list }}.
+
+- name: Jira | Build list of template files for selected track
+  ansible.builtin.set_fact:
+    jira_selected_templates: "{{ jira_track_map[jira_track] }}"
+
+- name: Jira | Process templates for track
+  ansible.builtin.include_tasks: process_one_template.yml
+  loop: "{{ jira_selected_templates }}"
+  loop_control:
+    loop_var: tmpl
+    label: "{{ tmpl.file }} (section={{ tmpl.section }})"
