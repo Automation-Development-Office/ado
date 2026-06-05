@@ -13,7 +13,7 @@ Configure an OADP `DataProtectionApplication` and related STS-backed backup reso
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

@@ -12,7 +12,7 @@ Validate that Compliance Operator pods are present and at least one pod reaches 
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

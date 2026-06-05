@@ -11,7 +11,7 @@ Configure Synology-backed iSCSI storage resources when no default storage class 
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

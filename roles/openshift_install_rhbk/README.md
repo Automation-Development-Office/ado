@@ -12,7 +12,7 @@ Install or remove a Red Hat Build of Keycloak deployment with PostgreSQL and TLS
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

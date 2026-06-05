@@ -11,7 +11,7 @@ Look up a Red Hat Build of Keycloak client secret through the admin API and publ
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

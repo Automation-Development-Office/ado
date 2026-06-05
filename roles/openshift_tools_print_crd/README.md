@@ -17,7 +17,7 @@ during installs and makes operator/app bundles safe to apply in one shot.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

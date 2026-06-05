@@ -12,7 +12,7 @@ Configure an OpenShift `ClusterLogForwarder` and optional Splunk secret for clus
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

@@ -12,7 +12,7 @@ Create or delete a Compliance Operator `ComplianceProfile` resource.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

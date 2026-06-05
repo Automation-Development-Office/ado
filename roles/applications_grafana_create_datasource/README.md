@@ -11,7 +11,7 @@ updating Grafana datasource settings.
 - `community.grafana` collection for datasource management.
 - Credentials to access the target Grafana instance.
 
-## Variables
+## Role Variables
 
 | Variable | Default | Description |
 | --- | --- | --- |

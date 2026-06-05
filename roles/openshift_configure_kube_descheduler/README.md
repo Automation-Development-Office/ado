@@ -12,7 +12,7 @@ Create or update a `KubeDescheduler` custom resource from a Jinja template.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

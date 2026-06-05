@@ -13,7 +13,7 @@ Create cert-manager CA issuer resources and optionally generate intermediate CA 
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

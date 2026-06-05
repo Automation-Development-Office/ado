@@ -18,7 +18,7 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

@@ -16,7 +16,7 @@ This role is **read-only** and does not create or modify any cluster resources.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable   | Description                                   |
 |------------|-----------------------------------------------|

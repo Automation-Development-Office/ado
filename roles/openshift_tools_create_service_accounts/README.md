@@ -19,7 +19,7 @@ Per-item `state` is supported (`present`/`absent`). You can target a single name
 
 ---
 
-## Variables
+## Role Variables
 
 ### Top-level
 

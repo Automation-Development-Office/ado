@@ -16,7 +16,7 @@ Create, reconcile, or remove an **OperatorGroup** in OpenShift.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

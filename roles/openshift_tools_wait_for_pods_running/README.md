@@ -15,7 +15,7 @@ Wait until matching Pods are **Running** and **Ready** in an OpenShift namespace
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

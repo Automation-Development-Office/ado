@@ -24,7 +24,7 @@ Create, update, or delete an OpenShift **HTPasswd** identity provider and user(s
 
 ---
 
-## Variables
+## Role Variables
 
 ### Top-level
 

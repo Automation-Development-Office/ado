@@ -11,7 +11,7 @@ Wait for an operator CSV and deployment to become available in a target namespac
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

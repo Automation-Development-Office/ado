@@ -12,7 +12,7 @@ Configure OpenShift OAuth to use an OIDC identity provider.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

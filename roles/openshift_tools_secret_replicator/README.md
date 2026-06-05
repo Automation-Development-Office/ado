@@ -29,7 +29,7 @@ Install Python dependencies (adjust for your environment):
 pip install kubernetes pyyaml hvac
 ```
 
-## Variables
+## Role Variables
 
 ### Replication toggles and source
 

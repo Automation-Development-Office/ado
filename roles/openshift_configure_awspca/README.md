@@ -13,7 +13,7 @@ Manage an AWS PCA-backed `AWSPCAClusterIssuer` and the credentials Secret it dep
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

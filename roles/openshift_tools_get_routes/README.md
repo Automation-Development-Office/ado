@@ -18,7 +18,7 @@ Read-only role that **retrieves OpenShift Routes** and exposes useful facts.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable            | Description                                                                 |
 |---------------------|-----------------------------------------------------------------------------|

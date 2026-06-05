@@ -12,7 +12,7 @@ Append an LDAP identity provider to the cluster OAuth configuration without dist
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

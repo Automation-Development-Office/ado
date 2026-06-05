@@ -15,7 +15,7 @@ Ensure an OpenShift **Namespace** is present or absent.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

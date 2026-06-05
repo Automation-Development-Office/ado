@@ -12,7 +12,7 @@ Create Compliance Operator scan resources for scheduled or immediate scan execut
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

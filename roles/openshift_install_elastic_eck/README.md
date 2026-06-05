@@ -12,7 +12,7 @@ Finish Elastic ECK operator setup and optionally create a minimal Elasticsearch 
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

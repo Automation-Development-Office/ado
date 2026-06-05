@@ -11,7 +11,7 @@ Manage OpenShift console notification banners using `ConsoleNotification` resour
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

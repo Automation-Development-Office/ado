@@ -12,7 +12,7 @@ Deploy a 389 Directory Server stack including service account, services, Statefu
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

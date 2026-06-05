@@ -11,7 +11,7 @@ Discover OpenShift routes and expose the resulting route data for downstream aut
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

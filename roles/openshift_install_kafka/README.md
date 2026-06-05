@@ -12,7 +12,7 @@ Complete Kafka operator installation flow and optionally create a Kafka custom r
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

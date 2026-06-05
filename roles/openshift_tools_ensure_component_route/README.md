@@ -11,7 +11,7 @@ Ensure a component route and optional alternate route match the requested servic
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

@@ -19,7 +19,7 @@ ansible-galaxy collection install redhat.rhel_system_roles
 - Target hosts should be supported RHEL systems.
 - Run with privilege escalation (`become: true`) when managing system settings.
 
-## Variables
+## Role Variables
 
 | Variable | Type | Description |
 | --- | --- | --- |

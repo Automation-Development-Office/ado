@@ -19,7 +19,7 @@ Install and configure GitLab on OpenShift using the GitLab Operator and Custom R
 
 ---
 
-## Variables
+## Role Variables
 
 ### Top-level
 

@@ -11,7 +11,7 @@ Trigger an ACS remediation request by calling the ACS API when remediation is en
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

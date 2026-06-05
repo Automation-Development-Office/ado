@@ -27,7 +27,7 @@ Deploy and test a Postfix mail relay server in OpenShift.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable            | Default                                 | Description                                     |
 |---------------------|-----------------------------------------|-------------------------------------------------|

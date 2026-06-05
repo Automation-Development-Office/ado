@@ -16,7 +16,7 @@ Build a custom Ansible **Execution Environment (EE)** image with `ansible-builde
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

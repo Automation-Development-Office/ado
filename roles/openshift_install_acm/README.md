@@ -12,7 +12,7 @@ Install or configure Red Hat Advanced Cluster Management by applying a `MultiClu
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

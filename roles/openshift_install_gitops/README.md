@@ -12,7 +12,7 @@ Apply an Argo CD instance and optionally enforce a route for OpenShift GitOps.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

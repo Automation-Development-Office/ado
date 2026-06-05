@@ -11,7 +11,7 @@ Ensure alternate OpenShift routes exist for each route definition in a caller-pr
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

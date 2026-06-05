@@ -12,7 +12,7 @@ Create Dev Spaces user workspace supporting objects such as secrets, config maps
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

@@ -11,7 +11,7 @@ Install or remove a Quay deployment including backing PostgreSQL, configuration 
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

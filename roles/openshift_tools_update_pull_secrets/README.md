@@ -12,7 +12,7 @@ Add or remove a registry authentication entry inside the cluster pull secret.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

@@ -11,7 +11,7 @@ Configure NFS-backed storage resources for OpenShift.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

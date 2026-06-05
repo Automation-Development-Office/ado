@@ -15,7 +15,7 @@ Supported states:
 - Network access from the controller to the Elasticsearch API endpoint.
 - Optional system-level privileges if using the `start` path with systemd/custom process start.
 
-## Variables
+## Role Variables
 
 | Variable | Default | Description |
 | --- | --- | --- |

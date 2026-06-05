@@ -12,7 +12,7 @@ Create an AWS EFS CSI storage class backed by the EFS CSI provisioner.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|

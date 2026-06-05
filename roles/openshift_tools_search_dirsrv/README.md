@@ -12,7 +12,7 @@ Run LDAP search queries inside a running directory server pod and print or captu
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
