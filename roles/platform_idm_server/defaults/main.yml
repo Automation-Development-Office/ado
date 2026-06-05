@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# defaults file for idm_server
+platform_idm_server_state: present
+platform_idm_server_name: ""
+platform_idm_server_ipaadmin_password: ""

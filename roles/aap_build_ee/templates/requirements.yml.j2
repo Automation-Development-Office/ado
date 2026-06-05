@@ -1,0 +1,9 @@
+---
+collections:
+{% for collection_name in aap_build_ee_collections %}
+  - name: "{{ collection_name }}"
+{% endfor %}
+{% for collection_file in aap_build_ee_collection_files %}
+  - name: "{{ 'collection-artifacts/' ~ (collection_file | basename) }}"
+    type: file
+{% endfor %}

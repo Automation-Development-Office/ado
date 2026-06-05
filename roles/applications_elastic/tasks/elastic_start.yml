@@ -1,0 +1,61 @@
+---
+- name: Start via systemd (if enabled)
+  when: applications_elastic_systemd_enabled
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ applications_elastic_systemd_unit }}"
+    state: started
+    enabled: true
+
+- name: Start via custom command (when not using systemd)
+  when: not applications_elastic_systemd_enabled
+  become: true
+  ansible.builtin.assert:
+    that: applications_elastic_start_cmd | length > 0
+    fail_msg: "applications_elastic_start_cmd must be set when applications_elastic_systemd_enabled=false."
+
+- name: Check if Elasticsearch process is already running
+  when: not applications_elastic_systemd_enabled
+  become: true
+  ansible.builtin.shell: >
+    pgrep -f "{{ applications_elastic_start_cmd }}"
+  register: applications_elastic_running
+  ignore_errors: true
+  changed_when: false
+  failed_when: false
+
+- name: Launch Elasticsearch (background)
+  when:
+    - not applications_elastic_systemd_enabled
+    - applications_elastic_running.rc != 0
+  become: true
+  ansible.builtin.shell: |
+    nohup {{ applications_elastic_start_cmd }} >/var/log/elasticsearch-ansible-start.out 2>&1 & echo $! > {{ applications_elastic_pid_file }}
+  args:
+    creates: "{{ applications_elastic_pid_file }}"
+    executable: /bin/bash
+
+- name: Report Elasticsearch already running
+  when:
+    - not applications_elastic_systemd_enabled
+    - applications_elastic_running.rc == 0
+  ansible.builtin.debug:
+    msg: "Elasticsearch start command already running (pgrep matched)."
+
+- name: Wait for HTTP to become ready
+  ansible.builtin.uri:
+    url: "{{ applications_elastic_url }}/_cluster/health"
+    method: GET
+    return_content: true
+    force_basic_auth: "{{ applications_elastic_user != '' }}"
+    url_username: "{{ applications_elastic_user | default(omit) }}"
+    url_password: "{{ applications_elastic_pass | default(omit) }}"
+    status_code: 200
+  register: applications_elastic_ready
+  until: applications_elastic_ready.status == 200
+  retries: "{{ (applications_elastic_http_timeout // 3) | int }}"
+  delay: 3
+
+- name: Report started status
+  ansible.builtin.debug:
+    msg: "Elasticsearch started and responding at {{ applications_elastic_url }}"

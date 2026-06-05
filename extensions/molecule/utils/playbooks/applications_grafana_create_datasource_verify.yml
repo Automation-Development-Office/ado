@@ -1,0 +1,20 @@
+---
+- name: Verify - applications_grafana_create_datasource scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    readme_path: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/../../../roles/applications_grafana_create_datasource/README.md"
+
+  tasks:
+    - name: Check if role README.md exists
+      ansible.builtin.stat:
+        path: "{{ readme_path }}"
+      register: applications_grafana_create_datasource_verify_readme_file
+
+    - name: Assert role README.md exists
+      ansible.builtin.assert:
+        that:
+          - applications_grafana_create_datasource_verify_readme_file.stat.exists
+        fail_msg: "README.md is missing for applications_grafana_create_datasource."

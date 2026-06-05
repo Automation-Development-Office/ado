@@ -1,0 +1,5 @@
+- name: Install IDM server
+  redhat.rhel_idm.ipaserver:
+    state: "{{ platform_idm_server_state }}"
+    name: "{{ platform_idm_server_name }}"
+    ipaadmin_password: "{{ platform_idm_server_ipaadmin_password }}"
