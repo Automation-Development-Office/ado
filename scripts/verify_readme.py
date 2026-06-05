@@ -21,6 +21,14 @@ def parse_args() -> argparse.Namespace:
     """Parse command-line options for README verification."""
     parser = argparse.ArgumentParser(description="Verify role README format")
     parser.add_argument(
+        "readme",
+        nargs="?",
+        help=(
+            "Optional role README.md path to verify. "
+            "If omitted, verify all roles/*/README.md files."
+        ),
+    )
+    parser.add_argument(
         "--template",
         default=str(DEFAULT_TEMPLATE_PATH),
         help=(
@@ -68,6 +76,25 @@ def get_readme_files(root: Path) -> list[Path]:
             readmes.append(candidate)
 
     return readmes
+
+
+def resolve_readme_files(
+    repo_root: Path,
+    readme_arg: str | None,
+) -> list[Path]:
+    """Return README paths to verify from an optional CLI path argument."""
+    if readme_arg is None:
+        return get_readme_files(repo_root)
+
+    readme_path = Path(readme_arg)
+    if not readme_path.is_absolute():
+        readme_path = Path(os.getcwd()) / readme_path
+    readme_path = readme_path.resolve()
+
+    if not readme_path.is_file():
+        raise FileNotFoundError(f"README not found: {readme_path}")
+
+    return [readme_path]
 
 
 def load_text(path: Path) -> str:
@@ -179,7 +206,7 @@ def verify_readme_consistency() -> bool:
         print(f"WARN: Template {template_path} has no headings")
         return False
 
-    readme_files = get_readme_files(repo_root)
+    readme_files = resolve_readme_files(repo_root, args.readme)
     if not readme_files:
         print("WARN: No README.md files found")
         return True
@@ -196,10 +223,15 @@ def verify_readme_consistency() -> bool:
             print(f"  {issue}")
         return False
 
-    msg = (
-        f"✅ All {len(readme_files)} README.md files match the template "
-        f"format from {template_path}"
-    )
+    if len(readme_files) == 1:
+        readme_path = readme_files[0]
+        head = f"✅ {readme_path} matches the template format from"
+        msg = f"{head} {template_path}"
+    else:
+        msg = (
+            f"✅ All {len(readme_files)} README.md files match the template "
+            f"format from {template_path}"
+        )
     print(msg)
     return True
 
