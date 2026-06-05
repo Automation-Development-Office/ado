@@ -1,8 +1,8 @@
 - name: Add A record to IdM DNS using redhat.rhel_idm.dnsrecord
   redhat.rhel_idm.dnsrecord:
-    ipa_host: "{{ idm_dns_ipa_host | default(omit, true) }}"
-    ipa_user: "{{ idm_dns_ipa_user | default(omit, true) }}"
-    ipa_pass: "{{ idm_dns_ipa_pass | default(omit, true) }}"
+    ipa_host: "{{ idm_dns_ipa_host }}"
+    ipa_user: "{{ idm_dns_ipa_user }}"
+    ipa_pass: "{{ idm_dns_ipa_pass }}"
     validate_certs: "{{ idm_dns_validate_certs }}"
     zone_name: "{{ idm_dns_zone }}"
     record_name: "{{ idm_dns_record }}"

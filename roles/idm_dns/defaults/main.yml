@@ -9,4 +9,4 @@ idm_dns_zone: ""
 idm_dns_record: ""
 idm_dns_ip_address: ""
 idm_dns_record_ttl: 3600
-idm_dns_validate_certs: false
+idm_dns_validate_certs: true

@@ -21,7 +21,7 @@ This role is intentionally focused and currently does:
 | `idm_dns_record` | yes | `""` | Record name in the zone. |
 | `idm_dns_ip_address` | yes | `""` | IPv4 address used for A record value. |
 | `idm_dns_record_ttl` | no | `3600` | TTL for the DNS record. |
-| `idm_dns_validate_certs` | no | `false` | TLS certificate validation toggle for API calls. |
+| `idm_dns_validate_certs` | no | `true` | TLS certificate validation toggle for API calls. |
 | `idm_dns_ipa_host` | no | `""` | Optional explicit IPA host override. |
 | `idm_dns_ipa_user` | no | `""` | Optional explicit IPA user override. |
 | `idm_dns_ipa_pass` | no | `""` | Optional explicit IPA password override. |
@@ -32,6 +32,7 @@ This role is intentionally focused and currently does:
   - `idm_dns_state` must be `present` or `absent`
   - `idm_dns_zone`, `idm_dns_record`, and `idm_dns_ip_address` must be non-empty
 - The module task is marked `no_log: true` to avoid leaking credentials in logs.
+- `idm_dns_validate_certs` defaults to `true`. Set it to `false` only for trusted lab/self-signed environments.
 
 ## Example Playbook
 
@@ -47,7 +48,7 @@ This role is intentionally focused and currently does:
         idm_dns_record: "app01"
         idm_dns_ip_address: "192.0.2.25"
         idm_dns_record_ttl: 3600
-        idm_dns_validate_certs: false
+        idm_dns_validate_certs: true
         idm_dns_ipa_host: "idm01.example.com"
         idm_dns_ipa_user: "admin"
         idm_dns_ipa_pass: "{{ vault_idm_admin_password }}"

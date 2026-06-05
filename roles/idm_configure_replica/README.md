@@ -12,6 +12,19 @@ This role currently performs:
 - `redhat.rhel_idm` collection available
 - Environment prerequisites for IdM replica installation (DNS/time/network/connectivity and upstream IdM requirements)
 
+## Dependencies
+
+- Role dependencies: none (`dependencies: []` in `meta/main.yml`)
+- Required collection dependency:
+  - `redhat.rhel_idm`
+
+Example `requirements.yml` snippet for copy/paste:
+
+```yaml
+collections:
+  - name: redhat.rhel_idm
+```
+
 ## Variables
 
 | Variable | Required | Default | Description |
