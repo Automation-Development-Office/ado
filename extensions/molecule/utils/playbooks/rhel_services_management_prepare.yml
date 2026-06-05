@@ -1,0 +1,47 @@
+---
+- name: Prepare - rhel_services_management scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    _scenario_dir: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}"
+    _roles_path: "{{ lookup('env', 'ANSIBLE_ROLES_PATH') | default('', true) }}"
+    _utils_playbooks: "{{ _scenario_dir }}/../utils/playbooks"
+
+  tasks:
+    - name: Capture prepare path candidates
+      ansible.builtin.set_fact:
+        rhel_services_management_prepare_scenario_dir: "{{ _scenario_dir }}"
+        rhel_services_management_prepare_converge_rel: >-
+          {{ _utils_playbooks }}/rhel_services_management_converge.yml
+        rhel_services_management_prepare_destroy_rel: >-
+          {{ _utils_playbooks }}/rhel_services_management_destroy.yml
+        rhel_services_management_prepare_converge_double_molecule: >-
+          {{ _scenario_dir }}/molecule/utils/playbooks/rhel_services_management_converge.yml
+        rhel_services_management_prepare_roles_path: "{{ _roles_path }}"
+        rhel_services_management_prepare_roles_first: "{{ _roles_path.split(':')[0] }}"
+
+    - name: Check expected converge playbook path
+      ansible.builtin.stat:
+        path: "{{ rhel_services_management_prepare_converge_rel }}"
+      register: rhel_services_management_prepare_converge_stat
+
+    - name: Check expected destroy playbook path
+      ansible.builtin.stat:
+        path: "{{ rhel_services_management_prepare_destroy_rel }}"
+      register: rhel_services_management_prepare_destroy_stat
+
+    - name: Check mistaken double-molecule converge path
+      ansible.builtin.stat:
+        path: "{{ rhel_services_management_prepare_converge_double_molecule }}"
+      register: rhel_services_management_prepare_converge_double_stat
+
+    - name: Check first ANSIBLE_ROLES_PATH segment
+      ansible.builtin.stat:
+        path: "{{ rhel_services_management_prepare_roles_first }}"
+      register: rhel_services_management_prepare_roles_first_stat
+
+    - name: Prepare step is intentionally minimal
+      ansible.builtin.debug:
+        msg: "No explicit prepare actions required for rhel_services_management."

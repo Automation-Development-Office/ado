@@ -1,0 +1,91 @@
+---
+# roles/rhel_ext_system_roles/tasks/main.yml
+
+# Ensure upstream roles have the facts they expect even if caller used gather_facts: false
+- name: Gather minimal facts for RHEL System Roles (expanded subset)
+  ansible.builtin.setup:
+    gather_subset:
+      - '!all'
+      - selinux
+      - distribution
+      - distribution_version
+      - distribution_major_version
+      - os_family
+      - platform
+      - kernel
+
+# Normalize inputs and provide sane defaults
+- name: Normalize wrapper inputs
+  ansible.builtin.set_fact:
+    rhel_ext_system_roles_apply: "{{ (sr_apply | default([])) | map('string') | list | unique }}"
+    rhel_ext_system_roles_vars: "{{ sr_vars | default({}) }}"
+
+# --------------------------- SELINUX (simple caller interface) ---------------------------
+# Caller may set:
+#   sr_vars.selinux.selinux_state: enabled|disabled|enforcing|permissive (optional)
+#   sr_vars.selinux.selinux_policy: targeted|mls (optional; required if state != disabled)
+
+- name: Normalize SELinux inputs
+  ansible.builtin.set_fact:
+    rhel_ext_system_roles_sel_state_raw: "{{ rhel_ext_system_roles_vars.selinux.selinux_state | default(omit) }}"
+    rhel_ext_system_roles_sel_policy_raw: "{{ rhel_ext_system_roles_vars.selinux.selinux_policy | default(omit) }}"
+  when: "'selinux' in rhel_ext_system_roles_apply"
+
+- name: Map selinux_state to role-accepted values
+  ansible.builtin.set_fact:
+    rhel_ext_system_roles_sel_state: >-
+      {{
+        (
+          rhel_ext_system_roles_sel_state_raw in ['enforcing','permissive','disabled']
+          and rhel_ext_system_roles_sel_state_raw
+        )
+        or
+        (rhel_ext_system_roles_sel_state_raw in ['enabled','on'] and 'enforcing')
+        or
+        (rhel_ext_system_roles_sel_state_raw in ['off'] and 'disabled')
+        or
+        (rhel_ext_system_roles_sel_state_raw | default(omit))
+      }}
+  when: "'selinux' in rhel_ext_system_roles_apply"
+
+- name: Decide selinux_policy (required if state is enforcing/permissive)
+  ansible.builtin.set_fact:
+    rhel_ext_system_roles_sel_policy: >-
+      {{
+        (rhel_ext_system_roles_sel_state in ['enforcing','permissive'])
+          | ternary(
+              (rhel_ext_system_roles_sel_policy_raw | default(ansible_selinux.type | default('targeted'))),
+              omit
+            )
+      }}
+  when: "'selinux' in rhel_ext_system_roles_apply"
+
+- name: Apply selinux system role (if requested)
+  ansible.builtin.include_role:
+    name: redhat.rhel_system_roles.selinux
+  vars:
+    selinux_state: "{{ rhel_ext_system_roles_sel_state | default(omit) }}"
+    selinux_policy: "{{ rhel_ext_system_roles_sel_policy }}"
+  when: "'selinux' in rhel_ext_system_roles_apply"
+
+# --------------------------- TIMESYNC -----------------------------------------------
+- name: Apply timesync system role (if requested)
+  ansible.builtin.include_role:
+    name: redhat.rhel_system_roles.timesync
+  vars:
+    # Use safe defaults; DO NOT pass "omit" to role vars.
+    timesync_ntp_servers: "{{ rhel_ext_system_roles_vars.timesync.timesync_ntp_servers | default([]) }}"
+    timesync_ntp_servers_options: "{{ rhel_ext_system_roles_vars.timesync.timesync_ntp_servers_options | default({}) }}"
+    # Always pass a string for provider; empty string lets the role auto-detect.
+    timesync_ntp_provider: >-
+      {{
+        rhel_ext_system_roles_vars.timesync.timesync_ntp_provider
+          | default(rhel_ext_system_roles_vars.timesync.ntp_provider | default(''))
+      }}
+  when: "'timesync' in rhel_ext_system_roles_apply"
+
+# --------------------------- COCKPIT -----------------------------------------------
+- name: Apply cockpit system role (if requested)
+  ansible.builtin.include_role:
+    name: redhat.rhel_system_roles.cockpit
+  when: "'cockpit' in rhel_ext_system_roles_apply"

@@ -1,0 +1,10 @@
+---
+- name: Destroy - jira scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Destroy - no-op for offline CI
+      ansible.builtin.debug:
+        msg: "jira destroy is intentionally a no-op in CI."

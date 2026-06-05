@@ -1,0 +1,22 @@
+# templates/jira_filter_payload.json.j2
+
+{
+    "name": "{{ filter_name }}",
+    "description": "Board filter for {{ product }} ({{ group }}) deployment in {{ enviroment }}",
+    
+    // JQL Filter is correct and dynamic
+    "jql": "project = \"{{ jira_project_key }}\" AND component = \"{{ group }}\" AND statusCategory != Done ORDER BY Rank ASC",
+    
+    "favourite": true,
+    
+    // 🔑 ADJUSTMENT: Use the project share type with the key for simplicity
+    "sharePermissions": [
+        {
+            "type": "project",
+            "projectKey": "{{ jira_project_key }}", // Use projectKey here
+            "role": {
+                "id": 10002" // Optional: Share with project users role (or a specific role ID)
+            }
+        }
+    ]
+}
