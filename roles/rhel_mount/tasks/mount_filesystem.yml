@@ -9,4 +9,5 @@
     path: "{{ rhel_mount_path }}"
     src: "{{ rhel_mount_target_device }}"
     fstype: "{{ rhel_mount_fstype }}"
+    opts: "{{ (rhel_mount_target_device is match('^/dev/')) | ternary(omit, 'loop') }}"
     state: "{{ rhel_mount_action }}"
