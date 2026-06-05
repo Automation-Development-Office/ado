@@ -8,7 +8,12 @@ Build a custom Ansible **Execution Environment (EE)** image with `ansible-builde
 
 ---
 
-## Role Requirements
+## Role Author
+- Automation Development Office
+
+---
+
+## ✅ Role Requirements
 
 - Ansible >= 2.14
 - `ansible-builder` available on the managed host where the role runs
@@ -16,7 +21,7 @@ Build a custom Ansible **Execution Environment (EE)** image with `ansible-builde
 
 ---
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -88,7 +93,7 @@ At least one of `aap_build_ee_collections` or
 
 ---
 
-## Behavior Notes
+### Behavior Notes
 
 - The role composes the base image reference from repository + base EE image.
 - It renders `execution-environment.yml` and `requirements.yml` into the build context.
@@ -100,7 +105,7 @@ At least one of `aap_build_ee_collections` or
 
 ---
 
-## Molecule Testing
+## 🧪 Role Molecule Testing
 
 Use the extension integration scenario at
 `extensions/molecule/integration_aap_build_ee`.
@@ -132,12 +137,9 @@ export ANSIBLE_REMOTE_TMP="$PWD/.ansible/tmp"
 
 ---
 
-## Author
-- Automation Development Office
 
----
 
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
 roles/
