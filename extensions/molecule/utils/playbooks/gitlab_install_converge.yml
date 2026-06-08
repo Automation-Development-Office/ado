@@ -1,0 +1,18 @@
+---
+- name: Converge gitlab_install role
+  hosts: localhost
+  gather_facts: false
+  vars:
+    name_space: gitlab
+    gitlab_install_hostname: "gitlab.apps.example.com"
+    gitlab_install_storage_size: "20Gi"
+    gitlab_install_storage_class: "gp2-csi"
+    gitlab_install_tls_crt: "dummy-cert"
+    gitlab_install_tls_key: "dummy-key"
+    gitlab_install_admin_user: admin
+    gitlab_install_admin_password: "changeme"
+    gitlab_install_root_password: "changeme"
+    gitlab_install_validate_certs: false
+    state: present
+  roles:
+    - infra.ado.gitlab_install

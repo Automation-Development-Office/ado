@@ -1,12 +1,12 @@
 ---
-- name: Verify install_gitlab role README
+- name: Verify gitlab_install role README
   hosts: localhost
   gather_facts: false
 
   vars:
-    role_dir: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/../../../roles/install_gitlab"
+    role_dir: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/../../../roles/gitlab_install"
     readme_path: "{{ role_dir }}/README.md"
-    detected_role_name: install_gitlab
+    detected_role_name: gitlab_install
 
   tasks:
     - name: Show detected role name
@@ -24,81 +24,81 @@
     - name: Check if README.md exists
       ansible.builtin.stat:
         path: "{{ readme_path }}"
-      register: install_gitlab_readme_file
+      register: gitlab_install_readme_file
 
     - name: Fail when README.md is missing
       ansible.builtin.fail:
         msg: "README.md is required at {{ readme_path }}."
-      when: not install_gitlab_readme_file.stat.exists
+      when: not gitlab_install_readme_file.stat.exists
 
     - name: Load README.md
       ansible.builtin.slurp:
         path: "{{ readme_path }}"
-      register: install_gitlab_readme_raw
+      register: gitlab_install_readme_raw
 
     - name: Set README content fact
       ansible.builtin.set_fact:
-        install_gitlab_readme: "{{ install_gitlab_readme_raw.content | b64decode }}"
+        gitlab_install_readme: "{{ gitlab_install_readme_raw.content | b64decode }}"
 
     - name: Verify README has required heading
       ansible.builtin.assert:
         that:
-          - install_gitlab_readme is regex('(?m)^#\\s+Role:')
+          - gitlab_install_readme is regex('(?m)^#\\s+Role:')
         fail_msg: "README.md should start with '# Role: <collection.role>'."
         success_msg: "README.md has correct heading format."
 
     - name: Verify README has variables table
       ansible.builtin.assert:
         that:
-          - install_gitlab_readme is search('\\|\\s*Variable\\s*\\|\\s*Description\\s*\\|', multiline=True)
+          - gitlab_install_readme is search('\\|\\s*Variable\\s*\\|\\s*Description\\s*\\|', multiline=True)
         fail_msg: "README.md should include a variables table with '| Variable | Description |'."
         success_msg: "README.md includes a variables table."
 
     - name: Verify README has example code block
       ansible.builtin.assert:
         that:
-          - install_gitlab_readme is search('```(yaml|yml|ansible|bash)[\\s\\S]*?```', multiline=True)
+          - gitlab_install_readme is search('```(yaml|yml|ansible|bash)[\\s\\S]*?```', multiline=True)
         fail_msg: "README.md should include a fenced code block with an example."
         success_msg: "README.md includes an example code block."
 
     - name: Verify Role Requirements section exists
       ansible.builtin.assert:
         that:
-          - install_gitlab_readme is search('(?m)^##\\s+.*Role Requirements', multiline=True)
+          - gitlab_install_readme is search('(?m)^##\\s+.*Role Requirements', multiline=True)
         fail_msg: "Missing 'Role Requirements' section."
         success_msg: "Found Role Requirements section."
 
     - name: Verify Role Variables section exists
       ansible.builtin.assert:
         that:
-          - install_gitlab_readme is search('(?m)^##\\s+.*Role Variables', multiline=True)
+          - gitlab_install_readme is search('(?m)^##\\s+.*Role Variables', multiline=True)
         fail_msg: "Missing 'Role Variables' section."
         success_msg: "Found Role Variables section."
 
     - name: Verify Role Usage section exists
       ansible.builtin.assert:
         that:
-          - install_gitlab_readme is search('(?m)^##\\s+.*Role Usage', multiline=True)
+          - gitlab_install_readme is search('(?m)^##\\s+.*Role Usage', multiline=True)
         fail_msg: "Missing 'Role Usage' section."
         success_msg: "Found Role Usage section."
 
     - name: Verify Role Molecule Testing section exists
       ansible.builtin.assert:
         that:
-          - install_gitlab_readme is search('(?m)^##\\s+.*Role Molecule Testing', multiline=True)
+          - gitlab_install_readme is search('(?m)^##\\s+.*Role Molecule Testing', multiline=True)
         fail_msg: "Missing 'Role Molecule Testing' section."
         success_msg: "Found Role Molecule Testing section."
 
     - name: Verify Role Structure section exists
       ansible.builtin.assert:
         that:
-          - install_gitlab_readme is search('(?m)^##\\s+.*Role Structure', multiline=True)
+          - gitlab_install_readme is search('(?m)^##\\s+.*Role Structure', multiline=True)
         fail_msg: "Missing 'Role Structure' section."
         success_msg: "Found Role Structure section."
 
     - name: Verify Auth via environment section exists
       ansible.builtin.assert:
         that:
-          - install_gitlab_readme is search('(?m)^###\\s+Auth via environment', multiline=True)
+          - gitlab_install_readme is search('(?m)^###\\s+Auth via environment', multiline=True)
         fail_msg: "Missing '### Auth via environment' section."
         success_msg: "Found Auth via environment section."

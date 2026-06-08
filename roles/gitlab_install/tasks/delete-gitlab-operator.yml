@@ -1,7 +1,7 @@
 ---
 - name: Delete GitLab Custom Resource
   kubernetes.core.k8s:
-    validate_certs: "{{ install_gitlab_validate_certs }}"
+    validate_certs: "{{ gitlab_install_validate_certs }}"
     state: absent
     definition:
       apiVersion: apps.gitlab.com/v1beta1
@@ -12,7 +12,7 @@
 
 - name: Delete PostgreSQL StatefulSet for GitLab
   kubernetes.core.k8s:
-    validate_certs: "{{ install_gitlab_validate_certs }}"
+    validate_certs: "{{ gitlab_install_validate_certs }}"
     state: absent
     definition:
       apiVersion: apps/v1
@@ -23,7 +23,7 @@
 
 - name: Delete PostgreSQL Service for GitLab
   kubernetes.core.k8s:
-    validate_certs: "{{ install_gitlab_validate_certs }}"
+    validate_certs: "{{ gitlab_install_validate_certs }}"
     state: absent
     definition:
       apiVersion: v1
@@ -34,7 +34,7 @@
 
 - name: Delete GitLab TLS Secret
   kubernetes.core.k8s:
-    validate_certs: "{{ install_gitlab_validate_certs }}"
+    validate_certs: "{{ gitlab_install_validate_certs }}"
     state: absent
     kind: Secret
     name: gitlab-tls-secret
@@ -42,7 +42,7 @@
 
 - name: Delete GitLab DB Secret
   kubernetes.core.k8s:
-    validate_certs: "{{ install_gitlab_validate_certs }}"
+    validate_certs: "{{ gitlab_install_validate_certs }}"
     state: absent
     kind: Secret
     name: gitlab-db-secret
