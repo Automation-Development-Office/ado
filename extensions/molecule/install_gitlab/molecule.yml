@@ -19,8 +19,9 @@ provisioner:
             ansible_connection: local
             ansible_python_interpreter: "/home/chelliot/.venvs/ansible-k8s/bin/python"
   playbooks:
-    converge: converge.yml
-    destroy: destroy.yml
+    converge: ../utils/playbooks/install_gitlab_converge.yml
+    destroy: ../utils/playbooks/install_gitlab_destroy.yml
+    verify: ../utils/playbooks/install_gitlab_verify.yml
   env:
     # Use a safe callback (your earlier error came from a broken yaml callback plugin)
     ANSIBLE_STDOUT_CALLBACK: default
@@ -34,12 +35,10 @@ scenario:
   name: default
   # Keep resources by default (skip destroy). Uncomment 'destroy' anytime you want cleanup.
   test_sequence:
-    - dependency
-    - create
     - converge
-    - idempotence
-    - destroy
     - verify
+  destroy_sequence:
+    - destroy
 
 verifier:
   name: ansible
