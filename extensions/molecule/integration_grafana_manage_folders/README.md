@@ -32,13 +32,17 @@ molecule test -s integration_grafana_manage_folders
 ## Live-check mode
 
 Converge is safe by default and skips live external calls unless explicitly
-enabled. To run the role against a real Grafana endpoint:
+enabled.
+
+To run live checks:
 
 ```bash
 export GRAFANA_MANAGE_FOLDERS_ENABLE_LIVE_CHECKS=true
 export GRAFANA_MANAGE_FOLDERS_NAME="General"
 export GRAFANA_MANAGE_FOLDERS_HOSTNAME="grafana.example.com"
-export GRAFANA_MANAGE_FOLDERS_ADMIN_USER="admin"
-export GRAFANA_MANAGE_FOLDERS_ADMIN_PASSWORD="***"
-molecule test -s integration_grafana_manage_folders
+molecule converge -s integration_grafana_manage_folders -- -e "grafana_api_key=***"
 ```
+
+Auth input should be provided with role-supported variables, for example
+`grafana_manage_folders_api_key` (canonical) or `grafana_api_key`
+(compatibility alias).
