@@ -22,6 +22,9 @@ provisioner:
     converge: ../utils/playbooks/install_gitlab_converge.yml
     destroy: ../utils/playbooks/install_gitlab_destroy.yml
     verify: ../utils/playbooks/install_gitlab_verify.yml
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
   env:
     # Use a safe callback (your earlier error came from a broken yaml callback plugin)
     ANSIBLE_STDOUT_CALLBACK: default
