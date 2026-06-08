@@ -119,30 +119,31 @@ install_gitlab_root_password: !vault |
 
 ## 🧪 Role Molecule Testing
 
-A default Molecule scenario is provided under `molecule/default` and covers:
+The Molecule scenario lives at `extensions/molecule/install_gitlab`.
 
-- Resource creation and update
-- Secret management
-- Custom Resource deployment
-- Proper deletion and cleanup
+CI runs the `verify` stage to validate this README and role layout. Full cluster
+integration (converge, idempotence, destroy) requires OpenShift credentials via
+`K8S_AUTH_*` environment variables.
 
-Run from the role directory:
-
-```bash
-cd roles/install_gitlab
-molecule test
-```
-
-Or individual steps:
+Run from the extensions Molecule directory:
 
 ```bash
-molecule converge
-molecule idempotence
-molecule verify
-molecule destroy
+cd extensions/molecule
+ln -sfn . molecule
+molecule test -s install_gitlab
 ```
 
-Your `molecule.yml` wires `converge`, `verify`, and `destroy` to their respective playbooks.
+For full integration against a cluster:
+
+```bash
+export K8S_AUTH_HOST="https://api.ocp.example:6443"
+export K8S_AUTH_API_KEY="..."
+export K8S_AUTH_VERIFY_SSL="no"
+molecule converge -s install_gitlab
+molecule idempotence -s install_gitlab
+molecule verify -s install_gitlab
+molecule destroy -s install_gitlab
+```
 
 ---
 
@@ -157,14 +158,6 @@ install_gitlab/
 ├── meta/
 │   ├── argument_specs.yml
 │   └── main.yml
-├── molecule/
-│   └── default/
-│       ├── converge.yml
-│       ├── destroy.yml
-│       ├── molecule.yml
-│       ├── README.md
-│       ├── TEST.md
-│       └── verify.yml
 ├── README.md
 ├── tasks/
 │   ├── delete-gitlab-operator.yml
