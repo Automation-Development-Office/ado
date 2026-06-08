@@ -7,6 +7,10 @@ In its current form, the role runs prerequisite setup, validates the source and 
 > **⚠️ Note:**
 > This role expects `qemu-img` to be installed on the target host. The base image must already exist on the managed host for the active create workflow.
 
+## Role Author
+
+Automation Development Office
+
 ## ✅ Role Requirements
 
 - Ansible >= 2.9
@@ -39,7 +43,7 @@ In its current form, the role runs prerequisite setup, validates the source and 
 
 See `defaults/main.yml` for the current defaulted variable set.
 
-## 🚀 Usage
+## 🚀 Role Usage
 
 Define the base image directory and file name, then define the destination directory, output image file name, and `manage_vm_image_action`.
 
@@ -100,7 +104,7 @@ Define the base image directory and file name, then define the destination direc
   - Provides a `get_url` task for downloading a base image.
   - Exists in the role, but is not currently imported by `main.yml`.
 
-## 🧪 Molecule
+## 🧪 Role Molecule Testing
 
 This role includes a role-local Molecule scenario under `molecule/default/` and an extension-level integration scenario under `extensions/molecule/integration_manage_vm_image` used by CI.
 
@@ -144,7 +148,7 @@ The `Ansible Collection CI/CD` workflow exposes the manage_vm_image integration 
 - Checked scenarios are included in the Molecule matrix.
 - Matrix jobs run in parallel.
 
-## 📁 Structure
+## 📁 Role Structure
 
 ```
 vm_image/
@@ -165,11 +169,3 @@ vm_image/
 │   └── pre_reqs.yml
 └── README.md
 ```
-
-## License
-
-BSD
-
-## Author Information
-
-Automation Development Office

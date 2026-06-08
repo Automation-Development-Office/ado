@@ -1,0 +1,10 @@
+---
+- name: Prepare - rhel_ext_system_roles scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Prepare step is intentionally minimal
+      ansible.builtin.debug:
+        msg: "No explicit prepare actions required for rhel_ext_system_roles."

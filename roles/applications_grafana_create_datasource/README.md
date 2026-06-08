@@ -11,7 +11,7 @@ updating Grafana datasource settings.
 - `community.grafana` collection for datasource management.
 - Credentials to access the target Grafana instance.
 
-## Variables
+## Role Variables
 
 | Variable | Default | Description |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ The role currently supports these legacy aliases and normalizes them internally:
         applications_grafana_create_datasource_admin_password: "{{ vault_grafana_admin_password }}"
 ```
 
-## Molecule
+## Molecule Testing
 
 This role uses an extension-level integration scenario:
 

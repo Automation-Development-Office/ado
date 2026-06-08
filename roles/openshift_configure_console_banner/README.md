@@ -11,7 +11,7 @@ Manage OpenShift console notification banners using `ConsoleNotification` resour
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -50,7 +50,7 @@ Manage OpenShift console notification banners using `ConsoleNotification` resour
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

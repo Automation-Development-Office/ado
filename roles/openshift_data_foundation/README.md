@@ -48,7 +48,7 @@
     operator_source_namespace: openshift-marketplace
 
   roles:
-    - role: ado.openshfit.namespace       
+    - role: ado.openshfit.namespace
     - role: ado.openshift.operatorgroup
     - role: ado.openshift.subscription_operator
     - role: ado.openshift.wait_for_pods_running
@@ -60,9 +60,10 @@ storage_cluster_name: "string" ## This is the intended name for the storage clus
 resource_profile: "lean/balanced/performance" ## This is the level of performance for the Openshift Data Foundation cluster, guidelines are as follows:
     Lean: This profile is designed for resource-constrained environments. It minimizes resource consumption by allocating fewer CPUs and less memory than the other profiles. It is suitable when resources are lower than recommended specifications.
     Example: 24 CPU, 72 GiB RAM (these values can vary slightly depending on the ODF version and specific deployment).
-    Balanced (Default): This profile provides a balance between resource consumption and performance. It is the default choice and is recommended when the recommended resources are available, offering a good balance for diverse workloads. 
+    Balanced (Default): This profile provides a balance between resource consumption and performance. It is the default
+    choice and is recommended when the recommended resources are available, offering a good balance for diverse workloads.
     Example: 30 CPU, 72 GiB RAM.
-    Performance: This profile is tailored for high-performance environments with ample resources. It allocates more memory and CPUs to ensure optimal execution of demanding workloads, providing the best possible performance. 
+    Performance: This profile is tailored for high-performance environments with ample resources. It allocates more memory and CPUs to ensure optimal execution of demanding workloads, providing the best possible performance.
     Example: 45 CPU, 96 GiB RAM.
 storage_system_size: ".5Ti/1Ti/2Ti..." ## This is the size that you desire for the end storage state.
 ## VERY IMPORTANT NOTE REGARDING storage_system_size

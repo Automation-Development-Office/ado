@@ -1,0 +1,56 @@
+---
+- name: Prepare - rhel_mount remove from fstab scenario
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  vars:
+    rhel_mount_test_root: /tmp/rhel_mount_molecule_remove_from_fstab
+    rhel_mount_image_path: "{{ rhel_mount_test_root }}/device.img"
+    rhel_mount_path: "{{ rhel_mount_test_root }}/mnt"
+
+  tasks:
+    - name: Ensure Debian package dependencies are present
+      ansible.builtin.apt:
+        name:
+          - e2fsprogs
+          - util-linux
+        state: present
+        update_cache: true
+      when: ansible_facts["os_family"] == "Debian"
+
+    - name: Ensure scenario test root exists
+      ansible.builtin.file:
+        path: "{{ rhel_mount_test_root }}"
+        state: directory
+        mode: "0755"
+
+    - name: Ensure scenario mount path exists
+      ansible.builtin.file:
+        path: "{{ rhel_mount_path }}"
+        state: directory
+        mode: "0755"
+
+    - name: Ensure loopback image exists
+      ansible.builtin.command: "truncate -s 64M {{ rhel_mount_image_path }}"
+      args:
+        creates: "{{ rhel_mount_image_path }}"
+
+    - name: Detect existing filesystem signature in loopback image
+      ansible.builtin.command: "blkid {{ rhel_mount_image_path }}"
+      register: rhel_mount_prepare_blkid_result
+      changed_when: false
+      failed_when: false
+
+    - name: Create ext4 filesystem in loopback image when missing
+      ansible.builtin.command: "mkfs.ext4 -F {{ rhel_mount_image_path }}"
+      when: rhel_mount_prepare_blkid_result.rc != 0
+      changed_when: true
+
+    - name: Ensure test filesystem is mounted with loop option
+      ansible.posix.mount:
+        path: "{{ rhel_mount_path }}"
+        src: "{{ rhel_mount_image_path }}"
+        fstype: ext4
+        opts: loop
+        state: mounted

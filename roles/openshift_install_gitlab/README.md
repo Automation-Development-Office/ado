@@ -19,7 +19,7 @@ Install and configure GitLab on OpenShift using the GitLab Operator and Custom R
 
 ---
 
-## Variables
+## Role Variables
 
 ### Top-level
 
@@ -113,7 +113,7 @@ gitlab_root_password: !vault |
 
 ---
 
-## Molecule
+## Molecule Testing
 
 A default Molecule scenario is provided under `molecule/default` and covers:
 - Resource creation and update

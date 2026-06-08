@@ -1,0 +1,17 @@
+---
+- name: Destroy - rhel_services_management scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  vars:
+    rhel_services_management_service_names:
+      - crond
+      - tuned
+      - httpd
+      - tomcat
+    rhel_services_management_service_state: started
+    rhel_services_management_service_enabled: true
+
+  roles:
+    - role: infra.ado.rhel_services_management

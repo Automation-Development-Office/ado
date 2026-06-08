@@ -12,7 +12,7 @@ Complete Kafka operator installation flow and optionally create a Kafka custom r
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -50,7 +50,7 @@ Complete Kafka operator installation flow and optionally create a Kafka custom r
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

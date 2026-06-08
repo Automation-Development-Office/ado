@@ -11,7 +11,7 @@ Look up a Red Hat Build of Keycloak client secret through the admin API and publ
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -45,7 +45,7 @@ Look up a Red Hat Build of Keycloak client secret through the admin API and publ
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

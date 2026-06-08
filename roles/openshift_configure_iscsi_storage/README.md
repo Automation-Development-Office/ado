@@ -11,7 +11,7 @@ Configure Synology-backed iSCSI storage resources when no default storage class 
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -45,7 +45,7 @@ Configure Synology-backed iSCSI storage resources when no default storage class 
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 
