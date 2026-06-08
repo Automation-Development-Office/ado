@@ -15,43 +15,43 @@ on:
         required: false
         default: false
         type: boolean
-      run_integration_utilities_cron_full_special:
-        description: "Run integration_utilities_cron_full_special"
+      run_integration_rhel_cron_full_special:
+        description: "Run integration_rhel_cron_full_special"
         required: false
         default: false
         type: boolean
-      run_integration_utilities_cron_full_special_removal:
-        description: "Run integration_utilities_cron_full_special_removal"
+      run_integration_rhel_cron_full_special_removal:
+        description: "Run integration_rhel_cron_full_special_removal"
         required: false
         default: false
         type: boolean
-      run_integration_utilities_cron_single_special:
-        description: "Run integration_utilities_cron_single_special"
+      run_integration_rhel_cron_single_special:
+        description: "Run integration_rhel_cron_single_special"
         required: false
         default: false
         type: boolean
-      run_integration_utilities_cron_single_special_removal:
-        description: "Run integration_utilities_cron_single_special_removal"
+      run_integration_rhel_cron_single_special_removal:
+        description: "Run integration_rhel_cron_single_special_removal"
         required: false
         default: false
         type: boolean
-      run_integration_utils_mount_mount_auto_detect:
-        description: "Run integration_utils_mount_mount_auto_detect"
+      run_integration_rhel_mount_mount_auto_detect:
+        description: "Run integration_rhel_mount_mount_auto_detect"
         required: false
         default: false
         type: boolean
-      run_integration_utils_mount_mount_explicit_fstype:
-        description: "Run integration_utils_mount_mount_explicit_fstype"
+      run_integration_rhel_mount_mount_explicit_fstype:
+        description: "Run integration_rhel_mount_mount_explicit_fstype"
         required: false
         default: false
         type: boolean
-      run_integration_utils_mount_remove_from_fstab:
-        description: "Run integration_utils_mount_remove_from_fstab"
+      run_integration_rhel_mount_remove_from_fstab:
+        description: "Run integration_rhel_mount_remove_from_fstab"
         required: false
         default: false
         type: boolean
-      run_integration_utils_mount_unmount_filesystem:
-        description: "Run integration_utils_mount_unmount_filesystem"
+      run_integration_rhel_mount_unmount_filesystem:
+        description: "Run integration_rhel_mount_unmount_filesystem"
         required: false
         default: false
         type: boolean
@@ -175,14 +175,14 @@ jobs:
             declare -A checks=(
               [integration_manage_vm_image]="${{ github.event.inputs.run_integration_manage_vm_image }}"
               [integration_aap_build_ee]="${{ github.event.inputs.run_integration_aap_build_ee }}"
-              [integration_utilities_cron_full_special]="${{ github.event.inputs.run_integration_utilities_cron_full_special }}"
-              [integration_utilities_cron_full_special_removal]="${{ github.event.inputs.run_integration_utilities_cron_full_special_removal }}"
-              [integration_utilities_cron_single_special]="${{ github.event.inputs.run_integration_utilities_cron_single_special }}"
-              [integration_utilities_cron_single_special_removal]="${{ github.event.inputs.run_integration_utilities_cron_single_special_removal }}"
-              [integration_utils_mount_mount_auto_detect]="${{ github.event.inputs.run_integration_utils_mount_mount_auto_detect }}"
-              [integration_utils_mount_mount_explicit_fstype]="${{ github.event.inputs.run_integration_utils_mount_mount_explicit_fstype }}"
-              [integration_utils_mount_remove_from_fstab]="${{ github.event.inputs.run_integration_utils_mount_remove_from_fstab }}"
-              [integration_utils_mount_unmount_filesystem]="${{ github.event.inputs.run_integration_utils_mount_unmount_filesystem }}"
+              [integration_rhel_cron_full_special]="${{ github.event.inputs.run_integration_rhel_cron_full_special }}"
+              [integration_rhel_cron_full_special_removal]="${{ github.event.inputs.run_integration_rhel_cron_full_special_removal }}"
+              [integration_rhel_cron_single_special]="${{ github.event.inputs.run_integration_rhel_cron_single_special }}"
+              [integration_rhel_cron_single_special_removal]="${{ github.event.inputs.run_integration_rhel_cron_single_special_removal }}"
+              [integration_rhel_mount_mount_auto_detect]="${{ github.event.inputs.run_integration_rhel_mount_mount_auto_detect }}"
+              [integration_rhel_mount_mount_explicit_fstype]="${{ github.event.inputs.run_integration_rhel_mount_mount_explicit_fstype }}"
+              [integration_rhel_mount_remove_from_fstab]="${{ github.event.inputs.run_integration_rhel_mount_remove_from_fstab }}"
+              [integration_rhel_mount_unmount_filesystem]="${{ github.event.inputs.run_integration_rhel_mount_unmount_filesystem }}"
             )
             for scenario in "${!checks[@]}"; do
               if [[ "${checks[$scenario]}" == "true" ]]; then
