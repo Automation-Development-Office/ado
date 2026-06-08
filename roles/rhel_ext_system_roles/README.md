@@ -19,7 +19,7 @@ ansible-galaxy collection install redhat.rhel_system_roles
 - Target hosts should be supported RHEL systems.
 - Run with privilege escalation (`become: true`) when managing system settings.
 
-## Variables
+## Role Variables
 
 | Variable | Type | Description |
 | --- | --- | --- |
@@ -101,7 +101,7 @@ No inputs are required for a basic install/enable flow.
 - SELinux values are normalized and a policy is chosen when required.
 - Timesync variables avoid passing `omit` into upstream role data paths.
 
-## Molecule
+## Molecule Testing
 
 This role is tested from the extension-level Molecule scenario:
 `extensions/molecule/integration_rhel_ext_system_roles`.

@@ -14,7 +14,7 @@ This role is intentionally small. It imports `tasks/idm_register_client.yml`, wh
 - `redhat.rhel_idm` collection available
 - Host/network prerequisites required by the IPA client module (DNS/time/connectivity and credentials as applicable to your environment)
 
-## Variables
+## Role Variables
 
 | Variable | Required | Description |
 | --- | --- | --- |

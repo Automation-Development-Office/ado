@@ -12,7 +12,7 @@ Create Dev Spaces user workspace supporting objects such as secrets, config maps
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -53,7 +53,7 @@ Create Dev Spaces user workspace supporting objects such as secrets, config maps
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 
