@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Chad Elliott
-  description: "An collection."
+  description: "Install and configure GitLab on OpenShift using the GitLab Operator."
   company: Automation Development Office
 
   # If the issue tracker for your role is not on github, uncomment the

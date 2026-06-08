@@ -1,6 +1,7 @@
 ---
 - name: Create GitLab TLS Secret
   kubernetes.core.k8s:
+    validate_certs: "{{ install_gitlab_validate_certs }}"
     definition:
       apiVersion: v1
       kind: Secret
@@ -9,11 +10,12 @@
         namespace: "{{ name_space }}"
       type: kubernetes.io/tls
       stringData:
-        tls.crt: "{{ tls_crt }}"
-        tls.key: "{{ tls_key }}"
+        tls.crt: "{{ install_gitlab_tls_crt }}"
+        tls.key: "{{ install_gitlab_tls_key }}"
 
 - name: Create GitLab Root Password Secret
   kubernetes.core.k8s:
+    validate_certs: "{{ install_gitlab_validate_certs }}"
     definition:
       apiVersion: v1
       kind: Secret
@@ -22,11 +24,12 @@
         namespace: "{{ name_space }}"
       type: Opaque
       stringData:
-        password: "{{ gitlab_root_password }}"
+        password: "{{ install_gitlab_root_password }}"
   no_log: true
 
 - name: Create GitLab DB Secret
   kubernetes.core.k8s:
+    validate_certs: "{{ install_gitlab_validate_certs }}"
     definition:
       apiVersion: v1
       kind: Secret
@@ -35,12 +38,13 @@
         namespace: "{{ name_space }}"
       type: Opaque
       stringData:
-        POSTGRES_USER: "{{ gitlab_admin_user }}"
-        POSTGRES_PASSWORD: "{{ gitlab_admin_password }}"
+        POSTGRES_USER: "{{ install_gitlab_admin_user }}"
+        POSTGRES_PASSWORD: "{{ install_gitlab_admin_password }}"
   no_log: true
 
 - name: Deploy GitLab Custom Resource (Operator/Helm)
   kubernetes.core.k8s:
+    validate_certs: "{{ install_gitlab_validate_certs }}"
     definition:
       apiVersion: apps.gitlab.com/v1beta1
       kind: GitLab
@@ -49,7 +53,7 @@
         namespace: "{{ name_space }}"
       spec:
         chart:
-          version: "9.4.0" # Supported version!
+          version: "{{ install_gitlab_chart_version }}"
         certmanager:
           install: false
         gitlab:
@@ -61,7 +65,7 @@
         router:
           tls:
             secretName: gitlab-tls-secret
-          hostname: "{{ gitlab_hostname }}"
+          hostname: "{{ install_gitlab_hostname }}"
         postgresql:
           enabled: false
           host: gitlab-postgresql
@@ -79,5 +83,5 @@
         persistence:
           enabled: true
           storage:
-            size: "{{ gitlab_storage_size }}"
-            class: "{{ storage }}"
+            size: "{{ install_gitlab_storage_size }}"
+            class: "{{ install_gitlab_storage_class }}"

@@ -1,0 +1,10 @@
+---
+- name: Destroy install_gitlab resources
+  hosts: localhost
+  gather_facts: false
+  vars:
+    name_space: gitlab
+    install_gitlab_validate_certs: false
+    state: absent
+  roles:
+    - infra.ado.install_gitlab
