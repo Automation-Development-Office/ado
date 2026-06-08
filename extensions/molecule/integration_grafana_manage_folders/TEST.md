@@ -19,6 +19,8 @@ Validate extension-level Molecule scenario wiring for
 - `verify` confirms role README presence.
 - `converge` supports optional live execution when
   `GRAFANA_MANAGE_FOLDERS_ENABLE_LIVE_CHECKS=true`.
+- For live execution, pass supported auth variables like
+  `grafana_manage_folders_api_key` or `grafana_api_key`.
 
 ## Run
 
