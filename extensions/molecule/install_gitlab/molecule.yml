@@ -11,13 +11,6 @@ platforms:
 
 provisioner:
   name: ansible
-  inventory:
-    hosts:
-      all:
-        hosts:
-          localhost:
-            ansible_connection: local
-            ansible_python_interpreter: "/home/chelliot/.venvs/ansible-k8s/bin/python"
   playbooks:
     converge: ../utils/playbooks/install_gitlab_converge.yml
     destroy: ../utils/playbooks/install_gitlab_destroy.yml
