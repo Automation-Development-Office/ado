@@ -5,9 +5,7 @@
   become: true
 
   vars:
-    rhel_mount_test_root: /tmp/rhel_mount_molecule_mount_auto_detect
-    rhel_mount_image_path: "{{ rhel_mount_test_root }}/device.img"
-    rhel_mount_path: "{{ rhel_mount_test_root }}/mnt"
+  
 
   tasks:
     - name: Include rhel_mount role for auto-detect mount # noqa: var-naming[no-role-prefix]
@@ -15,6 +13,6 @@
         name: infra.ado.rhel_mount
       vars:
         rhel_mount_action: mounted
-        rhel_mount_path: "{{ rhel_mount_path }}"
-        rhel_mount_target_device: "{{ rhel_mount_image_path }}"
+        rhel_mount_path: /tmp/rhel_mount_molecule_mount_auto_detect/mnt
+        rhel_mount_target_device: /tmp/rhel_mount_molecule_mount_auto_detect/device.img
         rhel_mount_fstype_detection: true
