@@ -1,0 +1,33 @@
+---
+
+jira_story_issuetype: Story
+jira_subtask_issuetype: Sub-task
+jira_create_subtasks: true
+jira_templates_dir: templates
+
+jira_feature_key: ""
+jira_feature_field: ""
+jira_custom_ac_field: ""
+
+jira_track: platform_4phase
+
+jira_track_map:
+  platform_4phase:
+    - { file: "{{ jira_templates_dir }}/phases/story_phase1.yml", section: "phase1" }
+    - { file: "{{ jira_templates_dir }}/phases/story_phase2.yml", section: "phase2" }
+    - { file: "{{ jira_templates_dir }}/phases/story_phase3.yml", section: "phase3" }
+    - { file: "{{ jira_templates_dir }}/phases/story_phase4.yml", section: "phase4" }
+  collections_2phase:
+    - { file: "{{ jira_templates_dir }}/tracks/collections_phase1.yml", section: "phase1" }
+    - { file: "{{ jira_templates_dir }}/tracks/collections_phase2.yml", section: "phase2" }
+  mfa_2phase:
+    - { file: "{{ jira_templates_dir }}/tracks/mfa_phase1.yml", section: "phase1" }
+    - { file: "{{ jira_templates_dir }}/tracks/mfa_phase2.yml", section: "phase2" }
+  day2:
+    - { file: "{{ jira_templates_dir }}/day2/adhoc_day2.yml", section: "operations" }
+  spike:
+    - { file: "{{ jira_templates_dir }}/special/adhoc_spike.yml", section: "discovery" }
+  bugfix:
+    - { file: "{{ jira_templates_dir }}/special/adhoc_bugfix.yml", section: "delivery" }
+  feature:
+    - { file: "{{ jira_templates_dir }}/special/adhoc_feature.yml", section: "delivery" }

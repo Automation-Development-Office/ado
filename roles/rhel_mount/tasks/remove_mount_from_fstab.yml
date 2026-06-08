@@ -1,0 +1,5 @@
+---
+- name: Remove mount from /etc/fstab
+  ansible.posix.mount:
+    path: "{{ rhel_mount_path }}"
+    state: "{{ rhel_mount_action }}"
