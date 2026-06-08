@@ -54,7 +54,7 @@
     operator_source_namespace: openshift-marketplace
 
   roles:
-    - role: ado.openshift.namespace       
+    - role: ado.openshift.namespace
     - role: ado.openshift.operatorgroup
     - role: ado.openshift.subscription_operator
     - role: ado.openshift.wait_for_pods_running

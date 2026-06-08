@@ -23,7 +23,7 @@ Role entrypoint `tasks/main.yml` dispatches by action:
 
 No task file runs unless both `content_view` and `sat_content_view_action` are defined.
 
-## Variables
+## Role Variables
 
 | Variable | Description | Required For |
 | --- | --- | --- |

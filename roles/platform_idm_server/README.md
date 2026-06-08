@@ -12,7 +12,7 @@ This role is intentionally small and currently performs:
 - `redhat.rhel_idm` collection available
 - Host/network prerequisites for IdM server installation based on your environment
 
-## Variables
+## Role Variables
 
 ### Canonical role variables
 

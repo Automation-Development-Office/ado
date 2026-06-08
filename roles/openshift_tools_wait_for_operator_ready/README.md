@@ -11,7 +11,7 @@ Wait for an operator CSV and deployment to become available in a target namespac
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -46,7 +46,7 @@ Wait for an operator CSV and deployment to become available in a target namespac
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

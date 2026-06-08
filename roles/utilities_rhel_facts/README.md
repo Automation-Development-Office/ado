@@ -17,7 +17,7 @@ Collect a concise set of **RHEL host facts** using _raw, POSIX-friendly commands
 
 ---
 
-## Variables
+## Role Variables
 
 This role has **no required input variables**. It gathers and normalizes facts automatically.
 
