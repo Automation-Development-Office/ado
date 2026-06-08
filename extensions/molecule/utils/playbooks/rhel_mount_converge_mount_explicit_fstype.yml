@@ -5,9 +5,9 @@
   become: true
 
   vars:
-    rhel_mount_test_root: /tmp/rhel_mount_molecule_mount_explicit_fstype
-    rhel_mount_image_path: "{{ rhel_mount_test_root }}/device.img"
-    rhel_mount_path: "{{ rhel_mount_test_root }}/mnt"
+ #  rhel_mount_test_root: /tmp/rhel_mount_molecule_mount_explicit_fstype
+  # rhel_mount_image_path: "{{ rhel_mount_test_root }}/device.img"
+  # rhel_mount_path: "{{ rhel_mount_test_root }}/mnt"
 
   tasks:
     - name: Include rhel_mount role for explicit fstype mount # noqa: var-naming[no-role-prefix]
@@ -15,6 +15,6 @@
         name: infra.ado.rhel_mount
       vars:
         rhel_mount_action: mounted
-        rhel_mount_path: "{{ rhel_mount_path }}"
-        rhel_mount_target_device: "{{ rhel_mount_image_path }}"
+        rhel_mount_path: /tmp/rhel_mount_molecule_mount_explicit_fstype/mnt
+        rhel_mount_target_device: /tmp/rhel_mount_molecule_mount_explicit_fstype/device.img
         rhel_mount_fstype: ext4
