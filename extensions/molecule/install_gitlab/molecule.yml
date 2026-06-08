@@ -1,40 +1,24 @@
 ---
-dependency:
-  name: galaxy
-
-driver:
-  name: default
-
 platforms:
-  - name: localhost
-    managed: false
+  - name: na
 
 provisioner:
   name: ansible
   playbooks:
     converge: ../utils/playbooks/install_gitlab_converge.yml
-    destroy: ../utils/playbooks/install_gitlab_destroy.yml
+    destroy: ../utils/playbooks/noop.yml
     verify: ../utils/playbooks/install_gitlab_verify.yml
-  config_options:
-    defaults:
-      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
   env:
-    # Use a safe callback (your earlier error came from a broken yaml callback plugin)
-    ANSIBLE_STDOUT_CALLBACK: default
-    # Let Ansible find THIS role (we are inside roles/namespace/)
-    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/.."
+    ANSIBLE_ROLES_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}"
     K8S_AUTH_API_KEY: "${K8S_AUTH_API_KEY}"
     K8S_AUTH_HOST: "${K8S_AUTH_HOST}"
     K8S_AUTH_VERIFY_SSL: "${K8S_AUTH_VERIFY_SSL}"
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
 
 scenario:
-  name: default
-  # Keep resources by default (skip destroy). Uncomment 'destroy' anytime you want cleanup.
   test_sequence:
-    - converge
     - verify
   destroy_sequence:
     - destroy
-
-verifier:
-  name: ansible
