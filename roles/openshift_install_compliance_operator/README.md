@@ -12,7 +12,7 @@ Validate that Compliance Operator pods are present and at least one pod reaches 
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -40,7 +40,7 @@ Validate that Compliance Operator pods are present and at least one pod reaches 
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

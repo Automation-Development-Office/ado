@@ -12,7 +12,7 @@ This role currently performs:
 - `redhat.rhel_idm` collection available
 - Environment prerequisites for IdM replica installation (DNS/time/network/connectivity and upstream IdM requirements)
 
-## Variables
+## Role Variables
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |

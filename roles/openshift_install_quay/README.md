@@ -11,7 +11,7 @@ Install or remove a Quay deployment including backing PostgreSQL, configuration 
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -53,7 +53,7 @@ Install or remove a Quay deployment including backing PostgreSQL, configuration 
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

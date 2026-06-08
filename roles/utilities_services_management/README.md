@@ -18,7 +18,7 @@ more **system services** in a consistent, idempotent way.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 | --- | --- |
@@ -87,7 +87,7 @@ more **system services** in a consistent, idempotent way.
 
 ---
 
-## Molecule
+## Molecule Testing
 
 This role is tested using the extension-level Molecule scenario:
 
