@@ -9,8 +9,8 @@ Automation Development Office.
 
 ## ✅ Role Requirements
 
-- `community.grafana` collection for `community.grafana.grafana_dashboard`.
-- Reachable Grafana endpoint and valid credentials.
+- `grafana.grafana` collection for `grafana.grafana.dashboard`.
+- Reachable Grafana endpoint and valid API key credentials.
 - Dashboard template files referenced by `grafana_dashboards`.
 
 ## 📦 Role Variables
@@ -21,14 +21,13 @@ Variables used by the role tasks:
 - `grafana_dashboards` (list of items with at least `name` and `template`).
 - `grafana_datasource` (replacement datasource value in rendered JSON).
 - `grafana_hostname` (Grafana host, scheme is set in the task as `https://`).
-- `grafana_admin_user` (Grafana username).
-- `grafana_admin_password` (Grafana password).
-- `grafana_folder` (folder name for imported dashboards).
+- `grafana_api_key` (Grafana API key used by `grafana.grafana.dashboard`).
 
 Notes:
 
 - `defaults/main.yml` does not currently define role defaults.
 - Role execution is gated in `tasks/main.yml` by `when: state == "present"`.
+- `grafana_folder` is no longer used by this role after the collection migration.
 
 ## 🚀 Role Usage
 
@@ -40,9 +39,7 @@ Notes:
       vars:
         state: present
         grafana_hostname: grafana.example.com
-        grafana_admin_user: admin
-        grafana_admin_password: "{{ vault_grafana_admin_password }}"
-        grafana_folder: General
+        grafana_api_key: "{{ vault_grafana_api_key }}"
         grafana_datasource: Openshift
         grafana_dashboards:
           - name: cluster-overview

@@ -19,16 +19,24 @@
     label: "{{ item.name }}"
 
 - name: Import Grafana dashboard
-  community.grafana.grafana_dashboard:
-    url: "https://{{ grafana_hostname }}"
-    url_username: "{{ grafana_admin_user }}"
-    url_password: "{{ grafana_admin_password }}"
+  grafana.grafana.dashboard:
+    grafana_url: "https://{{ grafana_hostname }}"
+    grafana_api_key: "{{ grafana_api_key }}"
     state: "{{ state | default('present') }}"
-    commit_message: "Updated by Ansible"
-    overwrite: true
-    folder: "{{ grafana_folder }}"
-    path: "/tmp/{{ item.name }}.json"
-    validate_certs: "false"
+    dashboard: "{{ grafana_dashboard_payload }}"
   loop: "{{ grafana_dashboards }}"
   loop_control:
     label: "{{ item.name }}"
+  vars:
+    rendered_dashboard_json: >-
+      {{ lookup('ansible.builtin.file', '/tmp/%s.json' | format(item.name)) | from_json }}
+    grafana_dashboard_payload: >-
+      {{
+        rendered_dashboard_json
+        if (rendered_dashboard_json.dashboard is defined)
+        else {
+          'dashboard': rendered_dashboard_json,
+          'overwrite': true,
+          'message': 'Updated by Ansible'
+        }
+      }}
