@@ -5,8 +5,8 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      run_integration_manage_vm_image:
-        description: "Run integration_manage_vm_image"
+      run_integration_vm_image_management:
+        description: "Run integration_vm_image_management"
         required: false
         default: false
         type: boolean
@@ -173,7 +173,7 @@ jobs:
           dirs=()
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             declare -A checks=(
-              [integration_manage_vm_image]="${{ github.event.inputs.run_integration_manage_vm_image }}"
+              [integration_vm_image_management]="${{ github.event.inputs.run_integration_vm_image_management }}"
               [integration_aap_build_ee]="${{ github.event.inputs.run_integration_aap_build_ee }}"
               [integration_rhel_cron_full_special]="${{ github.event.inputs.run_integration_rhel_cron_full_special }}"
               [integration_rhel_cron_full_special_removal]="${{ github.event.inputs.run_integration_rhel_cron_full_special_removal }}"
