@@ -1,0 +1,13 @@
+- name: Create a Keycloak group, authentication with credentials
+  community.general.keycloak_group:
+    name: "{{ rhbk_group_name }}"
+    realm: "{{ rhbk_realm }}"
+    state: present
+    auth_client_id: admin-cli
+    auth_keycloak_url: "{{ rhbk_hostname }}"
+    auth_realm: master
+    auth_username: "{{ rhbk_username }}"
+    auth_password: "{{ rhbk_password }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  register: rhbk_groups_result_new_kcgrp
+  delegate_to: localhost

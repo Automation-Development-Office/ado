@@ -1,0 +1,45 @@
+- name: Login to RHBK and get admin token
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+    body_format: form-urlencoded
+    body:
+      grant_type: password
+      client_id: admin-cli
+      username: "{{ rhbk_admin_user }}"
+      password: "{{ rhbk_admin_password }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+    return_content: true
+  register: rhbk_groups_auth
+
+- name: Get all groups in realm
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/groups"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ rhbk_groups_auth.json.access_token }}"
+    return_content: true
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  register: rhbk_groups_groups
+
+- name: Set fact for target group ID
+  ansible.builtin.set_fact:
+    rhbk_groups_group_id: >-
+      {{
+        (rhbk_groups_groups.json
+        | selectattr('name', 'equalto', rhbk_group_name)
+        | list
+        | first).id | default('')
+      }}
+
+- name: Delete group (if exists)
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/groups/{{ rhbk_groups_group_id }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ rhbk_groups_auth.json.access_token }}"
+    status_code: [204, 404]
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  when: rhbk_groups_group_id != ""
