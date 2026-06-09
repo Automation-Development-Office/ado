@@ -1,0 +1,77 @@
+- name: Create or update Keycloak realm
+  community.general.keycloak_realm:
+    # ---- REQUIRED auth + target ----
+    auth_client_id: "{{ rhbk_auth_client_id | default('admin-cli') }}"
+    auth_keycloak_url: "https://{{ rhbk_hostname }}"
+    auth_realm: "{{ rhbk_auth_realm | default('master') }}"
+    auth_username: "{{ rhbk_admin_user }}"
+    auth_password: "{{ rhbk_admin_password }}"
+    validate_certs: "{{ rhbk_verify_ssl | default(true) | bool }}"
+
+    # ---- REQUIRED realm identity ----
+    realm: "{{ rhbk_realm }}"
+    id: "{{ rhbk_realm }}"         # use realm name as ID (safe for create/update)
+    state: "{{ state }}"
+
+    # ---- OPTIONAL common toggles / policies ----
+    enabled: "{{ rhbk_enabled | default(omit) }}"
+    display_name: "{{ rhbk_display_name | default(omit) }}"
+    ssl_required: "{{ rhbk_ssl_required | default(omit) }}"
+
+    registration_allowed: "{{ rhbk_registration_allowed | default(omit) }}"
+    registration_email_as_username: "{{ rhbk_registration_email_as_username | default(omit) }}"
+    remember_me: "{{ rhbk_remember_me | default(omit) }}"
+    verify_email: "{{ rhbk_verify_email | default(omit) }}"
+    login_with_email_allowed: "{{ rhbk_login_with_email_allowed | default(omit) }}"
+    edit_username_allowed: "{{ rhbk_edit_username_allowed | default(omit) }}"
+    reset_password_allowed: "{{ rhbk_reset_password_allowed | default(omit) }}"
+
+    brute_force_protected: "{{ rhbk_brute_force_protected | default(omit) }}"
+    permanent_lockout: "{{ rhbk_permanent_lockout | default(omit) }}"
+    max_failure_wait_seconds: "{{ rhbk_max_failure_wait_seconds | default(omit) }}"
+    minimum_quick_login_wait_seconds: "{{ rhbk_minimum_quick_login_wait_seconds | default(omit) }}"
+    wait_increment_seconds: "{{ rhbk_wait_increment_seconds | default(omit) }}"
+    quick_login_check_milli_seconds: "{{ rhbk_quick_login_check_milli_seconds | default(omit) }}"
+    max_delta_time_seconds: "{{ rhbk_max_delta_time_seconds | default(omit) }}"
+    failure_factor: "{{ rhbk_failure_factor | default(omit) }}"
+
+    # ---- OPTIONAL session / token lifetimes ----
+    sso_session_idle_timeout: "{{ rhbk_sso_session_idle_timeout | default(omit) }}"
+    sso_session_maximum_lifespan: "{{ rhbk_sso_session_maximum_lifespan | default(omit) }}"
+    offline_session_idle_timeout: "{{ rhbk_offline_session_idle_timeout | default(omit) }}"
+    access_code_lifespan: "{{ rhbk_access_code_lifespan | default(omit) }}"
+    access_code_lifespan_user_action: "{{ rhbk_access_code_lifespan_user_action | default(omit) }}"
+    access_token_lifespan: "{{ rhbk_access_token_lifespan | default(omit) }}"
+    access_token_lifespan_for_implicit_flow: "{{ rhbk_access_token_lifespan_for_implicit_flow | default(omit) }}"
+    action_token_generated_by_admin_lifespan: "{{ rhbk_action_token_generated_by_admin_lifespan | default(omit) }}"
+    action_token_generated_by_user_lifespan: "{{ rhbk_action_token_generated_by_user_lifespan | default(omit) }}"
+
+    # ---- OPTIONAL themes / i18n ----
+    login_theme: "{{ rhbk_login_theme | default(omit) }}"
+    account_theme: "{{ rhbk_account_theme | default(omit) }}"
+    admin_theme: "{{ rhbk_admin_theme | default(omit) }}"
+    email_theme: "{{ rhbk_email_theme | default(omit) }}"
+    internationalization_enabled: "{{ rhbk_internationalization_enabled | default(omit) }}"
+    supported_locales: "{{ rhbk_supported_locales | default(omit) }}"
+    default_locale: "{{ rhbk_default_locale | default(omit) }}"
+
+    # ---- OPTIONAL events / SMTP ----
+    smtp_server: "{{ rhbk_smtp_server | default(omit) }}"
+    events_enabled: "{{ rhbk_events_enabled | default(omit) }}"
+    events_listeners: "{{ rhbk_events_listeners | default(omit) }}"
+    events_expiration: "{{ rhbk_events_expiration | default(omit) }}"
+    admin_events_enabled: "{{ rhbk_admin_events_enabled | default(omit) }}"
+    admin_events_details_enabled: "{{ rhbk_admin_events_details_enabled | default(omit) }}"
+
+    # ---- OPTIONAL flow bindings ----
+    browser_flow: "{{ rhbk_browser_flow | default(omit) }}"
+    registration_flow: "{{ rhbk_registration_flow | default(omit) }}"
+    direct_grant_flow: "{{ rhbk_direct_grant_flow | default(omit) }}"
+    reset_credentials_flow: "{{ rhbk_reset_credentials_flow | default(omit) }}"
+    client_authentication_flow: "{{ rhbk_client_authentication_flow | default(omit) }}"
+    docker_authentication_flow: "{{ rhbk_docker_authentication_flow | default(omit) }}"
+
+    # ---- OPTIONAL misc ----
+    user_managed_access_allowed: "{{ rhbk_user_managed_access_allowed | default(omit) }}"
+    attributes: "{{ rhbk_attributes | default(omit) }}"
+  delegate_to: localhost
