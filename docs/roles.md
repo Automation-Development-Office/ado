@@ -1,3 +1,3 @@
 # Roles
 
-- [manage_vm_image](roles/manage_manage_vm_image_role.md)
+- [vm_image_management](roles/vm_image_management_role.md)
