@@ -1,0 +1,130 @@
+- name: Login to RHBK and get admin token
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+    body_format: form-urlencoded
+    body:
+      grant_type: password
+      client_id: admin-cli
+      username: "{{ rhbk_admin_user }}"
+      password: "{{ rhbk_admin_password }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+    return_content: true
+  register: rhbk_client_scope_auth
+
+- name: Get list of client scopes
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/client-scopes"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
+    return_content: true
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  register: rhbk_client_scope_client_scopes
+
+- name: Set fact for existing client scope
+  ansible.builtin.set_fact:
+    rhbk_client_scope_existing_scope_obj: >-
+      {{
+        rhbk_client_scope_client_scopes.json
+        | selectattr('name', 'equalto', rhbk_client_scope_name)
+        | list
+        | first | default({})
+      }}
+
+- name: Create client scope if it does not exist
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/client-scopes"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      name: "{{ rhbk_client_scope_name }}"
+      protocol: "openid-connect"
+      attributes:
+        "include.in.token.scope": "true"
+        "display.on.consent.screen": "false"
+        "consent.screen.text": "Groups"
+    status_code: 201
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  when: rhbk_client_scope_existing_scope_obj | length == 0
+  register: rhbk_client_scope_create_scope_result
+
+# --- FIX: Re-query to ensure .id is captured properly ---
+
+- name: Re-query client scopes to ensure full object info
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/client-scopes"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
+    return_content: true
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  register: rhbk_client_scope_full_client_scopes
+
+- name: Set fact for full client scope object
+  ansible.builtin.set_fact:
+    rhbk_client_scope_groups_scope_obj: >-
+      {{
+        rhbk_client_scope_full_client_scopes.json
+        | selectattr('name', 'equalto', rhbk_client_scope_name)
+        | list
+        | first | default({})
+      }}
+
+- name: Set fact for client scope ID
+  ansible.builtin.set_fact:
+    rhbk_client_scope_groups_scope_id: "{{ rhbk_client_scope_groups_scope_obj.id | default('') }}"
+
+- name: Fail if groups_scope_id is not defined
+  ansible.builtin.fail:
+    msg: "Client scope '{{ rhbk_client_scope_name }}' exists but ID is missing. Aborting."
+  when: rhbk_client_scope_groups_scope_id == ""
+
+# --- Proceed with mapper logic ---
+
+- name: Get existing mappers for client scope
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/client-scopes/{{ rhbk_client_scope_groups_scope_id }}/protocol-mappers/models"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
+    return_content: true
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  register: rhbk_client_scope_existing_mappers
+
+- name: Check if "groups" mapper already exists
+  ansible.builtin.set_fact:
+    rhbk_client_scope_groups_mapper_exists: >-
+      {{
+        rhbk_client_scope_existing_mappers.json
+        | selectattr('name', 'equalto', 'groups')
+        | list | length > 0
+      }}
+
+- name: Add "groups" protocol mapper to client scope
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/client-scopes/{{ rhbk_client_scope_groups_scope_id }}/protocol-mappers/models"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "groups"
+      protocol: "openid-connect"
+      protocolMapper: "oidc-group-membership-mapper"
+      config:
+        "claim.name": "groups"
+        "full.path": "false"
+        "id.token.claim": "true"
+        "access.token.claim": "true"
+        "userinfo.token.claim": "true"
+        "jsonType.label": "String"
+    status_code: 201
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  when: not rhbk_client_scope_groups_mapper_exists

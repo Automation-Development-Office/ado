@@ -1,0 +1,7 @@
+- name: Create client scope
+  ansible.builtin.import_tasks: rhbk_create_client_scope.yml
+  when: state == "present"
+
+- name: Delete RHBK client scope
+  ansible.builtin.import_tasks: rhbk_delete_client_scope.yml
+  when: state == "absent"
