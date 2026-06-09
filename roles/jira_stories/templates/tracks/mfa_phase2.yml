@@ -1,0 +1,56 @@
+template_stories_mfa_phase2:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: MFA Validation, Operations, and Handoff"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate and operationalize MFA
+      *So that:* it can be supported long term without impacting users.
+
+    custom_ac: |
+      * MFA behavior validated with real users
+      * Monitoring and alerting reviewed
+      * Runbooks and troubleshooting guides completed
+      * Support and escalation model defined
+      * Backup and recovery considerations documented
+      * Ownership transferred to operations
+
+    labels:
+      - "{{ product }}"
+      - "{{ jira_stories_section }}"
+
+    subtasks:
+      - summary: "Validate MFA with representative users"
+        description: |
+          Validate MFA with real or representative user groups and confirm expected user experience.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Review monitoring and audit visibility"
+        description: |
+          Confirm audit logs, authentication failures, and relevant monitoring are visible.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Create MFA runbooks and troubleshooting guides"
+        description: |
+          Create runbooks for login failures, user lockout, token issues, and IdP connectivity issues.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Define support and escalation paths"
+        description: |
+          Define support ownership, escalation, and responsibilities for MFA-related issues.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Validate backup and recovery considerations"
+        description: |
+          Validate any backup, recovery, or rollback considerations for MFA configuration.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Complete operational handoff"
+        description: |
+          Confirm operational ownership and hand off documentation, support model, and known limitations.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"

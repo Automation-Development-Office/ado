@@ -1,0 +1,36 @@
+- name: Login to RHBK and get admin token
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+    body_format: form-urlencoded
+    body:
+      grant_type: password
+      client_id: admin-cli
+      username: "{{ rhbk_admin_user }}"
+      password: "{{ rhbk_admin_password }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+    return_content: true
+  register: rhbk_realm_auth
+
+- name: Check if realm exists
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ rhbk_realm_auth.json.access_token }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+    status_code: [200, 404]
+  register: rhbk_realm_check_realm
+
+- name: Delete Realm in RHBK (only if it exists)
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ rhbk_auth.json.access_token }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+    status_code: 204
+  when: rhbk_realm_check_realm.status == 200
+  register: rhbk_realm_delete_result

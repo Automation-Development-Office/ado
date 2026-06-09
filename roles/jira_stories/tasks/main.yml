@@ -1,0 +1,33 @@
+---
+- name: Jira | Normalize legacy and CLI vars
+  ansible.builtin.set_fact:
+    jira_stories_track: "{{ jira_track | default(jira_stories_track) }}"
+    jira_stories_story_issuetype: "{{ jira_story_issuetype | default(jira_stories_story_issuetype) }}"
+    jira_stories_subtask_issuetype: "{{ jira_subtask_issuetype | default(jira_stories_subtask_issuetype) }}"
+    jira_stories_create_subtasks: "{{ jira_create_subtasks | default(jira_stories_create_subtasks) }}"
+    jira_stories_custom_ac_field: "{{ jira_custom_ac_field | default(jira_stories_custom_ac_field) }}"
+    jira_stories_feature_key: "{{ jira_feature_key | default(jira_stories_feature_key) }}"
+    jira_stories_feature_field: "{{ jira_feature_field | default(jira_stories_feature_field) }}"
+
+- name: Jira | Validate required vars
+  ansible.builtin.assert:
+    that:
+      - jira_url | length > 0
+      - jira_username | length > 0
+      - jira_token | length > 0
+      - jira_project_key | length > 0
+      - jira_stories_track in jira_stories_track_map
+    fail_msg: >-
+      Missing/invalid vars. Need jira_url/jira_username/jira_token/jira_project_key
+      and jira_stories_track must be one of: {{ jira_stories_track_map.keys() | list }}.
+
+- name: Jira | Build list of template files for selected track
+  ansible.builtin.set_fact:
+    jira_stories_selected_templates: "{{ jira_stories_track_map[jira_stories_track] }}"
+
+- name: Jira | Process templates for track
+  ansible.builtin.include_tasks: process_one_template.yml
+  loop: "{{ jira_stories_selected_templates }}"
+  loop_control:
+    loop_var: tmpl
+    label: "{{ tmpl.file }} (section={{ tmpl.section }})"

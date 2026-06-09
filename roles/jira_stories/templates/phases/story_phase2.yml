@@ -1,0 +1,119 @@
+template_stories_phase2:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation - Phase 2"
+    story_description: |
+      *As a:* "{{ role_name }}"  
+      *I want to:* Deploy and configure {{ product }} using the approved architecture and automation  
+      *So that:* clusters can be managed consistently, securely, and repeatably.
+
+      Notes / Context:
+      This phase focuses on executing the approved design by deploying {{ product }}, configuring the hub or target environment,
+      onboarding required resources, enforcing RBAC, and validating observability and GitOps integration.
+      All configuration should be automated, repeatable, and stored in version control.
+
+    custom_ac: |
+      * {{ product }} operator or service installed and healthy
+      * Target environment configured using declared configuration
+      * Required integrations successfully configured
+      * RBAC enforced and validated
+      * Observability components verified
+      * GitOps integration functional
+      * Automation is idempotent and repeatable
+      * Configuration stored in version control
+      * Documentation updated with deployment details
+
+    labels:
+      - "{{ product }}"
+      - "{{ jira_stories_section }}"
+
+    subtasks:
+      - summary: "Install {{ product }} operator or service"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Install the {{ product }} operator or service  
+          *So that:* the platform is available for configuration and use.
+
+          Notes / Context:
+          This subtask covers installing {{ product }} using supported methods and validating that all components are healthy.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Configure core {{ product }} settings"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Configure {{ product }} according to the approved architecture  
+          *So that:* {{ product }} operates consistently and aligns with design decisions.
+
+          Notes / Context:
+          This includes core settings, integrations, certificates, storage, and required platform-level options.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Configure required integrations"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Configure required integrations for {{ product }}  
+          *So that:* {{ product }} can operate with the surrounding platform ecosystem.
+
+          Notes / Context:
+          This may include identity, Git, automation, monitoring, storage, networking, or external services.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Validate RBAC and access control"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Validate RBAC and access control configuration  
+          *So that:* users and automation have appropriate permissions.
+
+          Notes / Context:
+          Validate roles, role bindings, group mappings, and least-privilege access.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Configure observability"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Configure observability for the {{ product }} environment  
+          *So that:* health, performance, and status are visible.
+
+          Notes / Context:
+          This may include metrics, alerts, dashboards, and log integration as required.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Validate GitOps integration"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Validate GitOps integration with {{ product }}  
+          *So that:* configuration and policy changes are managed declaratively.
+
+          Notes / Context:
+          Verify repository access, sync behavior, reconciliation workflows, and drift handling.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Document deployment and configuration details"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Document the deployment and configuration of {{ product }}  
+          *So that:* the implementation is supportable and repeatable.
+
+          Notes / Context:
+          Documentation should capture architecture decisions, configuration, automation workflows, and operational considerations.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
