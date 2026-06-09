@@ -95,16 +95,10 @@ jobs:
       - name: Install Ansible collections
         run: |
           set -euo pipefail
-          stale_grafana_dir="${GITHUB_WORKSPACE}/.ansible/collections/ansible_collections/grafana/grafana"
-          if [ -d "$stale_grafana_dir" ] && [ ! -f "$stale_grafana_dir/galaxy.yml" ]; then
-            echo "Removing stale incomplete collection dir: $stale_grafana_dir"
-            rm -rf "$stale_grafana_dir"
-          fi
-          mkdir -p "${GITHUB_WORKSPACE}/.ansible/collections"
           if [ -f collections/requirements.yml ]; then
             attempts=3
             for attempt in $(seq 1 "$attempts"); do
-              if ansible-galaxy collection install -r collections/requirements.yml -p "${GITHUB_WORKSPACE}/.ansible/collections"; then
+              if ansible-galaxy collection install -r collections/requirements.yml; then
                 break
               fi
               if [ "$attempt" -eq "$attempts" ]; then
@@ -118,15 +112,12 @@ jobs:
           fi
         env:
           ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
-          ANSIBLE_COLLECTIONS_PATH: "${{ github.workspace }}/collections:${{ github.workspace }}/.ansible/collections:$HOME/.ansible/collections:/usr/share/ansible/collections"
 
       - name: Run ansible-lint
         run: |
           ansible --version
           ansible-lint --version
           ansible-lint -v --offline --show-relpath -p | ansible-lint-junit -o ansible-lint.xml
-        env:
-          ANSIBLE_COLLECTIONS_PATH: "${{ github.workspace }}/collections:${{ github.workspace }}/.ansible/collections:$HOME/.ansible/collections:/usr/share/ansible/collections"
         continue-on-error: true
 
       - name: Upload lint report
@@ -240,15 +231,14 @@ jobs:
 
       - name: Install collection from local source
         run: |
-          mkdir -p "$GITHUB_WORKSPACE/.ansible/collections"
-          ansible-galaxy collection install . --force -p "$GITHUB_WORKSPACE/.ansible/collections"
-          ansible-galaxy collection install ansible.posix --force -p "$GITHUB_WORKSPACE/.ansible/collections"
-          ansible-galaxy collection install community.general --force -p "$GITHUB_WORKSPACE/.ansible/collections"
+          ansible-galaxy collection install . --force -p ~/.ansible/collections
+          ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
+          ansible-galaxy collection install community.general --force -p ~/.ansible/collections
         env:
-          ANSIBLE_COLLECTIONS_PATH: "${{ github.workspace }}/collections:${{ github.workspace }}/.ansible/collections:$HOME/.ansible/collections:/usr/share/ansible/collections"
+          ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
 
       - name: Set ANSIBLE_COLLECTIONS_PATH for subsequent steps
-        run: echo "ANSIBLE_COLLECTIONS_PATH=$GITHUB_WORKSPACE/collections:$GITHUB_WORKSPACE/.ansible/collections:$HOME/.ansible/collections:/usr/share/ansible/collections" >> "$GITHUB_ENV"
+        run: echo "ANSIBLE_COLLECTIONS_PATH=$HOME/.ansible/collections" >> "$GITHUB_ENV"
 
       - name: Debug scenario directory
         working-directory: ${{ matrix.scenario_dir }}
