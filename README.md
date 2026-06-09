@@ -119,7 +119,7 @@ Run a scenario from `extensions/`:
 
 ```bash
 cd /path/to/your/git/checkout/infra.ado/extensions
-molecule test -s integration_utilities_cron_full_special
+molecule test -s integration_rhel_cron_full_special
 ```
 
 ### GitHub Actions manual runs

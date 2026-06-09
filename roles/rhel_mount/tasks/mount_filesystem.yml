@@ -1,0 +1,13 @@
+---
+- name: Setting fstype fact for mounting with detected filesystem type
+  ansible.builtin.set_fact:
+    rhel_mount_fstype: "{{ rhel_mount_detected_fstype }}"
+  when: rhel_mount_detected_fstype is defined
+
+- name: Mount the filesystem (example using the detected type)
+  ansible.posix.mount:
+    path: "{{ rhel_mount_path }}"
+    src: "{{ rhel_mount_target_device }}"
+    fstype: "{{ rhel_mount_fstype }}"
+    opts: "{{ (rhel_mount_target_device is match('^/dev/')) | ternary(omit, 'loop') }}"
+    state: "{{ rhel_mount_action }}"

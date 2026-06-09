@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later-0
+---
+# defaults file for mount
+
+rhel_mount_fstype_detection: false # Set to true to enable filesystem type detection

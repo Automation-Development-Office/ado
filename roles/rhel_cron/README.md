@@ -1,0 +1,113 @@
+# Role: `rhel_cron`
+
+This Ansible role manages cron jobs, including special time-based entries (e.g., `@reboot`, `@hourly`, `@daily`) for Linux systems.
+It supports flexible addition, removal, and verification of cron jobs using Ansible variables.
+
+> **⚠️ Note:**
+> This role is intended for Linux systems with cron installed. Ensure your target hosts support cron management.
+
+## ✅ Role Requirements
+
+- Ansible >= 2.9
+- The target host must support cron and be reachable by Ansible.
+- No additional collections required.
+
+## 📦 Role Variables
+
+| Variable            | Description                                             | Required | Default  |
+|---------------------|---------------------------------------------------------|----------|----------|
+| `rhel_cron_type` | Type of cron jobs to manage (`special`, etc.)         | ❌       | `special`|
+| `rhel_cron_state`        | State of cron jobs (`present`, `absent`)                | ❌       | `present`|
+| `rhel_cron_yearly_jobs`  | List of yearly cron jobs (`[{ name, job }]`)            | ❌       | `[]`     |
+| `rhel_cron_monthly_jobs` | List of monthly cron jobs (`[{ name, job }]`)           | ❌       | `[]`     |
+| `rhel_cron_weekly_jobs`  | List of weekly cron jobs (`[{ name, job }]`)            | ❌       | `[]`     |
+| `rhel_cron_daily_jobs`   | List of daily cron jobs (`[{ name, job }]`)             | ❌       | `[]`     |
+| `rhel_cron_hourly_jobs`  | List of hourly cron jobs (`[{ name, job }]`)            | ❌       | `[]`     |
+| `rhel_cron_reboot_jobs`  | List of reboot cron jobs (`[{ name, job }]`)            | ❌       | `[]`     |
+| `rhel_cron_annual_jobs`  | List of annual cron jobs (`[{ name, job }]`)            | ❌       | `[]`     |
+
+See `defaults/main.yml` and `vars/main.yml` for all available variables.
+
+## 🚀 Usage
+
+Define the desired cron jobs in your playbook or inventory using the variables above.
+
+## 🔧 Tasks Overview
+
+- **Special Cron Jobs** (`special_crons.yml`):
+  - Manages jobs for special time entries (`@reboot`, `@hourly`, etc.) using Ansible's cron module.
+- **Main Task File** (`main.yml`):
+  - Imports and runs the appropriate cron management tasks.
+
+## 🧪 Molecule
+
+This role is tested with extension-level Molecule scenarios under `extensions/molecule/`.
+
+Scenarios:
+
+- `integration_rhel_cron_full_special`
+- `integration_rhel_cron_full_special_removal`
+- `integration_rhel_cron_single_special`
+- `integration_rhel_cron_single_special_removal`
+
+Shared playbooks are located in `extensions/molecule/utils/playbooks/` and include dedicated `prepare`, `converge`, `idempotence`, `verify`, and `destroy` flows for each scenario.
+
+### Run scenarios locally
+
+Run from the collection root using the same dependency bootstrap as CI:
+
+```bash
+cd /path/to/your/git/checkout/infra.ado
+ansible-galaxy collection install . --force -p ~/.ansible/collections
+ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
+export ANSIBLE_COLLECTIONS_PATH="$HOME/.ansible/collections:/usr/share/ansible/collections"
+```
+
+For fish shell:
+
+```fish
+set -gx ANSIBLE_COLLECTIONS_PATH "$HOME/.ansible/collections:/usr/share/ansible/collections"
+```
+
+Run scenarios from `extensions/`:
+
+```bash
+cd /path/to/your/git/checkout/infra.ado/extensions
+molecule test -s integration_rhel_cron_full_special
+molecule test -s integration_rhel_cron_full_special_removal
+molecule test -s integration_rhel_cron_single_special
+molecule test -s integration_rhel_cron_single_special_removal
+```
+
+### GitHub Actions manual runs
+
+The `Ansible Collection CI/CD` workflow exposes each cron scenario as a checkbox in `workflow_dispatch`.
+
+- Checked scenarios are included in the Molecule matrix.
+- Matrix jobs run in parallel.
+
+## 📁 Structure
+
+```
+rhel_cron/
+├── defaults/
+│   └── main.yml
+├── vars/
+│   └── main.yml
+├── tasks/
+│   ├── main.yml
+│   └── special_crons.yml
+├── handlers/
+│   └── main.yml
+├── meta/
+│   └── main.yml
+└── README.md
+```
+
+## License
+
+BSD
+
+## Author Information
+
+Automation Development Office

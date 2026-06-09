@@ -1,0 +1,19 @@
+---
+- name: Get backing file info
+  ansible.builtin.command: >
+    qemu-img info --output=json {{ vm_image_management_base_path }}
+  register: vm_image_management_info
+  changed_when: false
+
+- name: Parse backing format
+  ansible.builtin.set_fact:
+    vm_image_management_backing_format: "{{ (vm_image_management_info.stdout | from_json)['backing_filename_format'] | default('') }}"
+  changed_when: false
+
+- name: Creating qcow image from base image file
+  ansible.builtin.command: >
+    qemu-img convert -O {{ vm_image_management_format }}
+    {{ vm_image_management_base_path }}
+    {{ vm_image_management_dest_path }}
+  args:
+    creates: "{{ vm_image_management_dest_path }}"

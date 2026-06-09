@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# defaults file for gitlab_install
+
+state: present
+name_space: ""
+gitlab_install_validate_certs: false
+gitlab_install_hostname: ""
+gitlab_install_storage_size: ""
+gitlab_install_storage_class: ""
+gitlab_install_tls_crt: ""
+gitlab_install_tls_key: ""
+gitlab_install_admin_user: admin
+gitlab_install_admin_password: ""
+gitlab_install_root_password: ""
+gitlab_install_chart_version: "9.4.0"

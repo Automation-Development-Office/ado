@@ -1,0 +1,10 @@
+---
+- name: Destroy - rhel_ext_system_roles scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Destroy step is intentionally minimal
+      ansible.builtin.debug:
+        msg: "No explicit destroy actions required for rhel_ext_system_roles."

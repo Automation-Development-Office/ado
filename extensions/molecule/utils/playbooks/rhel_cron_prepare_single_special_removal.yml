@@ -1,0 +1,15 @@
+---
+- name: Prepare - rhel_cron single special removal scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Seed yearly test cron job before removal converge # noqa: var-naming[no-role-prefix]
+      ansible.builtin.include_role:
+        name: infra.ado.rhel_cron
+      vars:
+        rhel_cron_type: special
+        rhel_cron_state: present
+        rhel_cron_yearly_jobs:
+          - { name: "yearly_test", job: "test" }

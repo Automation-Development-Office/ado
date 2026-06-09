@@ -1,0 +1,21 @@
+- name: Normalize grafana_manage_folders variables
+  ansible.builtin.set_fact:
+    grafana_manage_folders_state: >-
+      {{ grafana_manage_folders_state | default(state | default('present')) }}
+    grafana_manage_folders_name: >-
+      {{ grafana_manage_folders_name | default(grafana_folder | default('General')) }}
+    grafana_manage_folders_hostname: >-
+      {{ grafana_manage_folders_hostname | default(grafana_hostname | default('')) }}
+    grafana_manage_folders_api_key: >-
+      {{
+        grafana_manage_folders_api_key
+        | default(
+            grafana_api_key | default(grafana_admin_password | default(''))
+          )
+      }}
+    grafana_manage_folders_overwrite: >-
+      {{ grafana_manage_folders_overwrite | default(grafana_folder_overwrite | default(true)) }}
+
+- name: Create grafana folder
+  ansible.builtin.import_tasks: grafana-manage-folder.yml
+  when: grafana_manage_folders_state == "present"

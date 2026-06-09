@@ -1,0 +1,23 @@
+---
+- name: Converge - rhel_ext_system_roles scenario
+  hosts: localhost
+  become: true
+  gather_facts: false
+
+  # tasks:
+  #   - name: Apply selected RHEL System Roles via wrapper
+  #     ansible.builtin.include_role:
+  #       name: infra.ado.rhel_ext_system_roles
+  #     vars:
+  #       sr_apply:
+  #         - timesync
+  #         - selinux
+  #         - cockpit
+  #       sr_vars:
+  #         timesync:
+  #           timesync_ntp_servers:
+  #             - hostname: 0.rhel.pool.ntp.org
+  #               iburst: true
+  #         selinux:
+  #           selinux_state: permissive
+  #           selinux_policy: targeted

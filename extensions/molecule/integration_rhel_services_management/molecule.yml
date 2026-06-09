@@ -1,0 +1,25 @@
+---
+platforms:
+  - name: na
+
+provisioner:
+  name: ansible
+  playbooks:
+    converge: ../utils/playbooks/rhel_services_management_converge.yml
+    destroy: ../utils/playbooks/rhel_services_management_destroy.yml
+    verify: ../utils/playbooks/rhel_services_management_verify.yml
+    prepare: ../utils/playbooks/rhel_services_management_prepare.yml
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}"
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+
+scenario:
+  test_sequence:
+    - prepare
+    - converge
+    - idempotence
+    - verify
+  destroy_sequence:
+    - destroy

@@ -1,0 +1,12 @@
+---
+- name: Converge - jira scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Converge - no-op for offline CI
+      ansible.builtin.debug:
+        msg: >-
+          jira converge is intentionally a no-op in CI because
+          the role calls external Jira APIs.
