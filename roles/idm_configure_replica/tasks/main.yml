@@ -1,13 +1,13 @@
 - name: Add IdM configure replica entry
   ansible.builtin.assert:
     that:
-      - idm_configure_replica_state in ["present", "absent"]
-      - idm_configure_replica_hostname | length > 0
-      - idm_configure_replica_domain | length > 0
-      - idm_configure_replica_realm | length > 0
-      - idm_configure_replica_server | length > 0
-      - idm_configure_replica_state == "absent" or idm_configure_replica_dm_password | length > 0
-      - idm_configure_replica_state == "absent" or idm_configure_replica_admin_password | length > 0
+      - idm_configure_replica_state | default('present') in ["present", "absent"]
+      - idm_configure_replica_hostname | default('') | length > 0
+      - idm_configure_replica_domain | default('') | length > 0
+      - idm_configure_replica_realm | default('') | length > 0
+      - idm_configure_replica_server | default('') | length > 0
+      - idm_configure_replica_state | default('present') == "absent" or idm_configure_replica_dm_password | default('') | length > 0
+      - idm_configure_replica_state | default('present') == "absent" or idm_configure_replica_admin_password | default('') | length > 0
     fail_msg: >-
       Invalid idm_configure_replica inputs. For present state, provide
       idm_configure_replica_hostname, idm_configure_replica_domain, idm_configure_replica_realm,

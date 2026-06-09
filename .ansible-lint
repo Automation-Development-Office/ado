@@ -35,3 +35,4 @@ mock_modules:
   - redhat.openshift_virtualization.kubevirt_vm
   - community.crypto.openssh_keypair
   - grafana.grafana.folder
+  - grafana.grafana.dashboard

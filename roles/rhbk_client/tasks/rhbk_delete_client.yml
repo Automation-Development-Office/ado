@@ -1,0 +1,50 @@
+- name: Login to Keycloak and get admin token
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+    body_format: form-urlencoded
+    body:
+      grant_type: password
+      client_id: admin-cli
+      username: "{{ rhbk_admin_user }}"
+      password: "{{ rhbk_admin_password }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+    return_content: true
+  register: rhbk_client_auth
+
+- name: Ensure admin token was retrieved successfully
+  ansible.builtin.fail:
+    msg: "Failed to obtain RHBK access token."
+  when: rhbk_client_auth is not defined or rhbk_client_auth.json is not defined or rhbk_client_auth.json.access_token is not defined
+
+- name: Lookup Keycloak client by clientId
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/clients?clientId={{ rhbk_client_id }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ rhbk_client_auth.json.access_token }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+    return_content: true
+    status_code: [200, 404]
+  register: rhbk_client_lookup
+
+- name: Set fact for client UUID
+  ansible.builtin.set_fact:
+    rhbk_client_uuid: "{{ rhbk_client_lookup.json[0].id }}"
+  when:
+    - rhbk_client_lookup.status == 200
+    - rhbk_client_lookup.json is defined
+    - rhbk_client_lookup.json | length > 0
+
+- name: Delete Keycloak client if it exists
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/clients/{{ rhbk_client_uuid }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ rhbk_auth.json.access_token }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+    status_code: [204, 404]
+  when: rhbk_client_uuid is defined
+  register: rhbk_client_delete_result
