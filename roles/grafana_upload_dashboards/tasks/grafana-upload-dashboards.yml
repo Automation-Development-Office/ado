@@ -1,0 +1,34 @@
+- name: Render dashboard templates to /tmp
+  ansible.builtin.template:
+    src: "{{ item.template }}"
+    dest: "/tmp/{{ item.name }}.json"
+    mode: '0644'
+  loop: "{{ grafana_dashboards }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    grafana_dashboard: "{{ item.name }}"
+
+- name: Replace datasource with Openshift in rendered JSON
+  ansible.builtin.replace:
+    path: "/tmp/{{ item.name }}.json"
+    regexp: '"datasource"\s*:\s*".*?"'
+    replace: '"datasource": "{{ grafana_datasource }}"'
+  loop: "{{ grafana_dashboards }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Import Grafana dashboard
+  community.grafana.grafana_dashboard:
+    url: "https://{{ grafana_hostname }}"
+    url_username: "{{ grafana_admin_user }}"
+    url_password: "{{ grafana_admin_password }}"
+    state: "{{ state | default('present') }}"
+    commit_message: "Updated by Ansible"
+    overwrite: true
+    folder: "{{ grafana_folder }}"
+    path: "/tmp/{{ item.name }}.json"
+    validate_certs: "false"
+  loop: "{{ grafana_dashboards }}"
+  loop_control:
+    label: "{{ item.name }}"
