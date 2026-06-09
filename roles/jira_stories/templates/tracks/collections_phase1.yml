@@ -1,0 +1,98 @@
+template_stories_collections_phase1:
+
+  - story_summary: "Collections - {{ group }}: Role {{ role_name }} - Phase 1: Kickoff, Design, Build, and Test"
+    story_description: |
+      *As a:* Platform / Automation Engineer  
+      *I want to:* Design and build a reusable, well-tested Ansible role for {{ role_name }}  
+      *So that:* teams can reliably automate {{ role_name }} using GitOps or AAP.
+
+      Notes / Context:
+      This phase focuses on kickoff/alignment, confirming framework standards, designing the role interface,
+      implementing core logic, and building tests and documentation so the role is consumable and repeatable.
+
+      *Definition of Done:*
+      - Kickoff held with requestor and scope confirmed
+      - Quick architect sync completed to confirm alignment with collection framework patterns
+      - Role structure follows collection standards
+      - Defaults are safe and documented
+      - Role is idempotent
+      - Molecule tests pass
+      - Example usage is provided
+
+    custom_ac: |
+      * Kickoff completed with requestor; scope and success criteria documented
+      * Architect sync completed; framework alignment confirmed (vars, patterns, idempotency, module usage)
+      * Role structure created following collection conventions
+      * Defaults support common and edge use cases
+      * Role executes idempotently (no changes on re-run)
+      * Molecule tests pass locally and in CI
+      * ansible-lint passes or exceptions documented
+      * Example playbook included
+
+    labels:
+      - "collections"
+      - "automation"
+      - "{{ jira_stories_section }}"
+
+    subtasks:
+      - summary: "Kickoff with requestor to confirm scope, success criteria, and constraints"
+        description: |
+          *As a:* Platform / Automation Engineer  
+          *I want to:* Meet with the requestor to confirm scope, success criteria, and constraints  
+          *So that:* the role is built to the right requirements and avoids rework.
+
+          Notes / Context:
+          Capture inputs/outputs, expected behavior, edge cases, environment assumptions, and deadlines.
+        labels: ["collections", "automation", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Quick architect sync to confirm collection framework alignment"
+        description: |
+          *As a:* Platform / Automation Engineer  
+          *I want to:* Sync with an architect/SME to confirm we are staying aligned with the collection framework  
+          *So that:* patterns, variable design, idempotency, and module choices match standards.
+
+          Notes / Context:
+          Confirm: interface/vars, defaults strategy, state handling, error handling, FQCN modules, and test approach.
+        labels: ["collections", "automation", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Create role skeleton and defaults"
+        description: |
+          *As a:* Platform / Automation Engineer  
+          *I want to:* Create the role skeleton and safe defaults  
+          *So that:* the role follows collection standards and is easy to consume.
+        labels: ["collections", "automation", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Implement core role logic"
+        description: |
+          *As a:* Platform / Automation Engineer  
+          *I want to:* Implement core automation logic for {{ role_name }}  
+          *So that:* the role performs the intended automation reliably.
+        labels: ["collections", "automation", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Ensure idempotency and error handling"
+        description: |
+          *As a:* Platform / Automation Engineer  
+          *I want to:* Ensure idempotency and strong error handling  
+          *So that:* reruns do not cause drift and failures are actionable.
+        labels: ["collections", "automation", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Create Molecule scenario and tests"
+        description: |
+          *As a:* Platform / Automation Engineer  
+          *I want to:* Add Molecule tests  
+          *So that:* the role is validated automatically and regressions are prevented.
+        labels: ["collections", "automation", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Add example playbook and documentation"
+        description: |
+          *As a:* Platform / Automation Engineer  
+          *I want to:* Provide example usage and documentation  
+          *So that:* consumers can adopt the role quickly and correctly.
+        labels: ["collections", "automation", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
