@@ -1,0 +1,42 @@
+- name: Render dashboard templates to /tmp
+  ansible.builtin.template:
+    src: "{{ item.template }}"
+    dest: "/tmp/{{ item.name }}.json"
+    mode: '0644'
+  loop: "{{ grafana_dashboards }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    grafana_dashboard: "{{ item.name }}"
+
+- name: Replace datasource with Openshift in rendered JSON
+  ansible.builtin.replace:
+    path: "/tmp/{{ item.name }}.json"
+    regexp: '"datasource"\s*:\s*".*?"'
+    replace: '"datasource": "{{ grafana_datasource }}"'
+  loop: "{{ grafana_dashboards }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Import Grafana dashboard
+  grafana.grafana.dashboard:
+    grafana_url: "https://{{ grafana_hostname }}"
+    grafana_api_key: "{{ grafana_api_key }}"
+    state: "{{ state | default('present') }}"
+    dashboard: "{{ grafana_dashboard_payload }}"
+  loop: "{{ grafana_dashboards }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    rendered_dashboard_json: >-
+      {{ lookup('ansible.builtin.file', '/tmp/%s.json' | format(item.name)) | from_json }}
+    grafana_dashboard_payload: >-
+      {{
+        rendered_dashboard_json
+        if (rendered_dashboard_json.dashboard is defined)
+        else {
+          'dashboard': rendered_dashboard_json,
+          'overwrite': true,
+          'message': 'Updated by Ansible'
+        }
+      }}
