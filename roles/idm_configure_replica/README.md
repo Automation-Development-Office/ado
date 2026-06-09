@@ -12,18 +12,31 @@ This role currently performs:
 - `redhat.rhel_idm` collection available
 - Environment prerequisites for IdM replica installation (DNS/time/network/connectivity and upstream IdM requirements)
 
-## Role Variables
+## Dependencies
+
+- Role dependencies: none (`dependencies: []` in `meta/main.yml`)
+- Required collection dependency:
+  - `redhat.rhel_idm`
+
+Example `requirements.yml` snippet for copy/paste:
+
+```yaml
+collections:
+  - name: redhat.rhel_idm
+```
+
+## Variables
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
 | `idm_configure_replica_state` | no | `present` | Desired state (`present` or `absent`). |
-| `idm_configure_replica_hostname` | yes | `""` | Replica host FQDN/hostname passed to module. |
-| `idm_configure_replica_domain` | yes | `""` | IdM DNS domain. |
-| `idm_configure_replica_realm` | yes | `""` | Kerberos realm for IdM. |
-| `idm_configure_replica_server` | yes | `""` | Existing IdM server used for replica enrollment. |
-| `idm_configure_replica_principal` | no | `""` | Principal for authenticated enrollment flows (omitted when empty). |
-| `idm_configure_replica_admin_password` | yes for `present` | `""` | IdM admin password (`password`). |
-| `idm_configure_replica_dm_password` | yes for `present` | `""` | Directory Manager password (`dm_password`). |
+| `idm_configure_replica_hostname` | yes | none | Replica host FQDN/hostname passed to module. |
+| `idm_configure_replica_domain` | yes | none | IdM DNS domain. |
+| `idm_configure_replica_realm` | yes | none | Kerberos realm for IdM. |
+| `idm_configure_replica_server` | yes | none | Existing IdM server used for replica enrollment. |
+| `idm_configure_replica_principal` | no | none | Principal for authenticated enrollment flows (omitted when undefined/empty). |
+| `idm_configure_replica_admin_password` | yes for `present` | none | IdM admin password (`password`). |
+| `idm_configure_replica_dm_password` | yes for `present` | none | Directory Manager password (`dm_password`). |
 | `idm_configure_replica_setup_dns` | no | `false` | Whether to configure integrated DNS on replica. |
 | `idm_configure_replica_setup_ca` | no | `false` | Whether to configure CA services on replica. |
 | `idm_configure_replica_no_host_dns` | no | `false` | Disable host DNS checks. |
