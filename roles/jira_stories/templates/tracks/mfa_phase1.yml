@@ -1,0 +1,62 @@
+template_stories_mfa_phase1:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: MFA Readiness, Design, and Enablement"
+    story_description: |
+      *As a:* "{{ role_name }}"
+      *I want to:* Design and enable MFA for OpenShift authentication
+      *So that:* access is secured while maintaining usability and operational clarity.
+
+      Notes / Context:
+      This phase validates prerequisites, confirms identity architecture,
+      enables MFA, and ensures authentication flows function as expected.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * MFA use cases and scope defined
+      * Identity provider and RBAC model reviewed
+      * Certificate and trust requirements documented
+      * Network and redirect flows validated
+      * MFA enabled and enforced per design
+      * Automation approach documented
+      * Gaps and risks captured and tracked
+
+    labels:
+      - "{{ product }}"
+      - "{{ jira_stories_section }}"
+
+    subtasks:
+      - summary: "Conduct MFA readiness and architecture workshop"
+        description: |
+          Validate MFA requirements, scope, stakeholders, and success criteria.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Validate identity provider, RBAC, and access model"
+        description: |
+          Validate identity provider integration, RBAC mapping, and user access expectations.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Review certificate, trust, and redirect requirements"
+        description: |
+          Validate certificate chains, redirect URIs, OAuth/OIDC requirements, and trust stores.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Validate network flows and DNS"
+        description: |
+          Validate DNS, ingress, redirect, and identity provider connectivity paths.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Enable and configure MFA"
+        description: |
+          Configure MFA using the approved identity and access architecture.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"
+
+      - summary: "Validate authentication flows and failure scenarios"
+        description: |
+          Validate successful MFA login, failure scenarios, fallback expectations, and user experience.
+        labels: ["{{ product }}", "{{ jira_stories_section }}"]
+        component: "{{ group }}"

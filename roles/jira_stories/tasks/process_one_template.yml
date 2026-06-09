@@ -1,0 +1,117 @@
+---
+- name: Jira | Set section for this template batch
+  ansible.builtin.set_fact:
+    jira_stories_section: "{{ tmpl.section }}"
+    jira_stories_section_name: "{{ tmpl.section }}"
+
+- name: Jira | Load template vars into isolated namespace
+  ansible.builtin.include_vars:
+    file: "{{ tmpl.file }}"
+    name: _jira_template
+
+- name: Jira | Resolve stories list from current template only
+  ansible.builtin.set_fact:
+    jira_stories_loaded_stories: >-
+      {{
+        _jira_template.template_stories
+          | default(_jira_template.template_stories_phase1)
+          | default(_jira_template.template_stories_phase2)
+          | default(_jira_template.template_stories_phase3)
+          | default(_jira_template.template_stories_phase4)
+          | default(_jira_template.template_stories_day2)
+          | default(_jira_template.template_stories_spike)
+          | default(_jira_template.template_stories_bugfix)
+          | default(_jira_template.template_stories_feature)
+          | default(_jira_template.template_stories_collections_phase1)
+          | default(_jira_template.template_stories_collections_phase2)
+          | default(_jira_template.template_stories_mfa_phase1)
+          | default(_jira_template.template_stories_mfa_phase2)
+          | default([])
+      }}
+
+- name: Jira | Assert template contains at least 1 story
+  ansible.builtin.assert:
+    that:
+      - jira_stories_loaded_stories | length > 0
+    fail_msg: "No stories found in template {{ tmpl.file }}."
+
+- name: Jira | Dry run stories
+  when: jira_stories_dry_run | default(false) | bool
+  ansible.builtin.debug:
+    msg:
+      summary: "{{ story.story_summary }}"
+      labels: "{{ story.labels | default([]) }}"
+      subtask_count: "{{ story.subtasks | default([]) | length }}"
+  loop: "{{ jira_stories_loaded_stories }}"
+  loop_control:
+    loop_var: story
+    label: "{{ story.story_summary }}"
+
+- name: Jira | Create stories
+  when: not (jira_stories_dry_run | default(false) | bool)
+  community.general.jira:
+    uri: "{{ jira_url }}"
+    username: "{{ jira_username }}"
+    password: "{{ jira_token }}"
+    project: "{{ jira_project_key }}"
+    operation: create
+    summary: "{{ story.story_summary }}"
+    description: "{{ story.story_description }}"
+    issuetype: "{{ jira_stories_story_issuetype | default('Story') }}"
+    fields: >-
+      {{
+        {
+          'labels': story.labels | default([]),
+          'components': [{'name': story.component | default(group)}]
+        }
+        | combine(
+            (
+              jira_stories_custom_ac_field is defined
+              and jira_stories_custom_ac_field | length > 0
+            )
+            | ternary(
+                { (jira_stories_custom_ac_field): (story.custom_ac | default('')) },
+                {}
+              )
+          )
+        | combine(
+            (
+              jira_stories_feature_field is defined
+              and jira_stories_feature_field | length > 0
+              and jira_stories_feature_key is defined
+              and jira_stories_feature_key | length > 0
+            )
+            | ternary(
+                { (jira_stories_feature_field): jira_stories_feature_key },
+                {}
+              )
+          )
+      }}
+  loop: "{{ jira_stories_loaded_stories }}"
+  loop_control:
+    loop_var: story
+    label: "{{ story.story_summary }}"
+  register: jira_stories_created_stories
+
+- name: Jira | Create subtasks
+  when:
+    - jira_stories_create_subtasks | default(true) | bool
+    - not (jira_stories_dry_run | default(false) | bool)
+  community.general.jira:
+    uri: "{{ jira_url }}"
+    username: "{{ jira_username }}"
+    password: "{{ jira_token }}"
+    project: "{{ jira_project_key }}"
+    operation: create
+    summary: "{{ item.1.summary }}"
+    description: "{{ item.1.description | default(item.1.summary) }}"
+    issuetype: "{{ jira_stories_subtask_issuetype | default('Sub-task') }}"
+    fields:
+      parent:
+        key: "{{ item.0.meta.key }}"
+      labels: "{{ item.1.labels | default(item.0.story.labels | default([])) }}"
+      components:
+        - name: "{{ item.1.component | default(item.0.story.component | default(group)) }}"
+  loop: "{{ jira_stories_created_stories.results | subelements('story.subtasks', skip_missing=True) }}"
+  loop_control:
+    label: "{{ item.0.meta.key }} / {{ item.1.summary }}"
