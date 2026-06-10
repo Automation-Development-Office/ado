@@ -4,13 +4,11 @@
     manager: auto
 
 - name: install_satellite | Checking if services are running
-  ansible.builtin.command: satellite-maintain service status
+  ansible.builtin.shell: "satellite-maintain service status |grep foreman"
   ignore_errors: true
   register: platform_satellite_install_service
   changed_when: false
 
-# TODO look for warnings and decide to stop/continue (disk speed)
-# Check installer_output.std_err and std_out
 - name: Block if satellite is not installed
   when: platform_satellite_install_service.rc != 0
   block:
