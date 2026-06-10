@@ -1,0 +1,12 @@
+- name: Remove OIDC Identity Provider (Microsoft Entra ID)
+  community.general.keycloak_identity_provider:
+    state: absent
+    auth_keycloak_url: "https://{{ rhbk_host }}"
+    auth_realm: master
+    auth_username: "{{ rhbk_admin_user }}"
+    auth_password: "{{ rhbk_admin_password }}"
+    realm: "{{ rhbk_realm }}"
+    alias: "{{ entra_idp_alias }}"
+    provider_id: oidc
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  delegate_to: localhost
