@@ -45,5 +45,5 @@ mock_modules:
   - redhat.rhbk.keycloak_role_mapping
   - redhat.rhbk.keycloak_user_role_mapping
   - redhat.rhbk.keycloak_user_group_mapping
-  -redhat.rhbk.keycloak_client_scope
-  -redhat.rhbk.keycloak_client_scope_group_mapper
+  - redhat.rhbk.keycloak_client_scope
+  - redhat.rhbk.keycloak_client_scope_group_mapper
