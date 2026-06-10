@@ -1,8 +1,9 @@
 - name: Ensure LDAP federation provider exists
-  community.general.keycloak_user_federation:
-    keycloak_url: "https://{{ rhbk_host }}/"
-    keycloak_user: "{{ rhbk_admin_user }}"
-    keycloak_password: "{{ rhbk_admin_password }}"
+  redhat.rhbk.keycloak_user_federation:
+    auth_keycloak_url: "https://{{ rhbk_host }}"
+    auth_realm: master
+    auth_username: "{{ rhbk_admin_user }}"
+    auth_password: "{{ rhbk_admin_password }}"
     realm: "{{ rhbk_realm }}"
     provider_id: ldap
     name: "{{ rhbk_federation_name }}"

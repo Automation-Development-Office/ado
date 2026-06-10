@@ -1,66 +1,12 @@
-- name: Login to RHBK and get admin token
-  ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/realms/master/protocol/openid-connect/token"
-    method: POST
-    headers:
-      Content-Type: "application/x-www-form-urlencoded"
-    body_format: form-urlencoded
-    body:
-      grant_type: password
-      client_id: admin-cli
-      username: "{{ rhbk_admin_user }}"
-      password: "{{ rhbk_admin_password }}"
+- name: Ensure LDAP federation provider is absent
+  redhat.rhbk.keycloak_user_federation:
+    auth_keycloak_url: "https://{{ rhbk_host }}"
+    auth_realm: master
+    auth_username: "{{ rhbk_admin_user }}"
+    auth_password: "{{ rhbk_admin_password }}"
+    realm: "{{ rhbk_realm }}"
+    provider_id: ldap
+    name: "{{ rhbk_federation_name }}"
+    state: absent
     validate_certs: "{{ rhbk_verify_ssl }}"
-    return_content: true
-  register: rhbk_setup_federation_auth
-
-- name: Check if realm exists
-  ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}"
-    method: GET
-    headers:
-      Authorization: "Bearer {{ rhbk_setup_federation_auth.json.access_token }}"
-    return_content: true
-    validate_certs: "{{ rhbk_verify_ssl }}"
-    status_code: [200, 404]
-  register: rhbk_setup_federation_realm_check
-
-- name: Skip federation deletion if realm doesn't exist
-  ansible.builtin.meta: end_play
-  when: rhbk_setup_federation_realm_check.status == 404
-  vars:
-    ansible_skip_reason: "Realm '{{ rhbk_realm }}' not found. Skipping LDAP federation deletion."
-
-- name: Get all federation components for realm
-  ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/components"
-    method: GET
-    params:
-      parent: "{{ rhbk_setup_federation_realm_check.json.id }}"
-      type: "org.keycloak.storage.UserStorageProvider"
-    headers:
-      Authorization: "Bearer {{ rhbk_setup_federation_auth.json.access_token }}"
-    return_content: true
-    validate_certs: "{{ rhbk_verify_ssl }}"
-  register: rhbk_setup_federation_federation_components
-
-- name: Set fact for LDAP federation component ID
-  ansible.builtin.set_fact:
-    rhbk_setup_federation_ldap_component_id: >-
-      {{
-        (rhbk_setup_federation_federation_components.json
-          | selectattr('name', 'equalto', 'IDM')
-          | list
-        )[0].id
-      }}
-  when: rhbk_setup_federation_federation_components.json | selectattr('name', 'equalto', 'IDM') | list | length > 0
-
-- name: Delete LDAP federation component
-  ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/components/{{ rhbk_setup_federation_ldap_component_id }}"
-    method: DELETE
-    headers:
-      Authorization: "Bearer {{ rhbk_setup_federation_auth.json.access_token }}"
-    validate_certs: "{{ rhbk_verify_ssl }}"
-    status_code: [204, 404]
-  when: rhbk_setup_federation_ldap_component_id is defined
+  register: rhbk_setup_federation_ldap_provider_absent
