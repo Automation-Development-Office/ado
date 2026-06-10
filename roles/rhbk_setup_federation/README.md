@@ -10,14 +10,14 @@ Automation Development Office.
 
 - Reachable Red Hat build of Keycloak endpoint.
 - Admin credentials with permission to manage realm federation components.
-- `community.general` collection for `community.general.keycloak_user_federation`.
+- `redhat.rhbk` collection for `redhat.rhbk.keycloak_user_federation`.
 
 ## 📦 Role Variables
 
 Required runtime variables:
 
 - `state` (`present` to create federation, `absent` to remove federation).
-- `rhbk_host` (RHBK host used by URI and Keycloak module calls).
+- `rhbk_host` (RHBK host used by federation module calls).
 - `rhbk_admin_user` (admin username).
 - `rhbk_admin_password` (admin password).
 - `rhbk_realm` (target realm name).
@@ -30,8 +30,8 @@ Create path variables (`state: present`):
 
 Delete path behavior (`state: absent`):
 
-- Finds and removes the LDAP federation component named `IDM` when present.
-- Skips deletion cleanly when the target realm does not exist.
+- Removes the LDAP federation provider named by `rhbk_federation_name`.
+- Uses the same `redhat.rhbk.keycloak_user_federation` module flow as create path.
 
 Notes:
 
@@ -53,8 +53,7 @@ Notes:
         rhbk_verify_ssl: false
         rhbk_federation_name: IDM
         ldap_config:
-          enabled:
-            - "true"
+          enabled: true
 ```
 
 ## 🧪 Role Molecule Testing
