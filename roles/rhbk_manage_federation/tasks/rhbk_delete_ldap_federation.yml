@@ -9,4 +9,4 @@
     name: "{{ rhbk_federation_name }}"
     state: absent
     validate_certs: "{{ rhbk_verify_ssl }}"
-  register: rhbk_setup_federation_ldap_provider_absent
+  register: rhbk_manage_federation_ldap_provider_absent
