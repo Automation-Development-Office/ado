@@ -1,4 +1,4 @@
-# Role: infra.ado.rhbk_setup_federation
+# Role: infra.ado.rhbk_manage_federation
 
 Create and remove LDAP federation providers in Red Hat build of Keycloak.
 
@@ -43,7 +43,7 @@ Notes:
 - hosts: localhost
   gather_facts: false
   roles:
-    - role: infra.ado.rhbk_setup_federation
+    - role: infra.ado.rhbk_manage_federation
       vars:
         state: present
         rhbk_host: rhbk.example.com
@@ -64,7 +64,7 @@ current repository layout.
 ## 📁 Role Structure
 
 ```text
-rhbk_setup_federation/
+rhbk_manage_federation/
 ├── defaults/
 │   └── main.yml
 ├── handlers/
@@ -74,8 +74,8 @@ rhbk_setup_federation/
 ├── README.md
 ├── tasks/
 │   ├── main.yml
-│   ├── rhbk_setup_ldap_federation.yml
-│   └── rhbk_remove_ldap_federation.yml
+│   ├── rhbk_manage_ldap_federation.yml
+│   └── rhbk_delete_ldap_federation.yml
 └── vars/
     └── main.yml
 ```

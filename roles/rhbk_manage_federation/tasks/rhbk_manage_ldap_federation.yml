@@ -10,4 +10,4 @@
     config: "{{ ldap_config }}"
     state: present
     validate_certs: "{{ rhbk_verify_ssl }}"
-  register: rhbk_setup_federation_ldap_provider
+  register: rhbk_manage_federation_ldap_provider

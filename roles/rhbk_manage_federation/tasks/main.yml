@@ -1,0 +1,7 @@
+- name: Create RHBK federation
+  ansible.builtin.import_tasks: rhbk_manage_ldap_federation.yml
+  when: state == "present"
+
+- name: Delete RHBK federation
+  ansible.builtin.import_tasks: rhbk_delete_ldap_federation.yml
+  when: state == "absent"
