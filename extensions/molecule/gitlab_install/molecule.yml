@@ -1,0 +1,24 @@
+---
+platforms:
+  - name: na
+
+provisioner:
+  name: ansible
+  playbooks:
+    converge: ../utils/playbooks/gitlab_install_converge.yml
+    destroy: ../utils/playbooks/noop.yml
+    verify: ../utils/playbooks/gitlab_install_verify.yml
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}"
+    K8S_AUTH_API_KEY: "${K8S_AUTH_API_KEY}"
+    K8S_AUTH_HOST: "${K8S_AUTH_HOST}"
+    K8S_AUTH_VERIFY_SSL: "${K8S_AUTH_VERIFY_SSL}"
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+
+scenario:
+  test_sequence:
+    - verify
+  destroy_sequence:
+    - destroy

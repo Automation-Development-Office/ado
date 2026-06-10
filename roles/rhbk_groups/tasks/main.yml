@@ -1,0 +1,7 @@
+- name: Create RHBK group
+  ansible.builtin.import_tasks: rhbk_create_group.yml
+  when: state == "present"
+
+- name: Delete RHBK group
+  ansible.builtin.import_tasks: rhbk_remove_group.yml
+  when: state == "absent"

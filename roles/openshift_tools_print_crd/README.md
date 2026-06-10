@@ -17,7 +17,7 @@ during installs and makes operator/app bundles safe to apply in one shot.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -63,7 +63,7 @@ during installs and makes operator/app bundles safe to apply in one shot.
 
 ---
 
-## Molecule
+## Molecule Testing
 
 A default Molecule scenario is included and focuses on ordering + idempotence:
 

@@ -13,7 +13,7 @@ Manage an AWS PCA-backed `AWSPCAClusterIssuer` and the credentials Secret it dep
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -53,7 +53,7 @@ Manage an AWS PCA-backed `AWSPCAClusterIssuer` and the credentials Secret it dep
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

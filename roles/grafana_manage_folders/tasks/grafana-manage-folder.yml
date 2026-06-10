@@ -1,0 +1,8 @@
+- name: Create/Update a Folder in Grafana
+  grafana.grafana.folder:
+    title: "{{ grafana_manage_folders_name }}"
+    uid: "{{ grafana_manage_folders_name }}-folder"
+    grafana_url: "https://{{ grafana_manage_folders_hostname }}"
+    grafana_api_key: "{{ grafana_manage_folders_api_key }}"
+    overwrite: "{{ grafana_manage_folders_overwrite }}"
+    state: "{{ grafana_manage_folders_state }}"

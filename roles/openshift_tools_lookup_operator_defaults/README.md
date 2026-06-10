@@ -1,6 +1,6 @@
 # Role: ado.openshift.lookup_operator_defaults
 
-Lookup recommended **operator defaults** for a given application name (e.g., suggested operator package/channel/catalog settings).  
+Lookup recommended **operator defaults** for a given application name (e.g., suggested operator package/channel/catalog settings).
 This role is **read-only** and does not create or modify any cluster resources.
 
 - Deterministic lookup based on `app_name`
@@ -16,7 +16,7 @@ This role is **read-only** and does not create or modify any cluster resources.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable   | Description                                   |
 |------------|-----------------------------------------------|
@@ -49,7 +49,7 @@ This role is **read-only** and does not create or modify any cluster resources.
 
 ---
 
-## Molecule
+## Molecule Testing
 
 A default Molecule scenario is included and validates:
 ```
@@ -60,7 +60,7 @@ No `destroy` step is needed since the role is read-only.
 ---
 
 ## Author
-- Chad Elliott (<chelliot@redhat.com>) 
+- Chad Elliott (<chelliot@redhat.com>)
 
 ---
 

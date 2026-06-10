@@ -1,0 +1,22 @@
+---
+- name: Destroy kafka_install resources
+  hosts: localhost
+  gather_facts: false
+  vars:
+    operator_name: confluent-for-kubernetes
+    operator_channel: stable
+    operator_source: certified-operators
+    operator_source_namespace: openshift-marketplace
+    operator_subscription_namespace: openshift-operators
+    name_space: cfk-operator
+    kafka_install_create_cr: false
+    kafka_install_cluster_name: kafka-cluster
+  tasks:
+    - name: Remove Kafka CR when created during testing
+      kubernetes.core.k8s:
+        state: absent
+        api_version: platform.confluent.io/v1beta1
+        kind: Kafka
+        name: "{{ kafka_install_cluster_name }}"
+        namespace: "{{ name_space }}"
+      when: kafka_install_create_cr | default(false) | bool

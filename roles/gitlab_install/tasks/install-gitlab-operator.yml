@@ -1,0 +1,87 @@
+---
+- name: Create GitLab TLS Secret
+  kubernetes.core.k8s:
+    validate_certs: "{{ gitlab_install_validate_certs }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: gitlab-tls-secret
+        namespace: "{{ name_space }}"
+      type: kubernetes.io/tls
+      stringData:
+        tls.crt: "{{ gitlab_install_tls_crt }}"
+        tls.key: "{{ gitlab_install_tls_key }}"
+
+- name: Create GitLab Root Password Secret
+  kubernetes.core.k8s:
+    validate_certs: "{{ gitlab_install_validate_certs }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: gitlab-root-password-secret
+        namespace: "{{ name_space }}"
+      type: Opaque
+      stringData:
+        password: "{{ gitlab_install_root_password }}"
+  no_log: true
+
+- name: Create GitLab DB Secret
+  kubernetes.core.k8s:
+    validate_certs: "{{ gitlab_install_validate_certs }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: gitlab-db-secret
+        namespace: "{{ name_space }}"
+      type: Opaque
+      stringData:
+        POSTGRES_USER: "{{ gitlab_install_admin_user }}"
+        POSTGRES_PASSWORD: "{{ gitlab_install_admin_password }}"
+  no_log: true
+
+- name: Deploy GitLab Custom Resource (Operator/Helm)
+  kubernetes.core.k8s:
+    validate_certs: "{{ gitlab_install_validate_certs }}"
+    definition:
+      apiVersion: apps.gitlab.com/v1beta1
+      kind: GitLab
+      metadata:
+        name: gitlab
+        namespace: "{{ name_space }}"
+      spec:
+        chart:
+          version: "{{ gitlab_install_chart_version }}"
+        certmanager:
+          install: false
+        gitlab:
+          rootPassword:
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-root-password-secret
+                key: password
+        router:
+          tls:
+            secretName: gitlab-tls-secret
+          hostname: "{{ gitlab_install_hostname }}"
+        postgresql:
+          enabled: false
+          host: gitlab-postgresql
+          username:
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-db-secret
+                key: POSTGRES_USER
+          password:
+            valueFrom:
+              secretKeyRef:
+                name: gitlab-db-secret
+                key: POSTGRES_PASSWORD
+          database: gitlabhq_production
+        persistence:
+          enabled: true
+          storage:
+            size: "{{ gitlab_install_storage_size }}"
+            class: "{{ gitlab_install_storage_class }}"

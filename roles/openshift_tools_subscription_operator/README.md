@@ -18,7 +18,7 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -119,7 +119,7 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 
 ---
 
-## Molecule
+## Molecule Testing
 
 A default Molecule scenario is provided (see `molecule/default`). It installs **Web Terminal** in `openshift-operators` using an **AllNamespaces** OG, waits for CSV `phase=Succeeded`, and then uninstalls during destroy.
 

@@ -1,0 +1,116 @@
+template_stories_day2:
+
+  - story_summary: "{{ product }} - Day 2: {{ issue_summary }}"
+    story_description: |
+      *Issue:* {{ issue_description }}
+
+      *Impact:*
+      {{ impact }}
+
+      *Environment:* {{ enviroment }}
+
+      *Detected via:* {{ detection_method }}
+
+      *Severity:* {{ severity | default('medium') }}
+
+      *Customer-facing:* {{ customer_impact | default('unknown') }}
+
+      Notes / Context:
+      This Day-2 issue represents an operational problem discovered after initial deployment.
+      The goal is to identify root cause, restore service or stability, prevent recurrence,
+      and capture any automation or documentation improvements.
+
+    custom_ac: |
+      * Root cause identified
+      * Fix or workaround applied
+      * Verification completed
+      * Runbook or documentation updated
+      * Monitoring updated if applicable
+      * Automation identified for future prevention
+      * Stakeholders informed and issue closed
+
+    labels:
+      - "day2"
+      - "operations"
+      - "{{ product }}"
+
+    subtasks:
+      - summary: "Identify root cause"
+        description: |
+          *As a:* "{{ role_name }}"
+          *I want to:* Identify the root cause of the issue
+          *So that:* an effective and lasting fix can be implemented.
+
+          Notes / Context:
+          This may include reviewing logs, events, metrics, configuration drift,
+          recent changes, or environmental factors.
+        labels:
+          - "day2"
+          - "{{ product }}"
+        component: "{{ group }}"
+
+      - summary: "Implement fix or workaround"
+        description: |
+          *As a:* "{{ role_name }}"
+          *I want to:* Implement a fix or workaround
+          *So that:* service or platform stability is restored.
+
+          Notes / Context:
+          Fixes should follow change control expectations where applicable.
+          Temporary workarounds should be clearly documented.
+        labels:
+          - "day2"
+          - "{{ product }}"
+        component: "{{ group }}"
+
+      - summary: "Validate resolution"
+        description: |
+          *As a:* "{{ role_name }}"
+          *I want to:* Validate the resolution
+          *So that:* the issue is confirmed resolved and does not recur immediately.
+
+          Notes / Context:
+          Validation may include functional testing, monitoring review, or confirmation from impacted teams.
+        labels:
+          - "day2"
+          - "{{ product }}"
+        component: "{{ group }}"
+
+      - summary: "Update runbook / documentation"
+        description: |
+          *As a:* "{{ role_name }}"
+          *I want to:* Update runbooks or documentation
+          *So that:* future incidents can be resolved faster.
+
+          Notes / Context:
+          This includes adding troubleshooting steps, lessons learned, or operational guidance.
+        labels:
+          - "day2"
+          - "{{ product }}"
+        component: "{{ group }}"
+
+      - summary: "Update monitoring or alerting if applicable"
+        description: |
+          *As a:* "{{ role_name }}"
+          *I want to:* Improve monitoring or alerting
+          *So that:* similar issues are detected earlier.
+
+          Notes / Context:
+          This may include new alerts, dashboards, or tuning thresholds.
+        labels:
+          - "day2"
+          - "{{ product }}"
+        component: "{{ group }}"
+
+      - summary: "Identify automation for future prevention"
+        description: |
+          *As a:* "{{ role_name }}"
+          *I want to:* Identify automation opportunities
+          *So that:* this issue is prevented or automatically remediated in the future.
+
+          Notes / Context:
+          Automation items should be captured as backlog work if not implemented immediately.
+        labels:
+          - "day2"
+          - "{{ product }}"
+        component: "{{ group }}"

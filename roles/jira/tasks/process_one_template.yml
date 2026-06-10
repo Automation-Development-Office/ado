@@ -1,0 +1,88 @@
+---
+
+- name: Jira Set section for this template batch
+  ansible.builtin.set_fact:
+    jira_agile_section: "{{ tmpl.section }}"
+
+- name: Jira Load template vars
+  ansible.builtin.include_vars:
+    file: "{{ tmpl.file }}"
+
+- name: Jira Resolve stories list from loaded template
+  ansible.builtin.set_fact:
+    jira_agile_loaded_stories: >-
+      {{
+        (template_stories | default([]))
+        + (template_stories_phase1 | default([]))
+        + (template_stories_phase2 | default([]))
+        + (template_stories_phase3 | default([]))
+        + (template_stories_phase4 | default([]))
+        + (template_stories_day2 | default([]))
+        + (template_stories_spike | default([]))
+        + (template_stories_bugfix | default([]))
+        + (template_stories_feature | default([]))
+        + (template_stories_collections_phase1 | default([]))
+        + (template_stories_collections_phase2 | default([]))
+        + (template_stories_mfa_phase1 | default([]))
+        + (template_stories_mfa_phase2 | default([]))
+      }}
+
+- name: Jira Assert template contains at least 1 story
+  ansible.builtin.assert:
+    that:
+      - jira_agile_loaded_stories | length > 0
+    fail_msg: "No stories found in template {{ tmpl.file }}."
+
+- name: Jira Create stories
+  community.general.jira:
+    uri: "{{ jira_url }}"
+    username: "{{ jira_username }}"
+    password: "{{ jira_token }}"
+    project: "{{ jira_project_key }}"
+    operation: create
+    summary: "{{ story.story_summary }}"
+    description: "{{ story.story_description }}"
+    issuetype: "{{ jira_story_issuetype }}"
+    fields: >-
+      {{
+        dict(
+          components=[{'name': group | default('')}],
+          labels=story.labels | default([])
+        )
+        | combine(
+            jira_custom_ac_field | length > 0
+            | ternary({ jira_custom_ac_field: story.custom_ac | default('') }, {}),
+            recursive=True
+          )
+        | combine(
+            (
+              jira_feature_field | length > 0
+              and jira_feature_key | length > 0
+            )
+            | ternary({ jira_feature_field: jira_feature_key }, {}),
+            recursive=True
+          )
+      }}
+  loop: "{{ jira_agile_loaded_stories }}"
+  loop_control:
+    loop_var: story
+  register: jira_agile_created_stories
+
+- name: Jira | Create subtasks
+  when: jira_create_subtasks | bool
+  community.general.jira:
+    uri: "{{ jira_url }}"
+    username: "{{ jira_username }}"
+    password: "{{ jira_token }}"
+    project: "{{ jira_project_key }}"
+    operation: create
+    summary: "{{ item.1.summary }}"
+    description: "{{ item.1.description | default(item.1.summary) }}"
+    issuetype: "{{ jira_subtask_issuetype }}"
+    fields:
+      parent:
+        key: "{{ item.0.meta.key }}"
+      labels: "{{ item.1.labels | default([]) }}"
+      components:
+        - name: "{{ item.1.component | default(group | default('')) }}"
+  loop: "{{ jira_agile_created_stories.results | subelements('story.subtasks', skip_missing=True) }}"

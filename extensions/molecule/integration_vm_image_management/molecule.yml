@@ -1,0 +1,24 @@
+---
+platforms:
+  - name: na
+
+provisioner:
+  name: ansible
+  playbooks:
+    # cleanup: ../utils/playbooks/noop.yml
+    converge: ../utils/playbooks/vm_image_management_converge.yml
+    destroy: ../utils/playbooks/vm_image_management_destroy.yml
+    verify: ../utils/playbooks/vm_image_management_verify.yml
+    prepare: ../utils/playbooks/vm_image_management_prepare.yml
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+
+scenario:
+  test_sequence:
+    - prepare
+    - converge
+    - idempotence
+    - verify
+  destroy_sequence:
+    - destroy

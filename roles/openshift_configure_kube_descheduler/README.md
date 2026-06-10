@@ -12,7 +12,7 @@ Create or update a `KubeDescheduler` custom resource from a Jinja template.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -50,7 +50,7 @@ Create or update a `KubeDescheduler` custom resource from a Jinja template.
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

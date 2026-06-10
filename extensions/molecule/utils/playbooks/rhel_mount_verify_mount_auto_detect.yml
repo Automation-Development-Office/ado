@@ -1,0 +1,30 @@
+---
+- name: Verify - rhel_mount mount auto-detect scenario
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  vars:
+    rhel_mount_test_root: /tmp/rhel_mount_molecule_mount_auto_detect
+    rhel_mount_path: "{{ rhel_mount_test_root }}/mnt"
+
+  tasks:
+    - name: Assert filesystem is mounted
+      ansible.builtin.assert:
+        that:
+          - ansible_mounts | selectattr("mount", "equalto", rhel_mount_path) | list | length > 0
+        fail_msg: "Expected mount at {{ rhel_mount_path }}"
+        success_msg: "Mount exists at {{ rhel_mount_path }}"
+
+    - name: Check fstab contains mount path
+      ansible.builtin.command: "grep -F {{ rhel_mount_path }} /etc/fstab"
+      register: rhel_mount_verify_fstab_result
+      changed_when: false
+      failed_when: false
+
+    - name: Assert fstab contains mount path
+      ansible.builtin.assert:
+        that:
+          - rhel_mount_verify_fstab_result.rc == 0
+        fail_msg: "Expected fstab entry for {{ rhel_mount_path }}"
+        success_msg: "fstab entry exists for {{ rhel_mount_path }}"

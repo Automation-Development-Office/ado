@@ -1,0 +1,15 @@
+---
+- name: Converge - rhel_cron single special scenario
+  hosts: localhost
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Include rhel_cron role for one special schedule # noqa: var-naming[no-role-prefix]
+      ansible.builtin.include_role:
+        name: infra.ado.rhel_cron
+      vars:
+        rhel_cron_type: special
+        rhel_cron_state: present
+        rhel_cron_yearly_jobs:
+          - { name: "yearly_test", job: "test" }

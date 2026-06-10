@@ -1,0 +1,18 @@
+- name: Add IDM DNS entry
+  ansible.builtin.assert:
+    that:
+      - idm_dns_state in ["present", "absent"]
+      - idm_dns_ipa_host | length > 0
+      - idm_dns_ipa_user | length > 0
+      - idm_dns_ipa_pass | length > 0
+      - idm_dns_zone | length > 0
+      - idm_dns_record | length > 0
+      - idm_dns_ip_address | length > 0
+    fail_msg: >-
+      Invalid idm_dns inputs. Provide idm_dns_ipa_host, idm_dns_ipa_user,
+      idm_dns_ipa_pass, idm_dns_zone, idm_dns_record, and idm_dns_ip_address
+      with idm_dns_state set to present/absent.
+    success_msg: idm_dns input validation passed.
+
+- name: Add IDM DNS entry
+  ansible.builtin.import_tasks: idm_add_dns_entry.yml
