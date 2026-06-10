@@ -148,7 +148,8 @@ def get_section_by_title_suffix(
         next_heading_index = heading_index + 1
         remaining_headings = headings[next_heading_index:]
         for next_heading in remaining_headings:
-            next_line_index, next_level, _ = next_heading
+            next_line_index = next_heading[0]
+            next_level = next_heading[1]
             if next_level <= level:
                 end = next_line_index
                 break
