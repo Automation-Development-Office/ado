@@ -15,6 +15,22 @@ DEFAULT_TEMPLATE_FILENAME = "role_readme_format_template.md"
 DEFAULT_TEMPLATE_PATH = DEFAULT_TEMPLATE_DIR / DEFAULT_TEMPLATE_FILENAME
 HEADING_PATTERN = r"^(#{1,6})\s+(.+?)\s*$"
 HEADING_RE = re.compile(HEADING_PATTERN, re.MULTILINE)
+VARIABLES_TABLE_HEADER_RE = re.compile(
+    r"^\|[^\n]*Variable[^\n]*Description[^\n]*\|",
+    re.MULTILINE | re.IGNORECASE,
+)
+VARIABLES_TABLE_SEPARATOR_RE = re.compile(
+    r"^\|[-:\s|]+\|$",
+    re.MULTILINE,
+)
+VARIABLES_TABLE_DATA_ROW_RE = re.compile(
+    r"^\|[^\n`]*`[^`]+`[^\n]*\|",
+    re.MULTILINE,
+)
+EXAMPLE_CODE_BLOCK_RE = re.compile(
+    r"```(?:yaml|yml|ansible|bash)[\s\S]*?```",
+    re.MULTILINE | re.IGNORECASE,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -107,6 +123,37 @@ def format_issue(filepath: Path, line: int | None, message: str) -> str:
     if line is not None:
         return f"{filepath}: Line {line}: {message}"
     return f"{filepath}: {message}"
+
+
+def get_section_by_title_suffix(
+    content: str,
+    title_suffix: str,
+) -> tuple[str, int] | None:
+    """Return section body and 1-based heading line for a matching heading."""
+    lines = content.splitlines(keepends=True)
+    headings: list[tuple[int, int, str]] = []
+    for line_index, line in enumerate(lines):
+        match = HEADING_RE.match(line.rstrip("\n"))
+        if match:
+            headings.append(
+                (line_index, len(match.group(1)), match.group(2).strip()),
+            )
+
+    suffix = title_suffix.lower()
+    for heading_index, (line_index, level, title) in enumerate(headings):
+        if suffix not in title.lower():
+            continue
+        start = line_index + 1
+        end = len(lines)
+        next_heading_index = heading_index + 1
+        remaining_headings = headings[next_heading_index:]
+        for next_heading in remaining_headings:
+            next_line_index, next_level, _ = next_heading
+            if next_level <= level:
+                end = next_line_index
+                break
+        return "".join(lines[start:end]), line_index + 1
+    return None
 
 
 def extract_heading_sequence(content: str) -> list[tuple[int, str, int]]:
@@ -207,6 +254,81 @@ def validate_headings_against_template(
     return issues
 
 
+def validate_role_directory_name(filepath: Path) -> list[str]:
+    """Ensure role directory names do not contain hyphens."""
+    issues: list[str] = []
+    if filepath.parent.parent.name != "roles":
+        return issues
+
+    role_name = filepath.parent.name
+    if "-" in role_name:
+        issues.append(
+            format_issue(
+                filepath,
+                None,
+                f"Role directory name '{role_name}' must not contain hyphens",
+            ),
+        )
+    return issues
+
+
+def validate_variables_table(filepath: Path, content: str) -> list[str]:
+    """Ensure the Role Variables section contains a variables table."""
+    issues: list[str] = []
+    section = get_section_by_title_suffix(content, "Role Variables")
+    if section is None:
+        return issues
+
+    section_body, section_line = section
+    if not VARIABLES_TABLE_HEADER_RE.search(section_body):
+        issues.append(
+            format_issue(
+                filepath,
+                section_line,
+                "Role Variables section must include a table header row with "
+                "Variable and Description columns "
+                "(for example, `| Variable | Description |`).",
+            ),
+        )
+        return issues
+
+    if not VARIABLES_TABLE_SEPARATOR_RE.search(section_body):
+        issues.append(
+            format_issue(
+                filepath,
+                section_line,
+                "Role Variables table must include a separator row "
+                "(for example, `|---------|-------------|`).",
+            ),
+        )
+
+    if not VARIABLES_TABLE_DATA_ROW_RE.search(section_body):
+        issues.append(
+            format_issue(
+                filepath,
+                section_line,
+                "Role Variables table must include at least one data row "
+                "with a backtick-wrapped variable name.",
+            ),
+        )
+
+    return issues
+
+
+def validate_example_code_block(filepath: Path, content: str) -> list[str]:
+    """Ensure the README includes an example fenced code block."""
+    if EXAMPLE_CODE_BLOCK_RE.search(content):
+        return []
+    return [
+        format_issue(
+            filepath,
+            None,
+            "README must include an example fenced code block using "
+            "```yaml, ```yml, ```ansible, or ```bash.",
+        ),
+    ]
+
+
 def check_readme_format(
     filepath: Path,
     template_headings: list[tuple[int, str]],
@@ -235,6 +357,9 @@ def check_readme_format(
         template_headings,
     )
     issues.extend(template_issues)
+    issues.extend(validate_role_directory_name(filepath))
+    issues.extend(validate_variables_table(filepath, content))
+    issues.extend(validate_example_code_block(filepath, content))
 
     # Check for consistent line endings.
     lines = content.splitlines(keepends=True)
