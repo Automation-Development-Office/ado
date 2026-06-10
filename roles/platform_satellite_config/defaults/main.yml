@@ -22,7 +22,6 @@ platform_satellite_config_satellite_redhat_repos:
     repos:
       - releasever: "9"
     all: "false"
-platform_satellite_config_satellite_rhn_connected: false
 platform_satellite_config_satellite_proxy_server: ""
 platform_satellite_config_satellite_proxy_port: ""
 platform_satellite_config_satellite_proxy_scheme: ""
