@@ -1,0 +1,103 @@
+---
+- name: Stop via systemd (if enabled)
+  when: elastic_systemd_enabled
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ elastic_systemd_unit }}"
+    state: stopped
+
+- name: Validate custom stop inputs
+  when: not elastic_systemd_enabled
+  ansible.builtin.assert:
+    that:
+      - elastic_start_cmd | length > 0 or elastic_pid_file | length > 0
+    fail_msg: >-
+      Either elastic_start_cmd or elastic_pid_file must be set
+      when elastic_systemd_enabled=false.
+
+- name: Check whether PID file exists
+  when: not elastic_systemd_enabled
+  ansible.builtin.stat:
+    path: "{{ elastic_pid_file }}"
+  register: elastic_stop_pid_file
+
+- name: Read PID file content
+  when:
+    - not elastic_systemd_enabled
+    - elastic_stop_pid_file.stat.exists
+  ansible.builtin.slurp:
+    path: "{{ elastic_pid_file }}"
+  register: elastic_stop_pid_raw
+
+- name: Set PID fact from PID file
+  when:
+    - not elastic_systemd_enabled
+    - elastic_stop_pid_file.stat.exists
+  ansible.builtin.set_fact:
+    elastic_stop_pid: "{{ elastic_stop_pid_raw.content | b64decode | trim }}"
+
+- name: Stop Elasticsearch via PID file
+  when:
+    - not elastic_systemd_enabled
+    - elastic_stop_pid | default('') | length > 0
+  become: true
+  ansible.builtin.command: "kill -TERM {{ elastic_stop_pid }}"
+  register: elastic_stop_kill_pid
+  changed_when: elastic_stop_kill_pid.rc == 0
+  failed_when: false
+
+- name: Stop Elasticsearch via start command match
+  when:
+    - not elastic_systemd_enabled
+    - elastic_start_cmd | length > 0
+  become: true
+  ansible.builtin.command: "pkill -f -- {{ elastic_start_cmd }}"
+  register: elastic_stop_kill_cmd
+  changed_when: elastic_stop_kill_cmd.rc == 0
+  failed_when: false
+
+- name: Wait for custom Elasticsearch process to stop
+  when:
+    - not elastic_systemd_enabled
+    - elastic_start_cmd | length > 0
+  become: true
+  ansible.builtin.command: "pgrep -f -- {{ elastic_start_cmd }}"
+  register: elastic_stop_pgrep
+  until: elastic_stop_pgrep.rc != 0
+  retries: 10
+  delay: 1
+  changed_when: false
+  failed_when: false
+
+- name: Remove stale PID file
+  when:
+    - not elastic_systemd_enabled
+    - elastic_stop_pid_file.stat.exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ elastic_pid_file }}"
+    state: absent
+
+- name: Probe Elasticsearch endpoint after stop
+  ansible.builtin.uri:
+    url: "{{ elastic_url }}/_cluster/health"
+    method: GET
+    return_content: false
+    force_basic_auth: "{{ elastic_user != '' }}"
+    url_username: "{{ elastic_user | default(omit) }}"
+    url_password: "{{ elastic_pass | default(omit) }}"
+    status_code:
+      - 200
+      - 401
+      - 403
+      - 404
+      - 503
+  register: elastic_stop_probe
+  failed_when: false
+  changed_when: false
+
+- name: Report stop verification
+  ansible.builtin.debug:
+    msg: >-
+      Endpoint probe after stop returned status={{ elastic_stop_probe.status | default('unreachable') }}.
+      Treating this as informational to keep stop idempotent across environments.

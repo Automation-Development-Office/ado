@@ -1,5 +1,5 @@
 ---
-- name: Destroy - applications_elastic scenario
+- name: Destroy - elastic scenario
   hosts: localhost
   gather_facts: false
   become: false
@@ -7,4 +7,4 @@
   tasks:
     - name: Destroy step is intentionally minimal
       ansible.builtin.debug:
-        msg: "No explicit destroy actions required for applications_elastic."
+        msg: "No explicit destroy actions required for elastic."
