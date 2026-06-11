@@ -1,0 +1,14 @@
+- name: Validate idm_server inputs
+  ansible.builtin.assert:
+    that:
+      - idm_server_state in ["present", "absent"]
+      - idm_server_name | length > 0
+      - idm_server_state == "absent" or idm_server_ipaadmin_password | length > 0
+    fail_msg: >-
+      Invalid idm_server inputs. Provide idm_server_name and a valid
+      idm_server_state (present/absent). For present state, provide
+      idm_server_ipaadmin_password.
+    success_msg: idm_server input validation passed.
+
+- name: Add IDM Server entry
+  ansible.builtin.import_tasks: install-idm-server.yml
