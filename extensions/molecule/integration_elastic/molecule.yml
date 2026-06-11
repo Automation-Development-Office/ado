@@ -7,10 +7,10 @@ provisioner:
   env:
     ANSIBLE_ROLES_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}"
   playbooks:
-    prepare: ../utils/playbooks/applications_elastic_prepare.yml
-    converge: ../utils/playbooks/applications_elastic_converge.yml
-    verify: ../utils/playbooks/applications_elastic_verify.yml
-    destroy: ../utils/playbooks/applications_elastic_destroy.yml
+    prepare: ../utils/playbooks/elastic_prepare.yml
+    converge: ../utils/playbooks/elastic_converge.yml
+    verify: ../utils/playbooks/elastic_verify.yml
+    destroy: ../utils/playbooks/elastic_destroy.yml
   config_options:
     defaults:
       collections_path: ${ANSIBLE_COLLECTIONS_PATH}
