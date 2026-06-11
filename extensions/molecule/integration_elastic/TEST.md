@@ -1,9 +1,9 @@
-# TEST: integration_applications_elastic
+# TEST: integration_elastic
 
 ## Purpose
 
 Validate the extension-level Molecule scenario wiring for
-`infra.ado.applications_elastic`.
+`infra.ado.elastic`.
 
 ## Sequence
 
@@ -18,11 +18,11 @@ Validate the extension-level Molecule scenario wiring for
 - `prepare` and `destroy` are no-op safe steps.
 - `verify` checks role README presence.
 - `converge` supports optional live endpoint checks through
-  `APPLICATIONS_ELASTIC_ENABLE_LIVE_CHECKS=true`.
+  `ELASTIC_ENABLE_LIVE_CHECKS=true`.
 
 ## Run
 
 ```bash
 cd extensions/molecule
-molecule test -s integration_applications_elastic
+molecule test -s integration_elastic
 ```

@@ -1,0 +1,12 @@
+- name: Ensure LDAP federation provider is absent
+  redhat.rhbk.keycloak_user_federation:
+    auth_keycloak_url: "https://{{ rhbk_host }}"
+    auth_realm: master
+    auth_username: "{{ rhbk_admin_user }}"
+    auth_password: "{{ rhbk_admin_password }}"
+    realm: "{{ rhbk_realm }}"
+    provider_id: ldap
+    name: "{{ rhbk_federation_name }}"
+    state: absent
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  register: rhbk_manage_federation_ldap_provider_absent
