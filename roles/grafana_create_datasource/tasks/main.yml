@@ -1,0 +1,46 @@
+- name: Normalize grafana_create_datasource variables
+  ansible.builtin.set_fact:
+    grafana_create_datasource_state: >-
+      {{ grafana_create_datasource_state | default(state | default('present')) }}
+    grafana_create_datasource_name: >-
+      {{ grafana_create_datasource_name | default(grafana_datasource | default('prometheus')) }}
+    grafana_create_datasource_hostname: >-
+      {{ grafana_create_datasource_hostname | default(grafana_hostname | default('')) }}
+    grafana_create_datasource_admin_user: >-
+      {{ grafana_create_datasource_admin_user | default(grafana_admin_user | default('')) }}
+    grafana_create_datasource_admin_password: >-
+      {{ grafana_create_datasource_admin_password | default(grafana_admin_password | default('')) }}
+    grafana_create_datasource_validate_certs: >-
+      {{
+        grafana_create_datasource_validate_certs
+        | default(grafana_validate_certs | default(false))
+      }}
+    grafana_create_datasource_tls_skip_verify: >-
+      {{
+        grafana_create_datasource_tls_skip_verify
+        | default(grafana_tls_skip_verify | default(true))
+      }}
+    grafana_create_datasource_prometheus_route_name: >-
+      {{
+        grafana_create_datasource_prometheus_route_name
+        | default(grafana_prometheus_route_name | default('prometheus-k8s'))
+      }}
+    grafana_create_datasource_prometheus_route_namespace: >-
+      {{
+        grafana_create_datasource_prometheus_route_namespace
+        | default(grafana_prometheus_route_namespace | default('openshift-monitoring'))
+      }}
+    grafana_create_datasource_serviceaccount_name: >-
+      {{
+        grafana_create_datasource_serviceaccount_name
+        | default(grafana_prometheus_serviceaccount_name | default('grafana-prometheus-sa'))
+      }}
+    grafana_create_datasource_serviceaccount_token_secret_name: >-
+      {{
+        grafana_create_datasource_serviceaccount_token_secret_name
+        | default(grafana_prometheus_sa_token_secret_name | default('grafana-prometheus-sa-token'))
+      }}
+
+- name: Create grafana datasource
+  ansible.builtin.import_tasks: grafana-manage-datasource.yml
+  when: grafana_create_datasource_state == "present"
