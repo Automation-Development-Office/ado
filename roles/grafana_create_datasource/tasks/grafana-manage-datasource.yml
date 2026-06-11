@@ -1,0 +1,80 @@
+- name: Fetch Prometheus Route information
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: "{{ grafana_create_datasource_prometheus_route_name }}"
+    namespace: "{{ grafana_create_datasource_prometheus_route_namespace }}"
+  register: grafana_create_datasource_prometheus_route_info
+
+- name: Extract Prometheus hostname
+  ansible.builtin.set_fact:
+    grafana_create_datasource_prometheus_source_hostname: >-
+      {{ grafana_create_datasource_prometheus_route_info.resources[0].spec.host }}
+  when:
+    - grafana_create_datasource_prometheus_route_info.resources is defined
+    - grafana_create_datasource_prometheus_route_info.resources | length > 0
+    - grafana_create_datasource_prometheus_route_info.resources[0].spec is defined
+    - grafana_create_datasource_prometheus_route_info.resources[0].spec.host is defined
+
+- name: Display Prometheus hostname
+  ansible.builtin.debug:
+    msg: "OpenShift Prometheus Hostname: {{ grafana_create_datasource_prometheus_source_hostname }}"
+  when: grafana_create_datasource_prometheus_source_hostname is defined
+
+- name: Create ServiceAccount token secret
+  kubernetes.core.k8s:
+    namespace: "{{ grafana_create_datasource_prometheus_route_namespace }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ grafana_create_datasource_serviceaccount_token_secret_name }}"
+        annotations:
+          kubernetes.io/service-account.name: "{{ grafana_create_datasource_serviceaccount_name }}"
+      type: kubernetes.io/service-account-token
+
+- name: Get token from secret
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ grafana_create_datasource_prometheus_route_namespace }}"
+    name: "{{ grafana_create_datasource_serviceaccount_token_secret_name }}"
+  register: grafana_create_datasource_sa_secret
+
+- name: Set bearer token fact
+  ansible.builtin.set_fact:
+    grafana_create_datasource_prometheus_bearer_token: "{{ grafana_create_datasource_sa_secret.resources[0].data.token | b64decode }}"
+
+- name: Wait until Prometheus API is responsive
+  ansible.builtin.uri:
+    url: "https://{{ grafana_create_datasource_prometheus_source_hostname }}/api/v1/status/config"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ grafana_create_datasource_prometheus_bearer_token }}"
+    validate_certs: false
+    return_content: false
+    status_code: 200
+  register: grafana_create_datasource_prometheus_ready
+  retries: 30
+  delay: 5
+  until: grafana_create_datasource_prometheus_ready.status == 200
+  when:
+    - grafana_create_datasource_prometheus_source_hostname is defined
+    - grafana_create_datasource_prometheus_bearer_token is defined
+
+- name: Update prometheus datasource
+  community.grafana.grafana_datasource:
+    name: "{{ grafana_create_datasource_name }}"
+    url: "https://{{ grafana_create_datasource_hostname }}"
+    url_username: "{{ grafana_create_datasource_admin_user }}"
+    url_password: "{{ grafana_create_datasource_admin_password }}"
+    ds_type: prometheus
+    ds_url: "https://{{ grafana_create_datasource_prometheus_source_hostname }}"
+    access: proxy
+    validate_certs: "{{ grafana_create_datasource_validate_certs }}"
+    tls_skip_verify: "{{ grafana_create_datasource_tls_skip_verify }}"
+    additional_json_data:
+      httpHeaderName1: "Authorization"
+    additional_secure_json_data:
+      httpHeaderValue1: "Bearer {{ grafana_create_datasource_prometheus_bearer_token }}"
+    enforce_secure_data: true
