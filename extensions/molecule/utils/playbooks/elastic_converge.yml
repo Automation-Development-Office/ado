@@ -1,0 +1,27 @@
+---
+- name: Converge - elastic scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    elastic_enable_live_checks: "{{ (lookup('env', 'ELASTIC_ENABLE_LIVE_CHECKS') | default('false', true)) | bool }}"
+
+  tasks:
+    - name: Explain live-check toggle
+      ansible.builtin.debug:
+        msg: >-
+          elastic role execution is skipped by default in Molecule.
+          Set ELASTIC_ENABLE_LIVE_CHECKS=true and provide access to
+          a reachable Elasticsearch endpoint to run live status checks.
+      when: not elastic_enable_live_checks
+
+    - name: Run elastic role with live checks enabled
+      ansible.builtin.include_role:
+        name: infra.ado.elastic
+      vars:
+        elastic_state: status
+        elastic_url: "{{ lookup('env', 'ELASTIC_URL') | default('http://localhost:9200', true) }}"
+        elastic_user: "{{ lookup('env', 'ELASTIC_USER') | default('', true) }}"
+        elastic_pass: "{{ lookup('env', 'ELASTIC_PASS') | default('', true) }}"
+      when: elastic_enable_live_checks
