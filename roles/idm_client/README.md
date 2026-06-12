@@ -1,4 +1,4 @@
-# Role: platform_idm_client
+# Role: idm_client
 
 Registers an IPA/IdM client using `redhat.rhel_idm.ipaclient`.
 
@@ -33,7 +33,7 @@ This role is intentionally small. It imports `tasks/idm_register_client.yml`, wh
   hosts: all
   become: true
   roles:
-    - role: infra.ado.platform_idm_client
+    - role: infra.ado.idm_client
       vars:
         state: present
 ```
