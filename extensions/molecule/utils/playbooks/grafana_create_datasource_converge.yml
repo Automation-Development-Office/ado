@@ -1,0 +1,36 @@
+---
+- name: Converge - grafana_create_datasource scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    grafana_create_datasource_enable_live_checks: >-
+      {{
+        (lookup('env', 'GRAFANA_CREATE_DATASOURCE_ENABLE_LIVE_CHECKS')
+        | default('false', true)) | bool
+      }}
+
+  tasks:
+    - name: Explain live-check toggle
+      ansible.builtin.debug:
+        msg: >-
+          grafana_create_datasource execution is skipped by default in Molecule.
+          Set GRAFANA_CREATE_DATASOURCE_ENABLE_LIVE_CHECKS=true and provide
+          required Grafana credentials and OpenShift access to run live checks.
+      when: not grafana_create_datasource_enable_live_checks
+
+    - name: Run grafana_create_datasource role with live checks enabled
+      ansible.builtin.include_role:
+        name: infra.ado.grafana_create_datasource
+      vars:
+        grafana_create_datasource_state: present
+        grafana_create_datasource_name: >-
+          {{ lookup('env', 'GRAFANA_CREATE_DATASOURCE_NAME') | default('prometheus', true) }}
+        grafana_create_datasource_hostname: >-
+          {{ lookup('env', 'GRAFANA_CREATE_DATASOURCE_HOSTNAME') | default('', true) }}
+        grafana_create_datasource_admin_user: >-
+          {{ lookup('env', 'GRAFANA_CREATE_DATASOURCE_ADMIN_USER') | default('', true) }}
+        grafana_create_datasource_admin_password: >-
+          {{ lookup('env', 'GRAFANA_CREATE_DATASOURCE_ADMIN_PASSWORD') | default('', true) }}
+      when: grafana_create_datasource_enable_live_checks

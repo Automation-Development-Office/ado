@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# defaults file for grafana_create_datasource
+
+grafana_create_datasource_state: present
+grafana_create_datasource_name: prometheus
+grafana_create_datasource_hostname: ""
+grafana_create_datasource_admin_user: ""
+grafana_create_datasource_admin_password: ""
+grafana_create_datasource_validate_certs: true
+grafana_create_datasource_tls_skip_verify: false
+
+grafana_create_datasource_prometheus_route_name: prometheus-k8s
+grafana_create_datasource_prometheus_route_namespace: openshift-monitoring
+grafana_create_datasource_serviceaccount_name: grafana-prometheus-sa
+grafana_create_datasource_serviceaccount_token_secret_name: grafana-prometheus-sa-token
