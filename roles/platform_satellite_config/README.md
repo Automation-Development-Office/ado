@@ -7,6 +7,10 @@ It applies Satellite settings, manages subscription manifests, enables Red Hat r
 > **⚠️ Note:**
 > This role requires privileged access on the Satellite host for manifest copy, certificate, and Hammer operations. Satellite API credentials with sufficient permissions are required for all configuration tasks.
 
+## Role Author
+
+- Automation Development Office (automation-development-office@redhat.com)
+
 ## ✅ Role Requirements
 
 - Ansible >= 2.14
@@ -64,7 +68,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 
 See `defaults/main.yml` for default values and structure.
 
-## 🚀 Usage
+## 🚀 Role Usage
 
 Define the Satellite configuration in your playbook or inventory using the variables above. Run this role after `platform_satellite_install` on a host where Satellite is installed and reachable.
 
@@ -131,17 +135,13 @@ Define the Satellite configuration in your playbook or inventory using the varia
 - **Repo Sync** (`repo_sync.yml`):
   - Discovers enabled products and synchronizes all repositories asynchronously.
 
-## 🧪 Molecule
+## 🧪 Role Molecule Testing
 
 This role does not include a dedicated Molecule scenario or platform-specific Molecule playbooks.
 
 > Molecule tests for `platform_satellite_config` have not been added to the repository.
 
-## 👥 Author
-
-- Automation Development Office (automation-development-office@redhat.com)
-
-## 📁 Repository Layout (Role)
+## 📁 Role Structure
 
 ```text
 roles/

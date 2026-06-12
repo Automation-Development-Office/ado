@@ -7,6 +7,10 @@ It validates OS, CPU, memory, location, and Satellite version before install, su
 > **⚠️ Note:**
 > This role requires root privileges for system modifications, package installation, and configuration changes. Ensure your target hosts are accessible with privileged access (`become: true`).
 
+## Role Author
+
+- Automation Development Office (automation-development-office@redhat.com)
+
 ## ✅ Role Requirements
 
 - Ansible >= 2.9
@@ -61,7 +65,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 
 See `defaults/main.yml` for default values and structure.
 
-## 🚀 Usage
+## 🚀 Role Usage
 
 Define the Satellite installation configuration in your playbook or inventory using the variables above.
 
@@ -140,17 +144,13 @@ Define the Satellite installation configuration in your playbook or inventory us
 - **DNS Config** (`dns_config.yml`):
   - Updates DNS settings via NetworkManager and resolv.conf.
 
-## 🧪 Molecule
+## 🧪 Role Molecule Testing
 
 This role no longer includes a dedicated Molecule scenario or platform-specific Molecule playbooks.
 
 > Molecule tests for `platform_satellite_install` have been removed from the repository.
 
-## 👥 Author
-
-- Automation Development Office (automation-development-office@redhat.com)
-
-## 📁 Repository Layout (Role)
+## 📁 Role Structure
 
 ```text
 roles/
