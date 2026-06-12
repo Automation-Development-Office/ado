@@ -14,21 +14,18 @@ Automation Development Office.
 
 ## 📦 Role Variables
 
-Required runtime variables:
-
-- `state` (`present` to configure identity provider, `absent` to remove it).
-- `rhbk_host` (RHBK host used for admin API requests).
-- `rhbk_realm` (target realm).
-- `rhbk_admin_user` (admin username).
-- `rhbk_admin_password` (admin password).
-- `rhbk_verify_ssl` (`true`/`false` SSL validation flag).
-
-Create path variables (`state: present`):
-
-- `rhbk_setup_idp_entra_discovery_url` (OIDC issuer/discovery base URL).
-- `entra_idp_alias` (identity provider alias).
-- `entra_client_id` (OIDC client ID).
-- `entra_client_secret` (OIDC client secret).
+| Variable | Description |
+| --- | --- |
+| `state` | Role action (`present` to configure identity provider, `absent` to remove it). |
+| `rhbk_host` | RHBK host used for admin API requests. |
+| `rhbk_realm` | Target realm. |
+| `rhbk_admin_user` | Admin username. |
+| `rhbk_admin_password` | Admin password. |
+| `rhbk_verify_ssl` | SSL validation flag (`true`/`false`). |
+| `rhbk_setup_idp_entra_discovery_url` | OIDC issuer/discovery base URL used by create path. |
+| `entra_idp_alias` | Identity provider alias to create/delete. |
+| `entra_client_id` | OIDC client ID. |
+| `entra_client_secret` | OIDC client secret. |
 
 Delete path behavior (`state: absent`):
 
