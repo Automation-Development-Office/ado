@@ -1,4 +1,4 @@
-# Role: platform_content_view
+# Role: satellite_content_view
 
 Manages Red Hat Satellite Content Views with three actions:
 
@@ -46,7 +46,7 @@ No task file runs unless both `content_view` and `sat_content_view_action` are d
   hosts: localhost
   gather_facts: false
   roles:
-    - role: platform_content_view
+    - role: satellite_content_view
       sat_content_view_action: create
       satellite_url: "https://satellite.example.com"
       satellite_username: "admin"
@@ -62,7 +62,7 @@ No task file runs unless both `content_view` and `sat_content_view_action` are d
   hosts: localhost
   gather_facts: false
   roles:
-    - role: platform_content_view
+    - role: satellite_content_view
       sat_content_view_action: publish
       satellite_url: "https://satellite.example.com"
       satellite_username: "admin"
@@ -78,7 +78,7 @@ No task file runs unless both `content_view` and `sat_content_view_action` are d
   hosts: localhost
   gather_facts: false
   roles:
-    - role: platform_content_view
+    - role: satellite_content_view
       sat_content_view_action: promote
       satellite_url: "https://satellite.example.com"
       satellite_username: "admin"
@@ -94,14 +94,14 @@ No task file runs unless both `content_view` and `sat_content_view_action` are d
 
 ## Returned Runtime Variables
 
-- `platform_content_view_create_result` (create action)
-- `platform_content_view_publish_result` (publish action)
-- `platform_content_view_promote_result` (promote action)
+- `satellite_content_view_create_result` (create action)
+- `satellite_content_view_publish_result` (publish action)
+- `satellite_content_view_promote_result` (promote action)
 
 ## Role Layout
 
 ```text
-roles/platform_content_view/
+roles/satellite_content_view/
   README.md
   defaults/main.yml
   handlers/main.yml
