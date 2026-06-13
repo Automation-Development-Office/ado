@@ -5,12 +5,20 @@ action using the extension-level Molecule layout.
 
 ## Scenario flow
 
-CI runs the `verify` stage to validate the role README and layout. Full
-Satellite integration (prepare, converge, idempotence, destroy) requires
-`SATELLITE_*` environment variables.
+CI and pull requests run the `verify` stage to validate the role README and layout.
 
-1. `verify` (default CI sequence)
-2. `destroy` (via `destroy_sequence`, removes the test Content View when credentials are set)
+Manual workflow runs can select this scenario from the **Ansible Collection CI/CD**
+workflow dispatch inputs:
+
+- `Run integration_satellite_content_view_create`
+
+Full Satellite integration (prepare, converge, idempotence) requires:
+
+- `redhat.satellite` installed from Red Hat Automation Hub (see role README Role Requirements)
+- `SATELLITE_*` environment variables
+
+The `destroy` playbook removes the test Content View when Satellite credentials
+are configured; it no-ops when `SATELLITE_*` variables are unset (CI verify runs).
 
 ## Playbook mapping
 
@@ -34,6 +42,7 @@ molecule test -s integration_satellite_content_view_create
 For full integration against Satellite:
 
 ```bash
+ansible-galaxy collection install redhat.satellite
 export SATELLITE_URL="https://satellite.example.com"
 export SATELLITE_USERNAME="admin"
 export SATELLITE_PASSWORD="your-password"

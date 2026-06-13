@@ -13,11 +13,11 @@
   tasks:
     - name: Skip destroy when Satellite credentials are not configured
       ansible.builtin.meta: end_play
-      when:
-        - satellite_url | length == 0
-        - satellite_username | length == 0
-        - satellite_password | length == 0
-        - organization | length == 0
+      when: >
+        satellite_url | length == 0 or
+        satellite_username | length == 0 or
+        satellite_password | length == 0 or
+        organization | length == 0
 
     - name: Remove Molecule Content View from Satellite
       redhat.satellite.content_view:

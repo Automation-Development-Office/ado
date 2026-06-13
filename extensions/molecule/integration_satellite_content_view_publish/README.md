@@ -22,6 +22,8 @@ molecule test -s integration_satellite_content_view_publish
 Run `integration_satellite_content_view_create` first so the test Content View
 exists.
 
-For full integration against Satellite, export the same `SATELLITE_*` variables
-documented in `integration_satellite_content_view_create/README.md`, then run
+For full integration against Satellite, install `redhat.satellite` from Red Hat
+Automation Hub (see `roles/satellite_content_view/README.md` Role Requirements),
+export the same `SATELLITE_*` variables documented in
+`integration_satellite_content_view_create/README.md`, then run
 `molecule prepare`, `molecule converge`, and `molecule verify` for this scenario.

@@ -7,18 +7,23 @@ verify
 ## What these tests cover
 
 1. **Verify**
-   - Confirms `roles/satellite_content_view/README.md` exists.
-   - Checks heading, variables table, example code block, and key sections.
+   - Runs `scripts/verify_readme.py` against `roles/satellite_content_view/README.md`
+     using `docs/templates/role_readme_format_template.md`.
 
 ## Full integration sequence (manual)
 
 prepare → converge → idempotence → verify → destroy
 
+The destroy stage uses `satellite_content_view_destroy_create.yml` and skips
+when `SATELLITE_*` credentials are not configured.
+
 ## Prerequisites
 
 - Ansible and Molecule installed on the controller.
-- Network access to a Satellite server for converge/idempotence/destroy.
-- `redhat.satellite` collection available.
+- Collection installed locally: `ansible-galaxy collection install . --force -p ~/.ansible/collections`
+- For full integration against Satellite:
+  - `redhat.satellite` installed from Red Hat Automation Hub (see role README Role Requirements)
+  - Network access and credentials with Content View permissions
 
 ## Environment variables
 

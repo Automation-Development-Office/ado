@@ -28,3 +28,8 @@ molecule test -s integration_satellite_content_view_promote
 
 Run the create and publish scenarios first so a published version exists to
 promote.
+
+For full integration, install `redhat.satellite` from Red Hat Automation Hub
+(see `roles/satellite_content_view/README.md` Role Requirements) and follow the
+environment variable guidance in
+`integration_satellite_content_view_create/README.md`.
