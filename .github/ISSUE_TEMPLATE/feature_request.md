@@ -6,8 +6,8 @@ labels: ''
 assignees: ''
 
 ---
-**Is your feature requeste related to a specific collection role.**
-List the role or roles that the feature going to update
+**Is your feature request related to a specific collection role?**
+List the role or roles that this feature will update.
 
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
