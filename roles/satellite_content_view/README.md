@@ -98,6 +98,39 @@ No task file runs unless both `content_view` and `sat_content_view_action` are d
 - `satellite_content_view_publish_result` (publish action)
 - `satellite_content_view_promote_result` (promote action)
 
+## Molecule Testing
+
+Extension-level Molecule scenarios under `extensions/molecule/`:
+
+| Scenario | Action | Command |
+| --- | --- | --- |
+| `integration_satellite_content_view_create` | create | `molecule test -s integration_satellite_content_view_create` |
+| `integration_satellite_content_view_publish` | publish | `molecule test -s integration_satellite_content_view_publish` |
+| `integration_satellite_content_view_promote` | promote | `molecule test -s integration_satellite_content_view_promote` |
+
+Playbooks live in `extensions/molecule/utils/playbooks/` (`satellite_content_view_*`).
+
+Export Satellite credentials before running full integration (prepare/converge/destroy):
+
+```bash
+export SATELLITE_URL="https://satellite.example.com"
+export SATELLITE_USERNAME="admin"
+export SATELLITE_PASSWORD="your-password"
+export SATELLITE_ORGANIZATION="MyOrg"
+export SATELLITE_CONTENT_VIEW="molecule-satellite-content-view"
+```
+
+Run from the collection `extensions/molecule` directory:
+
+```bash
+cd extensions/molecule
+ln -sfn . molecule
+molecule test -s integration_satellite_content_view_create
+```
+
+See `extensions/molecule/integration_satellite_content_view_create/README.md`
+and `TEST.md` for details.
+
 ## Role Layout
 
 ```text
@@ -112,6 +145,12 @@ roles/satellite_content_view/
   tasks/promote_content_view.yml
   tests/inventory
   vars/main.yml
+
+extensions/molecule/
+  integration_satellite_content_view_create/
+  integration_satellite_content_view_publish/
+  integration_satellite_content_view_promote/
+  utils/playbooks/satellite_content_view_*.yml
 ```
 
 ## License

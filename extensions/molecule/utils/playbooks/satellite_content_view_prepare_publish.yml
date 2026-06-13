@@ -1,0 +1,17 @@
+---
+- name: Prepare - satellite_content_view publish scenario
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Validate Satellite environment variables
+      ansible.builtin.assert:
+        that:
+          - lookup('env', 'SATELLITE_URL') | length > 0
+          - lookup('env', 'SATELLITE_USERNAME') | length > 0
+          - lookup('env', 'SATELLITE_PASSWORD') | length > 0
+          - lookup('env', 'SATELLITE_ORGANIZATION') | length > 0
+        fail_msg: >-
+          Export SATELLITE_URL, SATELLITE_USERNAME, SATELLITE_PASSWORD, and
+          SATELLITE_ORGANIZATION before running converge for this scenario.
+        success_msg: Satellite environment variables are configured.
