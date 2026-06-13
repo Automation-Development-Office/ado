@@ -1,0 +1,27 @@
+---
+platforms:
+  - name: na
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}"
+    SATELLITE_URL: "${SATELLITE_URL}"
+    SATELLITE_USERNAME: "${SATELLITE_USERNAME}"
+    SATELLITE_PASSWORD: "${SATELLITE_PASSWORD}"
+    SATELLITE_ORGANIZATION: "${SATELLITE_ORGANIZATION}"
+    SATELLITE_CONTENT_VIEW: "${SATELLITE_CONTENT_VIEW:-molecule-satellite-content-view}"
+  playbooks:
+    prepare: ../utils/playbooks/satellite_content_view_prepare_publish.yml
+    converge: ../utils/playbooks/satellite_content_view_converge_publish.yml
+    verify: ../utils/playbooks/satellite_content_view_verify.yml
+    destroy: ../utils/playbooks/noop.yml
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+
+scenario:
+  test_sequence:
+    - verify
+  destroy_sequence:
+    - destroy
