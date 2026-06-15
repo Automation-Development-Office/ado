@@ -1,7 +1,11 @@
 ---
-- name: settings | Set password for admin user
-  ansible.builtin.shell: "foreman-rake permissions:reset password={{ platform_satellite_config_admin_password }}"
-
+- name: settings| Set password for admin user
+  ansible.builtin.command:
+    argv:
+      - foreman-rake
+      - permissions:reset
+      - "password={{ platform_satellite_config_admin_password }}"
+  when: platform_satellite_config_set_admin_password | bool
 
 - name: settings | Set Red Hat Satellite Settings
   redhat.satellite.setting:
