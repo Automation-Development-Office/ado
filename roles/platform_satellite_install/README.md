@@ -23,32 +23,32 @@ It validates OS, CPU, memory, location, and Satellite version before install, su
 
 Variables below are referenced by the role task files under `tasks/`. Defaults are defined in `defaults/main.yml`.
 
-| Variable | Description | Used in | Required | Default |
-|----------|-------------|---------|----------|---------|
-| `platform_satellite_install_pre_check` | When `true`, only run `preliminary_check.yml` and skip all other tasks | `main.yml` | ❌ | `false` |
-| `platform_satellite_install_satellite_deployment_version` | Target Satellite version validated during preliminary checks and used in RHSM repo names | `preliminary_check.yml`, `rhsm_subscribe.yml` | ✅ | `""` |
-| `platform_satellite_install_satellite_location` | Logical location/name for the Satellite deployment | `preliminary_check.yml` | ✅ | `""` |
-| `platform_satellite_install_satellite_min_memory_size` | Minimum required memory in MB (`ansible_facts["memtotal_mb"]`) | `preliminary_check.yml` | ❌ | `1024` |
-| `platform_satellite_install_satellite_min_cpu_count` | Minimum required vCPU count and input to the Satellite tuning profile template | `preliminary_check.yml`, `install_satellite.yml` | ❌ | `4` |
-| `platform_satellite_install_satellite_rhn_connected` | When `true`, validate RHSM credentials during preliminary checks | `preliminary_check.yml` | ❌ | `false` |
-| `platform_satellite_install_satellite_rhn_org_id` | RHSM organization ID used for host registration | `preliminary_check.yml`, `rhsm_subscribe.yml` | ✅* | `""` |
-| `platform_satellite_install_satellite_rhn_activation_key` | RHSM activation key used for host registration | `preliminary_check.yml`, `rhsm_subscribe.yml` | ✅* | `""` |
-| `platform_satellite_install_satellite_rhn_repos` | RHSM repository IDs enabled after registration | `rhsm_subscribe.yml` | ❌ | See `defaults/main.yml` |
-| `platform_satellite_install_satellite_timezone` | System timezone set before RHSM registration | `rhsm_subscribe.yml` | ❌ | `"UTC"` |
-| `platform_satellite_install_satellite_proxy_server` | Optional RHSM proxy hostname passed to `redhat_subscription` | `rhsm_subscribe.yml` | ❌ | `""` |
-| `platform_satellite_install_satellite_proxy_port` | Optional RHSM proxy port passed to `redhat_subscription` | `rhsm_subscribe.yml` | ❌ | `""` |
-| `platform_satellite_install_satellite_proxy_scheme` | Optional RHSM proxy scheme (`http` or `https`) passed to `redhat_subscription` | `rhsm_subscribe.yml` | ❌ | `""` |
-| `platform_satellite_install_satellite_selinux_state` | SELinux state applied after package updates | `patch.yml` | ❌ | `"enforcing"` |
-| `platform_satellite_install_satellite_vg_name` | LVM volume group name for Satellite storage | `storage_config.yml` | ❌ | `"satellite"` |
-| `platform_satellite_install_satellite_req_dirs` | List of logical volumes to create and mount; each item requires `lv_name`, `lv_size`, and `mount_point` | `storage_config.yml` | ❌† | `[]` |
-| `platform_satellite_install_satellite_data_disk_min_size` | Minimum disk size used when auto-selecting an unpartitioned data disk | `storage_config.yml` | ❌ | `"10G"` |
-| `platform_satellite_install_satellite_data_device_name` | Disk device basename override when auto-discovery finds multiple suitable disks | `storage_config.yml` | ❌ | `""` |
-| `platform_satellite_install_satellite_data_device` | Base device path prefix joined with the selected disk (for example `/dev/sdb`) | `storage_config.yml` | ❌ | `"/dev"` |
-| `platform_satellite_install_satellite_packages` | Package list installed before Satellite configuration | `install_packages.yml` | ❌ | See `defaults/main.yml` |
-| `platform_satellite_install_satellite_dns_device` | NetworkManager connection name updated with DNS settings | `dns_config.yml` | ✅‡ | `""` |
-| `platform_satellite_install_satellite_dns_servers` | DNS servers applied via NetworkManager and `/etc/resolv.conf` | `dns_config.yml` | ❌ | `[]` |
-| `platform_satellite_install_satellite_dns_search` | DNS search domains applied via NetworkManager | `dns_config.yml` | ❌ | `[]` |
-| `platform_satellite_install_satellite_size` | List of tuning tiers (`name`, `min_cpu`) used by `templates/tuning_profile.j2` to select the `satellite-installer --tuning` profile | `install_satellite.yml` | ✅§ | Not defined in role defaults |
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `platform_satellite_install_pre_check` | When `true`, only run `preliminary_check.yml` and skip all other tasks | ❌ | `false` |
+| `platform_satellite_install_satellite_deployment_version` | Target Satellite version validated during preliminary checks and used in RHSM repo names | ✅ | `""` |
+| `platform_satellite_install_satellite_location` | Logical location/name for the Satellite deployment | ✅ | `""` |
+| `platform_satellite_install_satellite_min_memory_size` | Minimum required memory in MB (`ansible_facts["memtotal_mb"]`) | ❌ | `1024` |
+| `platform_satellite_install_satellite_min_cpu_count` | Minimum required vCPU count and input to the Satellite tuning profile template | ❌ | `4` |
+| `platform_satellite_install_satellite_rhn_connected` | When `true`, validate RHSM credentials during preliminary checks | ❌ | `false` |
+| `platform_satellite_install_satellite_rhn_org_id` | RHSM organization ID used for host registration | ✅* | `""` |
+| `platform_satellite_install_satellite_rhn_activation_key` | RHSM activation key used for host registration | ✅* | `""` |
+| `platform_satellite_install_satellite_rhn_repos` | RHSM repository IDs enabled after registration | ❌ | See `defaults/main.yml` |
+| `platform_satellite_install_satellite_timezone` | System timezone set before RHSM registration | ❌ | `"UTC"` |
+| `platform_satellite_install_satellite_proxy_server` | Optional RHSM proxy hostname passed to `redhat_subscription` | ❌ | `""` |
+| `platform_satellite_install_satellite_proxy_port` | Optional RHSM proxy port passed to `redhat_subscription` | ❌ | `""` |
+| `platform_satellite_install_satellite_proxy_scheme` | Optional RHSM proxy scheme (`http` or `https`) passed to `redhat_subscription` | ❌ | `""` |
+| `platform_satellite_install_satellite_selinux_state` | SELinux state applied after package updates | ❌ | `"enforcing"` |
+| `platform_satellite_install_satellite_vg_name` | LVM volume group name for Satellite storage | ❌ | `"satellite"` |
+| `platform_satellite_install_satellite_req_dirs` | List of logical volumes to create and mount; each item requires `lv_name`, `lv_size`, and `mount_point` | ❌† | `[]` |
+| `platform_satellite_install_satellite_data_disk_min_size` | Minimum disk size used when auto-selecting an unpartitioned data disk | ❌ | `"10G"` |
+| `platform_satellite_install_satellite_data_device_name` | Disk device basename override when auto-discovery finds multiple suitable disks | ❌ | `""` |
+| `platform_satellite_install_satellite_data_device` | Base device path prefix joined with the selected disk (for example `/dev/sdb`) | ❌ | `"/dev"` |
+| `platform_satellite_install_satellite_packages` | Package list installed before Satellite configuration | ❌ | See `defaults/main.yml` |
+| `platform_satellite_install_satellite_dns_device` | NetworkManager connection name updated with DNS settings | ✅‡ | `""` |
+| `platform_satellite_install_satellite_dns_servers` | DNS servers applied via NetworkManager and `/etc/resolv.conf` | ❌ | `[]` |
+| `platform_satellite_install_satellite_dns_search` | DNS search domains applied via NetworkManager | ❌ | `[]` |
+| `platform_satellite_install_satellite_size` | List of tuning tiers (`name`, `min_cpu`) used by `templates/tuning_profile.j2` to select the `satellite-installer --tuning` profile | ✅§ | Not defined in role defaults |
 
 > **Notes:**
 > \* Required when `platform_satellite_install_satellite_rhn_connected: true`
