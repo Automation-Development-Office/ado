@@ -1,0 +1,15 @@
+---
+- name: Converge - satellite_content_view publish scenario
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    sat_content_view_action: publish
+    satellite_url: "{{ lookup('env', 'SATELLITE_URL') }}"
+    satellite_username: "{{ lookup('env', 'SATELLITE_USERNAME') }}"
+    satellite_password: "{{ lookup('env', 'SATELLITE_PASSWORD') }}"
+    organization: "{{ lookup('env', 'SATELLITE_ORGANIZATION') }}"
+    content_view: "{{ lookup('env', 'SATELLITE_CONTENT_VIEW') | default('molecule-satellite-content-view', true) }}"
+
+  roles:
+    - role: infra.ado.satellite_content_view

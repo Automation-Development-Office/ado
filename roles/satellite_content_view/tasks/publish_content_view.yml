@@ -21,11 +21,11 @@
     organization: "{{ organization }}"
     state: present
   delegate_to: localhost
-  register: platform_content_view_publish_result
+  register: satellite_content_view_publish_result
 
 - name: Debug published Content View version
   ansible.builtin.debug:
-    var: platform_content_view_publish_result
+    var: satellite_content_view_publish_result
     verbosity: 1
   when:
-    - platform_content_view_publish_result is defined
+    - satellite_content_view_publish_result is defined

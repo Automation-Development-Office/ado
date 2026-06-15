@@ -1,0 +1,31 @@
+---
+- name: Verify - satellite_content_view scenario
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    repo_root: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/../../.."
+    readme_path: "{{ repo_root }}/roles/satellite_content_view/README.md"
+    verify_script: "{{ repo_root }}/scripts/verify_readme.py"
+    readme_template: "{{ repo_root }}/docs/templates/role_readme_format_template.md"
+
+  tasks:
+    - name: Verify role README format with verify_readme.py
+      ansible.builtin.command:
+        argv:
+          - python
+          - "{{ verify_script }}"
+          - "{{ readme_path }}"
+          - --template
+          - "{{ readme_template }}"
+        chdir: "{{ repo_root }}"
+      register: satellite_content_view_verify_readme
+      changed_when: false
+
+    - name: Fail when README verification fails
+      ansible.builtin.fail:
+        msg: >-
+          README verification failed for {{ readme_path }}:
+          {{ satellite_content_view_verify_readme.stdout }}
+          {{ satellite_content_view_verify_readme.stderr }}
+      when: satellite_content_view_verify_readme.rc != 0
