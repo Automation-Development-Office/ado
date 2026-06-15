@@ -23,33 +23,33 @@ It applies Satellite settings, manages subscription manifests, enables Red Hat r
 
 Variables below are referenced by the role task files under `tasks/`. Defaults are defined in `defaults/main.yml` where noted.
 
-| Variable | Description | Used in | Required | Default |
-|----------|-------------|---------|----------|---------|
-| `platform_satellite_config_admin_username` | Satellite administrator username for API and Hammer calls | All task files except `enable_repos.yml` file ownership task | ✅ | Not defined in role defaults |
-| `platform_satellite_config_admin_password` | Satellite administrator password | All task files except `enable_repos.yml` file ownership task | ✅ | Not defined in role defaults |
-| `platform_satellite_config_server_url` | Satellite server URL | `settings.yml`, `manifest.yml`, `enable_repos.yml`, `third_party_products.yml`, `repo_sync.yml`, `lifecycle_envs.yml`, `content_views.yml` | ❌ | `"https://{{ ansible_fqdn }}"` |
-| `platform_satellite_config_organization` | Satellite organization name or label | `settings.yml`, `manifest.yml`, `enable_repos.yml`, `third_party_products.yml`, `repo_sync.yml`, `lifecycle_envs.yml`, `content_views.yml` | ✅ | Not defined in role defaults |
-| `platform_satellite_config_validate_certs` | Whether to validate Satellite TLS certificates | `settings.yml`, `manifest.yml`, `enable_repos.yml`, `third_party_products.yml`, `repo_sync.yml`, `lifecycle_envs.yml`, `content_views.yml` | ❌ | Not defined in role defaults |
-| `platform_satellite_config_settings` | List of Satellite settings to apply; each item requires `name` and `value` | `settings.yml` | ❌ | See `defaults/main.yml` |
-| `platform_satellite_config_rhn_connected` | When `true`, configure connected Satellite proxy settings; when `false`, configure disconnected CDN sync | `settings.yml` | ❌ | Not defined in role defaults |
-| `platform_satellite_config_proxy_server` | HTTP proxy hostname for connected Satellite content sync | `settings.yml` | ❌* | Not defined in role defaults |
-| `platform_satellite_config_proxy_port` | HTTP proxy port for connected Satellite content sync | `settings.yml` | ❌* | Not defined in role defaults |
-| `platform_satellite_config_proxy_scheme` | HTTP proxy scheme (`http` or `https`) for connected Satellite content sync | `settings.yml` | ❌* | Not defined in role defaults |
-| `platform_satellite_config_connected_fqdn` | FQDN of the upstream connected Satellite used for disconnected CDN configuration | `settings.yml` | ✅† | Not defined in role defaults |
-| `platform_satellite_config_upstream_admin_username` | Administrator username for the upstream connected Satellite | `settings.yml` | ✅† | Not defined in role defaults |
-| `platform_satellite_config_upstream_admin_password` | Administrator password for the upstream connected Satellite | `settings.yml` | ✅† | Not defined in role defaults |
-| `platform_satellite_config_manifest_src` | Controller-side path to the subscription manifest file copied to Satellite | `manifest.yml` | ✅‡ | Not defined in role defaults |
-| `platform_satellite_config_manifest_path` | Destination path on the Satellite host for the manifest file | `manifest.yml` | ✅‡ | Not defined in role defaults |
-| `platform_satellite_config_satellite_deployment_version` | Satellite version interpolated into default Red Hat repository set labels | `enable_repos.yml` | ✅ | `""` |
-| `platform_satellite_config_satellite_redhat_repos` | Red Hat repository sets to enable; each item supports `label`, optional `repos`, and optional `all` | `enable_repos.yml` | ❌ | See `defaults/main.yml` |
-| `platform_satellite_config_gpg_key_files` | Role-relative GPG key files copied to the Satellite host | `third_party_products.yml` | ❌ | See `defaults/main.yml` |
-| `platform_satellite_config_custom_repo_dest` | Destination directory for extracted custom repository content | `third_party_products.yml` | ✅§ | Not defined in role defaults |
-| `platform_satellite_config_custom_repo_src` | Source directory containing custom repository archives | `third_party_products.yml` | ✅§ | Not defined in role defaults |
-| `platform_satellite_config_custom_repo_files` | Archive filenames extracted from `platform_satellite_config_custom_repo_src` | `third_party_products.yml` | ✅§ | Not defined in role defaults |
-| `platform_satellite_config_custom_repos` | Custom repository upload definitions passed to `subelements('files')`; each item requires `product`, `repository`, and `files` | `third_party_products.yml` | ✅§ | Not defined in role defaults |
-| `platform_satellite_config_repo_sync_wait_time` | Async timeout in seconds while waiting for repository sync jobs to finish | `repo_sync.yml` | ❌ | Not defined in role defaults |
-| `platform_satellite_config_lifecycle_envs` | Lifecycle environments to create; each item requires `env_name` and `prior` | `lifecycle_envs.yml` | ✅¶ | Not defined in role defaults |
-| `platform_satellite_config_content_views` | Content views to publish and promote; each item requires `name` and `lifecycle_environments` | `content_views.yml` | ✅¶ | Not defined in role defaults |
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `platform_satellite_config_admin_username` | Satellite administrator username for API and Hammer calls | ✅ | Not defined in role defaults |
+| `platform_satellite_config_admin_password` | Satellite administrator password | ✅ | Not defined in role defaults |
+| `platform_satellite_config_server_url` | Satellite server URL | ❌ | `"https://{{ ansible_fqdn }}"` |
+| `platform_satellite_config_organization` | Satellite organization name or label | ✅ | Not defined in role defaults |
+| `platform_satellite_config_validate_certs` | Whether to validate Satellite TLS certificates | ❌ | Not defined in role defaults |
+| `platform_satellite_config_settings` | List of Satellite settings to apply; each item requires `name` and `value` | ❌ | See `defaults/main.yml` |
+| `platform_satellite_config_rhn_connected` | When `true`, configure connected Satellite proxy settings; when `false`, configure disconnected CDN sync | ❌ | Not defined in role defaults |
+| `platform_satellite_config_proxy_server` | HTTP proxy hostname for connected Satellite content sync | ❌* | Not defined in role defaults |
+| `platform_satellite_config_proxy_port` | HTTP proxy port for connected Satellite content sync | ❌* | Not defined in role defaults |
+| `platform_satellite_config_proxy_scheme` | HTTP proxy scheme (`http` or `https`) for connected Satellite content sync | ❌* | Not defined in role defaults |
+| `platform_satellite_config_connected_fqdn` | FQDN of the upstream connected Satellite used for disconnected CDN configuration | ✅† | Not defined in role defaults |
+| `platform_satellite_config_upstream_admin_username` | Administrator username for the upstream connected Satellite | ✅† | Not defined in role defaults |
+| `platform_satellite_config_upstream_admin_password` | Administrator password for the upstream connected Satellite | ✅† | Not defined in role defaults |
+| `platform_satellite_config_manifest_src` | Controller-side path to the subscription manifest file copied to Satellite | ✅‡ | Not defined in role defaults |
+| `platform_satellite_config_manifest_path` | Destination path on the Satellite host for the manifest file | ✅‡ | Not defined in role defaults |
+| `platform_satellite_config_satellite_deployment_version` | Satellite version interpolated into default Red Hat repository set labels | ✅ | `""` |
+| `platform_satellite_config_satellite_redhat_repos` | Red Hat repository sets to enable; each item supports `label`, optional `repos`, and optional `all` | ❌ | See `defaults/main.yml` |
+| `platform_satellite_config_gpg_key_files` | Role-relative GPG key files copied to the Satellite host | ❌ | See `defaults/main.yml` |
+| `platform_satellite_config_custom_repo_dest` | Destination directory for extracted custom repository content | ✅§ | Not defined in role defaults |
+| `platform_satellite_config_custom_repo_src` | Source directory containing custom repository archives | ✅§ | Not defined in role defaults |
+| `platform_satellite_config_custom_repo_files` | Archive filenames extracted from `platform_satellite_config_custom_repo_src` | ✅§ | Not defined in role defaults |
+| `platform_satellite_config_custom_repos` | Custom repository upload definitions passed to `subelements('files')`; each item requires `product`, `repository`, and `files` | ✅§ | Not defined in role defaults |
+| `platform_satellite_config_repo_sync_wait_time` | Async timeout in seconds while waiting for repository sync jobs to finish | ❌ | Not defined in role defaults |
+| `platform_satellite_config_lifecycle_envs` | Lifecycle environments to create; each item requires `env_name` and `prior` | ✅¶ | Not defined in role defaults |
+| `platform_satellite_config_content_views` | Content views to publish and promote; each item requires `name` and `lifecycle_environments` | ✅¶ | Not defined in role defaults |
 
 > **Notes:**
 > \* Required when `platform_satellite_config_rhn_connected: true` and configuring Satellite content proxy settings.
