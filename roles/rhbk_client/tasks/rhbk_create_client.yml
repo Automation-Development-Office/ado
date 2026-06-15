@@ -1,0 +1,73 @@
+- name: Assert required inputs are set
+  ansible.builtin.assert:
+    that:
+      - rhbk_hostname | length > 0
+      - rhbk_admin_user | length > 0
+      - rhbk_admin_password | length > 0
+      - rhbk_realm | length > 0
+      - rhbk_client | length > 0
+    fail_msg: "Set rhbk_hostname, rhbk_admin_user, rhbk_admin_password, rhbk_realm, rhbk_client."
+
+- name: Build Keycloak base URL
+  ansible.builtin.set_fact:
+    rhbk_client_kc_url: >-
+      {{
+        'https://' ~ rhbk_hostname ~
+        (rhbk_auth_base_path | default('') | string)
+      }}
+
+# Create / update the client with requireds + optionals (sent only if defined)
+- name: Create or update Keycloak client
+  community.general.keycloak_client:
+    # Auth to Keycloak
+    auth_client_id: "{{ auth_client_id | default('admin-cli') }}"
+    auth_keycloak_url: "{{ rhbk_client_kc_url }}"
+    auth_realm: "{{ auth_realm | default('master') }}"
+    auth_username: "{{ auth_username | default(rhbk_admin_user) }}"
+    auth_password: "{{ auth_password | default(rhbk_admin_password) }}"
+    validate_certs: "{{ rhbk_verify_ssl | bool }}"
+
+    # Target realm / client
+    realm: "{{ rhbk_realm }}"
+    client_id: "{{ rhbk_client }}"
+    state: "{{ state | default('present') }}"
+
+    # ---- OPTIONALS: only sent if you define rhbk_* vars below ----
+    id: "{{ rhbk_client_uuid | default(omit) }}"
+    name: "{{ rhbk_client_name | default(omit) }}"
+    description: "{{ rhbk_description | default(omit) }}"
+    root_url: "{{ rhbk_root_url | default(omit) }}"
+    admin_url: "{{ rhbk_admin_url | default(omit) }}"
+    base_url: "{{ rhbk_base_url | default(omit) }}"
+    enabled: "{{ rhbk_enabled | default(omit) }}"
+    client_authenticator_type: "{{ rhbk_client_authenticator_type | default(omit) }}"
+    secret: "{{ rhbk_client_secret | default(omit) }}"
+    redirect_uris: "{{ rhbk_redirect_uris | default(omit) }}"
+    web_origins: "{{ rhbk_web_origins | default(omit) }}"
+    not_before: "{{ rhbk_not_before | default(omit) }}"
+    bearer_only: "{{ rhbk_bearer_only | default(omit) }}"
+    consent_required: "{{ rhbk_consent_required | default(omit) }}"
+    standard_flow_enabled: "{{ rhbk_standard_flow_enabled | default(omit) }}"
+    implicit_flow_enabled: "{{ rhbk_implicit_flow_enabled | default(omit) }}"
+    direct_access_grants_enabled: "{{ rhbk_direct_access_grants_enabled | default(omit) }}"
+    service_accounts_enabled: "{{ rhbk_service_accounts_enabled | default(omit) }}"
+    authorization_services_enabled: "{{ rhbk_authorization_services_enabled | default(omit) }}"
+    public_client: "{{ rhbk_public_client | default(omit) }}"
+    frontchannel_logout: "{{ rhbk_frontchannel_logout | default(omit) }}"
+    protocol: "{{ rhbk_protocol | default(omit) }}"
+    full_scope_allowed: "{{ rhbk_full_scope_allowed | default(omit) }}"
+    node_re_registration_timeout: "{{ rhbk_node_re_registration_timeout | default(omit) }}"
+    client_template: "{{ rhbk_client_template | default(omit) }}"
+    use_template_config: "{{ rhbk_use_template_config | default(omit) }}"
+    use_template_scope: "{{ rhbk_use_template_scope | default(omit) }}"
+    use_template_mappers: "{{ rhbk_use_template_mappers | default(omit) }}"
+    always_display_in_console: "{{ rhbk_always_display_in_console | default(omit) }}"
+    registered_nodes: "{{ rhbk_registered_nodes | default(omit) }}"
+    registration_access_token: "{{ rhbk_registration_access_token | default(omit) }}"
+    surrogate_auth_required: "{{ rhbk_surrogate_auth_required | default(omit) }}"
+    default_roles: "{{ rhbk_default_roles | default(omit) }}"
+    authentication_flow_binding_overrides: "{{ rhbk_auth_flow_binding_overrides | default(omit) }}"
+    protocol_mappers: "{{ rhbk_protocol_mappers | default(omit) }}"
+    attributes: "{{ rhbk_attributes | default(omit) }}"
+  delegate_to: localhost
+  no_log: "{{ rhbk_no_log | default(true) }}"

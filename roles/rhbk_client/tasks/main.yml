@@ -1,0 +1,7 @@
+- name: Create RHBK Client
+  ansible.builtin.import_tasks: rhbk_create_client.yml
+  when: state == "present"
+
+- name: Delete RHBK client
+  ansible.builtin.import_tasks: rhbk_delete_client.yml
+  when: state == "absent"

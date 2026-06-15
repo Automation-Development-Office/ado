@@ -50,7 +50,7 @@ Each action task:
 6. optionally runs cache cleanup
 7. prints summary output
 
-## Variables
+## Role Variables
 
 | Variable | Description | Required | Default |
 | --- | --- | --- | --- |

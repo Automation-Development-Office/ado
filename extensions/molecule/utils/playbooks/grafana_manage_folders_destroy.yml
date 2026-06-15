@@ -1,0 +1,10 @@
+---
+- name: Destroy - grafana_manage_folders scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Destroy step is intentionally minimal
+      ansible.builtin.debug:
+        msg: "No explicit destroy actions required for grafana_manage_folders."

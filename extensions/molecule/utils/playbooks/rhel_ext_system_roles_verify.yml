@@ -1,0 +1,19 @@
+---
+- name: Verify - rhel_ext_system_roles scenario
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    readme_path: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/../../../roles/rhel_ext_system_roles/README.md"
+
+  tasks:
+    - name: Check if role README.md exists
+      ansible.builtin.stat:
+        path: "{{ readme_path }}"
+      register: rhel_ext_system_roles_readme_file
+
+    - name: Assert role README.md exists
+      ansible.builtin.assert:
+        that:
+          - rhel_ext_system_roles_readme_file.stat.exists
+        fail_msg: "README.md is missing for rhel_ext_system_roles."

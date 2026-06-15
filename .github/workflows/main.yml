@@ -5,8 +5,8 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      run_integration_manage_vm_image:
-        description: "Run integration_manage_vm_image"
+      run_integration_vm_image_management:
+        description: "Run integration_vm_image_management"
         required: false
         default: false
         type: boolean
@@ -15,43 +15,43 @@ on:
         required: false
         default: false
         type: boolean
-      run_integration_utilities_cron_full_special:
-        description: "Run integration_utilities_cron_full_special"
+      run_integration_rhel_cron_full_special:
+        description: "Run integration_rhel_cron_full_special"
         required: false
         default: false
         type: boolean
-      run_integration_utilities_cron_full_special_removal:
-        description: "Run integration_utilities_cron_full_special_removal"
+      run_integration_rhel_cron_full_special_removal:
+        description: "Run integration_rhel_cron_full_special_removal"
         required: false
         default: false
         type: boolean
-      run_integration_utilities_cron_single_special:
-        description: "Run integration_utilities_cron_single_special"
+      run_integration_rhel_cron_single_special:
+        description: "Run integration_rhel_cron_single_special"
         required: false
         default: false
         type: boolean
-      run_integration_utilities_cron_single_special_removal:
-        description: "Run integration_utilities_cron_single_special_removal"
+      run_integration_rhel_cron_single_special_removal:
+        description: "Run integration_rhel_cron_single_special_removal"
         required: false
         default: false
         type: boolean
-      run_integration_utils_mount_mount_auto_detect:
-        description: "Run integration_utils_mount_mount_auto_detect"
+      run_integration_rhel_mount_mount_auto_detect:
+        description: "Run integration_rhel_mount_mount_auto_detect"
         required: false
         default: false
         type: boolean
-      run_integration_utils_mount_mount_explicit_fstype:
-        description: "Run integration_utils_mount_mount_explicit_fstype"
+      run_integration_rhel_mount_mount_explicit_fstype:
+        description: "Run integration_rhel_mount_mount_explicit_fstype"
         required: false
         default: false
         type: boolean
-      run_integration_utils_mount_remove_from_fstab:
-        description: "Run integration_utils_mount_remove_from_fstab"
+      run_integration_rhel_mount_remove_from_fstab:
+        description: "Run integration_rhel_mount_remove_from_fstab"
         required: false
         default: false
         type: boolean
-      run_integration_utils_mount_unmount_filesystem:
-        description: "Run integration_utils_mount_unmount_filesystem"
+      run_integration_rhel_mount_unmount_filesystem:
+        description: "Run integration_rhel_mount_unmount_filesystem"
         required: false
         default: false
         type: boolean
@@ -67,6 +67,21 @@ on:
         type: boolean
       run_platform_repos_rhsm:
         description: "Run platform_repos RHSM scenario"
+        required: false
+        default: false
+        type: boolean
+      run_integration_satellite_content_view_create:
+        description: "Run integration_satellite_content_view_create"
+        required: false
+        default: false
+        type: boolean
+      run_integration_satellite_content_view_publish:
+        description: "Run integration_satellite_content_view_publish"
+        required: false
+        default: false
+        type: boolean
+      run_integration_satellite_content_view_promote:
+        description: "Run integration_satellite_content_view_promote"
         required: false
         default: false
         type: boolean
@@ -173,16 +188,19 @@ jobs:
           dirs=()
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             declare -A checks=(
-              [integration_manage_vm_image]="${{ github.event.inputs.run_integration_manage_vm_image }}"
+              [integration_vm_image_management]="${{ github.event.inputs.run_integration_vm_image_management }}"
               [integration_aap_build_ee]="${{ github.event.inputs.run_integration_aap_build_ee }}"
-              [integration_utilities_cron_full_special]="${{ github.event.inputs.run_integration_utilities_cron_full_special }}"
-              [integration_utilities_cron_full_special_removal]="${{ github.event.inputs.run_integration_utilities_cron_full_special_removal }}"
-              [integration_utilities_cron_single_special]="${{ github.event.inputs.run_integration_utilities_cron_single_special }}"
-              [integration_utilities_cron_single_special_removal]="${{ github.event.inputs.run_integration_utilities_cron_single_special_removal }}"
-              [integration_utils_mount_mount_auto_detect]="${{ github.event.inputs.run_integration_utils_mount_mount_auto_detect }}"
-              [integration_utils_mount_mount_explicit_fstype]="${{ github.event.inputs.run_integration_utils_mount_mount_explicit_fstype }}"
-              [integration_utils_mount_remove_from_fstab]="${{ github.event.inputs.run_integration_utils_mount_remove_from_fstab }}"
-              [integration_utils_mount_unmount_filesystem]="${{ github.event.inputs.run_integration_utils_mount_unmount_filesystem }}"
+              [integration_rhel_cron_full_special]="${{ github.event.inputs.run_integration_rhel_cron_full_special }}"
+              [integration_rhel_cron_full_special_removal]="${{ github.event.inputs.run_integration_rhel_cron_full_special_removal }}"
+              [integration_rhel_cron_single_special]="${{ github.event.inputs.run_integration_rhel_cron_single_special }}"
+              [integration_rhel_cron_single_special_removal]="${{ github.event.inputs.run_integration_rhel_cron_single_special_removal }}"
+              [integration_rhel_mount_mount_auto_detect]="${{ github.event.inputs.run_integration_rhel_mount_mount_auto_detect }}"
+              [integration_rhel_mount_mount_explicit_fstype]="${{ github.event.inputs.run_integration_rhel_mount_mount_explicit_fstype }}"
+              [integration_rhel_mount_remove_from_fstab]="${{ github.event.inputs.run_integration_rhel_mount_remove_from_fstab }}"
+              [integration_rhel_mount_unmount_filesystem]="${{ github.event.inputs.run_integration_rhel_mount_unmount_filesystem }}"
+              [integration_satellite_content_view_create]="${{ github.event.inputs.run_integration_satellite_content_view_create }}"
+              [integration_satellite_content_view_publish]="${{ github.event.inputs.run_integration_satellite_content_view_publish }}"
+              [integration_satellite_content_view_promote]="${{ github.event.inputs.run_integration_satellite_content_view_promote }}"
             )
             for scenario in "${!checks[@]}"; do
               if [[ "${checks[$scenario]}" == "true" ]]; then
@@ -237,6 +255,18 @@ jobs:
         env:
           ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
 
+      - name: Install scenario collection requirements
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          requirements_file="${{ github.workspace }}/${{ matrix.scenario_dir }}/requirements.yml"
+          if [ -f "$requirements_file" ]; then
+            ansible-galaxy collection install -r "$requirements_file" -p ~/.ansible/collections
+          fi
+        env:
+          ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
+          ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
+
       - name: Set ANSIBLE_COLLECTIONS_PATH for subsequent steps
         run: echo "ANSIBLE_COLLECTIONS_PATH=$HOME/.ansible/collections" >> "$GITHUB_ENV"
 
@@ -254,6 +284,9 @@ jobs:
 
       - name: Run Molecule tests
         working-directory: extensions/molecule
+        env:
+          ANSIBLE_ROLES_PATH: ${{ github.workspace }}/roles
+          ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
         run: |
           set -euo pipefail
           scenario_name="${{ steps.scenario_meta.outputs.scenario_name }}"

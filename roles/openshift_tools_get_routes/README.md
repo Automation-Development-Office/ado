@@ -18,7 +18,7 @@ Read-only role that **retrieves OpenShift Routes** and exposes useful facts.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable            | Description                                                                 |
 |---------------------|-----------------------------------------------------------------------------|
@@ -84,7 +84,7 @@ Read-only role that **retrieves OpenShift Routes** and exposes useful facts.
 
 ---
 
-## Molecule
+## Molecule Testing
 
 A default Molecule scenario is included for this role. It:
 
@@ -102,7 +102,7 @@ dependency → lint → syntax → create → converge → idempotence → destr
 ---
 
 ## Author
-- Chad Elliott (<chelliot@redhat.com>) 
+- Chad Elliott (<chelliot@redhat.com>)
 
 ---
 

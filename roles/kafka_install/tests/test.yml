@@ -1,0 +1,6 @@
+---
+- name: Test kafka_install role
+  hosts: localhost
+  remote_user: root
+  roles:
+    - kafka_install

@@ -1,0 +1,56 @@
+name: Feature task
+description: Create a subtask for an existing feature
+title: "[Task] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Creating this task from a parent feature issue? Use **Create sub-issue** on that
+        feature instead — GitHub will link it automatically and you will not need to
+        fill in the related feature field below.
+
+  - type: input
+    id: related_feature
+    attributes:
+      label: Related feature (optional)
+      description: Issue number or URL for the parent feature request
+      placeholder: "#123 or https://github.com/.../issues/123"
+    validations:
+      required: false
+
+  - type: textarea
+    id: task_description
+    attributes:
+      label: Describe the task
+      description: A clear and concise description of the work to be done.
+    validations:
+      required: true
+
+  - type: textarea
+    id: related_roles
+    attributes:
+      label: Is this task related to a specific collection role?
+      description: List the role or roles this task will update, if any.
+      placeholder: e.g. roles/kafka_install
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      options:
+        - label: Standard README.md created for the role
+        - label: >-
+            Developer ran `python scripts/verify_readme.py {path to your role README}`
+            and it passed
+        - label: Held discussions with the team about Molecule testing
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add any other context, dependencies, or screenshots here.
+    validations:
+      required: false

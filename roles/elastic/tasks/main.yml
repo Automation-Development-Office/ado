@@ -1,0 +1,27 @@
+- name: Normalize elastic variables
+  ansible.builtin.set_fact:
+    elastic_state: "{{ elastic_state | default(state | default('status')) }}"
+    elastic_systemd_enabled: "{{ elastic_systemd_enabled | default(es_systemd_enabled | default(true)) }}"
+    elastic_systemd_unit: "{{ elastic_systemd_unit | default(es_systemd_unit | default('elasticsearch')) }}"
+    elastic_start_cmd: "{{ elastic_start_cmd | default(es_start_cmd | default('')) }}"
+    elastic_pid_file: "{{ elastic_pid_file | default(es_pid_file | default('/var/run/elasticsearch.pid')) }}"
+    elastic_url: "{{ elastic_url | default(es_url | default('http://localhost:9200')) }}"
+    elastic_user: "{{ elastic_user | default(es_user | default('')) }}"
+    elastic_pass: "{{ elastic_pass | default(es_pass | default('')) }}"
+    elastic_http_timeout: "{{ elastic_http_timeout | default(es_http_timeout | default(60)) }}"
+
+- name: Start Elastic
+  ansible.builtin.import_tasks: elastic_start.yml
+  when: elastic_state == "start"
+
+- name: Check Elastic balance
+  ansible.builtin.import_tasks: elastic_balance_check.yml
+  when: elastic_state == "balance"
+
+- name: Stop Elastic
+  ansible.builtin.import_tasks: elastic_stop.yml
+  when: elastic_state == "stop"
+
+- name: Check if balanced
+  ansible.builtin.import_tasks: elastic_status_check.yml
+  when: elastic_state == "status"

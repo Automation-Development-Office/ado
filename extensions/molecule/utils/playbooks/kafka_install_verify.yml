@@ -1,0 +1,104 @@
+---
+- name: Verify kafka_install role README
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    role_dir: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/../../../roles/kafka_install"
+    readme_path: "{{ role_dir }}/README.md"
+    detected_role_name: kafka_install
+
+  tasks:
+    - name: Show detected role name
+      ansible.builtin.debug:
+        msg: "Detected role name: {{ detected_role_name }}"
+
+    - name: Verify role name does NOT use hyphens ('-')
+      ansible.builtin.assert:
+        that:
+          - detected_role_name is match('^[A-Za-z0-9_]+$')
+          - detected_role_name.find('-') == -1
+        fail_msg: "Role name '{{ detected_role_name }}' contains a hyphen. Use underscores only."
+        success_msg: "Role name '{{ detected_role_name }}' is valid."
+
+    - name: Check if README.md exists
+      ansible.builtin.stat:
+        path: "{{ readme_path }}"
+      register: kafka_install_readme_file
+
+    - name: Fail when README.md is missing
+      ansible.builtin.fail:
+        msg: "README.md is required at {{ readme_path }}."
+      when: not kafka_install_readme_file.stat.exists
+
+    - name: Load README.md
+      ansible.builtin.slurp:
+        path: "{{ readme_path }}"
+      register: kafka_install_readme_raw
+
+    - name: Set README content fact
+      ansible.builtin.set_fact:
+        kafka_install_readme: "{{ kafka_install_readme_raw.content | b64decode }}"
+
+    - name: Verify README has required heading
+      ansible.builtin.assert:
+        that:
+          - kafka_install_readme is regex('(?m)^#\\s+Role:')
+        fail_msg: "README.md should start with '# Role: <collection.role>'."
+        success_msg: "README.md has correct heading format."
+
+    - name: Verify README has variables table
+      ansible.builtin.assert:
+        that:
+          - kafka_install_readme is search('\\|\\s*Variable\\s*\\|\\s*Description\\s*\\|', multiline=True)
+        fail_msg: "README.md should include a variables table with '| Variable | Description |'."
+        success_msg: "README.md includes a variables table."
+
+    - name: Verify README has example code block
+      ansible.builtin.assert:
+        that:
+          - kafka_install_readme is search('```(yaml|yml|ansible|bash)[\\s\\S]*?```', multiline=True)
+        fail_msg: "README.md should include a fenced code block with an example."
+        success_msg: "README.md includes an example code block."
+
+    - name: Verify Role Requirements section exists
+      ansible.builtin.assert:
+        that:
+          - kafka_install_readme is search('(?m)^##\\s+.*Role Requirements', multiline=True)
+        fail_msg: "Missing 'Role Requirements' section."
+        success_msg: "Found Role Requirements section."
+
+    - name: Verify Role Variables section exists
+      ansible.builtin.assert:
+        that:
+          - kafka_install_readme is search('(?m)^##\\s+.*Role Variables', multiline=True)
+        fail_msg: "Missing 'Role Variables' section."
+        success_msg: "Found Role Variables section."
+
+    - name: Verify Role Usage section exists
+      ansible.builtin.assert:
+        that:
+          - kafka_install_readme is search('(?m)^##\\s+.*Role Usage', multiline=True)
+        fail_msg: "Missing 'Role Usage' section."
+        success_msg: "Found Role Usage section."
+
+    - name: Verify Role Molecule Testing section exists
+      ansible.builtin.assert:
+        that:
+          - kafka_install_readme is search('(?m)^##\\s+.*Role Molecule Testing', multiline=True)
+        fail_msg: "Missing 'Role Molecule Testing' section."
+        success_msg: "Found Role Molecule Testing section."
+
+    - name: Verify Role Structure section exists
+      ansible.builtin.assert:
+        that:
+          - kafka_install_readme is search('(?m)^##\\s+.*Role Structure', multiline=True)
+        fail_msg: "Missing 'Role Structure' section."
+        success_msg: "Found Role Structure section."
+
+    - name: Verify Auth via environment section exists
+      ansible.builtin.assert:
+        that:
+          - kafka_install_readme is search('(?m)^###\\s+Auth via environment', multiline=True)
+        fail_msg: "Missing '### Auth via environment' section."
+        success_msg: "Found Auth via environment section."

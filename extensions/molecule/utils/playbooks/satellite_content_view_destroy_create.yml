@@ -1,0 +1,31 @@
+---
+- name: Destroy - satellite_content_view create scenario
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    satellite_url: "{{ lookup('env', 'SATELLITE_URL') | default('', true) }}"
+    satellite_username: "{{ lookup('env', 'SATELLITE_USERNAME') | default('', true) }}"
+    satellite_password: "{{ lookup('env', 'SATELLITE_PASSWORD') | default('', true) }}"
+    organization: "{{ lookup('env', 'SATELLITE_ORGANIZATION') | default('', true) }}"
+    content_view: "{{ lookup('env', 'SATELLITE_CONTENT_VIEW') | default('molecule-satellite-content-view', true) }}"
+
+  tasks:
+    - name: Skip destroy when Satellite credentials are not configured
+      ansible.builtin.meta: end_play
+      when: >
+        satellite_url | length == 0 or
+        satellite_username | length == 0 or
+        satellite_password | length == 0 or
+        organization | length == 0
+
+    - name: Remove Molecule Content View from Satellite
+      redhat.satellite.content_view:
+        server_url: "{{ satellite_url }}"
+        username: "{{ satellite_username }}"
+        password: "{{ satellite_password }}"
+        validate_certs: false
+        name: "{{ content_view }}"
+        organization: "{{ organization }}"
+        state: absent
+      delegate_to: localhost

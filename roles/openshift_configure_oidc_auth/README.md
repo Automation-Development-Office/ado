@@ -12,7 +12,7 @@ Configure OpenShift OAuth to use an OIDC identity provider.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -47,7 +47,7 @@ Configure OpenShift OAuth to use an OIDC identity provider.
 
 ---
 
-## Molecule
+## Molecule Testing
 
 Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
 

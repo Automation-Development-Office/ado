@@ -2,7 +2,7 @@
 
 This role deploys GitLab Runner to an OpenShift cluster using a Kubernetes Deployment manifest. It registers the runner with GitLab and sets up the namespace and service account needed to operate.
 
-## Variables
+## Role Variables
 
 | Name         | Description                         | Required | Default |
 |--------------|-------------------------------------|----------|---------|

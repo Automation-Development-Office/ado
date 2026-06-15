@@ -34,3 +34,16 @@ mock_modules:
   - awx.awx.job_template
   - redhat.openshift_virtualization.kubevirt_vm
   - community.crypto.openssh_keypair
+  - grafana.grafana.folder
+  - grafana.grafana.dashboard
+  - redhat.rhbk.keycloak_user_federation
+  - redhat.rhbk.keycloak_realm
+  - redhat.rhbk.keycloak_group
+  - redhat.rhbk.keycloak_user
+  - redhat.rhbk.keycloak_client
+  - redhat.rhbk.keycloak_role
+  - redhat.rhbk.keycloak_role_mapping
+  - redhat.rhbk.keycloak_user_role_mapping
+  - redhat.rhbk.keycloak_user_group_mapping
+  - redhat.rhbk.keycloak_client_scope
+  - redhat.rhbk.keycloak_client_scope_group_mapper

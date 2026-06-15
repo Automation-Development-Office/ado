@@ -9,7 +9,7 @@ Creates an EC2 instance, creates a snapshot from the attached EBS device, and cr
 - AWS credentials with permissions to create/manage EC2 instances, snapshots, and AMIs.
 - Python AWS SDK dependencies available to Ansible (`boto3` and `botocore`).
 
-## Variables
+## Role Variables
 
 | Variable | Default | Required | Description |
 | --- | --- | --- | --- |

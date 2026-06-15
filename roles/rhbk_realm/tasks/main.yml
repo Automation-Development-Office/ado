@@ -1,0 +1,7 @@
+- name: Create RHBK realm
+  ansible.builtin.import_tasks: rhbk_create_realm.yml
+  when: state == "present"
+
+- name: Delete RHBK realm
+  ansible.builtin.import_tasks: rhbk_delete_realm.yml
+  when: state == "absent"

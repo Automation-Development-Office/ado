@@ -1,0 +1,17 @@
+---
+- name: Converge kafka_install role
+  hosts: localhost
+  gather_facts: false
+  vars:
+    operator_name: confluent-for-kubernetes
+    operator_channel: stable
+    operator_source: certified-operators
+    operator_source_namespace: openshift-marketplace
+    operator_subscription_namespace: openshift-operators
+    name_space: cfk-operator
+    kafka_install_create_cr: false
+    kafka_install_cluster_name: kafka-cluster
+    kafka_install_replicas: 1
+    kafka_install_data_volume_capacity: 1Gi
+  roles:
+    - infra.ado.kafka_install

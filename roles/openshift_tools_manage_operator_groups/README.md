@@ -16,7 +16,7 @@ Create, reconcile, or remove an **OperatorGroup** in OpenShift.
 
 ---
 
-## Variables
+## Role Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -92,7 +92,7 @@ Create, reconcile, or remove an **OperatorGroup** in OpenShift.
 
 ---
 
-## Molecule
+## Molecule Testing
 
 A default Molecule scenario is included for this role and focuses on **single-namespace** behavior. It runs:
 

@@ -1,0 +1,132 @@
+template_stories_phase1:
+
+  - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness and Design - Phase 1"
+    story_description: |
+      *As a:* "{{ role_name }}" 
+      *I want to:* Validate all prerequisites and architectural decisions for {{ product }}  
+      *So that:* {{ product }} can be deployed consistently and support multi-cluster governance at scale.
+
+      Notes / Context:
+      This phase focuses on discovery, access validation, architectural alignment, and Automation expectations should be defined and gaps identified
+      before any cluster-level changes are introduced.  It should done before any deployment work begins to ensure all stakeholders have a shared understanding
+      of the design and implementation plan, and to identify any gaps or risks that need to be addressed upfront.
+
+    custom_ac: |
+      * Stakeholders identified and kickoff completed
+      * Meet with Red Hat architects/SMEs to validate design
+      * Meet with Customer architects/SMEs to validate design and Implementation
+      * Target clusters identified, categorized, and ownership confirmed
+      * Network connectivity validated 
+      * Identity integration reviewed (IdM, SSO, RBAC)
+      * Certificate and trust requirements documented
+      * RBAC model defined for {{ product }} users and automation
+      * GitOps strategy confirmed (Collections, AAP, ArgoCD / GitOps operator)
+      * Automation expectations documented (what will / will not be automated)
+      * Open risks and gaps captured and reviewed
+      * Follow-on backlog items created and prioritized (Automation, Observability, Policies, etc.)
+
+    labels:
+      - "{{ product }}"
+      - "{{ jira_stories_section }}"
+
+    subtasks:
+      - summary: "Conduct kickoff meeting with stakeholders to align on goals, timelines, and responsibilities"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Hold a kickoff meeting with all relevant stakeholders, to ensure the project goals, timelines, and responsibilities.  
+          *So that:* clusters can be managed consistently and securely.
+
+          Notes / Context:
+          This subtask focuses on ensuring a kickoff meeting is held to ensure the project goals, timelines, and responsibilities are clearly communicated
+          and agreed upon by all stakeholders.  This can be done as part of a larger project kickoff or as a dedicated meeting focused specifically
+          on the {{ product }} implementation.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Review and validate architecture and design with stakeholders and Red Hat architects and SMEs"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Review and validate the proposed architecture and design for {{ product }} with both Red Hat architects/SMEs and Customer architects/SMEs.  
+          *So that:* we can ensure the design is sound, meets requirements, and has buy-in from all relevant parties.
+
+          Notes / Context:
+          This subtask focuses on ensuring the proposed architecture and design for {{ product }} is reviewed and validated with both Red Hat architects/SMEs
+          and Customer architects/SMEs.  This can be done through a series of design review meetings or workshops, where the proposed design is presented,
+          feedback is collected, and any necessary adjustments are made based on the feedback received.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Validate network connectivity between (AWS, AAP hub, and managed clusters)"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Validate network connectivity between AWS, the AAP hub cluster, and the managed clusters.  
+          *So that:* we can ensure {{ product }} can communicate effectively with all necessary components.
+
+          Notes / Context:
+          This subtask focuses on validating network connectivity between AWS, the AAP hub cluster, and the managed clusters.  This can be done through
+          connectivity tests such as ping tests, traceroutes, or using tools like telnet or nc to test specific ports. Any connectivity issues identified
+          should be documented and addressed before proceeding with implementation.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Define RBAC model for {{ product }} users and automation"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Define the RBAC model for {{ product }} users and automation.  
+          *So that:* we can ensure appropriate access controls are in place for both human users and automated processes interacting with {{ product }}.
+
+          Notes / Context:
+          This subtask focuses on defining the RBAC model for {{ product }} users and automation. This includes identifying users and automation that
+          interact with {{ product }}, determining required permissions, and creating roles and role bindings following least privilege.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Review certificate and trust requirements"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Review the certificate and trust requirements for {{ product }}.  
+          *So that:* we can ensure secure communication between {{ product }} components and with external systems.
+
+          Notes / Context:
+          This includes identifying certificates needed for secure communication between components and integrations with external systems such as Git,
+          monitoring, identity, or automation platforms.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Document automation expectations and constraints"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Document the automation expectations and constraints for the {{ product }} implementation.  
+          *So that:* we have a clear understanding of what will and will not be automated, which can help guide the implementation
+          and set appropriate expectations with stakeholders.
+
+          Notes / Context:
+          This includes identifying what will be automated, what requires manual intervention, and what should become follow-on backlog work.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
+
+      - summary: "Create backlog items for identified gaps (Automation, Observability, Policies, etc.)"
+        description: |
+          *As a:* "{{ role_name }}"  
+          *I want to:* Create backlog items for any identified gaps in the {{ product }} implementation, such as automation, observability,
+          policies, etc.  
+          *So that:* we can ensure these gaps are tracked and addressed in a timely manner.
+
+          Notes / Context:
+          Document the specific gap, impact, proposed solution or next steps, and prioritize for future work.
+        labels:
+          - "{{ product }}"
+          - "{{ jira_stories_section }}"
+        component: "{{ group }}"
