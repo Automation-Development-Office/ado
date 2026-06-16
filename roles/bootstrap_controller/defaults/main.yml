@@ -1,0 +1,81 @@
+---
+# =========================
+# Safe defaults / knobs only
+# =========================
+
+controller_bootstrap_enabled_objects:
+  - organizations
+  - credentials
+  - execution_environments
+  - projects
+  - inventories
+  - hosts
+  - labels
+  - job_templates
+  - workflow_job_templates
+
+controller_bootstrap_generate_job_templates_from_manifest: true
+
+# Common placeholders. Real values belong in group_vars/all/vars_<env>.yml
+controller_bootstrap_organization: ""
+controller_bootstrap_inventory_name: ""
+controller_bootstrap_project_name: ""
+controller_bootstrap_execution_environment_name: ""
+controller_bootstrap_creds: ""
+
+# Survey defaults
+controller_bootstrap_environment_choices:
+  - dev
+  - test
+  - preprod
+  - prod
+controller_bootstrap_default_environment: prod
+
+controller_bootstrap_state_choices:
+  - present
+  - absent
+controller_bootstrap_console_banner_state_choices:
+  - present
+  - new
+  - absent
+controller_bootstrap_default_state: present
+
+# Job Template Defaults
+controller_bootstrap_job_templates_defaults:
+  job_type: run
+  ask_inventory_on_launch: false
+  ask_credential_on_launch: false
+  ask_variables_on_launch: true
+  ask_limit_on_launch: false
+  ask_skip_tags_on_launch: false
+  ask_tags_on_launch: false
+  ask_verbosity_on_launch: false
+  ask_execution_environment_on_launch: false
+  ask_labels_on_launch: false
+  ask_forks_on_launch: false
+  ask_job_slice_count_on_launch: false
+  ask_timeout_on_launch: false
+  ask_instance_groups_on_launch: false
+  concurrent_jobs_enabled: false
+  job_slice_count: 1
+  timeout: 0
+  verbosity: 0
+  prevent_instance_group_fallback: false
+  survey_enabled: true
+
+# Controller object lists are intentionally empty by default.
+# Define these in group_vars/all/vars_<env>.yml.
+controller_bootstrap_controller_organizations: []
+controller_bootstrap_controller_inventories: []
+controller_bootstrap_controller_hosts: []
+controller_bootstrap_controller_execution_environments: []
+controller_bootstrap_controller_credentials: []
+controller_bootstrap_controller_projects: []
+controller_bootstrap_controller_labels:
+  - name: "bootstrap"
+    organization: "{{ controller_bootstrap_organization }}"
+
+  - name: "jira"
+    organization: "{{ controller_bootstrap_organization }}"
+controller_bootstrap_workflow_job_templates: []
+controller_bootstrap_templates: []

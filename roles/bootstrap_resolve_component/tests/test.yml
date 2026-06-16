@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT-0
+---
+- name: Test resolve_component role
+  hosts: localhost
+  remote_user: root
+  roles:
+    - infra.ado.bootstrap_resolve_component

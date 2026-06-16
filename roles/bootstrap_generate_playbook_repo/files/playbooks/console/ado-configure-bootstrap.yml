@@ -1,0 +1,32 @@
+---
+- name: Deploy and Configure Quay
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    component: common
+
+  vars_files:
+    - "group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "group_vars/all/{{ env }}/vault_{{ component }}.yml"
+    - "group_vars/all/{{ env }}/vars_{{ component }}.yml"
+    console_banner_text: "Hello! RHLAB OpenShift | Production"
+
+  environment:
+    K8S_AUTH_HOST: "{{ host }}"
+    K8S_AUTH_API_KEY: "{{ token }}"
+    K8S_AUTH_VERIFY_SSL: "{{ (verify_ssl | bool) | ternary('yes','no') }}"
+
+  pre_tasks:
+    - name: Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: resolve_component
+
+    - name: Resolve_component | Debug key winners
+      ansible.builtin.debug:
+        msg:
+          - "console_banner_text (final) = {{ console_banner_text | default('UNDEF') }}"
+          - "resolve_component_selected.console_banner_text = {{ resolve_component_selected.console_banner_text | default('UNDEF') }}"
+
+  roles:
+    - role: console_banner

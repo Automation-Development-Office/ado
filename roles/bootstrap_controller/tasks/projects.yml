@@ -1,0 +1,11 @@
+---
+- name: Validate controller_projects is defined
+  ansible.builtin.assert:
+    that:
+      - controller_projects is defined
+      - controller_projects | length > 0
+    fail_msg: "controller_projects is not defined or empty"
+
+- name: Apply projects
+  ansible.builtin.include_role:
+    name: ansible.controller.controller_projects

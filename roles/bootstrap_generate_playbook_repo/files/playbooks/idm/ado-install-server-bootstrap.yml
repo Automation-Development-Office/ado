@@ -1,0 +1,8 @@
+---
+- name: Install IDM server
+  hosts: ipaserver
+  gather_facts: true
+  tasks:
+    - name: Install IDM server
+      ansible.builtin.include_role:
+        name: redhat.rhel_idm.ipaserver

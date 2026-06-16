@@ -1,0 +1,149 @@
+---
+# Organizations first using direct module call
+# avoids gateway/resource sync issues in infra.aap_configuration 4.6.x
+
+- name: AAP 2.5+ | Create organizations directly
+  ansible.controller.organization:
+    name: "{{ item.name }}"
+    description: "{{ item.description | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ controller_organizations | default([]) }}"
+  when: controller_organizations | default([]) | length > 0
+
+# Inventories direct because infra.aap_configuration 4.6.19 stringifies variables
+- name: AAP 2.5+ | Create inventories directly
+  ansible.controller.inventory:
+    name: "{{ item.name }}"
+    description: "{{ item.description | default(omit) }}"
+    organization: "{{ item.organization }}"
+    variables: "{{ item.variables | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ controller_inventories | default([]) }}"
+  when: controller_inventories | default([]) | length > 0
+
+- name: AAP 2.5+ | Build final label list from selected templates and workflows
+  ansible.builtin.set_fact:
+    controller_labels_final: >-
+      {{
+        (
+          [{'name': 'bootstrap', 'organization': controller_bootstrap_organization}]
+          +
+          (
+            controller_templates | default([])
+            | map(attribute='related')
+            | select('defined')
+            | map(attribute='labels')
+            | select('defined')
+            | flatten
+            | list
+          )
+          +
+          (
+            controller_workflow_job_templates | default([])
+            | map(attribute='related')
+            | select('defined')
+            | map(attribute='labels')
+            | select('defined')
+            | flatten
+            | list
+          )
+        )
+        | unique
+        | list
+      }}
+
+- name: AAP 2.5+ | Create labels directly before job templates
+  ansible.controller.label:
+    name: "{{ item.name }}"
+    organization: "{{ item.organization | default(controller_bootstrap_organization, true) }}"
+    state: "{{ item.state | default('present') }}"
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ controller_labels_final | unique | list }}"
+  when: controller_labels_final | default([]) | length > 0
+
+# Create/update credentials and EEs first
+- name: AAP 2.5+ | Apply credentials and execution environments
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.dispatch
+  vars:
+    gateway_configuration_dispatcher_roles: []
+    hub_configuration_dispatcher_roles: []
+    eda_configuration_dispatcher_roles: []
+    controller_configuration_dispatcher_roles:
+      - role: controller_credentials
+        var: controller_credentials
+        tags: credentials
+      - role: controller_execution_environments
+        var: controller_execution_environments
+        tags: execution_environments
+
+# Create/update projects separately so we can force sync before job templates
+- name: AAP 2.5+ | Apply projects
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_projects
+  when: controller_projects | default([]) | length > 0
+
+- name: AAP 2.5+ | Force project sync before creating job templates
+  ansible.controller.project_update:
+    project: "{{ item.name }}"
+    organization: "{{ item.organization | default(controller_bootstrap_organization, true) }}"
+    wait: true
+    timeout: "{{ controller_bootstrap_project_sync_timeout | default(600) }}"
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ controller_projects | default([]) }}"
+  when:
+    - controller_projects | default([]) | length > 0
+    - item.scm_type | default('') | length > 0
+
+- name: AAP 2.5+ | Wait for project playbooks to become available
+  ansible.builtin.pause:
+    seconds: "{{ controller_bootstrap_project_playbook_wait_seconds | default(10) }}"
+  when: controller_projects | default([]) | length > 0
+
+# Hosts before templates
+- name: AAP 2.5+ | Apply hosts
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.dispatch
+  vars:
+    gateway_configuration_dispatcher_roles: []
+    hub_configuration_dispatcher_roles: []
+    eda_configuration_dispatcher_roles: []
+    controller_configuration_dispatcher_roles:
+      - role: controller_hosts
+        var: controller_hosts
+        tags: hosts
+  when: controller_hosts | default([]) | length > 0
+
+# Now job templates can see synced playbooks
+- name: AAP 2.5+ | Apply job templates and workflows
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.dispatch
+  vars:
+    gateway_configuration_dispatcher_roles: []
+    hub_configuration_dispatcher_roles: []
+    eda_configuration_dispatcher_roles: []
+    controller_configuration_dispatcher_roles:
+      - role: controller_job_templates
+        var: controller_templates
+        tags: job_templates
+      - role: controller_workflow_job_templates
+        var: controller_workflow_job_templates
+        tags: workflow_job_templates

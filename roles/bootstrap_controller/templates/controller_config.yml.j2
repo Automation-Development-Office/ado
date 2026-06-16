@@ -1,0 +1,3 @@
+---
+{{ item.var_name }}:
+{{ lookup('vars', item.var_name) | to_nice_yaml(indent=2) | indent(2, true) }}

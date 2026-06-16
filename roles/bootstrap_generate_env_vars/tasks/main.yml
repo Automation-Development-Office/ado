@@ -1,0 +1,530 @@
+---
+- name: Load preflight JSON input
+  ansible.builtin.set_fact:
+    generate_env_vars_preflight: "{{ lookup('ansible.builtin.file', preflight_json) | from_json }}"
+  when:
+    - preflight_json is defined
+    - preflight_json | length > 0
+
+- name: Set values from preflight JSON
+  ansible.builtin.set_fact:
+    generate_env_vars_env: "{{ generate_env_vars_preflight.environment | default('prod') }}"
+    generate_env_vars_base_domain: "{{ generate_env_vars_preflight.domain | default('prod.rhlab') }}"
+    generate_env_vars_component: "{{ generate_env_vars_preflight.component | default('all') }}"
+    generate_env_vars_platform: "{{ (generate_env_vars_preflight.platform | default(['all']))[0] | lower if (generate_env_vars_preflight.platform | default(['all'])) is sequence and (generate_env_vars_preflight.platform | default(['all'])) is not string else (generate_env_vars_preflight.platform | default('all') | lower) }}"
+    generate_env_vars_components: >-
+      {{
+        [generate_env_vars_preflight.component | default('all')]
+        if generate_env_vars_preflight.component is defined
+        else
+        (
+          ['openshift', 'keycloak', 'satellite', 'grafana', 'jira', 'patching']
+          if 'all' in ((generate_env_vars_preflight.platform | default(['all'])) | map('lower') | list)
+          else ((generate_env_vars_preflight.platform | default(['all'])) | map('lower') | list)
+        )
+      }}
+    generate_env_vars_use_aap: "{{ (generate_env_vars_preflight.aap | default({})).enabled | default(true) | bool }}"
+    generate_env_vars_enable_jira: "{{ (generate_env_vars_preflight.jira | default({})).enabled | default(false) | bool }}"
+  when: generate_env_vars_preflight is defined
+
+- name: Ask environment when env was not provided
+  ansible.builtin.pause:
+    prompt: "What environment are you running this in? (e.g. dev, prod, stage, ppd, etc.)"
+  register: generate_env_vars_prompt_env
+  when:
+    - generate_env_vars_preflight is not defined
+    - env is not defined or env | length == 0
+
+- name: Set internal env variable from prompt
+  ansible.builtin.set_fact:
+    generate_env_vars_env: "{{ generate_env_vars_prompt_env.user_input }}"
+  when:
+    - generate_env_vars_preflight is not defined
+    - env is not defined or env | length == 0
+    - generate_env_vars_prompt_env.user_input | length > 0
+
+- name: Set internal env variable from provided env
+  ansible.builtin.set_fact:
+    generate_env_vars_env: "{{ env }}"
+  when:
+    - generate_env_vars_preflight is not defined
+    - env is defined
+    - env | length > 0
+
+- name: Ensure environment variable exists
+  ansible.builtin.assert:
+    that:
+      - generate_env_vars_env is defined
+      - generate_env_vars_env | length > 0
+    fail_msg: "Environment is required."
+
+- name: Set environment directory
+  ansible.builtin.set_fact:
+    generate_env_vars_env_dir: "{{ generate_env_vars_base_dir }}/{{ generate_env_vars_env }}"
+
+- name: Ask whether to create/update repo directories
+  ansible.builtin.pause:
+    prompt: "Create/update generated bootstrap repository files and directory structure? [Y/n]"
+  register: generate_env_vars_prompt_create_dirs
+  when: generate_env_vars_preflight is not defined
+
+- name: Set create dirs answer interactive
+  ansible.builtin.set_fact:
+    generate_env_vars_create_dirs: "{{ (generate_env_vars_prompt_create_dirs.user_input | default('y', true) | lower) not in ['n', 'no'] }}"
+  when: generate_env_vars_preflight is not defined
+
+- name: Set create dirs answer preflight
+  ansible.builtin.set_fact:
+    generate_env_vars_create_dirs: true
+  when: generate_env_vars_preflight is defined
+
+- name: Ensure generated repo directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ generate_env_vars_env_dir }}"
+    - "{{ playbook_dir }}/playbooks"
+    - "{{ playbook_dir }}/configs"
+    - "{{ playbook_dir }}/configs/controller"
+    - "{{ playbook_dir }}/configs/job_templates"
+    - "{{ playbook_dir }}/configs/workflows"
+  when: generate_env_vars_create_dirs | bool
+
+- name: Ask for base domain
+  ansible.builtin.pause:
+    prompt: "What is the base environment domain? (example: example.com)"
+  register: generate_env_vars_prompt_base_domain
+  when: generate_env_vars_preflight is not defined
+
+- name: Set base domain interactive
+  ansible.builtin.set_fact:
+    generate_env_vars_base_domain: "{{ generate_env_vars_prompt_base_domain.user_input }}"
+  when: generate_env_vars_preflight is not defined
+
+- name: Ensure base domain was provided
+  ansible.builtin.assert:
+    that:
+      - generate_env_vars_base_domain is defined
+      - generate_env_vars_base_domain | length > 0
+    fail_msg: "Base domain is required."
+
+- name: Ask platform
+  ansible.builtin.pause:
+    prompt: "Platform [all/openshift/linux]"
+  register: generate_env_vars_prompt_platform
+  when: generate_env_vars_preflight is not defined
+
+- name: Set platform answer interactive
+  ansible.builtin.set_fact:
+    generate_env_vars_platform: "{{ generate_env_vars_prompt_platform.user_input | default('all', true) | lower }}"
+  when: generate_env_vars_preflight is not defined
+
+- name: Ask OpenShift questions
+  when:
+    - generate_env_vars_preflight is not defined
+    - generate_env_vars_platform in ['all', 'openshift']
+  block:
+    - name: Ask OpenShift API host
+      ansible.builtin.pause:
+        prompt: "OpenShift API host"
+      register: generate_env_vars_prompt_ocp_host
+
+    - name: Ask OpenShift domain
+      ansible.builtin.pause:
+        prompt: "OpenShift domain"
+      register: generate_env_vars_prompt_ocp_domain
+
+- name: Set all components when platform is all
+  ansible.builtin.set_fact:
+    generate_env_vars_components:
+      - openshift
+      - keycloak
+      - satellite
+      - grafana
+      - jira
+      - patching
+  when:
+    - generate_env_vars_preflight is not defined
+    - generate_env_vars_platform == 'all'
+
+- name: Ask for enabled components when platform is not all
+  ansible.builtin.pause:
+    prompt: >-
+      What additional components do you want to enable?
+      (comma separated)
+      Options: openshift,keycloak,satellite,grafana,jira,patching
+  register: generate_env_vars_prompt_components
+  when:
+    - generate_env_vars_preflight is not defined
+    - generate_env_vars_platform != 'all'
+
+- name: Set enabled components when platform is openshift
+  ansible.builtin.set_fact:
+    generate_env_vars_components: >-
+      {{
+        (
+          ['openshift'] +
+          (
+            generate_env_vars_prompt_components.user_input
+            | default('', true)
+            | lower
+            | replace(' ', '')
+            | split(',')
+            | reject('equalto', '')
+            | list
+          )
+        )
+        | unique
+        | list
+      }}
+  when:
+    - generate_env_vars_preflight is not defined
+    - generate_env_vars_platform == 'openshift'
+
+- name: Set enabled components when platform is linux
+  ansible.builtin.set_fact:
+    generate_env_vars_components: >-
+      {{
+        (
+          generate_env_vars_prompt_components.user_input
+          | default('patching', true)
+          | lower
+          | replace(' ', '')
+          | split(',')
+          | reject('equalto', '')
+          | list
+        )
+        | unique
+        | list
+      }}
+  when:
+    - generate_env_vars_preflight is not defined
+    - generate_env_vars_platform == 'linux'
+
+- name: Show selected components
+  ansible.builtin.debug:
+    var: generate_env_vars_components
+
+- name: Find existing generated component vars files
+  ansible.builtin.find:
+    paths:
+      - "{{ generate_env_vars_env_dir }}"
+    patterns:
+      - "vars_*.yml"
+    file_type: file
+  register: generate_env_vars_existing_component_vars
+
+- name: Find existing generated component vault files
+  ansible.builtin.find:
+    paths:
+      - "{{ generate_env_vars_env_dir }}"
+    patterns:
+      - "vault_*.yml"
+    file_type: file
+  register: generate_env_vars_existing_component_vaults
+
+- name: Remove stale generated component vars files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ generate_env_vars_existing_component_vars.files }}"
+  when:
+    - item.path | basename not in (
+        generate_env_vars_components
+        | map('regex_replace', '^(.*)$', 'vars_\\1.yml')
+        | list
+      )
+
+- name: Remove stale generated component vault files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ generate_env_vars_existing_component_vaults.files }}"
+  when:
+    - item.path | basename not in (
+        generate_env_vars_components
+        | map('regex_replace', '^(.*)$', 'vault_\\1.yml')
+        | list
+      )
+
+- name: Write component vars files
+  ansible.builtin.template:
+    src: component_vars.yml.j2
+    dest: "{{ generate_env_vars_env_dir }}/vars_{{ component_name }}.yml"
+    mode: "0644"
+    force: "{{ generate_env_vars_force | bool }}"
+  loop: "{{ generate_env_vars_components }}"
+  loop_control:
+    loop_var: component_name
+
+- name: Write component vault files
+  ansible.builtin.template:
+    src: component_vault.yml.j2
+    dest: "{{ generate_env_vars_env_dir }}/vault_{{ component_name }}.yml"
+    mode: "0600"
+    force: "{{ generate_env_vars_force | bool }}"
+  loop: "{{ generate_env_vars_components }}"
+  loop_control:
+    loop_var: component_name
+
+- name: Ask if using AAP
+  ansible.builtin.pause:
+    prompt: "Are you using AAP? [Y/n]"
+  register: generate_env_vars_prompt_use_aap
+  when: generate_env_vars_preflight is not defined
+
+- name: Set AAP enabled answer interactive
+  ansible.builtin.set_fact:
+    generate_env_vars_use_aap: "{{ (generate_env_vars_prompt_use_aap.user_input | default('y', true) | lower) not in ['n', 'no'] }}"
+  when: generate_env_vars_preflight is not defined
+
+- name: Ask AAP questions
+  when:
+    - generate_env_vars_preflight is not defined
+    - generate_env_vars_use_aap | bool
+  block:
+    - name: Ask AAP hostname
+      ansible.builtin.pause:
+        prompt: "AAP hostname"
+      register: generate_env_vars_prompt_aap_hostname
+
+    - name: Ask AAP OAuth token
+      ansible.builtin.pause:
+        prompt: "AAP OAuth token"
+        echo: false
+      register: generate_env_vars_prompt_aap_token
+
+    - name: Ask AAP admin username
+      ansible.builtin.pause:
+        prompt: "AAP admin username [admin]"
+      register: generate_env_vars_prompt_aap_username
+
+    - name: Ask AAP admin password
+      ansible.builtin.pause:
+        prompt: "AAP admin password"
+        echo: false
+      register: generate_env_vars_prompt_aap_password
+
+    - name: Ask AAP version
+      ansible.builtin.pause:
+        prompt: "AAP version [2.4/2.5/2.6]"
+      register: generate_env_vars_prompt_aap_version
+
+    - name: Ask AAP organization
+      ansible.builtin.pause:
+        prompt: "AAP organization"
+      register: generate_env_vars_prompt_aap_org
+
+    - name: Ask AAP inventory name
+      ansible.builtin.pause:
+        prompt: "AAP inventory name"
+      register: generate_env_vars_prompt_aap_inventory
+
+    - name: Ask AAP project name
+      ansible.builtin.pause:
+        prompt: "AAP project name"
+      register: generate_env_vars_prompt_aap_project
+
+    - name: Ask AAP project Git URL
+      ansible.builtin.pause:
+        prompt: "AAP project Git URL"
+      register: generate_env_vars_prompt_aap_project_scm_url
+
+    - name: Ask AAP project Git branch
+      ansible.builtin.pause:
+        prompt: "AAP project Git branch [main]"
+      register: generate_env_vars_prompt_aap_project_scm_branch
+
+    - name: Ask AAP default execution environment
+      ansible.builtin.pause:
+        prompt: "AAP default execution environment [ee-supported-rhel9]"
+      register: generate_env_vars_prompt_aap_ee
+
+    - name: Ask AAP vault credential name
+      ansible.builtin.pause:
+        prompt: "AAP vault credential name"
+      register: generate_env_vars_prompt_aap_vault_cred
+
+    - name: Ask whether to enable Jira
+      ansible.builtin.pause:
+        prompt: "Enable Jira issue tracker? [y/N]"
+      register: generate_env_vars_prompt_enable_jira
+
+    - name: Set Jira enabled answer
+      ansible.builtin.set_fact:
+        generate_env_vars_enable_jira: "{{ (generate_env_vars_prompt_enable_jira.user_input | default('n', true) | lower) in ['y', 'yes'] }}"
+
+    - name: Ask Jira questions
+      when: generate_env_vars_enable_jira | bool
+      block:
+        - name: Ask Jira URL
+          ansible.builtin.pause:
+            prompt: "Jira URL"
+          register: generate_env_vars_prompt_jira_url
+
+        - name: Ask Jira project key
+          ansible.builtin.pause:
+            prompt: "Jira project key"
+          register: generate_env_vars_prompt_jira_project_key
+
+        - name: Ask Jira custom AC field
+          ansible.builtin.pause:
+            prompt: "Jira custom AC field [blank for null]"
+          register: generate_env_vars_prompt_jira_custom_ac_field
+
+        - name: Ask whether to enable Jira subtasks
+          ansible.builtin.pause:
+            prompt: "Enable Jira subtasks? [Y/n]"
+          register: generate_env_vars_prompt_jira_create_subtasks
+
+        - name: Ask Jira templates directory
+          ansible.builtin.pause:
+            prompt: "Jira templates dir [blank for null]"
+          register: generate_env_vars_prompt_jira_templates_dir
+
+        - name: Ask Jira username
+          ansible.builtin.pause:
+            prompt: "Jira username"
+          register: generate_env_vars_prompt_jira_username
+
+        - name: Ask Jira token
+          ansible.builtin.pause:
+            prompt: "Jira token"
+            echo: false
+          register: generate_env_vars_prompt_jira_token
+
+- name: Normalize AAP version interactive
+  ansible.builtin.set_fact:
+    generate_env_vars_aap_version_number: >-
+      {{
+        {
+          '2.4': 24,
+          '24': 24,
+          '2.5': 25,
+          '25': 25,
+          '2.6': 26,
+          '26': 26
+        }[generate_env_vars_prompt_aap_version.user_input | default('2.6', true)]
+      }}
+  when:
+    - generate_env_vars_preflight is not defined
+    - generate_env_vars_use_aap | bool
+
+- name: Normalize AAP version preflight
+  ansible.builtin.set_fact:
+    generate_env_vars_aap_version_number: "{{ (generate_env_vars_preflight.aap | default({})).version | default('26') | int }}"
+  when:
+    - generate_env_vars_preflight is defined
+    - generate_env_vars_use_aap | bool
+
+- name: Write AAP config vars
+  ansible.builtin.template:
+    src: aap_config_vars.yml.j2
+    dest: "{{ generate_env_vars_env_dir }}/aap_config_vars.yml"
+    mode: "0644"
+    force: "{{ generate_env_vars_force | bool }}"
+  when: generate_env_vars_use_aap | bool
+
+- name: Write AAP vault vars
+  ansible.builtin.template:
+    src: aap_vault.yml.j2
+    dest: "{{ generate_env_vars_env_dir }}/aap_vault.yml"
+    mode: "0600"
+    force: "{{ generate_env_vars_force | bool }}"
+  when: generate_env_vars_use_aap | bool
+
+- name: Write infra config vars
+  ansible.builtin.template:
+    src: infra_config_vars.yml.j2
+    dest: "{{ generate_env_vars_env_dir }}/infra_config_vars.yml"
+    mode: "0644"
+    force: "{{ generate_env_vars_force | bool }}"
+
+- name: Write Jira vars file
+  ansible.builtin.template:
+    src: vars_jira.yml.j2
+    dest: "{{ generate_env_vars_env_dir }}/vars_jira.yml"
+    mode: "0644"
+    force: "{{ generate_env_vars_force | bool }}"
+  when:
+    - generate_env_vars_use_aap | bool
+    - generate_env_vars_enable_jira | default(false) | bool
+
+- name: Write Jira vault file
+  ansible.builtin.template:
+    src: vault_jira.yml.j2
+    dest: "{{ generate_env_vars_env_dir }}/vault_jira.yml"
+    mode: "0600"
+    force: "{{ generate_env_vars_force | bool }}"
+  when:
+    - generate_env_vars_use_aap | bool
+    - generate_env_vars_enable_jira | default(false) | bool
+
+- name: Ask whether to encrypt generated vault files
+  ansible.builtin.pause:
+    prompt: "Encrypt generated vault files with ansible-vault? [Y/n]"
+  register: generate_env_vars_prompt_encrypt_vault_files
+  when: generate_env_vars_encrypt_vault_files is not defined
+
+- name: Set vault encryption answer
+  ansible.builtin.set_fact:
+    generate_env_vars_encrypt_vault_files: "{{ (generate_env_vars_prompt_encrypt_vault_files.user_input | default('y', true) | lower) not in ['n', 'no'] }}"
+  when: generate_env_vars_encrypt_vault_files is not defined
+
+- name: Ask for vault password when encrypting vault files
+  ansible.builtin.pause:
+    prompt: "Vault password"
+    echo: false
+  register: generate_env_vars_prompt_vault_password
+  when: generate_env_vars_encrypt_vault_files | bool
+
+- name: Create temporary vault password file
+  ansible.builtin.tempfile:
+    state: file
+    suffix: vault-pass
+  register: generate_env_vars_temp_vault_password_file
+  when: generate_env_vars_encrypt_vault_files | bool
+
+- name: Write temporary vault password file
+  ansible.builtin.copy:
+    dest: "{{ generate_env_vars_temp_vault_password_file.path }}"
+    content: "{{ generate_env_vars_prompt_vault_password.user_input }}"
+    mode: "0600"
+  when: generate_env_vars_encrypt_vault_files | bool
+
+- name: Find generated vault files
+  ansible.builtin.find:
+    paths: "{{ generate_env_vars_env_dir }}"
+    patterns: "vault*.yml,*_vault.yml"
+    file_type: file
+  register: generate_env_vars_vault_files
+  when: generate_env_vars_encrypt_vault_files | bool
+
+- name: Check generated vault file encryption state
+  ansible.builtin.command:
+    cmd: "head -n 1 {{ item.path }}"
+  loop: "{{ generate_env_vars_vault_files.files | default([]) }}"
+  register: generate_env_vars_vault_file_headers
+  changed_when: false
+  when: generate_env_vars_encrypt_vault_files | bool
+
+- name: Encrypt generated vault files
+  ansible.builtin.command:
+    cmd: >-
+      ansible-vault encrypt {{ item.item.path }}
+      --vault-password-file {{ generate_env_vars_temp_vault_password_file.path }}
+  loop: "{{ generate_env_vars_vault_file_headers.results | default([]) }}"
+  when:
+    - generate_env_vars_encrypt_vault_files | bool
+    - item.stdout is not search('^\\$ANSIBLE_VAULT;')
+  changed_when: true
+
+- name: Remove temporary vault password file
+  ansible.builtin.file:
+    path: "{{ generate_env_vars_temp_vault_password_file.path }}"
+    state: absent
+  when:
+    - generate_env_vars_encrypt_vault_files | bool
+    - generate_env_vars_temp_vault_password_file.path is defined

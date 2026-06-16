@@ -1,0 +1,29 @@
+---
+- name: Patch Host to satellite server
+  hosts: all
+  gather_facts: false
+
+  vars:
+    ipaadmin_principal: "admin@SERVER.LAB"
+    ipaadmin_password: "{{ ipaadmin_password }}"
+    zone_name: server.lab
+    record_name: eras01
+    record_ttl: 3600
+    record_ip: 192.168.0.150
+
+  tasks:
+    - name:  Start patch process
+      ansible.builtin.pause:
+        seconds: 30	
+    #- name: Add A record in FreeIPA
+    #  freeipa.ansible_freeipa.ipadnsrecord:
+    #    ipaadmin_principal: "{{ ipaadmin_principal }}"
+    #    ipaadmin_password: "{{ ipaadmin_password }}"
+    #    name: "{{ record_name }}.{{ zone_name }}."
+    #    state: present
+    #    zone_name: "{{ zone_name }}"
+    #    a_rec:
+        #  - "{{ record_ip }}"
+        # Optional:
+        # create_reverse: true
+        # a_create_reverse: true

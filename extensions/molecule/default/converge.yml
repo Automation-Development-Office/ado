@@ -1,0 +1,9 @@
+---
+- name: Default molecule placeholder
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  tasks:
+    - name: Placeholder
+      ansible.builtin.debug:
+        msg: "Default scenario placeholder"

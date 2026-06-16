@@ -1,0 +1,72 @@
+framework_defaults_components_defaults:
+  # aap
+  aap:
+    name_space: aap
+    operator_namespace: aap
+    operatorgroup: aap-operators
+
+    subscription:
+      name: ansible-automation-platform-operator
+      channel: stable-2.6
+      source: redhat-operators
+      sourceNamespace: openshift-marketplace
+
+    # the exact host you want
+    hostname: "aap.{{ app_domain }}"
+    ingress_class: openshift-default
+
+    admin_password_secret: controller-admin-password
+    component: aap
+
+
+  # cert manager
+  cert_manager:
+    name_space: cert-manager
+    operator_namespace: cert-manager
+    operatorgroup: cert-manager
+
+    subscription:
+      name: openshift-cert-manager-operator
+      channel: openshift-cert-manager-operator
+      source: redhat-operators
+      sourceNamespace: openshift-marketplace
+
+    # vars
+    cert_manager_root_ca_secret_name: root-ca-secret
+    cert_manager_root_ca_issuer_name: root-ca-issuer
+    cert_manager_root_ca_is_cluster_issuer: true
+
+    tls_crt: "{{ vault_cert }}"
+    tls_key: "{{ vault_key }}"
+
+  # GitLab
+  gitlab:
+    release_name: "gitlab"
+
+    name_space: gitlab-system
+    operator_namespace: gitlab
+    operatorgroup: gitlab-operators
+
+    subscription:
+      name: gitlab-operator-kubernetes
+      channel: stable
+      source: certified-operators
+      sourceNamespace: openshift-marketplace
+
+    # the exact host you want
+    hostname: "gitlab.{{ app_domain }}"
+    host_suffix: gitlab
+    ingress_class: openshift-default
+
+    # GitLab chart version used by the operator
+    chart_version: "9.7.0"
+
+    root_password_secret: gitlab-root-password
+
+    # create htpasswd-admmin user
+  htpass_admin:
+    name_space: openshift-config
+    htpasswd_idp: htpasswd-admin
+    htpasswd_idp_name: htpasswd-admin
+    htpasswd_secret: htpasswd-admin-secret
+    update_htpass: true

@@ -1,0 +1,8 @@
+---
+- name: Manage IDM client
+  hosts: ipaclients
+  gather_facts: true
+  tasks:
+    - name: Manage IDM client
+      ansible.builtin.include_role:
+        name: redhat.rhel_idm.ipaclient

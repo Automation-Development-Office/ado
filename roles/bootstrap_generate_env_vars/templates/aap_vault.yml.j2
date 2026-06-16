@@ -1,0 +1,7 @@
+{% set preflight_aap = generate_env_vars_preflight.aap | default({}) %}
+---
+vault_controller_hostname: "{{ preflight_aap.hostname if generate_env_vars_preflight is defined else generate_env_vars_prompt_aap_hostname.user_input }}"
+vault_controller_oauthtoken: "{{ preflight_aap.oauth_token if generate_env_vars_preflight is defined else generate_env_vars_prompt_aap_token.user_input }}"
+vault_controller_username: "{{ preflight_aap.admin_username if generate_env_vars_preflight is defined else (generate_env_vars_prompt_aap_username.user_input | default('admin', true)) }}"
+vault_controller_password: "{{ preflight_aap.admin_password if generate_env_vars_preflight is defined else generate_env_vars_prompt_aap_password.user_input }}"
+vault_controller_vault_password: "{{ preflight_aap.vault_password if generate_env_vars_preflight is defined and preflight_aap.vault_password is defined else preflight_aap.admin_password }}"

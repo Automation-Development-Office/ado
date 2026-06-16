@@ -1,0 +1,12 @@
+---
+
+- name: Register to Satellite
+  hosts: all
+  gather_facts: false
+  
+  roles:
+    - role: platform_infrastructure_automation.sat_reg
+      vars:
+        activation_key_name: rhel-activation-key
+        satellite_org_name: Lab
+        satellite_host: sat.server.lab

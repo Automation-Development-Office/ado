@@ -1,0 +1,192 @@
+---
+- name: AAP configs | Ensure config directories exist
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/configs/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - controller
+    - job_templates
+    - workflows
+
+- name: AAP configs | Expand patching component dependencies
+  ansible.builtin.set_fact:
+    controller_bootstrap_effective_components: >-
+      {{
+        (
+          controller_bootstrap_selected_components
+          | default(['openshift'])
+        )
+        +
+        (
+          ['satellite']
+          if 'patching' in (controller_bootstrap_selected_components | default(['openshift']))
+          else []
+        )
+        | unique
+        | list
+      }}
+
+- name: AAP configs | Render controller config templates
+  ansible.builtin.template:
+    src: "controller_config.yml.j2"
+    dest: "{{ playbook_dir }}/configs/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - var_name: controller_bootstrap_controller_organizations
+      dest: controller/organizations.yml
+
+    - var_name: controller_bootstrap_controller_credentials
+      dest: controller/credentials.yml
+
+    - var_name: controller_bootstrap_controller_projects
+      dest: controller/projects.yml
+
+    - var_name: controller_bootstrap_controller_inventories
+      dest: controller/inventories.yml
+
+    - var_name: controller_bootstrap_controller_execution_environments
+      dest: controller/execution_environments.yml
+
+    - var_name: controller_bootstrap_controller_hosts
+      dest: controller/hosts.yml
+
+    - var_name: controller_bootstrap_controller_labels
+      dest: controller/labels.yml
+
+    - var_name: controller_bootstrap_workflow_job_templates
+      dest: workflows/bootstrap_workflows.yml
+
+- name: AAP configs | Define job template component map
+  ansible.builtin.set_fact:
+    controller_bootstrap_job_template_component_map:
+      openshift:
+        - cert-manager-bootstrap.yml
+        - create-admin-htpasswd-user-bootstrap.yml
+        - deploy-aap-24-bootstrap.yml
+        - deploy-aap-26-bootstrap.yml
+        - deploy-acs-bootstrap.yml
+        - deploy-awspca-cert-manager-bootstrap.yml
+        - deploy-devspaces-bootstrap.yml
+        - deploy-discover-routes-and-add-alternative-route-bootstrap.yml
+        - deploy-discover-routes-and-print-bootstrap.yml
+        - deploy-eck-bootstrap.yml
+        - deploy-gitlab-bootstrap.yml
+        - deploy-gitops-bootstrap.yml
+        - deploy-kafka-bootstrap.yml
+        - deploy-oadp-bootstrap.yml
+        - deploy-pega-bootstrap.yml
+        - deploy-quay-bootstrap.yml
+        - update-pull-secret-bootstrap.yml
+
+      grafana:
+        - deploy-grafana-bootstrap.yml
+        - deploy-grafana-dashboards-bootstrap.yml
+        - deploy-grafana-route-bootstrap.yml
+
+      keycloak:
+        - deploy-rhbk-bootstrap.yml
+        - deploy-rhbk-client-bootstrap.yml
+        - deploy-rhbk-realm-bootstrap.yml
+        - configure-oauth-rhbk-in-openshift-bootstrap.yml
+        - configure-ldap-in-openshift-bootstrap.yml
+        - rhbk-389ds-federation-bootstrap.yml
+        - rhbk-entraid-bootstrap.yml
+        - deploy-389ds-bootstrap.yml
+        - search-389ds-bootstrap.yml
+        - ldap-modify-bootstrap.yml
+        - search-user-bootstrap.yml
+
+      jira:
+        - jira-stories-bugfix-bootstrap.yml
+        - jira-stories-collections-delivery-bootstrap.yml
+        - jira-stories-day2-bootstrap.yml
+        - jira-stories-feature-request-bootstrap.yml
+        - jira-stories-mfa-delivery-bootstrap.yml
+        - jira-stories-product-delivery-bootstrap.yml
+        - jira-stories-spike-bootstrap.yml
+
+      satellite: []
+
+      patching: []
+
+- name: AAP configs | Build selected job template file list
+  ansible.builtin.set_fact:
+    controller_bootstrap_job_template_files_selected: >-
+      {{
+        controller_bootstrap_job_template_component_map
+        | dict2items
+        | selectattr('key', 'in', controller_bootstrap_effective_components)
+        | map(attribute='value')
+        | flatten
+        | unique
+        | list
+      }}
+
+- name: AAP configs | Copy job templates for generated playbooks only
+  ansible.builtin.shell: |
+    set -euo pipefail
+
+    dest_dir="{{ playbook_dir }}/configs/job_templates"
+    mkdir -p "${dest_dir}"
+    rm -f "${dest_dir}"/*.jt.yml
+
+    python3 - <<'PY2'
+    from pathlib import Path
+    import re
+    import shutil
+
+    src_dir = Path("{{ role_path }}/files/job_templates")
+    dest_dir = Path("{{ playbook_dir }}/configs/job_templates")
+    repo_root = Path("{{ playbook_dir }}")
+
+    copied = []
+
+    for jt in sorted(src_dir.glob("*.jt.yml")):
+        text = jt.read_text()
+        m = re.search(r"""(?m)^\s*playbook:\s*['"]?([^'"\n]+)['"]?\s*$""", text)
+        if not m:
+            continue
+
+        playbook = m.group(1).strip()
+        playbook_path = repo_root / playbook
+
+        if playbook_path.exists():
+            component = playbook.split("/", 2)[1] if playbook.startswith("playbooks/") and "/" in playbook else "bootstrap"
+
+            new_text = re.sub(
+                r"(?ms)related:\n\s+labels:\n(?:\s+- name:.*?\n\s+organization:.*?\n)+",
+                "related:\n"
+                "    labels:\n"
+                "    - name: bootstrap\n"
+                "      organization: '{{ controller_bootstrap_organization }}'\n"
+                f"    - name: {component}\n"
+                "      organization: '{{ controller_bootstrap_organization }}'\n",
+                text,
+            )
+
+            target = dest_dir / jt.name
+            target.write_text(new_text)
+            copied.append(jt.name)
+
+    print("Copied job templates:")
+    for name in copied:
+        print(f"  - {name}")
+    PY2
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: AAP configs | Ensure workflow config directory exists
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/configs/workflows"
+    state: directory
+    mode: "0755"
+
+- name: AAP configs | Copy patching workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-patching-workflow-bootstrap.wf.yml
+    dest: "{{ playbook_dir }}/configs/workflows/ado-patching-workflow-bootstrap.wf.yml"
+    mode: "0644"
+  when:
+    - generate_env_vars_component | default(component | default('all')) in ['all', 'rhel', 'patching']

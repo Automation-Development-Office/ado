@@ -50,7 +50,7 @@
 
 - name: Rhbk_get_client_secrets  Render registry file (Jinja evaluated)
   ansible.builtin.template:
-    src: "{{ role_path }}/../resolve_component/files/components_defaults.yml"
+    src: "{{ role_path }}/../bootstrap_resolve_component/files/components_defaults.yml"
     dest: "{{ openshift_tools_rhbk_get_client_secrets__registry_tmp.path }}"
     mode: "0644"
   changed_when: false

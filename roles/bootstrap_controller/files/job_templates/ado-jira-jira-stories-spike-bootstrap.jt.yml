@@ -1,0 +1,81 @@
+---
+
+controller_bootstrap_jira_common_survey:
+  - question_name: Jira Feature/Epic Key
+    question_description: Optional parent Feature/Epic key, for example TET-123
+    required: false
+    type: text
+    variable: jira_feature_key
+    default: ""
+
+controller_bootstrap_templates:
+
+  - name: Jira - Spike
+    description: Create Jira spike story
+    organization: "{{ controller_bootstrap_organization }}"
+    playbook: playbooks/jira/ado-create-stories-bootstrap.yml
+    inventory: "{{ controller_bootstrap_inventory_name }}"
+    project: "{{ controller_bootstrap_project_name }}"
+    execution_environment: "{{ controller_bootstrap_execution_environment_name }}"
+    credentials:
+      - "{{ controller_bootstrap_creds }}"
+    related:
+  labels:
+  - name: bootstrap
+    organization: '{{ controller_bootstrap_organization }}'
+  - name: jira
+    organization: '{{ controller_bootstrap_organization }}'
+    extra_vars:
+      jira_track: spike
+    survey_enabled: true
+    survey_spec:
+      name: Jira Spike Survey
+      description: Create research/discovery spike
+      spec:
+        - question_name: Product
+          required: true
+          type: text
+          variable: product
+          default: Collections
+        - question_name: Group / Jira Component
+          required: true
+          type: text
+          variable: group
+          default: ado.openshift
+        - question_name: Role Name
+          required: true
+          type: text
+          variable: role_name
+          default: Consultant
+        - question_name: Spike Topic
+          required: true
+          type: text
+          variable: spike_topic
+        - question_name: Question 1
+          required: true
+          type: text
+          variable: question_1
+        - question_name: Question 2
+          required: true
+          type: text
+          variable: question_2
+        - question_name: Question 3
+          required: false
+          type: text
+          variable: question_3
+          default: ""
+        - question_name: Requestor
+          required: false
+          type: text
+          variable: requestor
+          default: TBD
+        - question_name: Timebox
+          required: false
+          type: text
+          variable: spike_timebox
+          default: 2 business days
+        - question_name: Jira Feature/Epic Key
+          required: false
+          type: text
+          variable: jira_feature_key
+          default: ""

@@ -1,0 +1,34 @@
+---
+- name: Manage RHBK groups
+  hosts: localhost
+    #gather_facts: false
+  collections:
+    - fbi.application_infra
+  vars:
+    component: rhbk
+
+  vars_files:
+    - "group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "group_vars/all/{{ env }}/vault_{{ component }}.yml"
+    - "group_vars/all/{{ env }}/vars_{{ component }}.yml"
+    state: present
+    rhbk_admin_user: "{{ stage_rhbk_admin_user }}"
+    rhbk_admin_password: "{{ stage_rhbk_admin_password }}"
+    rhbk_host: keycloak-stage.apps.ocp-stage.ppd.ncic.east.aws.cjis.gov
+    rhbk_verify_ssl: false
+    rhbk_realm: ocp-stage-unet
+    rhbk_client_id: "unet-entraid"
+    rhbk_name: "unet-entraid"
+    rhbk_protocol: "openid-connect"
+    rhbk_public_client: true  
+    rhbk_standard_flow_enabled: true
+    rhbk_implicit_flow_enabled: false
+    rhbk_direct_access_grants_enabled: true
+    rhbk_service_accounts_enabled: false
+    rhbk_authorization_services_enabled: false
+    rhbk_full_scope_allowed: true
+    rhbk_redirect_uris:
+      - "https://oauth-openshift.apps.ocp-stage.ppd.ncic.east.aws.cjis.gov/*"
+    rhbk_base_url: "https://console-openshift-console.apps.ocp-stage.ppd.ncic.east.aws.cjis.gov/"
+  roles:
+    - role: fbi.application_infra.rhbk_client

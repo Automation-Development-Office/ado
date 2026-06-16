@@ -1,0 +1,88 @@
+---
+- name: Generate bootstrap content using new flattened bootstrap roles
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars:
+    env: molecule
+    preflight_json: "{{ playbook_dir }}/ado-preflight-all.json"
+
+    generate_env_vars: true
+    generate_env_vars_force: true
+    generate_playbooks: true
+    generate_aap_configs: true
+    apply_aap_configs: false
+
+    # Non-interactive Molecule answers
+    generate_env_vars_encrypt_vault_files: false
+    generate_env_vars_encrypt_vault: false
+    generate_env_vars_vault_encrypt: false
+    generate_env_vars_prompt_encrypt_vault_files:
+      user_input: "n"
+    generate_env_vars_prompt_encrypt_vault:
+      user_input: "n"
+
+    generate_playbook_repo_pause_for_push: false
+    generate_playbook_repo_git_push: false
+    generate_playbook_repo_git_commit: false
+
+    # Match UI non-interactive behavior
+    #generate_env_vars_encrypt_vault_files: false
+    #generate_playbook_repo_pause_for_push: false
+    #generate_playbook_repo_git_push: false
+    #generate_playbook_repo_git_commit: false
+
+  pre_tasks:
+    - name: Clean previous generated content
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/{{ item }}"
+        state: absent
+      loop:
+        - playbooks
+        - configs
+        - group_vars
+        - inventory
+        - ado-preflight-all.json
+
+    - name: Write all-component preflight JSON
+      ansible.builtin.copy:
+        dest: "{{ preflight_json }}"
+        mode: "0644"
+        content: |
+          {
+            "scm_tool": "gitlab",
+            "environment": "molecule",
+            "domain": "example.test",
+            "component": "all",
+
+            "aap": {
+              "enabled": true,
+              "hostname": "https://aap.example.test",
+              "version": "26",
+              "organization": "ado-lab",
+              "inventory": "ado-inventory",
+              "project": "ado-project",
+              "git_url": "https://git.example.test/redhat-lab/bootstrap-sample.git",
+              "git_branch": "main",
+              "execution_environment": "ee-supported-rhel9",
+              "vault_credential_name": "ado-vault",
+              "oauth_token": "MOLECULE_TOKEN",
+              "admin_username": "admin",
+              "admin_password": "redhat123",
+              "vault_password": "redhat123"
+            },
+
+            "openshift": {
+              "api_host": "https://api.example.test:6443",
+              "apps_domain": "apps.example.test",
+              "token": "MOLECULE_OPENSHIFT_TOKEN"
+            },
+
+            "jira": {
+              "enabled": false
+            }
+          }
+
+  roles:
+    - role: infra.ado.bootstrap_controller

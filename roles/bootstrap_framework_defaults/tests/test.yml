@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT-0
+---
+- name: Test framework_defaults role
+  hosts: localhost
+  remote_user: root
+  roles:
+    - infra.ado.bootstrap_framework_defaults

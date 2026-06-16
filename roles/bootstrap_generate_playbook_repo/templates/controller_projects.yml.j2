@@ -1,0 +1,11 @@
+---
+controller_projects:
+  - name: "{{ controller_bootstrap_project_name | default('lab-bootstrap') }}"
+    description: "Generated bootstrap playbooks"
+    organization: "{{ controller_bootstrap_organization | default('lab') }}"
+    scm_type: git
+    scm_url: "{{ generate_playbook_repo_git_url }}"
+    scm_branch: "{{ generate_playbook_repo_git_branch }}"
+    scm_update_on_launch: false
+    scm_credential: "{{ controller_bootstrap_scm_credential | default('ocp-gitlab') }}"
+    wait: false

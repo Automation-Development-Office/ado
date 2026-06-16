@@ -1,0 +1,8 @@
+---
+- name: Install IDM replica
+  hosts: ipareplica
+  gather_facts: true
+  tasks:
+    - name: Install IDM replica
+      ansible.builtin.include_role:
+        name: redhat.rhel_idm.ipareplica

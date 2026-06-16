@@ -1,0 +1,44 @@
+- name: Deploy and Configure ACS
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: acs
+
+  vars_files:
+    - "group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "group_vars/all/{{ env }}/vault_{{ component }}.yml"
+    - "group_vars/all/{{ env }}/vars_{{ component }}.yml"
+
+  environment:
+    K8S_AUTH_HOST: "{{ host }}"
+    K8S_AUTH_API_KEY: "{{ token }}"
+    K8S_AUTH_VERIFY_SSL: "{{ (verify_ssl | bool) | ternary('yes','no') }}"
+
+  pre_tasks:
+    - name: Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: resolve_component
+
+    # Bridge vars so your existing roles keep working
+    - name: Map ACS namespaces
+      ansible.builtin.set_fact:
+        operator_namespace: "{{ operator_namespace | default(acs.operator_namespace | default('openshift-operators')) }}"
+        acs_namespace: "{{ acs_namespace | default(acs.namespace | default('stackrox')) }}"
+
+  roles:
+    # These should operate in operator namespace
+    - role: ado.openshift.namespace
+      vars:
+        name_space: "{{ operator_namespace }}"
+
+    - role: ado.openshift.subscription_operator
+      vars:
+        name_space: "{{ operator_namespace }}"
+
+    # Your ACS role uses acs_namespace for the Central CR
+    - role: acs
+
+    - role: ado.openshift.wait_for_pods_running
+      vars:
+        name_space: "{{ acs_namespace }}"
+

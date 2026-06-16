@@ -1,0 +1,350 @@
+---
+generate_playbook_repo_dest: "{{ playbook_dir }}"
+generate_playbook_repo_seed_src: "{{ role_path }}/files/playbook_repo_seed"
+generate_playbook_repo_force: true
+
+generate_playbook_repo_git_mode: manual
+generate_playbook_repo_git_remote: origin
+generate_playbook_repo_git_branch: main
+generate_playbook_repo_git_message: "Generate bootstrap playbook repo"
+generate_playbook_repo_git_username: oauth2
+generate_playbook_repo_git_token: ""
+generate_playbook_repo_pause_after_generate: false
+
+generate_playbook_repo_component: all
+
+generate_playbook_repo_component_map:
+  all:
+    - all
+
+  openshift:
+    - aap
+    - acs
+    - acm
+    - cert_manager
+    - console
+    - devspaces
+    - dirsrv
+    - eck
+    - gitops
+    - gitlab
+    - grafana
+    - kafka
+    - oadp
+    - openshift
+    - pega
+    - quay
+    - rhbk
+
+  rhel:
+    - rhel
+    - satellite
+    - idm
+    - aap
+    - dirsrv
+    - eck
+    - gitlab
+    - grafana
+    - kafka
+    - rhbk
+
+  patching:
+    - rhel
+    - satellite
+    - idm
+
+  aap:
+    - aap
+
+  rhbk:
+    - rhbk
+
+  grafana:
+    - grafana
+
+  kafka:
+    - kafka
+
+  gitlab:
+    - gitlab
+
+  satellite:
+    - satellite
+
+  idm:
+    - idm
+
+  rhel-patching:
+    - rhel
+
+  pega:
+    - pega
+
+  elastic:
+    - eck
+
+generate_playbook_repo_generated_playbooks:
+
+  - src: aap/ado-aap24-deploy-and-configure-bootstrap.yml
+    dest: playbooks/aap/ado-aap24-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: aap
+
+  - src: aap/ado-aap25-deploy-and-configure-bootstrap.yml
+    dest: playbooks/aap/ado-aap25-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: aap
+
+  - src: aap/ado-aap26-deploy-and-configure-bootstrap.yml
+    dest: playbooks/aap/ado-aap26-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: aap
+
+  - src: aap/ado-aap27-deploy-and-configure-bootstrap.yml
+    dest: playbooks/aap/ado-aap27-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: aap
+
+  - src: acs/ado-deploy-and-configure-bootstrap.yml
+    dest: playbooks/acs/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: acs
+
+  - src: cert-manager/ado-configure-idm-acme-clusterissuer.yml
+    dest: playbooks/cert-manager/ado-configure-idm-acme-clusterissuer.yml
+    target_platform: openshift
+    category: platform
+    app: cert_manager
+
+  - src: cert-manager/ado-deploy-and-configure-bootstrap.yml
+    dest: playbooks/cert-manager/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: cert_manager
+
+  - src: cert-manager/ado-install-and-configure-awspca-bootstrap.yml
+    dest: playbooks/cert-manager/ado-install-and-configure-awspca-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: cert_manager
+
+  - src: console/ado-configure-bootstrap.yml
+    dest: playbooks/console/ado-configure-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: console
+
+  - src: devspaces/ado-deploy-and-configure-bootstrap.yml
+    dest: playbooks/devspaces/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: devspaces
+
+  - src: dirsrv/ado-deploy-and-configure-bootstrap.yml
+    dest: playbooks/dirsrv/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: dirsrv
+
+  - src: dirsrv/ado-ldap-modify-bootstrap.yml
+    dest: playbooks/dirsrv/ado-ldap-modify-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: dirsrv
+
+  - src: dirsrv/ado-search-users-groups-bootstrap.yml
+    dest: playbooks/dirsrv/ado-search-users-groups-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: dirsrv
+
+  - src: eck/ado-deploy-and-configure-bootstrap.yml
+    dest: playbooks/eck/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: eck
+
+  - src: gitlab/ado-deploy-and-configure-bootstrap.yml
+    dest: playbooks/gitlab/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: gitlab
+
+  - src: gitops/ado-deploy-bootstrap.yml
+    dest: playbooks/gitops/ado-deploy-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: gitops
+
+  - src: grafana/ado-create-custom-route.yml
+    dest: playbooks/grafana/ado-create-custom-route.yml
+    target_platform: openshift
+    category: platform
+    app: grafana
+
+  - src: grafana/ado-deploy-bootstrap.yml
+    dest: playbooks/grafana/ado-deploy-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: grafana
+
+  - src: grafana/ado-deploy-dashboards-bootstrap.yml
+    dest: playbooks/grafana/ado-deploy-dashboards-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: grafana
+
+  - src: idm/ado-install-replica-bootstrap.yml
+    dest: playbooks/idm/ado-install-replica-bootstrap.yml
+    target_platform: linux
+    category: patching
+    app: idm
+
+  - src: idm/ado-install-server-bootstrap.yml
+    dest: playbooks/idm/ado-install-server-bootstrap.yml
+    target_platform: linux
+    category: patching
+    app: idm
+
+  - src: idm/ado-manage-client-bootstrap.yml
+    dest: playbooks/idm/ado-manage-client-bootstrap.yml
+    target_platform: linux
+    category: patching
+    app: idm
+
+  - src: idm/ado-manage-dns-bootstrap.yml
+    dest: playbooks/idm/ado-manage-dns-bootstrap.yml
+    target_platform: linux
+    category: patching
+    app: idm
+
+  - src: idm/ado-manage-server-settings-bootstrap.yml
+    dest: playbooks/idm/ado-manage-server-settings-bootstrap.yml
+    target_platform: linux
+    category: patching
+    app: idm
+
+  - src: idm/ado-manage-sudo-bootstrap.yml
+    dest: playbooks/idm/ado-manage-sudo-bootstrap.yml
+    target_platform: linux
+    category: patching
+    app: idm
+
+  - src: idm/ado-manage-topology-bootstrap.yml
+    dest: playbooks/idm/ado-manage-topology-bootstrap.yml
+    target_platform: linux
+    category: patching
+    app: idm
+
+  - src: jira/ado-create-stories-bootstrap.yml
+    dest: playbooks/jira/ado-create-stories-bootstrap.yml
+    target_platform: all
+    category: utilities
+    app: jira
+
+  - src: kafka/ado-deploy-and-configure-bootstrap.yml
+    dest: playbooks/kafka/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: kafka
+
+  - src: kafka/ado-setup-alerting-bootstrap.yml
+    dest: playbooks/kafka/ado-setup-alerting-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: kafka
+
+  - src: oadp/ado-deploy-bootstrap.yml
+    dest: playbooks/oadp/ado-deploy-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: oadp
+
+  - src: openshift/ado-configure-ldap-auth-bootstrap.yml
+    dest: playbooks/openshift/ado-configure-ldap-auth-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: openshift
+
+  - src: openshift/ado-configure-oauth-with-rhbk-bootstrap.yml
+    dest: playbooks/openshift/ado-configure-oauth-with-rhbk-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: openshift
+
+  - src: openshift/ado-create-htpass-user-bootstrap.yml
+    dest: playbooks/openshift/ado-create-htpass-user-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: openshift
+
+  - src: openshift/ado-discover-routes-bootstrap.yml
+    dest: playbooks/openshift/ado-discover-routes-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: openshift
+
+  - src: openshift/ado-update-pull-secret-bootstrap.yml
+    dest: playbooks/openshift/ado-update-pull-secret-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: openshift
+
+  - src: pega/ado-install-and-configure-bootstrap.yml
+    dest: playbooks/pega/ado-install-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: pega
+
+  - src: quay/ado-deploy-and-configure-bootstrap.yml
+    dest: playbooks/quay/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: quay
+
+  - src: rhbk/ado-deploy-and-configure-bootstrap.yml
+    dest: playbooks/rhbk/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: rhbk
+
+  - src: rhbk/ado-manage-client-bootstrap.yml
+    dest: playbooks/rhbk/ado-manage-client-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: rhbk
+
+  - src: rhbk/ado-manage-entraid-idp.yml
+    dest: playbooks/rhbk/ado-manage-entraid-idp.yml
+    target_platform: openshift
+    category: platform
+    app: rhbk
+
+  - src: rhbk/ado-manage-realm-bootstrap.yml
+    dest: playbooks/rhbk/ado-manage-realm-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: rhbk
+
+  - src: rhbk/ado-realm-bootstrap.yml
+    dest: playbooks/rhbk/ado-realm-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: rhbk
+
+  - src: rhel/ado-patch-host-bootstrap.yml
+    dest: playbooks/rhel/ado-patch-host-bootstrap.yml
+    target_platform: linux
+    category: patching
+    app: rhel
+
+  - src: satellite/reg_to_sat.yml
+    dest: playbooks/satellite/reg_to_sat.yml
+    target_platform: linux
+    category: patching
+    app: satellite

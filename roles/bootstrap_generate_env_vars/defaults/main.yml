@@ -1,0 +1,28 @@
+---
+generate_env_vars_force: false
+generate_env_vars_force_overwrite: false
+generate_env_vars_write_force: "{{ generate_env_vars_force_overwrite | default(generate_env_vars_force) | bool }}"
+
+generate_env_vars_base_dir: "{{ playbook_dir }}/group_vars/all"
+generate_env_vars_env_dir: "{{ generate_env_vars_base_dir }}/{{ env }}"
+generate_env_vars_create_dirs: true
+
+generate_env_vars_encrypt_vault_files: true
+
+generate_env_vars_components:
+  - aap
+  - aap24
+  - 389ds
+  - acs
+  - cert_manager
+  - eck
+  - gitlab
+  - grafana
+  - htpasswd
+  - kafka
+  - keycloak
+  - ldap_auth_openshift
+  - oadp
+  - pega
+  - quay
+  - rhbk

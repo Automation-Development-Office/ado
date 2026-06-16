@@ -1,0 +1,7 @@
+{% set preflight_openshift = generate_env_vars_preflight.openshift | default({}) %}
+---
+host: "{{ preflight_openshift.api_host | default(generate_env_vars_prompt_ocp_host.user_input | default('', true), true) }}"
+domain: "{{ generate_env_vars_base_domain }}"
+app_domain: "{{ preflight_openshift.apps_domain | default(generate_env_vars_prompt_ocp_domain.user_input | default('', true), true) }}"
+verify_ssl: false
+validate_certs: false

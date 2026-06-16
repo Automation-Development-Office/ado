@@ -1,0 +1,48 @@
+---
+- name: AAP | Resolve effective environment
+  ansible.builtin.set_fact:
+    controller_bootstrap_effective_env: >-
+      {{
+        env
+        | default(generate_env_vars_env, true)
+      }}
+
+- name: AAP | Validate effective environment is present
+  ansible.builtin.assert:
+    that:
+      - controller_bootstrap_effective_env is defined
+      - controller_bootstrap_effective_env | length > 0
+    fail_msg: >-
+      Unable to determine environment. Pass -e env=prod or provide preflight_json with environment.
+
+- name: AAP | Load split environment vars
+  ansible.builtin.include_vars:
+    dir: "{{ playbook_dir }}/group_vars/all/{{ controller_bootstrap_effective_env }}"
+    extensions:
+      - yml
+      - yaml
+  when:
+    - (playbook_dir + '/group_vars/all/' + controller_bootstrap_effective_env) is directory
+
+- name: AAP | Preflight checks
+  ansible.builtin.include_tasks: preflight.yml
+
+- name: AAP | Detect AAP version
+  ansible.builtin.include_tasks: detect_aap_version.yml
+
+- name: AAP | Map controller authentication vars
+  ansible.builtin.include_tasks: map_controller_auth.yml
+
+- name: AAP | Load generated controller configs
+  ansible.builtin.include_tasks: load_controller_configs.yml
+
+- name: AAP | Map controller object vars
+  ansible.builtin.include_tasks: map_controller_vars.yml
+
+- name: AAP | Apply AAP 2.4 controller objects
+  ansible.builtin.include_tasks: apply_aap_24.yml
+  when: controller_bootstrap_is_aap_24 | bool
+
+- name: AAP | Apply AAP 2.5/2.6 controller objects
+  ansible.builtin.include_tasks: apply_aap_25_plus.yml
+  when: not controller_bootstrap_is_aap_24 | bool
