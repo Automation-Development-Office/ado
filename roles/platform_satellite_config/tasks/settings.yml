@@ -1,13 +1,13 @@
 ---
 - name: settings | Validate admin user password
-  ansible.builtin.uri: 
+  ansible.builtin.uri:
     url: "{{ platform_satellite_config_server_url }}/api/status"
     user: admin
     password: "{{ platform_satellite_config_admin_password }}"
     force_basic_auth: true
     validate_certs: false
     status_code: 200
-  register: admin_auth
+  register: platform_satellite_config_admin_auth
   failed_when: false
   changed_when: false
 
@@ -20,7 +20,7 @@
     user_password: "{{ platform_satellite_config_admin_password }}"
     validate_certs: "{{ platform_satellite_config_validate_certs }}"
     state: present
-  when: admin_auth.status != 200
+  when: platform_satellite_config_admin_auth.status != 200
 
 - name: settings | Set Red Hat Satellite Settings
   redhat.satellite.setting:
