@@ -36,6 +36,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `platform_satellite_install_satellite_min_cpu_count` | Minimum required vCPU count and input to the Satellite tuning profile template | ❌ | `4` |
 | `platform_satellite_install_satellite_rhn_connected` | When `true`, validate RHSM credentials during preliminary checks | ❌ | `false` |
 | `platform_satellite_install_satellite_rhn_org_id` | RHSM organization ID used for host registration | ✅* | `""` |
+| `platform_satellite_install_satellite_admin_password` | Password to set for admin user when installing Satellite | ✅ | `""` |
 | `platform_satellite_install_satellite_rhn_activation_key` | RHSM activation key used for host registration | ✅* | `""` |
 | `platform_satellite_install_satellite_rhn_repos` | RHSM repository IDs enabled after registration | ❌ | See `defaults/main.yml` |
 | `platform_satellite_install_satellite_timezone` | System timezone set before RHSM registration | ❌ | `"UTC"` |

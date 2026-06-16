@@ -26,6 +26,14 @@
       ansible.builtin.command: "satellite-installer --scenario satellite --tuning {{ platform_satellite_install_tuning_profile }}"
       changed_when: true
 
+    - name: install_satellite | Set password for admin user
+      ansible.builtin.command:
+        argv:
+          - foreman-rake
+          - permissions:reset
+          - "password={{ platform_satellite_install_satellite_admin_password }}"
+      changed_when: true
+
 - name: install_satellite | Ensure successful installation
   ansible.builtin.command: satellite-maintain service status
   register: platform_satellite_install_satellite_status
