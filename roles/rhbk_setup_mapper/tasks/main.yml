@@ -1,0 +1,7 @@
+- name: Create RHBK mappers
+  ansible.builtin.import_tasks: rhbk_setup_group_mapper.yml
+  when: state == "present"
+
+- name: Delete RHBK mappers
+  ansible.builtin.import_tasks: rhbk_remove_group_mapper.yml
+  when: state == "absent"
