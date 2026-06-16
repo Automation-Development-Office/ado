@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later-0
 galaxy_info:
-  author: Chad Ekkiott
+  author: Chad Elltt
   description: Role to manage Red Hat build of keycloak mappers.
   company: Automation Development Office
 
