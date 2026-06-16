@@ -1,0 +1,15 @@
+- name: Create RHBK user
+  ansible.builtin.import_tasks: rhbk_create_user.yml
+  when: state == "present"
+
+- name: Delete RHBK user
+  ansible.builtin.import_tasks: rhbk_remove_user.yml
+  when: state == "absent"
+
+- name: RHBK Add user to group
+  ansible.builtin.import_tasks: rhbk_add_user_to_group.yml
+  when: state == "add_user_to_group"
+
+- name: RHBK Delete user to group
+  ansible.builtin.import_tasks: rhbk_remove_user_from_group.yml
+  when: state == "remove_user_from_group"
