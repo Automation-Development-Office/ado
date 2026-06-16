@@ -37,8 +37,8 @@
 
 - name: third_party_products | Upload custom repos"
   redhat.satellite.content_upload:
-    username: "{{ platform_satellite_config_admin_username }}"
-    password: "{{ platform_satellite_config_admin_password }}"
+    username: "{{ platform_satellite_config_username }}"
+    password: "{{ platform_satellite_config_password }}"
     server_url: "{{ platform_satellite_config_server_url }}"
     organization: "{{ platform_satellite_config_organization }}"
     src: "{{ platform_satellite_config_custom_repo_dest }}/{{ item.1 }}"
