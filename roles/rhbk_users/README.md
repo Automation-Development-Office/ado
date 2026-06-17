@@ -19,27 +19,33 @@ Automation Development Office.
 
 ## 📦 Role Variables
 
-| Variable | Description |
-| -------- | ----------- |
-| `state` | Required. Supported values: `present`, `absent`, `add_user_to_group`, `remove_user_from_group`. |
-| `rhbk_realm` | Required. Target realm. |
-| `rhbk_verify_ssl` | Optional. SSL verification flag for URI-based calls. |
-| `rhbk_user_username` | Required for `absent`, `add_user_to_group`, and `remove_user_from_group` paths. Username to look up. |
-| `rhbk_group_name` | Required for `add_user_to_group` and `remove_user_from_group` paths. Group name to map/unmap. |
-| `rhbk_host` | Required for URI-based paths. RHBK host used in REST endpoints. |
-| `rhbk_admin_user` | Required for URI-based paths. Admin username for token acquisition. |
-| `rhbk_admin_password` | Required for URI-based paths. Admin password for token acquisition. |
-| `rhbk_hostname` | Required for `present` path. Keycloak URL passed to `community.general.keycloak_user`. |
-| `rhbk_username` | Required for `present` path. Admin username passed to `community.general.keycloak_user`. |
-| `rhbk_password` | Required for `present` path. Admin password passed to `community.general.keycloak_user`. |
-| `rhbk_new_username` | Required for `present` path. Username of user to create. |
-| `rhbk_new_firstname` | Optional for `present` path. First name for new user. |
-| `rhbk_new_lastname` | Optional for `present` path. Last name for new user. |
-| `rhbk_new_email` | Optional for `present` path. Email for new user. |
-| `rhbk_user_enabled` | Optional for `present` path. Enable/disable user. |
-| `rhbk_user_email_verified` | Optional for `present` path. Email verification flag. |
-| `rhbk_new_user_pwd` | Required for `present` path. Initial user password value. |
-| `rhbk_user_pwd_temporary` | Optional for `present` path. Temporary-password flag. |
+| Variable | Description | Required | Default |
+| -------- | ----------- | -------- | ------- |
+| `state` | Supported values: `present`, `absent`, `add_user_to_group`, `remove_user_from_group`. | Yes | N/A |
+| `rhbk_realm` | Target realm. | Yes | N/A |
+| `rhbk_verify_ssl` | SSL verification flag for URI-based calls. | No | `true` |
+| `rhbk_user_username` | Username to look up. Used for `absent`, `add_user_to_group`, and `remove_user_from_group`. | Yes* | N/A |
+| `rhbk_group_name` | Group name to map or unmap for user membership operations. | Yes** | N/A |
+| `rhbk_host` | RHBK host used in REST endpoints for URI-based flows. | Yes*** | N/A |
+| `rhbk_admin_user` | Admin username for token acquisition in URI-based flows. | Yes*** | N/A |
+| `rhbk_admin_password` | Admin password for token acquisition in URI-based flows. | Yes*** | N/A |
+| `rhbk_hostname` | Keycloak URL passed to `community.general.keycloak_user`. | Yes**** | N/A |
+| `rhbk_username` | Admin username passed to `community.general.keycloak_user`. | Yes**** | N/A |
+| `rhbk_password` | Admin password passed to `community.general.keycloak_user`. | Yes**** | N/A |
+| `rhbk_new_username` | Username of user to create. | Yes**** | N/A |
+| `rhbk_new_firstname` | First name for new user. | No | `undefined` |
+| `rhbk_new_lastname` | Last name for new user. | No | `undefined` |
+| `rhbk_new_email` | Email for new user. | No | `undefined` |
+| `rhbk_user_enabled` | Enable or disable user. | No | `undefined` |
+| `rhbk_user_email_verified` | Email verification flag for new user. | No | `undefined` |
+| `rhbk_new_user_pwd` | Initial user password value. | Yes**** | N/A |
+| `rhbk_user_pwd_temporary` | Temporary-password flag for new user credentials. | No | `undefined` |
+
+> **Notes:**
+> \* Required when `state` is `absent`, `add_user_to_group`, or `remove_user_from_group`.
+> \*\* Required when `state` is `add_user_to_group` or `remove_user_from_group`.
+> \*\*\* Required for URI-based task paths (`absent`, `add_user_to_group`, `remove_user_from_group`).
+> \*\*\*\* Required when `state` is `present`.
 
 ## 🚀 Role Usage
 
@@ -77,7 +83,7 @@ rhbk_users/
 ├── tasks/
 │   ├── main.yml
 │   ├── rhbk_add_user_to_group.yml
-│   ├── rhbk_create_user.yml
+│   ├── rhbk_manage_user.yml
 │   ├── rhbk_remove_user.yml
 │   └── rhbk_remove_user_from_group.yml
 └── vars/
