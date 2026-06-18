@@ -29,8 +29,9 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `platform_satellite_config_admin_username` | Satellite administrator username for API and Hammer calls | ✅ | Not defined in role defaults |
-| `platform_satellite_config_admin_password` | Satellite administrator password | ✅ | Not defined in role defaults |
+| `platform_satellite_config_username` | Satellite administrator username for API and Hammer calls | ✅ | Not defined in role defaults |
+| `platform_satellite_config_password` | Satellite administrator password for API and Hammer calls | ✅ | Not defined in role defaults |
+| `platform_satellite_config_admin_password` | Satellite admin account password. Can be used to update admin's password | ✅ | Not defined in role defaults |
 | `platform_satellite_config_server_url` | Satellite server URL | ❌ | `"https://{{ ansible_fqdn }}"` |
 | `platform_satellite_config_organization` | Satellite organization name or label | ✅ | Not defined in role defaults |
 | `platform_satellite_config_validate_certs` | Whether to validate Satellite TLS certificates | ❌ | Not defined in role defaults |

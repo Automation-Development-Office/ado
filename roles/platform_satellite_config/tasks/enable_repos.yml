@@ -8,8 +8,8 @@
 
 - name: enable_repos | Enable Red Hat repos
   redhat.satellite.repository_set:
-    username: "{{ platform_satellite_config_admin_username }}"
-    password: "{{ platform_satellite_config_admin_password }}"
+    username: "{{ platform_satellite_config_username }}"
+    password: "{{ platform_satellite_config_password }}"
     server_url: "{{ platform_satellite_config_server_url }}"
     organization: "{{ platform_satellite_config_organization }}"
     label: "{{ item['label'] }}"

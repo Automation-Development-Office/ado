@@ -9,8 +9,8 @@
 
 - name: manifest | Remove the manifest
   redhat.satellite.subscription_manifest:
-    username: "{{ platform_satellite_config_admin_username }}"
-    password: "{{ platform_satellite_config_admin_password }}"
+    username: "{{ platform_satellite_config_username }}"
+    password: "{{ platform_satellite_config_password }}"
     server_url: "{{ platform_satellite_config_server_url }}"
     organization: "{{ platform_satellite_config_organization }}"
     state: absent
@@ -19,8 +19,8 @@
 
 - name: manifest | Upload the manifest for Satellite
   redhat.satellite.subscription_manifest:
-    username: "{{ platform_satellite_config_admin_username }}"
-    password: "{{ platform_satellite_config_admin_password }}"
+    username: "{{ platform_satellite_config_username }}"
+    password: "{{ platform_satellite_config_password }}"
     server_url: "{{ platform_satellite_config_server_url }}"
     organization: "{{ platform_satellite_config_organization }}"
     state: present
@@ -30,8 +30,8 @@
 
 - name: manifest | Refresh the manifest
   redhat.satellite.subscription_manifest:
-    username: "{{ platform_satellite_config_admin_username }}"
-    password: "{{ platform_satellite_config_admin_password }}"
+    username: "{{ platform_satellite_config_username }}"
+    password: "{{ platform_satellite_config_password }}"
     server_url: "{{ platform_satellite_config_server_url }}"
     organization: "{{ platform_satellite_config_organization }}"
     state: refreshed

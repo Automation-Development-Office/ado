@@ -4,8 +4,8 @@
     url: "{{ platform_satellite_config_server_url }}/katello/api/organizations/1/products?per_page=500"
     method: GET
     return_content: true
-    user: "{{ platform_satellite_config_admin_username }}"
-    password: "{{ platform_satellite_config_admin_password }}"
+    user: "{{ platform_satellite_config_username }}"
+    password: "{{ platform_satellite_config_password }}"
     force_basic_auth: true
     validate_certs: false
   register: platform_satellite_config_products_output
@@ -19,8 +19,8 @@
 
 - name: repo_sync | Sync all repos for enabled products
   redhat.satellite.repository_sync:
-    username: "{{ platform_satellite_config_admin_username }}"
-    password: "{{ platform_satellite_config_admin_password }}"
+    username: "{{ platform_satellite_config_username }}"
+    password: "{{ platform_satellite_config_password }}"
     server_url: "{{ platform_satellite_config_server_url }}"
     product: "{{ item }}"
     organization: "{{ platform_satellite_config_organization }}"
