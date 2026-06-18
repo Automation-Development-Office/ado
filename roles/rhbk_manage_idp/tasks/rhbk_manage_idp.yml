@@ -1,0 +1,24 @@
+- name: Create OIDC Identity Provider (Microsoft Entra ID)
+  community.general.keycloak_identity_provider:
+    state: present
+    auth_keycloak_url: "https://{{ rhbk_host }}"
+    auth_realm: master
+    auth_username: "{{ rhbk_admin_user }}"
+    auth_password: "{{ rhbk_admin_password }}"
+    realm: "{{ rhbk_realm }}"
+    alias: "{{ entra_idp_alias }}"
+    provider_id: oidc
+    enabled: true
+    trust_email: true
+    store_token: false
+    add_read_token_role_on_create: false
+    authenticate_by_default: false
+    link_only: false
+    config:
+      fromUrl: "{{ rhbk_setup_idp_entra_discovery_url }}/.well-known/openid-configuration"
+      clientId: "{{ entra_client_id }}"
+      clientSecret: "{{ entra_client_secret }}"
+      defaultScope: "openid email profile"
+      syncMode: "FORCE"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  delegate_to: localhost
