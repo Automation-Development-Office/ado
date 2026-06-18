@@ -1,0 +1,89 @@
+- name: Login to RHBK and get admin token
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+    body_format: form-urlencoded
+    body:
+      grant_type: password
+      client_id: admin-cli
+      username: "{{ rhbk_admin_user }}"
+      password: "{{ rhbk_admin_password }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+    return_content: true
+  register: rhbk_users_auth
+
+- name: Lookup user by username
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/users?username={{ rhbk_user_username }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ rhbk_users_auth.json.access_token }}"
+    return_content: true
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  register: rhbk_users_keycloak_users
+
+- name: Get user ID
+  ansible.builtin.set_fact:
+    rhbk_users_user_id: "{{ rhbk_users_keycloak_users.json[0].id }}"
+  when: rhbk_users_keycloak_users.json | length > 0
+
+- name: Get group ID
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/groups"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ rhbk_users_auth.json.access_token }}"
+    return_content: true
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  register: rhbk_users_all_groups
+
+- name: Debug Keycloak group response
+  ansible.builtin.debug:
+    var: rhbk_users_all_groups.json
+
+- name: Find group matching name (case-insensitive)
+  ansible.builtin.set_fact:
+    rhbk_users_matching_groups: >-
+      {{
+        rhbk_users_all_groups.json
+        | selectattr('name', 'defined')
+        | selectattr('name', 'match', '^' ~ rhbk_group_name ~ '$', ignorecase=True)
+        | list
+      }}
+
+- name: Fail if group not found
+  ansible.builtin.fail:
+    msg: "Group '{{ rhbk_group_name }}' not found. Available groups: {{ rhbk_users_all_groups.json | map(attribute='name') | list }}"
+  when: rhbk_users_matching_groups | length == 0
+
+- name: Set group object and group_id
+  ansible.builtin.set_fact:
+    rhbk_users_group_obj: "{{ rhbk_users_matching_groups[0] }}"
+    rhbk_users_group_id: "{{ rhbk_users_matching_groups[0].id }}"
+
+
+- name: Debug user_id and group_id
+  ansible.builtin.debug:
+    msg: >
+      user_id={{ rhbk_users_user_id | default('UNDEFINED') }},
+      group_id={{ rhbk_users_group_id | default('UNDEFINED') }},
+      group={{ rhbk_group_name | default('UNDEFINED') }}
+
+- name: Add user to group
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/users/{{ rhbk_users_user_id }}/groups/{{ rhbk_users_group_id }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ rhbk_users_auth.json.access_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      id: "{{ rhbk_users_group_id }}"
+      name: "{{ rhbk_group_name }}"
+    status_code: 204
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  when:
+    - rhbk_users_user_id is defined
+    - rhbk_users_group_id != ''
