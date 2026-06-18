@@ -70,6 +70,21 @@ on:
         required: false
         default: false
         type: boolean
+      run_integration_satellite_content_view_create:
+        description: "Run integration_satellite_content_view_create"
+        required: false
+        default: false
+        type: boolean
+      run_integration_satellite_content_view_publish:
+        description: "Run integration_satellite_content_view_publish"
+        required: false
+        default: false
+        type: boolean
+      run_integration_satellite_content_view_promote:
+        description: "Run integration_satellite_content_view_promote"
+        required: false
+        default: false
+        type: boolean
 
 env:
   NAMESPACE: ado
@@ -183,6 +198,9 @@ jobs:
               [integration_rhel_mount_mount_explicit_fstype]="${{ github.event.inputs.run_integration_rhel_mount_mount_explicit_fstype }}"
               [integration_rhel_mount_remove_from_fstab]="${{ github.event.inputs.run_integration_rhel_mount_remove_from_fstab }}"
               [integration_rhel_mount_unmount_filesystem]="${{ github.event.inputs.run_integration_rhel_mount_unmount_filesystem }}"
+              [integration_satellite_content_view_create]="${{ github.event.inputs.run_integration_satellite_content_view_create }}"
+              [integration_satellite_content_view_publish]="${{ github.event.inputs.run_integration_satellite_content_view_publish }}"
+              [integration_satellite_content_view_promote]="${{ github.event.inputs.run_integration_satellite_content_view_promote }}"
             )
             for scenario in "${!checks[@]}"; do
               if [[ "${checks[$scenario]}" == "true" ]]; then
@@ -237,6 +255,18 @@ jobs:
         env:
           ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
 
+      - name: Install scenario collection requirements
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          requirements_file="${{ github.workspace }}/${{ matrix.scenario_dir }}/requirements.yml"
+          if [ -f "$requirements_file" ]; then
+            ansible-galaxy collection install -r "$requirements_file" -p ~/.ansible/collections
+          fi
+        env:
+          ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
+          ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
+
       - name: Set ANSIBLE_COLLECTIONS_PATH for subsequent steps
         run: echo "ANSIBLE_COLLECTIONS_PATH=$HOME/.ansible/collections" >> "$GITHUB_ENV"
 
@@ -254,6 +284,9 @@ jobs:
 
       - name: Run Molecule tests
         working-directory: extensions/molecule
+        env:
+          ANSIBLE_ROLES_PATH: ${{ github.workspace }}/roles
+          ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
         run: |
           set -euo pipefail
           scenario_name="${{ steps.scenario_meta.outputs.scenario_name }}"

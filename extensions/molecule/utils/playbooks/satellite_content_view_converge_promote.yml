@@ -1,0 +1,23 @@
+---
+- name: Converge - satellite_content_view promote scenario
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    sat_content_view_action: promote
+    satellite_url: "{{ lookup('env', 'SATELLITE_URL') }}"
+    satellite_username: "{{ lookup('env', 'SATELLITE_USERNAME') }}"
+    satellite_password: "{{ lookup('env', 'SATELLITE_PASSWORD') }}"
+    organization: "{{ lookup('env', 'SATELLITE_ORGANIZATION') }}"
+    content_view: "{{ lookup('env', 'SATELLITE_CONTENT_VIEW') | default('molecule-satellite-content-view', true) }}"
+    lifecycle_environments: >-
+      {{ lookup('env', 'SATELLITE_LIFECYCLE_ENVIRONMENTS')
+         | default('Library', true)
+         | split(',')
+         | map('trim')
+         | list }}
+    published_content_view: "{{ lookup('env', 'SATELLITE_CONTENT_VIEW') | default('molecule-satellite-content-view', true) }}"
+    published_content_view_version: "{{ lookup('env', 'SATELLITE_CONTENT_VIEW_VERSION') | default('1.0', true) }}"
+
+  roles:
+    - role: infra.ado.satellite_content_view

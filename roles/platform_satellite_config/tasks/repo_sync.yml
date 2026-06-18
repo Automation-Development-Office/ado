@@ -1,0 +1,41 @@
+---
+- name: repo_sync | Search for products with at least 1 repo
+  ansible.builtin.uri:
+    url: "{{ platform_satellite_config_server_url }}/katello/api/organizations/1/products?per_page=500"
+    method: GET
+    return_content: true
+    user: "{{ platform_satellite_config_username }}"
+    password: "{{ platform_satellite_config_password }}"
+    force_basic_auth: true
+    validate_certs: false
+  register: platform_satellite_config_products_output
+
+- name: repo_sync | Create list of products
+  ansible.builtin.set_fact:
+    platform_satellite_config_enabled_products: "{{ platform_satellite_config_enabled_products | default([]) + [item['name']] }}"
+  loop: "{{ products_output['json']['results'] }}"
+  when:
+    - item['repository_count'] > 0
+
+- name: repo_sync | Sync all repos for enabled products
+  redhat.satellite.repository_sync:
+    username: "{{ platform_satellite_config_username }}"
+    password: "{{ platform_satellite_config_password }}"
+    server_url: "{{ platform_satellite_config_server_url }}"
+    product: "{{ item }}"
+    organization: "{{ platform_satellite_config_organization }}"
+    validate_certs: "{{ platform_satellite_config_validate_certs }}"
+  loop: "{{ enabled_products }}"
+  register: platform_satellite_config_repo_sync_status
+  async: "{{ platform_satellite_config_repo_sync_wait_time | int }}"
+  poll: 0
+
+- name: repo_sync | Wait for repo sync to finish
+  ansible.builtin.async_status:
+    jid: "{{ item['ansible_job_id'] }}"
+  register: platform_satellite_config_repo_sync_status_results
+  retries: "{{ (platform_satellite_config_repo_sync_wait_time // 10) }}"
+  delay: 10
+  until: platform_satellite_config_repo_sync_status_jobs['finished']
+  loop: "{{ platform_satellite_config_repo_sync_status['results'] }}"
+...

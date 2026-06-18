@@ -7,6 +7,10 @@ It validates OS, CPU, memory, location, and Satellite version before install, su
 > **⚠️ Note:**
 > This role requires root privileges for system modifications, package installation, and configuration changes. Ensure your target hosts are accessible with privileged access (`become: true`).
 
+## Role Author
+
+- Automation Development Office (automation-development-office@redhat.com)
+
 ## ✅ Role Requirements
 
 - Ansible >= 2.9
@@ -21,38 +25,48 @@ It validates OS, CPU, memory, location, and Satellite version before install, su
 
 ## 📦 Role Variables
 
+Variables below are referenced by the role task files under `tasks/`. Defaults are defined in `defaults/main.yml`.
+
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `platform_satellite_install_pre_check` | When `true`, only run validation and host-readiness checks | ❌ | `false` |
-| `platform_satellite_install_satellite_deployment_version` | Target Satellite version for validation and repository selection | ✅ | N/A |
-| `platform_satellite_install_satellite_location` | Logical location/name for the Satellite deployment | ✅ | N/A |
-| `platform_satellite_install_satellite_min_memory_size` | Minimum required memory in MB for preliminary checks | ✅ | N/A |
-| `platform_satellite_install_satellite_min_cpu_count` | Minimum required vCPU count for preliminary checks | ✅ | N/A |
-| `platform_satellite_install_satellite_rhn_connected` | Enable RHSM registration and subscription tasks | ❌ | N/A |
-| `platform_satellite_install_satellite_rhn_org_id` | RHSM organization ID | ✅* | N/A |
-| `platform_satellite_install_satellite_rhn_activation_key` | RHSM activation key | ✅* | N/A |
-| `platform_satellite_install_satellite_rhn_repos` | RHSM repositories to enable during registration | ❌ | See `defaults/main.yml` |
-| `platform_satellite_install_satellite_packages` | Packages to install, including `satellite`, `chrony`, etc. | ❌ | See `defaults/main.yml` |
-| `platform_satellite_install_satellite_timezone` | Time zone configured before RHSM/subscription work | ❌ | N/A |
-| `platform_satellite_install_satellite_selinux_state` | SELinux state applied during patching | ❌ | N/A |
-| `platform_satellite_install_satellite_proxy_server` | Optional RHSM proxy hostname | ❌ | N/A |
-| `platform_satellite_install_satellite_proxy_port` | Optional RHSM proxy port | ❌ | N/A |
-| `platform_satellite_install_satellite_proxy_scheme` | Optional RHSM proxy scheme (`http` or `https`) | ❌ | N/A |
-| `platform_satellite_install_satellite_vg_name` | Volume group name for Satellite storage layout | ❌ | N/A |
-| `platform_satellite_install_satellite_req_dirs` | List of logical volumes and mount points for Satellite data paths | ❌ | N/A |
-| `platform_satellite_install_satellite_data_disk_min_size` | Minimum disk size for auto-selecting data disk | ❌ | N/A |
-| `platform_satellite_install_satellite_data_device_name` | Override for disk device when auto-discovery not desired | ❌ | N/A |
-| `platform_satellite_install_satellite_data_device` | Base device path prefix (e.g., `/dev`) | ❌ | N/A |
-| `platform_satellite_install_satellite_dns_device` | NetworkManager connection name for DNS updates | ❌ | N/A |
-| `platform_satellite_install_satellite_dns_servers` | Optional list of DNS servers | ❌ | N/A |
-| `platform_satellite_install_satellite_dns_search` | Optional DNS search domains | ❌ | N/A |
+| `platform_satellite_install_pre_check` | When `true`, only run `preliminary_check.yml` and skip all other tasks | ❌ | `false` |
+| `platform_satellite_install_satellite_deployment_version` | Target Satellite version validated during preliminary checks and used in RHSM repo names | ✅ | `""` |
+| `platform_satellite_install_satellite_location` | Logical location/name for the Satellite deployment | ✅ | `""` |
+| `platform_satellite_install_satellite_min_memory_size` | Minimum required memory in MB (`ansible_facts["memtotal_mb"]`) | ❌ | `1024` |
+| `platform_satellite_install_satellite_min_cpu_count` | Minimum required vCPU count and input to the Satellite tuning profile template | ❌ | `4` |
+| `platform_satellite_install_satellite_rhn_connected` | When `true`, validate RHSM credentials during preliminary checks | ❌ | `false` |
+| `platform_satellite_install_satellite_rhn_org_id` | RHSM organization ID used for host registration | ✅* | `""` |
+| `platform_satellite_install_satellite_admin_password` | Password to set for admin user when installing Satellite | ✅ | `""` |
+| `platform_satellite_install_satellite_rhn_activation_key` | RHSM activation key used for host registration | ✅* | `""` |
+| `platform_satellite_install_satellite_rhn_repos` | RHSM repository IDs enabled after registration | ❌ | See `defaults/main.yml` |
+| `platform_satellite_install_satellite_timezone` | System timezone set before RHSM registration | ❌ | `"UTC"` |
+| `platform_satellite_install_satellite_proxy_server` | Optional RHSM proxy hostname passed to `redhat_subscription` | ❌ | `""` |
+| `platform_satellite_install_satellite_proxy_port` | Optional RHSM proxy port passed to `redhat_subscription` | ❌ | `""` |
+| `platform_satellite_install_satellite_proxy_scheme` | Optional RHSM proxy scheme (`http` or `https`) passed to `redhat_subscription` | ❌ | `""` |
+| `platform_satellite_install_satellite_selinux_state` | SELinux state applied after package updates | ❌ | `"enforcing"` |
+| `platform_satellite_install_satellite_vg_name` | LVM volume group name for Satellite storage | ❌ | `"satellite"` |
+| `platform_satellite_install_satellite_req_dirs` | List of logical volumes to create and mount; each item requires `lv_name`, `lv_size`, and `mount_point` | ❌† | `[]` |
+| `platform_satellite_install_satellite_data_disk_min_size` | Minimum disk size used when auto-selecting an unpartitioned data disk | ❌ | `"10G"` |
+| `platform_satellite_install_satellite_data_device_name` | Disk device basename override when auto-discovery finds multiple suitable disks | ❌ | `""` |
+| `platform_satellite_install_satellite_data_device` | Base device path prefix joined with the selected disk (for example `/dev/sdb`) | ❌ | `"/dev"` |
+| `platform_satellite_install_satellite_packages` | Package list installed before Satellite configuration | ❌ | See `defaults/main.yml` |
+| `platform_satellite_install_satellite_dns_device` | NetworkManager connection name updated with DNS settings | ✅‡ | `""` |
+| `platform_satellite_install_satellite_dns_servers` | DNS servers applied via NetworkManager and `/etc/resolv.conf` | ❌ | `[]` |
+| `platform_satellite_install_satellite_dns_search` | DNS search domains applied via NetworkManager | ❌ | `[]` |
+| `platform_satellite_install_satellite_size` | List of tuning tiers (`name`, `min_cpu`) used by `templates/tuning_profile.j2` to select the `satellite-installer --tuning` profile | ✅§ | Not defined in role defaults |
 
 > **Notes:**
-> \* Required when `manage_sat_install_satellite_rhn_connected: true`
+> \* Required when `platform_satellite_install_satellite_rhn_connected: true`
+>
+> † Required when configuring Satellite storage; each entry in `platform_satellite_install_satellite_req_dirs` must define `lv_name`, `lv_size`, and `mount_point`.
+>
+> ‡ Required when `platform_satellite_install_satellite_dns_servers` or `platform_satellite_install_satellite_dns_search` is set.
+>
+> § Required for a full install run (`platform_satellite_install_pre_check: false`) so `install_satellite.yml` can render the tuning profile.
 
-See `defaults/main.yml` and `vars/main.yml` for all available variables.
+See `defaults/main.yml` for default values and structure.
 
-## 🚀 Usage
+## 🚀 Role Usage
 
 Define the Satellite installation configuration in your playbook or inventory using the variables above.
 
@@ -61,14 +75,14 @@ Define the Satellite installation configuration in your playbook or inventory us
 - hosts: satellite_hosts
   become: true
   vars:
-    manage_sat_install_pre_check: true
-    manage_sat_install_satellite_deployment_version: "6.16"
-    manage_sat_install_satellite_location: lab-dc1
-    manage_sat_install_satellite_rhn_connected: false
-    manage_sat_install_satellite_min_memory_size: 20480
-    manage_sat_install_satellite_min_cpu_count: 4
+    platform_satellite_install_pre_check: true
+    platform_satellite_install_satellite_deployment_version: "6.16"
+    platform_satellite_install_satellite_location: lab-dc1
+    platform_satellite_install_satellite_rhn_connected: false
+    platform_satellite_install_satellite_min_memory_size: 20480
+    platform_satellite_install_satellite_min_cpu_count: 4
   roles:
-    - role: infra.ado.manage_sat_install
+    - role: infra.ado.platform_satellite_install
 ```
 
 ### Example 2: Run a connected Satellite install
@@ -76,33 +90,33 @@ Define the Satellite installation configuration in your playbook or inventory us
 - hosts: satellite_hosts
   become: true
   vars:
-    manage_sat_install_pre_check: false
-    manage_sat_install_satellite_deployment_version: "6.16"
-    manage_sat_install_satellite_location: primary-dc
-    manage_sat_install_satellite_rhn_connected: true
-    manage_sat_install_satellite_rhn_org_id: "12345678"
-    manage_sat_install_satellite_rhn_activation_key: "satellite-rhel9"
-    manage_sat_install_satellite_timezone: America/New_York
-    manage_sat_install_satellite_min_memory_size: 20480
-    manage_sat_install_satellite_min_cpu_count: 4
-    manage_sat_install_satellite_vg_name: satellite
-    manage_sat_install_satellite_data_device: /dev
-    manage_sat_install_satellite_data_disk_min_size: 500
-    manage_sat_install_satellite_req_dirs:
+    platform_satellite_install_pre_check: false
+    platform_satellite_install_satellite_deployment_version: "6.16"
+    platform_satellite_install_satellite_location: primary-dc
+    platform_satellite_install_satellite_rhn_connected: true
+    platform_satellite_install_satellite_rhn_org_id: "12345678"
+    platform_satellite_install_satellite_rhn_activation_key: "satellite-rhel9"
+    platform_satellite_install_satellite_timezone: America/New_York
+    platform_satellite_install_satellite_min_memory_size: 20480
+    platform_satellite_install_satellite_min_cpu_count: 4
+    platform_satellite_install_satellite_vg_name: satellite
+    platform_satellite_install_satellite_data_device: /dev
+    platform_satellite_install_satellite_data_disk_min_size: 500
+    platform_satellite_install_satellite_req_dirs:
       - lv_name: pulp
         lv_size: 250G
         mount_point: /var/lib/pulp
       - lv_name: postgres
         lv_size: 20G
         mount_point: /var/lib/pgsql
-    manage_sat_install_satellite_dns_device: ens192
-    manage_sat_install_satellite_dns_servers:
+    platform_satellite_install_satellite_dns_device: ens192
+    platform_satellite_install_satellite_dns_servers:
       - 10.0.0.10
       - 10.0.0.11
-    manage_sat_install_satellite_dns_search:
+    platform_satellite_install_satellite_dns_search:
       - example.com
   roles:
-    - role: infra.ado.manage_sat_install
+    - role: infra.ado.platform_satellite_install
 ```
 
 ## 🔧 Tasks Overview
@@ -131,41 +145,39 @@ Define the Satellite installation configuration in your playbook or inventory us
 - **DNS Config** (`dns_config.yml`):
   - Updates DNS settings via NetworkManager and resolv.conf.
 
-## 🧪 Molecule
+## 🧪 Role Molecule Testing
 
 This role no longer includes a dedicated Molecule scenario or platform-specific Molecule playbooks.
 
 > Molecule tests for `platform_satellite_install` have been removed from the repository.
 
-## 👥 Author
-
-- Automation Development Office (automation-development-office@redhat.com)
-
-## 📁 Repository Layout (Role)
+## 📁 Role Structure
 
 ```text
 roles/
-└─ manage_sat_install/
+└─ platform_satellite_install/
    ├─ README.md
    ├─ defaults/
    │  └─ main.yml
-   ├─ tasks/
-   │  ├─ main.yml
-   │  ├─ preliminary_check.yml
-   │  ├─ rhsm_subscribe.yml
-   │  ├─ patch.yml
-   │  ├─ storage_config.yml
-   │  ├─ install_packages.yml
-   │  ├─ configure_firewall.yml
-   │  ├─ prep-custom-certs.yml
-   │  └─ dns_config.yml
    ├─ handlers/
    │  └─ main.yml
    ├─ meta/
+   │  ├─ argument_specs.yml
+   │  └─ main.yml
+   ├─ tasks/
+   │  ├─ configure_firewall.yml
+   │  ├─ dns_config.yml
+   │  ├─ install_packages.yml
+   │  ├─ install_satellite.yml
    │  ├─ main.yml
-   │  └─ argument_specs.yml
+   │  ├─ patch.yml
+   │  ├─ prep-custom-certs.yml
+   │  ├─ preliminary_check.yml
+   │  ├─ rhsm_subscribe.yml
+   │  └─ storage_config.yml
    ├─ templates/
-   ├─ files/
+   │  ├─ openssl.cnf.j2
+   │  └─ tuning_profile.j2
    ├─ tests/
    │  └─ inventory
    └─ vars/

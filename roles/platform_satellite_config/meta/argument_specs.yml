@@ -1,0 +1,11 @@
+---
+# argument spec file for infra.ado.platform_satellite_config
+
+argument_specs:
+  main:
+    short_description: Role to configure Red Hat Satellite
+    options:
+      my_variable:
+        type: str
+        description: A simple string argument for demonstration.
+        default: "default_value"
