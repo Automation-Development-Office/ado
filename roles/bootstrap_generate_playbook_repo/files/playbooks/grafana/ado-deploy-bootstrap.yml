@@ -34,5 +34,5 @@
     # - role: grafana
     - role: openshift_tools_wait_for_pods_running
     - role: grafana_create_datasource
-    - role: grafana_manage_folder
+    - role: grafana_manage_folders
     - role: grafana_upload_dashboards

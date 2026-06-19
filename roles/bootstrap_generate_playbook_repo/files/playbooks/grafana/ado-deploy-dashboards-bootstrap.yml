@@ -24,5 +24,5 @@
 
   roles:
     # - role: ado.applications.grafana_create_datasource
-    - role: ado.applications.grafana_manage_folder
+    - role: grafana_manage_folders
     - role: grafana_upload_dashboards
