@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# defaults file for rhel_patching
+
+# This file contains default variables for the rhel_patching role.
+
+
+# Configure whether to check server mountpoints.
+# rhel_patching_check_mountpoints: true # This can be added to the playbook to enable checking mountpoints.
+
+# Configure whether to reboot servers.
+rhel_patching_reboot: false
+# Configure whether to clean up old kernels from /boot.
+rhel_patching_package_cleanup: false
+rhel_patching_versions: latest
+rhel_patching_update_cache: false
+rhel_patching_disable_repos: []
+rhel_patching_exclude_list: []
+rhel_patching_skip_broken: false
+
+# List of specific packages to update. If not defined, all packages will be updated.
+rhel_patching_package_list: ["*"] # This can be defined in the playbook to specify particular packages.

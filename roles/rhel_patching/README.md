@@ -1,4 +1,4 @@
-# Role: ado.platform.patching
+# Role: `infra.ado.rhel_patching`
 
 This role provides comprehensive patching functionality for Red Hat Enterprise Linux (RHEL) servers. It handles package updates, kernel management, IPA client updates, system reboots, and provides detailed patching statistics. The role includes safety checks for supported RHEL versions and ELS (Extended Life Cycle Support) requirements for RHEL 7 systems.
 
@@ -15,19 +15,19 @@ This role provides comprehensive patching functionality for Red Hat Enterprise L
 
 | Variable                    | Description                                                | Required | Default |
 |-----------------------------|------------------------------------------------------------|----------|---------|
-| `platform_patching_package_cleanup`  | Whether to clean up old kernels from /boot        | ❌       | `false` |
-| `platform_patching_versions`         | Version specification for package updates         | ❌       | `latest`|
-| `platform_patching_update_cache`     | Whether to update package cache before patching   | ❌       | `false` |
-| `platform_patching_exclude_list`     | List of packages to exclude from updates          | ❌       | `[]`    |
-| `platform_patching_disable_repos`    | List of repositories to disable during patching   | ❌       | `[]`    |
-| `platform_patching_skip_broken`      | Whether to skip broken dependencies               | ❌       | `false` |
-| `platform_patching_package_list`     | Specific list of packages to update (optional)    | ❌       | —       |
+| `rhel_patching_package_cleanup`  | Whether to clean up old kernels from /boot        | ❌       | `false` |
+| `rhel_patching_versions`         | Version specification for package updates         | ❌       | `latest`|
+| `rhel_patching_update_cache`     | Whether to update package cache before patching   | ❌       | `false` |
+| `rhel_patching_exclude_list`     | List of packages to exclude from updates          | ❌       | `[]`    |
+| `rhel_patching_disable_repos`    | List of repositories to disable during patching   | ❌       | `[]`    |
+| `rhel_patching_skip_broken`      | Whether to skip broken dependencies               | ❌       | `false` |
+| `rhel_patching_package_list`     | Specific list of packages to update (optional)    | ❌       | —       |
 
 ### Optional Variables (Commented in defaults)
 | Variable                    | Description                                                | Default |
 |-----------------------------|------------------------------------------------------------|---------|
-| `platform_patching_check_mountpoints`| Whether to check server mountpoints before patching| `true`  |
-| `platform_patching_reboot`           | Whether to reboot servers after patching           | `false` |
+| `rhel_patching_check_mountpoints`| Whether to check server mountpoints before patching| `true`  |
+| `rhel_patching_reboot`           | Whether to reboot servers after patching           | `false` |
 
 ---
 
@@ -39,10 +39,10 @@ This role provides comprehensive patching functionality for Red Hat Enterprise L
   hosts: rhel_servers
   gather_facts: true
   vars:
-    platform_patching_update_cache: true
-    platform_patching_package_cleanup: true
+    rhel_patching_update_cache: true
+    rhel_patching_package_cleanup: true
   roles:
-    - role: infra.ado.platform_patching
+    - role: infra.ado.rhel_patching
 ```
 
 ### Patching with Forced Restart
@@ -51,11 +51,11 @@ This role provides comprehensive patching functionality for Red Hat Enterprise L
   hosts: rhel_servers
   gather_facts: true
   vars:
-    platform_patching_reboot: true
-    platform_patching_update_cache: true
-    platform_patching_package_cleanup: true
+    rhel_patching_reboot: true
+    rhel_patching_update_cache: true
+    rhel_patching_package_cleanup: true
   roles:
-    - role: infra.ado.platform_patching
+    - role: infra.ado.rhel_patching
 ```
 
 ### Selective Package Patching
@@ -64,14 +64,14 @@ This role provides comprehensive patching functionality for Red Hat Enterprise L
   hosts: rhel_servers
   gather_facts: true
   vars:
-    platform_patching_package_list:
+    rhel_patching_package_list:
       - httpd
       - nginx
       - openssh
-    platform_patching_versions: latest
-    platform_patching_exclude_list: []
+    rhel_patching_versions: latest
+    rhel_patching_exclude_list: []
   roles:
-    - role: infra.ado.platform_patching
+    - role: infra.ado.rhel_patching
 ```
 
 ### Advanced Patching Configuration
@@ -80,17 +80,17 @@ This role provides comprehensive patching functionality for Red Hat Enterprise L
   hosts: rhel_servers
   gather_facts: true
   vars:
-    patching_reboot: true
-    patching_update_cache: true
-    patching_package_cleanup: true
-    patching_exclude_list:
+    rhel_patching_reboot: true
+    rhel_patching_update_cache: true
+    rhel_patching_package_cleanup: true
+    rhel_patching_exclude_list:
       - kernel-debug
       - custom-app
-    patching_disable_repos:
+    rhel_patching_disable_repos:
       - epel-testing
-    patching_skip_broken: true
+    rhel_patching_skip_broken: true
   roles:
-    - role: infra.ado.platform_patching
+    - role: infra.ado.rhel_patching
 ```
 
 ## 🔍 Role Features
@@ -126,7 +126,7 @@ The role provides detailed statistics including:
 
 **Structure:**
 ```
-patching/
+rhel_patching/
 ├── defaults/main.yml
 ├── vars/main.yml
 ├── tasks/
