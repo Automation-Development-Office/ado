@@ -1,0 +1,32 @@
+---
+- name: Converge integration_aap_configuration scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    aap_configuration_enable_live_checks: >-
+      {{
+        (lookup('env', 'AAP_CONFIGURATION_ENABLE_LIVE_CHECKS')
+        | default('false', true)) | bool
+      }}
+
+  tasks:
+    - name: Explain live-check toggle
+      ansible.builtin.debug:
+        msg: >-
+          aap_configuration uses a mock infra.aap_configuration.dispatch role by
+          default in Molecule. Set AAP_CONFIGURATION_ENABLE_LIVE_CHECKS=true and
+          install the real infra.aap_configuration collection to exercise live
+          dispatch against an AAP controller.
+      when: not aap_configuration_enable_live_checks
+
+    - name: Run aap_configuration role with mock dispatch
+      ansible.builtin.include_role:
+        name: infra.ado.aap_configuration
+      when: not aap_configuration_enable_live_checks
+
+    - name: Run aap_configuration role with live dispatch
+      ansible.builtin.include_role:
+        name: infra.ado.aap_configuration
+      when: aap_configuration_enable_live_checks

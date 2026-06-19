@@ -1,0 +1,26 @@
+---
+platforms:
+  - name: na
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}"
+    ANSIBLE_COLLECTIONS_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/mock_collections:${ANSIBLE_COLLECTIONS_PATH}"
+  playbooks:
+    prepare: ../utils/playbooks/aap_configuration_prepare.yml
+    converge: ../utils/playbooks/aap_configuration_converge.yml
+    verify: ../utils/playbooks/aap_configuration_verify.yml
+    destroy: ../utils/playbooks/aap_configuration_destroy.yml
+  config_options:
+    defaults:
+      collections_path: "${ANSIBLE_COLLECTIONS_PATH}"
+
+scenario:
+  test_sequence:
+    - prepare
+    - converge
+    - idempotence
+    - verify
+  destroy_sequence:
+    - destroy

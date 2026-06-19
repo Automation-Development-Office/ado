@@ -110,16 +110,27 @@ Key implementation files:
 
 ## 🧪 Role Molecule Testing
 
-A Molecule scenario is present under `molecule/default` for local testing.
+Use the extension integration scenario at
+`extensions/molecule/integration_aap_configuration`.
 
-Run the role's molecule scenario locally:
+Install the collection and dependencies before running locally:
 
 ```bash
-cd roles/aap_configuration
-molecule test -s default
+cd /path/to/your/git/checkout/ado
+ansible-galaxy collection install . --force -p ~/.ansible/collections
+export ANSIBLE_COLLECTIONS_PATH="$HOME/.ansible/collections:${ANSIBLE_COLLECTIONS_PATH:-}"
 ```
 
-The `molecule/default/molecule.yml` scenario runs a local converge against `localhost` and references `converge.yml` under the scenario.
+Run the integration scenario:
+
+```bash
+cd extensions/molecule
+molecule test -s integration_aap_configuration
+```
+
+By default the scenario uses a mock `infra.aap_configuration.dispatch` role.
+Set `AAP_CONFIGURATION_ENABLE_LIVE_CHECKS=true` to run against a real
+`infra.aap_configuration` installation.
 
 ## 📁 Role Structure
 
@@ -133,12 +144,6 @@ roles/
    │  └─ main.yml
    ├─ meta/
    │  └─ main.yml
-   ├─ molecule/
-   │  └─ default/
-   │     ├─ converge.yml
-   │     ├─ destroy.yml
-   │     ├─ molecule.yml
-   │     └─ verify.yml
    ├─ tasks/
    │  ├─ dispatch.yml
    │  └─ main.yml

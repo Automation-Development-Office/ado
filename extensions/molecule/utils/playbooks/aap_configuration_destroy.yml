@@ -1,0 +1,31 @@
+---
+- name: Destroy integration_aap_configuration scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    repo_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/../.."
+    aap_configuration_scenario_dir: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}"
+    aap_configuration_test_root: "{{ aap_configuration_scenario_dir }}"
+    aap_configuration_role_configs_candidates:
+      - "{{ repo_root }}/roles/aap_configuration/configs"
+      - "{{ repo_root }}/.ansible/collections/ansible_collections/infra/ado/roles/aap_configuration/configs"
+      - "{{ lookup('env', 'HOME') }}/.ansible/collections/ansible_collections/infra/ado/roles/aap_configuration/configs"
+
+  tasks:
+    - name: Remove playbook configs fixture
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/configs/aap_configuration.example.yml"
+        state: absent
+
+    - name: Remove role configs directories created during converge
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ aap_configuration_role_configs_candidates }}"
+
+    - name: Remove mock collections directory
+      ansible.builtin.file:
+        path: "{{ aap_configuration_test_root }}/mock_collections"
+        state: absent
