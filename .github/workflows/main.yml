@@ -145,9 +145,11 @@ jobs:
   readme-format-check:
     name: README Format Verification
     runs-on: ubuntu-latest
+    # Runs on PRs for visibility; informational only until added to pr-gate.
     if: |
-      github.event_name == 'workflow_dispatch' &&
-      github.event.inputs.run_readme_verification == 'true'
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.run_readme_verification == 'true')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -158,9 +160,28 @@ jobs:
           python-version: '3.11'
 
       - name: Run README format verification
+        id: readme_verify
+        # Informational only for now; enable PR gate check when ready to enforce.
+        continue-on-error: true
         run: |
-          set -o pipefail
-          python scripts/verify_readme.py --template docs/templates/role_readme_format_template.md 2>&1 | tee readme-verification.txt
+          set +e
+          python scripts/verify_readme.py --template docs/templates/role_readme_format_template.md \
+            > readme-verification.txt 2>&1
+          exit_code=$?
+          cat readme-verification.txt
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          exit "$exit_code"
+
+      - name: Add README verification summary
+        if: always()
+        run: |
+          {
+            echo "## README Format Verification"
+            echo
+            echo '```text'
+            cat readme-verification.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload README verification report
         if: always()
@@ -168,6 +189,8 @@ jobs:
         with:
           name: readme-verification-report
           path: readme-verification.txt
+          if-no-files-found: error
+          retention-days: 30
 
   # Testing stage
   discover-molecule-scenarios:
