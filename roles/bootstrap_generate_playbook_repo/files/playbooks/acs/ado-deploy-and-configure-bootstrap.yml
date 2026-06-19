@@ -31,13 +31,13 @@
       vars:
         openshift_tools_manage_namespace_name_space: "{{ bootstrap_generate_playbook_repo_operator_namespace }}"
 
-    - role: ado.openshift.subscription_operator
+    - role: openshift_tools_subscription_operator
       vars:
-        name_space: "{{ bootstrap_generate_playbook_repo_operator_namespace }}"
+        openshift_tools_subscription_operator_name_space: "{{ bootstrap_generate_playbook_repo_operator_namespace }}"
 
     # Your ACS role uses acs_namespace for the Central CR
-    - role: infra.ado.openshift_install_acs
+    - role: openshift_install_acs
 
-    - role: ado.openshift.wait_for_pods_running
+    - role: openshift_tools_wait_for_pods_running
       vars:
-        name_space: "{{ bootstrap_generate_playbook_repo_acs_namespace }}"
+        openshift_tools_wait_for_pods_running_name_space: "{{ bootstrap_generate_playbook_repo_acs_namespace }}"
