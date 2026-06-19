@@ -21,11 +21,10 @@
       ansible.builtin.include_role:
         name: resolve_component
 
- 
+
   roles:
     - role: ado.openshift.namespace
-    - role: ado.openshift.operatorgroup
-    - role: ado.openshift.subscription_operator
-    - role: aap24
+    - role: openshift_tools_manage_operator_groups
+    # - role: ado.install_aap
     - role: ado.openshift.wait_for_pods_running
     - role: ado.openshift.get_routes

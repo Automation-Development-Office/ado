@@ -33,7 +33,7 @@
 
 - name: AAP 2.5+ | Build final label list from selected templates and workflows
   ansible.builtin.set_fact:
-    controller_labels_final: >-
+    bootstrap_controller_labels_final: >-
       {{
         (
           [{'name': 'bootstrap', 'organization': controller_bootstrap_organization}]
@@ -72,8 +72,8 @@
     controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
     controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
     validate_certs: "{{ controller_validate_certs | default(false) }}"
-  loop: "{{ controller_labels_final | unique | list }}"
-  when: controller_labels_final | default([]) | length > 0
+  loop: "{{ bootstrap_controller_labels_final | unique | list }}"
+  when: bootstrap_controller_labels_final | default([]) | length > 0
 
 # Create/update credentials and EEs first
 - name: AAP 2.5+ | Apply credentials and execution environments

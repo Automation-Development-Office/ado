@@ -1,7 +1,7 @@
 ---
 - name: AAP | Resolve effective environment
   ansible.builtin.set_fact:
-    controller_bootstrap_effective_env: >-
+    bootstrap_controller_effective_env: >-
       {{
         env
         | default(generate_env_vars_env, true)
@@ -10,19 +10,19 @@
 - name: AAP | Validate effective environment is present
   ansible.builtin.assert:
     that:
-      - controller_bootstrap_effective_env is defined
-      - controller_bootstrap_effective_env | length > 0
+      - bootstrap_controller_effective_env is defined
+      - bootstrap_controller_effective_env | length > 0
     fail_msg: >-
       Unable to determine environment. Pass -e env=prod or provide preflight_json with environment.
 
 - name: AAP | Load split environment vars
   ansible.builtin.include_vars:
-    dir: "{{ playbook_dir }}/group_vars/all/{{ controller_bootstrap_effective_env }}"
+    dir: "{{ playbook_dir }}/group_vars/all/{{ bootstrap_controller_effective_env }}"
     extensions:
       - yml
       - yaml
   when:
-    - (playbook_dir + '/group_vars/all/' + controller_bootstrap_effective_env) is directory
+    - (playbook_dir + '/group_vars/all/' + bootstrap_controller_effective_env) is directory
 
 - name: AAP | Preflight checks
   ansible.builtin.include_tasks: preflight.yml

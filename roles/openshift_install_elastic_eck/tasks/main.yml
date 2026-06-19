@@ -32,8 +32,8 @@
     - state  default('present') == 'present'
     - openshift_install_elastic_eck_create_elasticsearch_cr  default(false)  bool
 
-# Install OperatorGroup + Subscription via your shared role
-- name: ECK  Install operator (OperatorGroup + Subscription)
+# Install openshift_tools_operator_groups + Subscription via your shared role
+- name: ECK  Install operator (openshift_tools_operator_groups + Subscription)
   ansible.builtin.include_role:
     name: subscription_operator
 

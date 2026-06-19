@@ -1,89 +1,21 @@
----
-
 controller_bootstrap_jira_common_survey:
   - question_name: Jira Feature/Epic Key
     question_description: Optional parent Feature/Epic key, for example TET-123
     required: false
     type: text
     variable: jira_feature_key
-    default: ""
-
+    default: ''
 controller_bootstrap_templates:
-
   - name: Jira - Bugfix
     description: Create Jira bugfix story
-    organization: "{{ controller_bootstrap_organization }}"
+    organization: '{{ controller_bootstrap_organization }}'
     playbook: playbooks/jira/ado-create-stories-bootstrap.yml
-    inventory: "{{ controller_bootstrap_inventory_name }}"
-    project: "{{ controller_bootstrap_project_name }}"
-    execution_environment: "{{ controller_bootstrap_execution_environment_name }}"
+    inventory: '{{ controller_bootstrap_inventory_name }}'
+    project: '{{ controller_bootstrap_project_name }}'
+    execution_environment: '{{ controller_bootstrap_execution_environment_name }}'
     credentials:
-      - "{{ controller_bootstrap_creds }}"
-    related:
+      - '{{ controller_bootstrap_creds }}'
+related:
   labels:
-  - name: bootstrap
-    organization: '{{ controller_bootstrap_organization }}'
-  - name: jira
-    organization: '{{ controller_bootstrap_organization }}'
-    extra_vars:
-      jira_track: bugfix
-    survey_enabled: true
-    survey_spec:
-      name: Jira Bugfix Survey
-      description: Create bugfix story
-      spec:
-        - question_name: Product
-          required: true
-          type: text
-          variable: product
-          default: Collections
-        - question_name: Group / Jira Component
-          required: true
-          type: text
-          variable: group
-          default: ado.openshift
-        - question_name: Environment
-          required: true
-          type: multiplechoice
-          variable: enviroment
-          choices: [lab, dev, test, stage, prod]
-          default: lab
-        - question_name: Role Name
-          required: true
-          type: text
-          variable: role_name
-          default: Engineer
-        - question_name: Bug Summary
-          required: true
-          type: text
-          variable: bug_summary
-        - question_name: Bug Description
-          required: true
-          type: textarea
-          variable: bug_description
-        - question_name: Expected Behavior
-          required: false
-          type: textarea
-          variable: expected_behavior
-          default: TBD
-        - question_name: Actual Behavior
-          required: false
-          type: textarea
-          variable: actual_behavior
-          default: TBD
-        - question_name: Repro Steps
-          required: false
-          type: textarea
-          variable: repro_steps
-          default: TBD
-        - question_name: Severity
-          required: true
-          type: multiplechoice
-          variable: severity
-          choices: [low, medium, high, critical]
-          default: low
-        - question_name: Jira Feature/Epic Key
-          required: false
-          type: text
-          variable: jira_feature_key
-          default: ""
+    - name: bootstrap
+      organization: '{{ controller_bootstrap_organization }}'

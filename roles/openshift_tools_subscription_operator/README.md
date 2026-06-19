@@ -5,7 +5,7 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 - Installs an Operator by creating a `Subscription`
 - Uninstalls by deleting the `Subscription` (and optionally CSV via OLM)
 - Works with kubeconfig **or** host+token auth
-- **Important:** Your OperatorGroup **must** match the operator's supported `installModes`
+- **Important:** Your openshift_tools_operator_groups **must** match the operator's supported `installModes`
 
 ---
 
@@ -13,8 +13,8 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 
 - OpenShift/Kubernetes API access (via kubeconfig or env vars)
 - `kubernetes.core` collection installed
-- A compatible **OperatorGroup** in the target namespace (single-namespace or all-namespaces).
-  _Tip:_ Use your `ado.openshift.operatorgroup` role to create it appropriately.
+- A compatible **openshift_tools_operator_groups** in the target namespace (single-namespace or all-namespaces).
+  _Tip:_ Use your `ado.openshift.openshift_tools_operator_groups` role to create it appropriately.
 
 ---
 
@@ -45,15 +45,15 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 ## Examples
 
 ### Install **Web Terminal** operator (AllNamespaces) in `openshift-operators`
-> Web Terminal supports **AllNamespaces** only; install into `openshift-operators` and use an AllNamespaces OperatorGroup.
+> Web Terminal supports **AllNamespaces** only; install into `openshift-operators` and use an AllNamespaces openshift_tools_operator_groups.
 
 ```yaml
 - hosts: localhost
   gather_facts: false
   pre_tasks:
-    - name: Ensure global OperatorGroup (AllNamespaces)
+    - name: Ensure global openshift_tools_operator_groups (AllNamespaces)
       ansible.builtin.include_role:
-        name: ado.openshift.operatorgroup
+        name: ado.openshift.openshift_tools_operator_groups
       vars:
         state: present
         all_namespaces_install: true
@@ -72,7 +72,7 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 ```
 
 ### Install a **SingleNamespace** operator into an app namespace
-> Use only if the operator's CSV supports `SingleNamespace`. Ensure a single-ns OperatorGroup exists first.
+> Use only if the operator's CSV supports `SingleNamespace`. Ensure a single-ns openshift_tools_operator_groups exists first.
 
 ```yaml
 - hosts: localhost
@@ -106,7 +106,7 @@ Create, update, or remove an **OLM Subscription** for an Operator in OpenShift. 
 
 ## Behavior Notes
 
-- **OperatorGroup vs installModes**: The Operator's CSV defines supported modes. The OG must match:
+- **openshift_tools_operator_groups vs installModes**: The Operator's CSV defines supported modes. The OG must match:
   - **AllNamespaces** → install Subscription in `openshift-operators` with **no** `targetNamespaces`.
   - **SingleNamespace** → install in your app namespace with OG `spec.targetNamespaces: [ name_space ]`.
 - **How to check channels/installModes**:

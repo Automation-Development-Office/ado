@@ -1,56 +1,21 @@
----
-
 controller_bootstrap_jira_common_survey:
   - question_name: Jira Feature/Epic Key
     question_description: Optional parent Feature/Epic key, for example TET-123
     required: false
     type: text
     variable: jira_feature_key
-    default: ""
-
+    default: ''
 controller_bootstrap_templates:
-
   - name: Jira - Collections Delivery
     description: Create Jira stories for Ansible collection delivery
-    organization: "{{ controller_bootstrap_organization }}"
+    organization: '{{ controller_bootstrap_organization }}'
     playbook: playbooks/jira/ado-create-stories-bootstrap.yml
-    inventory: "{{ controller_bootstrap_inventory_name }}"
-    project: "{{ controller_bootstrap_project_name }}"
-    execution_environment: "{{ controller_bootstrap_execution_environment_name }}"
+    inventory: '{{ controller_bootstrap_inventory_name }}'
+    project: '{{ controller_bootstrap_project_name }}'
+    execution_environment: '{{ controller_bootstrap_execution_environment_name }}'
     credentials:
-      - "{{ controller_bootstrap_creds }}"
-    related:
+      - '{{ controller_bootstrap_creds }}'
+related:
   labels:
-  - name: bootstrap
-    organization: '{{ controller_bootstrap_organization }}'
-  - name: jira
-    organization: '{{ controller_bootstrap_organization }}'
-    extra_vars:
-      jira_track: collections_2phase
-      product: Collections
-    survey_enabled: true
-    survey_spec:
-      name: Jira Collections Delivery Survey
-      description: Create collection role/module delivery stories
-      spec:
-        - question_name: Collection Namespace / Group
-          required: true
-          type: text
-          variable: group
-          default: ado.openshift
-        - question_name: Role or Module Name
-          required: true
-          type: text
-          variable: role_name
-          default: namespace
-        - question_name: Environment
-          required: true
-          type: multiplechoice
-          variable: enviroment
-          choices: [lab, dev, test, stage, prod]
-          default: lab
-        - question_name: Jira Feature/Epic Key
-          required: false
-          type: text
-          variable: jira_feature_key
-          default: ""
+    - name: bootstrap
+      organization: '{{ controller_bootstrap_organization }}'

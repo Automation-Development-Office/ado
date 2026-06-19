@@ -9,7 +9,7 @@
       validate_certs: false
   vars:
     name_space: test-namespace-molecule
-    operatorgroup: test-operatorgroup-molecule
+    openshift_tools_operator_groups: test-openshift_tools_operator_groups-molecule
     present: absent
   tasks:
     - name: Include the role under test
@@ -19,17 +19,17 @@
         state: absent
     - name: Include the role under test
       ansible.builtin.include_role:
-        name: ado.openshift.operatorgroup
+        name: ado.openshift.openshift_tools_operator_groups
       vars:
         state: absent
 
     # ⬇️ Post-create check (no separate verify step needed)
-    # ---- Verify OperatorGroup removal ----
-    - name: Wait for OperatorGroup to be deleted
+    # ---- Verify openshift_tools_operator_groups removal ----
+    - name: Wait for openshift_tools_operator_groups to be deleted
       kubernetes.core.k8s_info:
         api_version: operators.coreos.com/v1
-        kind: OperatorGroup
-        name: "{{ operatorgroup }}"
+        kind: openshift_tools_operator_groups
+        name: "{{ openshift_tools_operator_groups }}"
         namespace: "{{ name_space }}"
         validate_certs: "{{ k8s_validate_certs | default(false) }}" # set true if you trust the CA
       register: openshift_tools_manage_operator_groups_og_gone
@@ -38,14 +38,14 @@
       retries: 12
       delay: 5
 
-    - name: Assert OperatorGroup deleted
+    - name: Assert openshift_tools_operator_groups deleted
       ansible.builtin.assert:
         that:
           - (openshift_tools_manage_operator_groups_og_gone.resources | default([])) | length == 0
         success_msg: >-
-          ✅ k8s confirms OperatorGroup '{{ operatorgroup }}' is not present in namespace '{{ name_space }}'.
+          ✅ k8s confirms openshift_tools_operator_groups '{{ openshift_tools_operator_groups }}' is not present in namespace '{{ name_space }}'.
         fail_msg: >-
-          ❌ OperatorGroup '{{ operatorgroup }}' still present in namespace '{{ name_space }}'
+          ❌ openshift_tools_operator_groups '{{ openshift_tools_operator_groups }}' still present in namespace '{{ name_space }}'
           (found {{ (openshift_tools_manage_operator_groups_og_gone.resources | default([])) | length }} result(s)).
 
     # ---- Optional: verify the namespace is gone too ----

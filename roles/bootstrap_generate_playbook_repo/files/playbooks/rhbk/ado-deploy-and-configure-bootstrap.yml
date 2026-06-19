@@ -24,9 +24,9 @@
   roles:
     # install keycloak
     - role: ado.openshift.namespace
-    - role: ado.openshift.operatorgroup
+    - role: openshift_tools_manage_operator_groups
     - role: ado.openshift.subscription_operator
-    #- role: rhbk
+    # - role: rhbk
     - role: ado.openshift.wait_for_pods_running
     - role: ado.openshift.get_routes
 
@@ -34,4 +34,4 @@
     - role: rhbk_realm
 
     # create federation
-    #- role: rhbk_setup_federation
+    # - role: rhbk_setup_federation

@@ -2,8 +2,8 @@ template_stories_phase2:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation - Phase 2"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Deploy and configure {{ product }} using the approved architecture and automation  
+      *As a:* "{{ role_name }}"
+      *I want to:* Deploy and configure {{ product }} using the approved architecture and automation
       *So that:* clusters can be managed consistently, securely, and repeatably.
 
       Notes / Context:
@@ -29,8 +29,8 @@ template_stories_phase2:
     subtasks:
       - summary: "Install {{ product }} operator or service"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Install the {{ product }} operator or service  
+          *As a:* "{{ role_name }}"
+          *I want to:* Install the {{ product }} operator or service
           *So that:* the platform is available for configuration and use.
 
           Notes / Context:
@@ -42,8 +42,8 @@ template_stories_phase2:
 
       - summary: "Configure core {{ product }} settings"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Configure {{ product }} according to the approved architecture  
+          *As a:* "{{ role_name }}"
+          *I want to:* Configure {{ product }} according to the approved architecture
           *So that:* {{ product }} operates consistently and aligns with design decisions.
 
           Notes / Context:
@@ -55,8 +55,8 @@ template_stories_phase2:
 
       - summary: "Configure required integrations"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Configure required integrations for {{ product }}  
+          *As a:* "{{ role_name }}"
+          *I want to:* Configure required integrations for {{ product }}
           *So that:* {{ product }} can operate with the surrounding platform ecosystem.
 
           Notes / Context:
@@ -68,8 +68,8 @@ template_stories_phase2:
 
       - summary: "Validate RBAC and access control"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Validate RBAC and access control configuration  
+          *As a:* "{{ role_name }}"
+          *I want to:* Validate RBAC and access control configuration
           *So that:* users and automation have appropriate permissions.
 
           Notes / Context:
@@ -81,8 +81,8 @@ template_stories_phase2:
 
       - summary: "Configure observability"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Configure observability for the {{ product }} environment  
+          *As a:* "{{ role_name }}"
+          *I want to:* Configure observability for the {{ product }} environment
           *So that:* health, performance, and status are visible.
 
           Notes / Context:
@@ -94,8 +94,8 @@ template_stories_phase2:
 
       - summary: "Validate GitOps integration"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Validate GitOps integration with {{ product }}  
+          *As a:* "{{ role_name }}"
+          *I want to:* Validate GitOps integration with {{ product }}
           *So that:* configuration and policy changes are managed declaratively.
 
           Notes / Context:
@@ -107,8 +107,8 @@ template_stories_phase2:
 
       - summary: "Document deployment and configuration details"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Document the deployment and configuration of {{ product }}  
+          *As a:* "{{ role_name }}"
+          *I want to:* Document the deployment and configuration of {{ product }}
           *So that:* the implementation is supportable and repeatable.
 
           Notes / Context:

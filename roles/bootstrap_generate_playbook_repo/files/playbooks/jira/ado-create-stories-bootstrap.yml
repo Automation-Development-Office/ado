@@ -4,7 +4,7 @@
   gather_facts: false
 
   vars:
-    component: jira 
+    component: jira
 
   vars_files:
     - "group_vars/all/{{ env }}/infra_config_vars.yml"

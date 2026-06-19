@@ -1,88 +1,21 @@
----
-
 controller_bootstrap_jira_common_survey:
   - question_name: Jira Feature/Epic Key
     question_description: Optional parent Feature/Epic key, for example TET-123
     required: false
     type: text
     variable: jira_feature_key
-    default: ""
-
+    default: ''
 controller_bootstrap_templates:
-
   - name: Jira - Feature Request
     description: Create Jira feature request story
-    organization: "{{ controller_bootstrap_organization }}"
+    organization: '{{ controller_bootstrap_organization }}'
     playbook: playbooks/jira/ado-create-stories-bootstrap.yml
-    inventory: "{{ controller_bootstrap_inventory_name }}"
-    project: "{{ controller_bootstrap_project_name }}"
-    execution_environment: "{{ controller_bootstrap_execution_environment_name }}"
+    inventory: '{{ controller_bootstrap_inventory_name }}'
+    project: '{{ controller_bootstrap_project_name }}'
+    execution_environment: '{{ controller_bootstrap_execution_environment_name }}'
     credentials:
-      - "{{ controller_bootstrap_creds }}"
-    related:
+      - '{{ controller_bootstrap_creds }}'
+related:
   labels:
-  - name: bootstrap
-    organization: '{{ controller_bootstrap_organization }}'
-  - name: jira
-    organization: '{{ controller_bootstrap_organization }}'
-    extra_vars:
-      jira_track: feature
-    survey_enabled: true
-    survey_spec:
-      name: Jira Feature Request Survey
-      description: Create feature request story
-      spec:
-        - question_name: Product
-          required: true
-          type: text
-          variable: product
-          default: Collections
-        - question_name: Group / Jira Component
-          required: true
-          type: text
-          variable: group
-          default: ado.openshift
-        - question_name: Environment
-          required: true
-          type: multiplechoice
-          variable: enviroment
-          choices: [lab, dev, test, stage, prod]
-          default: lab
-        - question_name: Role Name
-          required: true
-          type: text
-          variable: role_name
-          default: Engineer
-        - question_name: Feature Summary
-          required: true
-          type: text
-          variable: feature_summary
-        - question_name: Feature Description
-          required: true
-          type: textarea
-          variable: feature_description
-        - question_name: Feature Value
-          required: false
-          type: textarea
-          variable: feature_value
-          default: TBD
-        - question_name: Scope
-          required: false
-          type: textarea
-          variable: scope
-          default: TBD
-        - question_name: Out of Scope
-          required: false
-          type: textarea
-          variable: out_of_scope
-          default: TBD
-        - question_name: Target Version
-          required: false
-          type: text
-          variable: target_version
-          default: TBD
-        - question_name: Jira Feature/Epic Key
-          required: false
-          type: text
-          variable: jira_feature_key
-          default: ""
+    - name: bootstrap
+      organization: '{{ controller_bootstrap_organization }}'

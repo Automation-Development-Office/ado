@@ -1,7 +1,7 @@
 ---
 platforms:
   - name: na
-  
+
 provisioner:
   name: ansible
   env:

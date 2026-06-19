@@ -20,13 +20,3 @@
     - name: Create AWS PCA ClusterIssuer
       ansible.builtin.include_role:
         name: awspca_clusterissuer
-      vars:
-        state: present
-        awspca_namespace: cert-manager
-        awspca_secret_name: awspca-creds1
-        awspca_issuer_name: ppd-awspca-issuer
-        awspca_region: us-gov-west-1
-        awspca_pca_arn: "arn:aws-us-gov:acm-pca:us-gov-west-1:829443827889:certificate-authority/6ec7efb0-ea5b-4c5e-80e1-66feb3fb467b"
-        # vaulted vars recommended:
-        awspca_access_key_id: "{{ vault_aws_access_key_id }}"
-        awspca_secret_access_key: "{{ vault_aws_secret_access_key }}"

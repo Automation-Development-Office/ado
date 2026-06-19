@@ -3,7 +3,7 @@
 
 - name: Subscription | Derive namespaces and names
   ansible.builtin.set_fact:
-    # Where the Subscription + OperatorGroup live
+    # Where the Subscription + openshift_tools_operator_groups live
     openshift_tools_subscription_operator_sub_namespace: >-
       {{
         (operator_subscription_namespace | default('') | string | trim)
@@ -42,15 +42,15 @@
         name: "{{ openshift_tools_subscription_operator_sub_namespace }}"
   when: state | default('present') == 'present'
 
-# Create OperatorGroup first (if configured)
-- name: OperatorGroup | Create/Update (scoped vs all namespaces)
+# Create openshift_tools_operator_groups first (if configured)
+- name: Openshift_tools_operator_groups | Create/Update (scoped vs all namespaces)
   kubernetes.core.k8s:
     state: "{{ state | default('present') }}"
     definition:
       apiVersion: operators.coreos.com/v1
-      kind: OperatorGroup
+      kind: openshift_tools_operator_groups
       metadata:
-        name: "{{ operatorgroup }}"
+        name: "{{ openshift_tools_operator_groups }}"
         namespace: "{{ openshift_tools_subscription_operator_sub_namespace }}"
       spec: >-
         {{
@@ -58,8 +58,8 @@
           | ternary({}, {'targetNamespaces': [openshift_tools_subscription_operator_sub_namespace]})
         }}
   when:
-    - operatorgroup is defined
-    - (operatorgroup | string | trim | length) > 0
+    - openshift_tools_operator_groups is defined
+    - (openshift_tools_operator_groups | string | trim | length) > 0
 
 # Subscription with startingCSV (pinning)
 - name: Subscription | Create/Update Operator subscription (supports startingCSV)

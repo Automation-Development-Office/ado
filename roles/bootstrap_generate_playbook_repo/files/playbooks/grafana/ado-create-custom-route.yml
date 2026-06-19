@@ -22,6 +22,4 @@
         name: resolve_component
 
   roles:
-   - role: ensure_component_route
-
-
+    - role: openshift_tools_ensure_component_route

@@ -37,12 +37,12 @@
   when: openshift_tools_print_crd_sub_count|int > 1
 
 # -------- Compute names & shape --------
-- name: Compute OperatorGroup and whether to emit Namespace
+- name: Compute openshift_tools_operator_groups and whether to emit Namespace
   ansible.builtin.set_fact:
     openshift_tools_print_crd_all_namespaces_install: "{{ name_space == 'openshift-operators' }}"
-    openshift_tools_print_crd_operatorgroup_name: >-
+    openshift_tools_print_crd_openshift_tools_operator_groups_name: >-
       {{ (name_space == 'openshift-operators')
-         | ternary('global-operators', name_space ~ '-operatorgroup') }}
+         | ternary('global-operators', name_space ~ '-openshift_tools_operator_groups') }}
     openshift_tools_print_crd_emit_namespace: "{{ name_space != 'openshift-operators' }}"
 
 - name: Build raw Subscription spec (may contain empty keys)
@@ -65,7 +65,7 @@
         | items2dict
       }}
 
-# -------- Build docs (Namespace? → OperatorGroup → Subscription) --------
+# -------- Build docs (Namespace? → openshift_tools_operator_groups → Subscription) --------
 - name: Build bundle docs as dictionaries
   ansible.builtin.set_fact:
     openshift_tools_print_crd_ns_doc:
@@ -77,9 +77,9 @@
           openshift.io/cluster-monitoring: "true"
     openshift_tools_print_crd_og_doc:
       apiVersion: operators.coreos.com/v1
-      kind: OperatorGroup
+      kind: openshift_tools_operator_groups
       metadata:
-        name: "{{ openshift_tools_print_crd_operatorgroup_name }}"
+        name: "{{ openshift_tools_print_crd_openshift_tools_operator_groups_name }}"
         namespace: "{{ name_space }}"
       spec: "{{ {} if (openshift_tools_print_crd_all_namespaces_install | bool) else {'targetNamespaces': [name_space]} }}"
     openshift_tools_print_crd_sub_doc:

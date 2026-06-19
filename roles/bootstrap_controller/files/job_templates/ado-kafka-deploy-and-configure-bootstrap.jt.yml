@@ -1,37 +1,36 @@
----
 controller_bootstrap_templates:
-- name: Deploy kafka Bootstrap
-  description: Bootstrap - Deploy and configure kafka
-  organization: '{{ controller_bootstrap_organization }}'
-  playbook: playbooks/kafka/ado-deploy-and-configure-bootstrap.yml
-  inventory: '{{ controller_bootstrap_inventory_name }}'
-  project: '{{ controller_bootstrap_project_name }}'
-  execution_environment: '{{ controller_bootstrap_execution_environment_name }}'
-  credentials:
-  - '{{ controller_bootstrap_creds }}'
-  related:
-  labels:
-  - name: bootstrap
+  - name: Deploy kafka Bootstrap
+    description: Bootstrap - Deploy and configure kafka
     organization: '{{ controller_bootstrap_organization }}'
-  - name: kafka
-    organization: '{{ controller_bootstrap_organization }}'
-  extra_vars: {}
-  survey_enabled: true
-  survey_spec:
-    name: Deploy Kafka Survey
-    description: Configuration options for Kafka deployment
-    spec:
-    - question_name: Do you want to install or remove?
-      question_description: Install (present) or Remove (absent)
-      required: true
-      type: multiplechoice
-      variable: state
-      choices: '{{ controller_bootstrap_state_choices }}'
-      default: '{{ controller_bootstrap_default_state }}'
-    - question_name: What environment?
-      question_description: Target environment
-      required: true
-      type: multiplechoice
-      variable: env
-      choices: '{{ controller_bootstrap_environment_choices }}'
-      default: '{{ controller_bootstrap_default_environment }}'
+    playbook: playbooks/kafka/ado-deploy-and-configure-bootstrap.yml
+    inventory: '{{ controller_bootstrap_inventory_name }}'
+    project: '{{ controller_bootstrap_project_name }}'
+    execution_environment: '{{ controller_bootstrap_execution_environment_name }}'
+    credentials:
+      - '{{ controller_bootstrap_creds }}'
+    related: null
+    labels:
+      - name: bootstrap
+        organization: '{{ controller_bootstrap_organization }}'
+      - name: kafka
+        organization: '{{ controller_bootstrap_organization }}'
+    extra_vars: {}
+    survey_enabled: true
+    survey_spec:
+      name: Deploy Kafka Survey
+      description: Configuration options for Kafka deployment
+      spec:
+        - question_name: Do you want to install or remove?
+          question_description: Install (present) or Remove (absent)
+          required: true
+          type: multiplechoice
+          variable: state
+          choices: '{{ controller_bootstrap_state_choices }}'
+          default: '{{ controller_bootstrap_default_state }}'
+        - question_name: What environment?
+          question_description: Target environment
+          required: true
+          type: multiplechoice
+          variable: env
+          choices: '{{ controller_bootstrap_environment_choices }}'
+          default: '{{ controller_bootstrap_default_environment }}'

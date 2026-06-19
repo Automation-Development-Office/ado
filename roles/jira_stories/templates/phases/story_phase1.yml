@@ -2,8 +2,8 @@ template_stories_phase1:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness and Design - Phase 1"
     story_description: |
-      *As a:* "{{ role_name }}" 
-      *I want to:* Validate all prerequisites and architectural decisions for {{ product }}  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate all prerequisites and architectural decisions for {{ product }}
       *So that:* {{ product }} can be deployed consistently and support multi-cluster governance at scale.
 
       Notes / Context:
@@ -16,7 +16,7 @@ template_stories_phase1:
       * Meet with Red Hat architects/SMEs to validate design
       * Meet with Customer architects/SMEs to validate design and Implementation
       * Target clusters identified, categorized, and ownership confirmed
-      * Network connectivity validated 
+      * Network connectivity validated
       * Identity integration reviewed (IdM, SSO, RBAC)
       * Certificate and trust requirements documented
       * RBAC model defined for {{ product }} users and automation
@@ -32,8 +32,8 @@ template_stories_phase1:
     subtasks:
       - summary: "Conduct kickoff meeting with stakeholders to align on goals, timelines, and responsibilities"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Hold a kickoff meeting with all relevant stakeholders, to ensure the project goals, timelines, and responsibilities.  
+          *As a:* "{{ role_name }}"
+          *I want to:* Hold a kickoff meeting with all relevant stakeholders, to ensure the project goals, timelines, and responsibilities.
           *So that:* clusters can be managed consistently and securely.
 
           Notes / Context:
@@ -47,8 +47,8 @@ template_stories_phase1:
 
       - summary: "Review and validate architecture and design with stakeholders and Red Hat architects and SMEs"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Review and validate the proposed architecture and design for {{ product }} with both Red Hat architects/SMEs and Customer architects/SMEs.  
+          *As a:* "{{ role_name }}"
+          *I want to:* Review and validate the proposed architecture and design for {{ product }} with both Red Hat architects/SMEs and Customer architects/SMEs.
           *So that:* we can ensure the design is sound, meets requirements, and has buy-in from all relevant parties.
 
           Notes / Context:
@@ -62,8 +62,8 @@ template_stories_phase1:
 
       - summary: "Validate network connectivity between (AWS, AAP hub, and managed clusters)"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Validate network connectivity between AWS, the AAP hub cluster, and the managed clusters.  
+          *As a:* "{{ role_name }}"
+          *I want to:* Validate network connectivity between AWS, the AAP hub cluster, and the managed clusters.
           *So that:* we can ensure {{ product }} can communicate effectively with all necessary components.
 
           Notes / Context:
@@ -77,8 +77,8 @@ template_stories_phase1:
 
       - summary: "Define RBAC model for {{ product }} users and automation"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Define the RBAC model for {{ product }} users and automation.  
+          *As a:* "{{ role_name }}"
+          *I want to:* Define the RBAC model for {{ product }} users and automation.
           *So that:* we can ensure appropriate access controls are in place for both human users and automated processes interacting with {{ product }}.
 
           Notes / Context:
@@ -91,8 +91,8 @@ template_stories_phase1:
 
       - summary: "Review certificate and trust requirements"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Review the certificate and trust requirements for {{ product }}.  
+          *As a:* "{{ role_name }}"
+          *I want to:* Review the certificate and trust requirements for {{ product }}.
           *So that:* we can ensure secure communication between {{ product }} components and with external systems.
 
           Notes / Context:
@@ -105,8 +105,8 @@ template_stories_phase1:
 
       - summary: "Document automation expectations and constraints"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Document the automation expectations and constraints for the {{ product }} implementation.  
+          *As a:* "{{ role_name }}"
+          *I want to:* Document the automation expectations and constraints for the {{ product }} implementation.
           *So that:* we have a clear understanding of what will and will not be automated, which can help guide the implementation
           and set appropriate expectations with stakeholders.
 
@@ -119,9 +119,9 @@ template_stories_phase1:
 
       - summary: "Create backlog items for identified gaps (Automation, Observability, Policies, etc.)"
         description: |
-          *As a:* "{{ role_name }}"  
+          *As a:* "{{ role_name }}"
           *I want to:* Create backlog items for any identified gaps in the {{ product }} implementation, such as automation, observability,
-          policies, etc.  
+          policies, etc.
           *So that:* we can ensure these gaps are tracked and addressed in a timely manner.
 
           Notes / Context:

@@ -45,8 +45,8 @@
     name_space: openshift-operators-redhat
     all_namespaces_install: true
     state: absent
-    # operator OperatorGroup
-    operatorgroup: openshift-operators-redhat
+    # operator openshift_tools_operator_groups
+    openshift_tools_operator_groups: openshift-operators-redhat
     # subscription_operator
     operator_name: loki-operator
     operator_channel: stable-6.3
@@ -55,7 +55,7 @@
 
   roles:
     - role: ado.openshift.namespace
-    - role: ado.openshift.operatorgroup
+    - role: ado.openshift.openshift_tools_operator_groups
     - role: ado.openshift.subscription_operator
     - role: ado.openshift.wait_for_pods_running
 ```

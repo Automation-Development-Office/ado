@@ -4,70 +4,70 @@
     paths: "{{ playbook_dir }}/configs/controller"
     patterns: "*.yml"
     file_type: file
-  register: controller_bootstrap_config_files
+  register: bootstrap_controller_config_files
   when: (playbook_dir + '/configs/controller') is directory
 
 - name: Load controller config YAML files
   ansible.builtin.include_vars:
     file: "{{ item.path }}"
-  loop: "{{ controller_bootstrap_config_files.files | default([]) }}"
-  when: controller_bootstrap_config_files.files | default([]) | length > 0
+  loop: "{{ bootstrap_controller_config_files.files | default([]) }}"
+  when: bootstrap_controller_config_files.files | default([]) | length > 0
 
 - name: Find generated job template YAML files
   ansible.builtin.find:
     paths: "{{ playbook_dir }}/configs/job_templates"
     patterns: "*.yml"
     file_type: file
-  register: controller_bootstrap_job_template_config_files
+  register: bootstrap_controller_job_template_config_files
   when: (playbook_dir + '/configs/job_templates') is directory
 
 - name: Load generated job template definitions
   ansible.builtin.include_vars:
     file: "{{ item.path }}"
-    name: controller_bootstrap_loaded_job_template_file
-  loop: "{{ controller_bootstrap_job_template_config_files.files | default([]) }}"
-  register: controller_bootstrap_loaded_job_template_results
-  when: controller_bootstrap_job_template_config_files.files | default([]) | length > 0
+    name: bootstrap_controller_loaded_job_template_file
+  loop: "{{ bootstrap_controller_job_template_config_files.files | default([]) }}"
+  register: bootstrap_controller_loaded_job_template_results
+  when: bootstrap_controller_job_template_config_files.files | default([]) | length > 0
 
 - name: Merge all loaded job templates
   ansible.builtin.set_fact:
-    controller_bootstrap_controller_templates: >-
+    bootstrap_controller_templates: >-
       {{
-        controller_bootstrap_loaded_job_template_results.results
+        bootstrap_controller_loaded_job_template_results.results
         | default([])
-        | map(attribute='ansible_facts.controller_bootstrap_loaded_job_template_file.controller_bootstrap_templates')
+        | map(attribute='ansible_facts.bootstrap_controller_loaded_job_template_file.bootstrap_controller_templates')
         | select('defined')
         | flatten
         | list
       }}
 
-- name: Mirror generated templates to legacy controller_bootstrap_templates
+- name: Mirror generated templates to legacy bootstrap_controller_templates
   ansible.builtin.set_fact:
-    controller_bootstrap_templates: "{{ controller_bootstrap_controller_templates | default([]) }}"
+    bootstrap_controller_templates: "{{ bootstrap_controller_templates | default([]) }}"
 
 - name: Find generated workflow YAML files
   ansible.builtin.find:
     paths: "{{ playbook_dir }}/configs/workflows"
     patterns: "*.yml"
     file_type: file
-  register: controller_bootstrap_workflow_config_files
+  register: bootstrap_controller_workflow_config_files
   when: (playbook_dir + '/configs/workflows') is directory
 
 - name: Load generated workflow definitions
   ansible.builtin.include_vars:
     file: "{{ item.path }}"
-    name: controller_bootstrap_loaded_workflow_file
-  loop: "{{ controller_bootstrap_workflow_config_files.files | default([]) }}"
-  register: controller_bootstrap_loaded_workflow_results
-  when: controller_bootstrap_workflow_config_files.files | default([]) | length > 0
+    name: bootstrap_controller_loaded_workflow_file
+  loop: "{{ bootstrap_controller_workflow_config_files.files | default([]) }}"
+  register: bootstrap_controller_loaded_workflow_results
+  when: bootstrap_controller_workflow_config_files.files | default([]) | length > 0
 
 - name: Merge all loaded workflows
   ansible.builtin.set_fact:
-    controller_bootstrap_workflow_job_templates: >-
+    bootstrap_controller_workflow_job_templates: >-
       {{
-        controller_bootstrap_loaded_workflow_results.results
+        bootstrap_controller_loaded_workflow_results.results
         | default([])
-        | map(attribute='ansible_facts.controller_bootstrap_loaded_workflow_file.controller_bootstrap_workflow_job_templates')
+        | map(attribute='ansible_facts.bootstrap_controller_loaded_workflow_file.bootstrap_controller_workflow_job_templates')
         | select('defined')
         | flatten
         | list
@@ -76,9 +76,9 @@
 - name: Debug loaded controller config counts
   ansible.builtin.debug:
     msg:
-      - "job_template_files={{ controller_bootstrap_job_template_config_files.files | default([]) | length }}"
-      - "controller_bootstrap_templates={{ controller_bootstrap_templates | default([]) | length }}"
-      - "workflow_files={{ controller_bootstrap_workflow_config_files.files | default([]) | length }}"
-      - "controller_bootstrap_workflow_job_templates={{ controller_bootstrap_workflow_job_templates | default([]) | length }}"
-      - "template_names={{ controller_bootstrap_templates | default([]) | map(attribute='name') | list }}"
-      - "workflow_names={{ controller_bootstrap_workflow_job_templates | default([]) | map(attribute='name') | list }}"
+      - "job_template_files={{ bootstrap_controller_job_template_config_files.files | default([]) | length }}"
+      - "bootstrap_controller_templates={{ bootstrap_controller_templates | default([]) | length }}"
+      - "workflow_files={{ bootstrap_controller_workflow_config_files.files | default([]) | length }}"
+      - "bootstrap_controller_workflow_job_templates={{ bootstrap_controller_workflow_job_templates | default([]) | length }}"
+      - "template_names={{ bootstrap_controller_templates | default([]) | map(attribute='name') | list }}"
+      - "workflow_names={{ bootstrap_controller_workflow_job_templates | default([]) | map(attribute='name') | list }}"

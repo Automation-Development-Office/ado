@@ -20,11 +20,11 @@
     - name: Resolve vars for component from framework defaults + env overrides
       ansible.builtin.include_role:
         name: resolve_component
- 
+
   roles:
     - role: ado.openshift.namespace
-    - role: ado.openshift.operatorgroup
+    - role: openshift_tools_manage_operator_groups
     - role: ado.openshift.subscription_operator
-    - role: ado.openshift.devspaces
+    - role: openshift_install_devspaces
     - role: ado.openshift.wait_for_pods_running
     - role: ado.openshift.get_routes

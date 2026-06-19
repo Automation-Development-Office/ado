@@ -1,5 +1,5 @@
 ---
-- name: Deploy and Configure Quay
+- name: Configure OpenShift LDAP Authentication
   hosts: localhost
   gather_facts: false
 
@@ -22,4 +22,4 @@
         name: resolve_component
 
   roles:
-    - role: openshift_ldap_auth
+    - role: openshift_configure_ldap_auth

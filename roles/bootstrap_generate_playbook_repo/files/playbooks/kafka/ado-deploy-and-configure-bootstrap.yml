@@ -22,8 +22,8 @@
         name: resolve_component
 
   roles:
-    - role: ado.openshift.namespace        
-    - role: operatorgroup
-    - role: subscription_operator
-    - role: kafka
+    - role: ado.openshift.namespace
+    - role: openshift_tools_manage_operator_groups
+    - role: openshift_tools_subscription_operator
+    - role: kafka_install
     # - role: ado.openshift.wait_for_pods_running

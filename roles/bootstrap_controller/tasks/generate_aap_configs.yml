@@ -11,16 +11,16 @@
 
 - name: AAP configs | Expand patching component dependencies
   ansible.builtin.set_fact:
-    controller_bootstrap_effective_components: >-
+    bootstrap_controller_effective_components: >-
       {{
         (
-          controller_bootstrap_selected_components
+          bootstrap_controller_selected_components
           | default(['openshift'])
         )
         +
         (
           ['satellite']
-          if 'patching' in (controller_bootstrap_selected_components | default(['openshift']))
+          if 'patching' in (bootstrap_controller_selected_components | default(['openshift']))
           else []
         )
         | unique
@@ -59,7 +59,7 @@
 
 - name: AAP configs | Define job template component map
   ansible.builtin.set_fact:
-    controller_bootstrap_job_template_component_map:
+    bootstrap_controller_job_template_component_map:
       openshift:
         - cert-manager-bootstrap.yml
         - create-admin-htpasswd-user-bootstrap.yml
@@ -112,11 +112,11 @@
 
 - name: AAP configs | Build selected job template file list
   ansible.builtin.set_fact:
-    controller_bootstrap_job_template_files_selected: >-
+    bootstrap_controller_job_template_files_selected: >-
       {{
-        controller_bootstrap_job_template_component_map
+        bootstrap_controller_job_template_component_map
         | dict2items
-        | selectattr('key', 'in', controller_bootstrap_effective_components)
+        | selectattr('key', 'in', bootstrap_controller_effective_components)
         | map(attribute='value')
         | flatten
         | unique

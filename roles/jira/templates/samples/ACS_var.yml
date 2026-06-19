@@ -2,8 +2,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ environment }}: Kickoff, Readiness, and Design"
     story_description: |
-      *As a:* "{{ role_name }}"   
-      *I want to:* Validate prerequisites and define the security architecture for ACS  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate prerequisites and define the security architecture for ACS
       *So that:* cluster security posture, visibility, and enforcement are consistent and scalable.
 
       Notes / Context:
@@ -35,8 +35,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ environment }}: Deployment and Implementation"
     story_description: |
-      *As a:* "{{ role_name }}"   
-      *I want to:* Deploy and configure ACS using approved architecture and automation  
+      *As a:* "{{ role_name }}"
+      *I want to:* Deploy and configure ACS using approved architecture and automation
       *So that:* security visibility and enforcement are consistently applied across clusters.
 
     custom_ac: |
@@ -62,8 +62,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ environment }}: Validation, Adoption, and Policy Enforcement"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Validate ACS functionality using real workloads  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate ACS functionality using real workloads
       *So that:* security policies are enforced and trusted by application teams.
 
     custom_ac: |
@@ -87,8 +87,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ environment }}: Operations, Governance, and Long-Term Support"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Operationalize ACS for long-term support  
+      *As a:* "{{ role_name }}"
+      *I want to:* Operationalize ACS for long-term support
       *So that:* security posture is maintained, auditable, and scalable.
 
     custom_ac: |

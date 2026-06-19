@@ -14,12 +14,12 @@
 
 - name: Set routing flags from aap_version
   ansible.builtin.set_fact:
-    controller_bootstrap_is_aap_24: "{{ (aap_version | int) == 24 }}"
-    controller_bootstrap_use_dispatch: "{{ (aap_version | int) >= 25 }}"
+    bootstrap_controller_is_aap_24: "{{ (aap_version | int) == 24 }}"
+    bootstrap_controller_use_dispatch: "{{ (aap_version | int) >= 25 }}"
 
 - name: Show routing decision
   ansible.builtin.debug:
     msg:
       - "aap_version={{ aap_version }}"
-      - "controller_bootstrap_is_aap_24={{ controller_bootstrap_is_aap_24 }}"
-      - "controller_bootstrap_use_dispatch={{ controller_bootstrap_use_dispatch }}"
+      - "bootstrap_controller_is_aap_24={{ bootstrap_controller_is_aap_24 }}"
+      - "bootstrap_controller_use_dispatch={{ bootstrap_controller_use_dispatch }}"

@@ -10,7 +10,8 @@
     - "group_vars/all/{{ env }}/infra_config_vars.yml"
     - "group_vars/all/{{ env }}/vault_{{ component }}.yml"
     - "group_vars/all/{{ env }}/vars_{{ component }}.yml"
-    no_log: false
+
+  no_log: false
 
   environment:
     K8S_AUTH_HOST: "{{ host }}"

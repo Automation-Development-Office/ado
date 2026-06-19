@@ -3,7 +3,7 @@ framework_defaults_components_defaults:
   aap:
     name_space: aap
     operator_namespace: aap
-    operatorgroup: aap-operators
+    openshift_tools_operator_groups: aap-operators
 
     subscription:
       name: ansible-automation-platform-operator
@@ -23,7 +23,7 @@ framework_defaults_components_defaults:
   cert_manager:
     name_space: cert-manager
     operator_namespace: cert-manager
-    operatorgroup: cert-manager
+    openshift_tools_operator_groups: cert-manager
 
     subscription:
       name: openshift-cert-manager-operator
@@ -45,7 +45,7 @@ framework_defaults_components_defaults:
 
     name_space: gitlab-system
     operator_namespace: gitlab
-    operatorgroup: gitlab-operators
+    openshift_tools_operator_groups: gitlab-operators
 
     subscription:
       name: gitlab-operator-kubernetes

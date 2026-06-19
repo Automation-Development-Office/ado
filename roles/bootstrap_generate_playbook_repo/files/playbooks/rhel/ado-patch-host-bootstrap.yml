@@ -12,10 +12,10 @@
     record_ip: 192.168.0.150
 
   tasks:
-    - name:  Start patch process
+    - name: Start patch process
       ansible.builtin.pause:
-        seconds: 30	
-    #- name: Add A record in FreeIPA
+        seconds: 30
+    # - name: Add A record in FreeIPA
     #  freeipa.ansible_freeipa.ipadnsrecord:
     #    ipaadmin_principal: "{{ ipaadmin_principal }}"
     #    ipaadmin_password: "{{ ipaadmin_password }}"

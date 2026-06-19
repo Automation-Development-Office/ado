@@ -3,12 +3,12 @@
 {
     "name": "{{ filter_name }}",
     "description": "Board filter for {{ product }} ({{ group }}) deployment in {{ enviroment }}",
-    
+
     // JQL Filter is correct and dynamic
     "jql": "project = \"{{ jira_project_key }}\" AND component = \"{{ group }}\" AND statusCategory != Done ORDER BY Rank ASC",
-    
+
     "favourite": true,
-    
+
     // 🔑 ADJUSTMENT: Use the project share type with the key for simplicity
     "sharePermissions": [
         {

@@ -21,6 +21,5 @@
         name: resolve_component
 
   roles:
-    - role: ado.openshift.namespace        
-    - role: 389ds
-
+    - role: ado.openshift.namespace
+    - role: infra.ado.openshift_install_dirsrv

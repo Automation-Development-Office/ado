@@ -2,8 +2,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Validate prerequisites and architectural readiness for Red Hat OpenShift Dev Spaces  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate prerequisites and architectural readiness for Red Hat OpenShift Dev Spaces
       *So that:* developers can use secure, scalable, and consistent development environments.
 
       Notes / Context:
@@ -35,8 +35,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Deploy and configure Red Hat OpenShift Dev Spaces  
+      *As a:* "{{ role_name }}"
+      *I want to:* Deploy and configure Red Hat OpenShift Dev Spaces
       *So that:* developers can create and manage workspaces reliably.
 
     custom_ac: |
@@ -63,8 +63,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Validation, Adoption, and Developer Enablement"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Validate developer workflows using Dev Spaces  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate developer workflows using Dev Spaces
       *So that:* teams can confidently adopt the platform for daily development.
 
     custom_ac: |
@@ -88,8 +88,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Long-Term Support"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Operationalize Dev Spaces for long-term use  
+      *As a:* "{{ role_name }}"
+      *I want to:* Operationalize Dev Spaces for long-term use
       *So that:* the platform remains stable, secure, and maintainable.
 
     custom_ac: |

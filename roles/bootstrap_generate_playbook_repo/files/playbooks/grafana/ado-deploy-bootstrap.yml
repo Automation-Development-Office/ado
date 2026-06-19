@@ -25,16 +25,14 @@
       ansible.builtin.include_role:
         name: rhbk_get_client_secrets
       vars:
-        rhbk_secret_client_key: "grafana_client"
+        rhbk_get_client_secrets_client_key: "grafana_client"
 
   roles:
-    #- role: ado.openshift.namespace        
-    #- role: operatorgroup
-    #- role: ado.openshift.subscription_operator
-    #- role: grafana
+    # - role: ado.openshift.namespace
+    # - role: openshift_tools_operator_groups
+    # - role: ado.openshift.subscription_operator
+    # - role: grafana
     - role: ado.openshift.wait_for_pods_running
     - role: ado.applications.grafana_create_datasource
     - role: ado.applications.grafana_manage_folder
     - role: grafana_upload_dashboards
-
-

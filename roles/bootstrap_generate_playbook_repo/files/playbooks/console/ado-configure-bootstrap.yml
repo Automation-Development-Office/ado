@@ -5,12 +5,12 @@
 
   vars:
     component: common
+    console_banner_text: "Hello! RHLAB OpenShift | Production"
 
   vars_files:
     - "group_vars/all/{{ env }}/infra_config_vars.yml"
     - "group_vars/all/{{ env }}/vault_{{ component }}.yml"
     - "group_vars/all/{{ env }}/vars_{{ component }}.yml"
-    console_banner_text: "Hello! RHLAB OpenShift | Production"
 
   environment:
     K8S_AUTH_HOST: "{{ host }}"
@@ -29,4 +29,4 @@
           - "resolve_component_selected.console_banner_text = {{ resolve_component_selected.console_banner_text | default('UNDEF') }}"
 
   roles:
-    - role: console_banner
+    - role: infra.ado.openshift_configure_console_banner

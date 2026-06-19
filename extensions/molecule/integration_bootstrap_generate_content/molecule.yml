@@ -1,11 +1,14 @@
+---
 dependency:
   name: shell
-  command: echo "Skipping galaxy dependency install for local generate-only bootstrap
-    test"
+  command: echo "Skipping galaxy dependency install for local generate-only bootstrap test"
+
 driver:
   name: default
+
 platforms:
-- name: localhost
+  - name: localhost
+
 provisioner:
   name: ansible
   inventory:
@@ -15,25 +18,25 @@ provisioner:
           localhost:
             ansible_connection: local
   playbooks:
+    cleanup: cleanup.yml
     converge: converge.yml
     verify: verify.yml
-    cleanup: cleanup.yml
+
 verifier:
   name: ansible
+
 scenario:
   test_sequence:
-  - dependency
-  - cleanup
-  - destroy
-  - syntax
-  - create
-  - prepare
-  - converge
-  - verify
-  - cleanup
-  - destroy
+    - dependency
+    - cleanup
+    - syntax
+    - converge
+    - verify
+    - cleanup
+
   converge_sequence:
-  - dependency
-  - create
-  - prepare
-  - converge
+    - dependency
+    - converge
+
+  cleanup_sequence:
+    - cleanup

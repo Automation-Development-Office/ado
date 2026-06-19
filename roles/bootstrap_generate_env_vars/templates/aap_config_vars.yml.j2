@@ -1,4 +1,5 @@
-{% set preflight_aap = generate_env_vars_preflight.aap | default({}) %}
+{% set preflight_aap = generate_env_vars_preflight.aap | default({}) if generate_env_vars_preflight is defined else {} %}
+{% set preflight_git = generate_env_vars_preflight.git | default({}) if generate_env_vars_preflight is defined else {} %}
 ---
 {% set generate_env_vars_aap_org = preflight_aap.organization if generate_env_vars_preflight is defined else generate_env_vars_prompt_aap_org.user_input %}
 {% set generate_env_vars_aap_inventory = preflight_aap.inventory if generate_env_vars_preflight is defined else generate_env_vars_prompt_aap_inventory.user_input %}
@@ -7,12 +8,21 @@
 {% set generate_env_vars_aap_cred = preflight_aap.vault_credential_name if generate_env_vars_preflight is defined else generate_env_vars_prompt_aap_vault_cred.user_input %}
 {% set generate_env_vars_aap_git_url = preflight_aap.git_url if generate_env_vars_preflight is defined else generate_env_vars_prompt_aap_project_scm_url.user_input %}
 {% set generate_env_vars_aap_git_branch = preflight_aap.git_branch if generate_env_vars_preflight is defined else (generate_env_vars_prompt_aap_project_scm_branch.user_input | default('main', true)) %}
+{% set generate_env_vars_aap_git_token_present = (preflight_git.token | default('') | length > 0) if generate_env_vars_preflight is defined else (generate_env_vars_prompt_aap_project_scm_token.user_input | default('', true) | length > 0) %}
+{% set generate_env_vars_git_auto_push =
+    (preflight_git.auto_push | default(false))
+    if generate_env_vars_preflight is defined
+    else ((generate_env_vars_prompt_git_auto_push.user_input | default('n', true) | lower) in ['y', 'yes'])
+%}
+{% set controller_bootstrap_scm_credential = generate_env_vars_aap_project ~ '-git-token' %}
+
 aap_version: {{ generate_env_vars_aap_version_number }}
 
 controller_bootstrap_organization: "{{ generate_env_vars_aap_org }}"
 controller_bootstrap_inventory_name: "{{ generate_env_vars_aap_inventory }}"
 controller_bootstrap_project_name: "{{ generate_env_vars_aap_project }}"
 controller_bootstrap_execution_environment_name: "{{ generate_env_vars_aap_ee }}"
+
 controller_bootstrap_creds: "{{ generate_env_vars_aap_cred }}"
 
 controller_bootstrap_controller_organizations:
@@ -20,6 +30,16 @@ controller_bootstrap_controller_organizations:
     description: "{{ generate_env_vars_aap_org }}"
 
 controller_bootstrap_controller_credentials:
+{% if generate_env_vars_aap_git_token_present %}
+  - name: "{{ controller_bootstrap_scm_credential }}"
+    description: "Git token credential for {{ generate_env_vars_aap_project }}"
+    organization: "{{ generate_env_vars_aap_org }}"
+    credential_type: Source Control
+    inputs:
+      username: "oauth2"
+      password: "{% raw %}{{ vault_controller_git_token }}{% endraw %}"
+{% endif %}
+
   - name: "{{ generate_env_vars_aap_cred }}"
     description: "{{ generate_env_vars_aap_cred }}"
     organization: "{{ generate_env_vars_aap_org }}"
@@ -33,6 +53,9 @@ controller_bootstrap_controller_projects:
     scm_type: git
     scm_url: "{{ generate_env_vars_aap_git_url }}"
     scm_branch: "{{ generate_env_vars_aap_git_branch }}"
+{% if generate_env_vars_aap_git_token_present %}
+    credential: "{{ controller_bootstrap_scm_credential }}"
+{% endif %}
     wait: true
     update_project: true
 
@@ -50,3 +73,13 @@ controller_bootstrap_controller_execution_environments:
 controller_bootstrap_controller_labels:
   - name: bootstrap
     organization: "{{ generate_env_vars_aap_org }}"
+
+generate_playbook_repo_git_mode: "{{ 'push' if generate_env_vars_git_auto_push else 'manual' }}"
+generate_playbook_repo_git_push: "{{ generate_env_vars_git_auto_push }}"
+generate_playbook_repo_git_commit: "{{ generate_env_vars_git_auto_push }}"
+generate_playbook_repo_pause_for_push: "{{ not generate_env_vars_git_auto_push }}"
+generate_playbook_repo_git_url: "{{ generate_env_vars_aap_git_url }}"
+generate_playbook_repo_git_branch: "{{ generate_env_vars_aap_git_branch }}"
+generate_playbook_repo_git_remote: "origin"
+generate_playbook_repo_git_username: "oauth2"
+generate_playbook_repo_git_token: "{% raw %}{{ vault_controller_git_token }}{% endraw %}"

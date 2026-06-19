@@ -9,8 +9,8 @@
     state: present
     validate_certs: false
 
-    # operator OperatorGroup
-    operatorgroup: grafana-operator-group
+    # operator openshift_tools_operator_groups
+    openshift_tools_operator_groups: grafana-operator-group
 
     # subscript_operator
     operator_name: grafana-operator
@@ -40,7 +40,7 @@
 
   roles:
     - role: ado.openshift.namespace
-    - role: ado.openshift.operatorgroup
+    - role: ado.openshift.openshift_tools_operator_groups
     - role: ado.openshift.subscription_operator
     - role: ado.openshift.grafana
     - role: ado.openshift.wait_for_pods_running

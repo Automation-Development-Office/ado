@@ -21,4 +21,4 @@
         name: resolve_component
 
   roles:
-    - role: eck
+    - role: infra.ado.openshift_install_elastic_eck

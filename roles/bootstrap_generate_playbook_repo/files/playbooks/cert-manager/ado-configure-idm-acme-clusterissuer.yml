@@ -49,24 +49,24 @@
     - name: Stat IdM CA bundle file
       ansible.builtin.stat:
         path: "{{ idm.ca_bundle_file }}"
-      register: idm_ca_stat
+      register: bootstrap_generate_playbook_repo_idm_ca_stat
 
     - name: Fail if IdM CA bundle file not found/readable
       ansible.builtin.fail:
         msg:
           - "IdM CA bundle file not found/readable: {{ idm.ca_bundle_file }}"
           - "Fix the path or place the file at that location."
-      when: not idm_ca_stat.stat.exists
+      when: not bootstrap_generate_playbook_repo_idm_ca_stat.stat.exists
 
     - name: Read IdM CA bundle PEM
       ansible.builtin.set_fact:
-        idm_ca_pem: "{{ lookup('file', idm.ca_bundle_file) }}"
+        bootstrap_generate_playbook_repo_idm_ca_pem: "{{ lookup('file', idm.ca_bundle_file) }}"
 
     - name: Fail if IdM CA bundle PEM is empty
       ansible.builtin.fail:
         msg:
           - "IdM CA bundle file exists but is empty: {{ idm.ca_bundle_file }}"
-      when: (idm_ca_pem | string | length) == 0
+      when: (bootstrap_generate_playbook_repo_idm_ca_pem | string | length) == 0
 
     - name: Show resolved runtime inputs
       ansible.builtin.debug:
@@ -91,11 +91,10 @@
             acme:
               server: "{{ idm.acme_directory_url }}"
               # Trust private ACME server by embedding the IdM CA here (b64 PEM)
-              caBundle: "{{ idm_ca_pem | b64encode }}"
+              caBundle: "{{ bootstrap_generate_playbook_repo_idm_ca_pem | b64encode }}"
               privateKeySecretRef:
                 name: idm-acme-account-key
               solvers:
                 - http01:
                     ingress:
                       class: openshift-default
-

@@ -22,9 +22,9 @@
         name: resolve_component
 
   roles:
-    - role: discover_routes
+    - role: openshift_tools_discover_routes
       vars:
-        route_alt_primary_suffix: "{{ app_domain }}"
-        route_alt_suffix: "{{ app_domain_alt }}"
-        route_alt_output_var: route_alt_candidates
-        route_alt_print: true
+        openshift_tools_discover_routes_route_alt_primary_suffix: "{{ app_domain }}"
+        openshift_tools_discover_routes_route_alt_suffix: "{{ app_domain_alt }}"
+        openshift_tools_discover_routes_route_alt_output_var: route_alt_candidates
+        openshift_tools_discover_routes_route_alt_print: true

@@ -4,6 +4,20 @@
     name: infra.ado.bootstrap_generate_env_vars
   when: generate_env_vars | default(false) | bool
 
+- name: Load generated AAP config vars before repo generation
+  ansible.builtin.include_vars:
+    file: "group_vars/all/{{ env }}/aap_config_vars.yml"
+  when:
+    - generate_playbooks | default(false) | bool
+    - env is defined
+
+- name: Load generated AAP vault vars before repo generation
+  ansible.builtin.include_vars:
+    file: "group_vars/all/{{ env }}/aap_vault.yml"
+  when:
+    - generate_playbooks | default(false) | bool
+    - env is defined
+
 - name: Generate playbook repo
   ansible.builtin.include_role:
     name: infra.ado.bootstrap_generate_playbook_repo

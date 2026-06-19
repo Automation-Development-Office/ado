@@ -1,5 +1,5 @@
 ---
-- name: Install {{ component_friendly_name }}
+- name: Install GitLab
   hosts: localhost
   gather_facts: false
 
@@ -10,9 +10,6 @@
     - "group_vars/all/{{ env }}/infra_config_vars.yml"
     - "group_vars/all/{{ env }}/vault_{{ component }}.yml"
     - "group_vars/all/{{ env }}/vars_{{ component }}.yml"
-    flatten_var_root: "gitlab"
-    flatten_var_root_defaults: "{{ flatten_var_root }}_defaults"
-    flatten_var_root_env: "{{ flatten_var_root }}_env"
 
   environment:
     K8S_AUTH_HOST: "{{ host }}"
@@ -20,18 +17,14 @@
     K8S_AUTH_VERIFY_SSL: "{{ (verify_ssl | bool) | ternary('yes','no') }}"
 
   pre_tasks:
-  pre_tasks:
-    - name: Set flattened vars into "{{ flatten_var_root }}" variable
-      set_fact:
-        "{{ flatten_var_root }}": "{{ vars[flatten_var_root_defaults] | combine(vars[flatten_var_root_env]|default({}), recursive=True) }}"
+    - name: Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: resolve_component
 
-    - name: Flatten component vars to top-level (if using generic flatten_vars role)
-      include_role:
-        name: flatten_vars
   roles:
-    #- role: ado.openshift.namespace
-    #- role: ado.openshift.operatorgroup
-    #- role: ado.openshift.subscription_operator
-    #- role: ado.openshift.rhbk
-    #- role: ado.openshift.wait_for_pods_running
+    # - role: ado.openshift.namespace
+    # - role: ado.openshift.openshift_tools_operator_groups
+    # - role: ado.openshift.subscription_operator
+    # - role: ado.openshift.rhbk
+    # - role: ado.openshift.wait_for_pods_running
     - role: ado.openshift.get_routes
