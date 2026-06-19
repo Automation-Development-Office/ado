@@ -27,4 +27,4 @@
     # - role: ado.openshift.subscription_operator
     # - role: ado.openshift.rhbk
     # - role: ado.openshift.wait_for_pods_running
-    - role: ado.openshift.get_routes
+    - role: openshift_tools_get_routes

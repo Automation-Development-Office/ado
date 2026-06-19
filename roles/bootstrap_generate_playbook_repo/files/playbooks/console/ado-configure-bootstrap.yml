@@ -29,4 +29,4 @@
           - "resolve_component_selected.console_banner_text = {{ resolve_component_selected.console_banner_text | default('UNDEF') }}"
 
   roles:
-    - role: infra.ado.openshift_configure_console_banner
+    - role: openshift_configure_console_banner

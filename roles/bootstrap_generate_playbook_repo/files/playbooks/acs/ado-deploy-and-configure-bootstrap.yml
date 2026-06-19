@@ -27,9 +27,9 @@
 
   roles:
     # These should operate in operator namespace
-    - role: ado.openshift.namespace
+    - role: openshift_tools_manage_namespace
       vars:
-        name_space: "{{ bootstrap_generate_playbook_repo_operator_namespace }}"
+        openshift_tools_manage_namespace_name_space: "{{ bootstrap_generate_playbook_repo_operator_namespace }}"
 
     - role: ado.openshift.subscription_operator
       vars:

@@ -1,7 +1,1 @@
 # SPDX-License-Identifier: MIT-0
----
-- name: Test bootstrap roles
-  hosts: localhost
-  remote_user: root
-  roles:
-    - infra.ado.bootstrap_flatten_vars

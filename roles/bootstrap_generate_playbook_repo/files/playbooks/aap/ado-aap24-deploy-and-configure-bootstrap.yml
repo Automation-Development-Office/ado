@@ -23,7 +23,7 @@
 
 
   roles:
-    - role: ado.openshift.namespace
+    - role: openshift_tools_manage_namespace
     - role: openshift_tools_manage_operator_groups
     # - role: ado.install_aap
     - role: ado.openshift.wait_for_pods_running
