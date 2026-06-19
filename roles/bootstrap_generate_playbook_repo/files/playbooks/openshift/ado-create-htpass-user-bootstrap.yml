@@ -22,4 +22,4 @@
         name: resolve_component
 
   roles:
-    - ado.openshift.create_htpass_admin_user
+    - openshift_tools_create_htpass_admin_user

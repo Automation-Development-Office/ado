@@ -22,8 +22,8 @@
         name: resolve_component
 
   roles:
-    - role: ado.openshift.namespace
+    - role: openshift_tools_manage_namespace
     - role: openshift_tools_manage_operator_groups
-    - role: ado.openshift.subscription_operator
+    - role: openshift_tools_subscription_operator
     - role: openshift_install_oadp
-    - role: ado.openshift.wait_for_pods_running
+    - role: openshift_tools_wait_for_pods_running

@@ -32,7 +32,7 @@
     # - role: openshift_tools_operator_groups
     # - role: ado.openshift.subscription_operator
     # - role: grafana
-    - role: ado.openshift.wait_for_pods_running
-    - role: ado.applications.grafana_create_datasource
-    - role: ado.applications.grafana_manage_folder
+    - role: openshift_tools_wait_for_pods_running
+    - role: grafana_create_datasource
+    - role: grafana_manage_folder
     - role: grafana_upload_dashboards

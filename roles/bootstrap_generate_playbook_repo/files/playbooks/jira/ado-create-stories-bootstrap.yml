@@ -22,4 +22,4 @@
         name: resolve_component
 
   roles:
-    - role: ado.applications.jira_stories
+    - role: jira_stories
