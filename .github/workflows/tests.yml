@@ -24,6 +24,7 @@ jobs:
   readme-format:
     name: README Format Verification
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,10 +35,27 @@ jobs:
           python-version: '3.11'
 
       - name: Run README format verification
-        run: |
-          set -o pipefail
-          python scripts/verify_readme.py 2>&1 | tee readme-verification.txt
+        id: readme_verify
+        # Informational only for now; add to all_green when ready to enforce.
         continue-on-error: true
+        run: |
+          set +e
+          python scripts/verify_readme.py > readme-verification.txt 2>&1
+          exit_code=$?
+          cat readme-verification.txt
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          exit "$exit_code"
+
+      - name: Add README verification summary
+        if: always()
+        run: |
+          {
+            echo "## README Format Verification"
+            echo
+            echo '```text'
+            cat readme-verification.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload README verification report
         if: always()
@@ -45,6 +63,8 @@ jobs:
         with:
           name: readme-verification-report
           path: readme-verification.txt
+          if-no-files-found: error
+          retention-days: 30
   sanity:
     uses: ansible/ansible-content-actions/.github/workflows/sanity.yaml@main
   unit-galaxy:
