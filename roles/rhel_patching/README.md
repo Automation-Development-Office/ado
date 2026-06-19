@@ -1,39 +1,43 @@
 # Role: `infra.ado.rhel_patching`
 
-This role provides comprehensive patching functionality for Red Hat Enterprise Linux (RHEL) servers. It handles package updates, kernel management, IPA client updates, system reboots, and provides detailed patching statistics. The role includes safety checks for supported RHEL versions and ELS (Extended Life Cycle Support) requirements for RHEL 7 systems.
+Comprehensive patching for Red Hat Enterprise Linux (RHEL) servers.
+
+Handles package updates, kernel management, system reboots, and patching statistics.
+Includes safety checks for supported RHEL versions.
+
+## Role Author
+
+- Jeff Radabaugh
+- Automation Development Office
 
 ## ✅ Role Requirements
 
-- Red Hat Enterprise Linux 7, 8, or 9 (RHEL 6 is not supported)
-- For RHEL 7: Extended Life Cycle Support (ELS) repositories must be configured
+- Red Hat Enterprise Linux 8 or 9 (RHEL 6 and earlier are not supported)
 - SSH access with sudo privileges
-- The following collections installed:
-  - `ansible.builtin`
-- Package management utilities (dnf/yum) available on target systems
+- Package management utilities (`dnf`) available on target systems
+
+> **RHEL 7 is not supported.** The role fails on RHEL 7 and earlier hosts. Running
+> it on unsupported versions is at your own risk and is not validated by automated
+> testing.
 
 ## 📦 Role Variables
 
-| Variable                    | Description                                                | Required | Default |
-|-----------------------------|------------------------------------------------------------|----------|---------|
-| `rhel_patching_package_cleanup`  | Whether to clean up old kernels from /boot        | ❌       | `false` |
-| `rhel_patching_versions`         | Version specification for package updates         | ❌       | `latest`|
-| `rhel_patching_update_cache`     | Whether to update package cache before patching   | ❌       | `false` |
-| `rhel_patching_exclude_list`     | List of packages to exclude from updates          | ❌       | `[]`    |
-| `rhel_patching_disable_repos`    | List of repositories to disable during patching   | ❌       | `[]`    |
-| `rhel_patching_skip_broken`      | Whether to skip broken dependencies               | ❌       | `false` |
-| `rhel_patching_package_list`     | Specific list of packages to update (optional)    | ❌       | —       |
+| Variable | Description |
+|---------|-------------|
+| `rhel_patching_package_cleanup` | Whether to clean up old kernels from `/boot`. Default: `false`. |
+| `rhel_patching_versions` | Version specification for package updates. Default: `latest`. |
+| `rhel_patching_update_cache` | Whether to update the package cache before patching. Default: `false`. |
+| `rhel_patching_exclude_list` | Packages to exclude from updates. Default: `[]`. |
+| `rhel_patching_disable_repos` | Repositories to disable during patching. Default: `[]`. |
+| `rhel_patching_skip_broken` | Whether to skip broken dependencies. Default: `false`. |
+| `rhel_patching_package_list` | Specific packages to update. Default: `["*"]`. |
+| `rhel_patching_check_mountpoints` | Whether to check server mountpoints before patching. Default: not set in role defaults. |
+| `rhel_patching_reboot` | Whether to reboot servers after patching. Default: `false`. |
 
-### Optional Variables (Commented in defaults)
-| Variable                    | Description                                                | Default |
-|-----------------------------|------------------------------------------------------------|---------|
-| `rhel_patching_check_mountpoints`| Whether to check server mountpoints before patching| `true`  |
-| `rhel_patching_reboot`           | Whether to reboot servers after patching           | `false` |
+## 🚀 Role Usage
 
----
+### Basic patching (no reboot)
 
-## 📘 Example Usage
-
-### Basic Patching (No Reboot)
 ```yaml
 - name: Patch RHEL servers
   hosts: rhel_servers
@@ -45,7 +49,8 @@ This role provides comprehensive patching functionality for Red Hat Enterprise L
     - role: infra.ado.rhel_patching
 ```
 
-### Patching with Forced Restart
+### Patching with forced restart
+
 ```yaml
 - name: Patch and restart RHEL servers
   hosts: rhel_servers
@@ -58,7 +63,8 @@ This role provides comprehensive patching functionality for Red Hat Enterprise L
     - role: infra.ado.rhel_patching
 ```
 
-### Selective Package Patching
+### Selective package patching
+
 ```yaml
 - name: Update specific packages
   hosts: rhel_servers
@@ -74,7 +80,8 @@ This role provides comprehensive patching functionality for Red Hat Enterprise L
     - role: infra.ado.rhel_patching
 ```
 
-### Advanced Patching Configuration
+### Advanced patching configuration
+
 ```yaml
 - name: Advanced patching with custom settings
   hosts: rhel_servers
@@ -93,57 +100,64 @@ This role provides comprehensive patching functionality for Red Hat Enterprise L
     - role: infra.ado.rhel_patching
 ```
 
-## 🔍 Role Features
+### Behavior notes
 
-### Safety Checks
-- **RHEL Version Validation**: Ensures only RHEL 7, 8, or 9 systems are patched
-- **ELS Repository Check**: Validates ELS repositories are present for RHEL 7 systems
-- **Pre-patch Statistics**: Captures kernel version and system uptime before patching
+- Validates supported RHEL versions (8 and 9 only)
+- Gathers repository and package update information before patching
+- Optionally updates the package cache, removes old kernels, and applies updates
+- Reboots when `rhel_patching_reboot` is enabled and updates changed the system
+- Reports pre- and post-patch kernel versions, uptime, and update counts
 
-### Patching Process
-1. **Repository Information**: Gathers information about configured repositories
-2. **Package Information**: Collects data about available package updates
-3. **Cache Management**: Optionally updates package cache
-4. **Kernel Cleanup**: Removes old kernels if enabled
-5. **IPA Client Updates**: Updates IPA client packages separately if enabled
-6. **Package Updates**: Updates remaining packages (excluding specified packages)
-7. **Conditional Reboot**: Reboots system if forced restart is enabled and changes occurred
+## 🧪 Role Molecule Testing
 
-### Post-Patch Activities
-- **Statistics Collection**: Gathers post-patch kernel version and uptime
-- **Reboot Monitoring**: Tracks reboot time and waits for system availability
-- **Fact Refresh**: Re-gathers Ansible facts after reboot
-- **Reporting**: Displays comprehensive before/after patching statistics
+Automated Molecule testing covers RHEL 8 and 9 using UBI 8 and UBI 9 Podman
+containers only.
 
-## 📊 Patching Statistics
+Use the extension integration scenario at
+`extensions/molecule/integration_rhel_patching`.
 
-The role provides detailed statistics including:
-- Pre/post-patch system uptime (in days)
-- Pre/post-patch kernel versions
-- Number of available updates
-- Reboot duration (when applicable)
-- Package update details (in debug mode)
+Install the collection and ensure Podman is available, then run locally:
 
-**Structure:**
+```bash
+cd /path/to/your/git/checkout/ado
+ansible-galaxy collection install . --force -p ~/.ansible/collections
+ansible-galaxy collection install ansible.posix containers.podman community.general \
+  --force -p ~/.ansible/collections
+export ANSIBLE_COLLECTIONS_PATH="$HOME/.ansible/collections:${ANSIBLE_COLLECTIONS_PATH:-}"
+
+pip install 'molecule-plugins[podman]'
+
+cd extensions/molecule
+molecule test -s integration_rhel_patching
 ```
-rhel_patching/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/
-│   ├── main.yml
-│   ├── patch.yml
-│   ├── reboot.yml
-│   ├── package_facts.yml
-│   ├── repo_facts.yml
-│   ├── recon.yml
-│   ├── pre_patch_mail.yml
-│   ├── pre_auto_patch_mail.yml
-│   └── post_patch_mail.yml
-├── templates/
-├── handlers/main.yml
-├── files/
-├── tests/
-│   ├── inventory
-│   └── test.yml
-└── README.md
+
+The scenario starts UBI 8 and UBI 9 Podman containers. UBI 9 runs the role
+directly; UBI 8 uses `command`-based `dnf` CLI tasks in the Molecule playbooks
+because Python 3.11 on UBI 8 lacks `python3-dnf` bindings. Converge first runs
+discovery-only mode (`rhel_patching_package_list: []`), then applies a targeted
+update to the `tar` package on each host.
+
+## 📁 Role Structure
+
+```text
+roles/
+└─ rhel_patching/
+   ├─ README.md
+   ├─ defaults/
+   │  └─ main.yml
+   ├─ handlers/
+   │  └─ main.yml
+   ├─ meta/
+   │  └─ main.yml
+   ├─ tasks/
+   │  ├─ main.yml
+   │  ├─ package_facts.yml
+   │  ├─ patch.yml
+   │  ├─ reboot.yml
+   │  ├─ recon.yml
+   │  └─ repo_facts.yml
+   ├─ templates/
+   │  └─ report.txt.j2
+   └─ vars/
+      └─ main.yml
 ```

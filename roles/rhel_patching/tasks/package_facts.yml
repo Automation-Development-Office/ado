@@ -1,6 +1,6 @@
 ---
 
-- name: Using the DNF module to get a list of upgradable packages
+- name: Get a list of upgradable packages
   ansible.builtin.dnf:
     list: updates
   register: rhel_patching_yum_updates

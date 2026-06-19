@@ -1,0 +1,24 @@
+---
+- name: Prepare integration_rhel_patching scenario
+  hosts: all
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Bootstrap Python 3.11 on UBI 8 for Ansible compatibility
+      ansible.builtin.raw: dnf install -y python3.11
+      register: rhel_patching_prepare_bootstrap_el8
+      changed_when: "'Complete!' in rhel_patching_prepare_bootstrap_el8.stdout"
+      failed_when: rhel_patching_prepare_bootstrap_el8.rc != 0
+      when: inventory_hostname is search('el8')
+
+    - name: Gather facts after bootstrap
+      ansible.builtin.setup:
+
+    - name: Refresh package metadata on UBI 8
+      ansible.builtin.command:
+        cmd: dnf makecache
+      register: rhel_patching_prepare_makecache
+      changed_when: false
+      failed_when: rhel_patching_prepare_makecache.rc != 0
+      when: inventory_hostname is search('el8')

@@ -20,6 +20,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_integration_rhel_patching:
+        description: "Run integration_rhel_patching"
+        required: false
+        default: false
+        type: boolean
       run_integration_rhel_cron_full_special:
         description: "Run integration_rhel_cron_full_special"
         required: false
@@ -219,6 +224,7 @@ jobs:
               [integration_vm_image_management]="${{ github.event.inputs.run_integration_vm_image_management }}"
               [integration_aap_build_ee]="${{ github.event.inputs.run_integration_aap_build_ee }}"
               [integration_aap_configuration]="${{ github.event.inputs.run_integration_aap_configuration }}"
+              [integration_rhel_patching]="${{ github.event.inputs.run_integration_rhel_patching }}"
               [integration_rhel_cron_full_special]="${{ github.event.inputs.run_integration_rhel_cron_full_special }}"
               [integration_rhel_cron_full_special_removal]="${{ github.event.inputs.run_integration_rhel_cron_full_special_removal }}"
               [integration_rhel_cron_single_special]="${{ github.event.inputs.run_integration_rhel_cron_single_special }}"
@@ -272,15 +278,16 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-utils
+          sudo apt-get install -y qemu-utils podman
           pip install --upgrade pip
-          pip install ansible-core molecule[docker] docker
+          pip install ansible-core 'molecule-plugins[docker,podman]' docker
 
       - name: Install collection from local source
         run: |
           ansible-galaxy collection install . --force -p ~/.ansible/collections
           ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
           ansible-galaxy collection install community.general --force -p ~/.ansible/collections
+          ansible-galaxy collection install containers.podman --force -p ~/.ansible/collections
         env:
           ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
 

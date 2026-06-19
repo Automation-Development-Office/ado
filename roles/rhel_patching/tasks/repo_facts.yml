@@ -1,13 +1,13 @@
 ---
 
 - name: Obtaining Repo Information
-  ansible.builtin.command:
-    cmd: "dnf repolist"
-  register: rhel_patching_repo_facts
+  ansible.builtin.dnf:
+    list: repos
+  register: rhel_patching_yum_repo
   changed_when: false
 
 - name: (debug) Show rhel_patching_yum_repo
   ansible.builtin.debug:
-    var: rhel_patching_repo_facts.stdout_lines
+    var: rhel_patching_yum_repo.results
     verbosity: 1
-  when: rhel_patching_repo_facts is defined
+  when: rhel_patching_yum_repo is defined
