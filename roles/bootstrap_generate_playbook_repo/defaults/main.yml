@@ -348,3 +348,23 @@ generate_playbook_repo_generated_playbooks:
     target_platform: linux
     category: patching
     app: satellite
+
+# Internal role-prefixed aliases used by tasks.
+bootstrap_generate_playbook_repo_dest: "{{ generate_playbook_repo_dest }}"
+bootstrap_generate_playbook_repo_seed_src: "{{ generate_playbook_repo_seed_src }}"
+bootstrap_generate_playbook_repo_force: "{{ generate_playbook_repo_force | bool }}"
+
+bootstrap_generate_playbook_repo_git_mode: "{{ generate_playbook_repo_git_mode }}"
+bootstrap_generate_playbook_repo_git_remote: "{{ generate_playbook_repo_git_remote }}"
+bootstrap_generate_playbook_repo_git_branch: "{{ generate_playbook_repo_git_branch }}"
+bootstrap_generate_playbook_repo_git_message: "{{ generate_playbook_repo_git_message }}"
+bootstrap_generate_playbook_repo_git_username: "{{ generate_playbook_repo_git_username }}"
+bootstrap_generate_playbook_repo_git_token: "{{ generate_playbook_repo_git_token }}"
+bootstrap_generate_playbook_repo_git_url: "{{ generate_playbook_repo_git_url | default('') }}"
+
+bootstrap_generate_playbook_repo_pause_after_generate: "{{ generate_playbook_repo_pause_after_generate | bool }}"
+bootstrap_generate_playbook_repo_pause_prompt: "{{ generate_playbook_repo_pause_prompt | default('Playbooks were generated. Push them to Git now, then press ENTER to continue.') }}"
+
+bootstrap_generate_playbook_repo_component: "{{ generate_playbook_repo_component }}"
+bootstrap_generate_playbook_repo_component_map: "{{ generate_playbook_repo_component_map }}"
+bootstrap_generate_playbook_repo_generated_playbooks: "{{ generate_playbook_repo_generated_playbooks }}"

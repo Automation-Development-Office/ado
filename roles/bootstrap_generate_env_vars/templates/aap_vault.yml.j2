@@ -1,9 +1,9 @@
-{% set preflight_aap = generate_env_vars_preflight.aap | default({}) if generate_env_vars_preflight is defined else {} %}
-{% set preflight_git = generate_env_vars_preflight.git | default({}) if generate_env_vars_preflight is defined else {} %}
+{% set preflight_aap = bootstrap_generate_env_vars_preflight.aap | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set preflight_git = bootstrap_generate_env_vars_preflight.git | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
 ---
-vault_controller_hostname: "{{ preflight_aap.hostname | default(preflight_aap.controller_hostname | default(preflight_aap.url | default(''), true), true) if generate_env_vars_preflight is defined else generate_env_vars_prompt_aap_hostname.user_input }}"
-vault_controller_oauthtoken: "{{ preflight_aap.oauth_token | default('', true) if generate_env_vars_preflight is defined else generate_env_vars_prompt_aap_token.user_input }}"
-vault_controller_username: "{{ preflight_aap.admin_username | default('admin', true) if generate_env_vars_preflight is defined else (generate_env_vars_prompt_aap_username.user_input | default('admin', true)) }}"
-vault_controller_password: "{{ preflight_aap.admin_password | default('', true) if generate_env_vars_preflight is defined else generate_env_vars_prompt_aap_password.user_input }}"
-vault_controller_vault_password: "{{ preflight_aap.vault_password | default(preflight_aap.admin_password | default('', true), true) if generate_env_vars_preflight is defined else generate_env_vars_prompt_aap_password.user_input }}"
-vault_controller_git_token: "{{ preflight_git.token | default('', true) if generate_env_vars_preflight is defined else (generate_env_vars_prompt_aap_project_scm_token.user_input | default('', true)) }}"
+vault_controller_hostname: "{{ preflight_aap.hostname | default(preflight_aap.controller_hostname | default(preflight_aap.url | default(''), true), true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_hostname.user_input }}"
+vault_controller_oauthtoken: "{{ preflight_aap.oauth_token | default('', true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_token.user_input }}"
+vault_controller_username: "{{ preflight_aap.admin_username | default('admin', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_username.user_input | default('admin', true)) }}"
+vault_controller_password: "{{ preflight_aap.admin_password | default('', true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_password.user_input }}"
+vault_controller_vault_password: "{{ preflight_aap.vault_password | default(preflight_aap.admin_password | default('', true), true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_password.user_input }}"
+vault_controller_git_token: "{{ preflight_git.token | default('', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project_scm_token.user_input | default('', true)) }}"

@@ -1,4 +1,4 @@
-{% set preflight_jira = generate_env_vars_preflight.jira | default({}) %}
+{% set preflight_jira = bootstrap_generate_env_vars_preflight.jira | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
 ---
-vault_jira_token: "{{ preflight_jira.token if generate_env_vars_preflight is defined else generate_env_vars_prompt_jira_token.user_input }}"
-jira_username: "{{ preflight_jira.username if generate_env_vars_preflight is defined else generate_env_vars_prompt_jira_username.user_input }}"
+vault_jira_username: "{{ preflight_jira.username | default('', true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_jira_username.user_input }}"
+vault_jira_token: "{{ preflight_jira.token | default('', true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_jira_token.user_input }}"

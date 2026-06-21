@@ -1,4 +1,9 @@
----
+- name: AAP | Normalize AAP version facts
+  ansible.builtin.set_fact:
+    controller_bootstrap_aap_version_number: "{{ aap_version | default(controller_bootstrap_aap_version | default(26)) | int }}"
+    controller_bootstrap_is_aap_24: "{{ (aap_version | default(controller_bootstrap_aap_version | default(26)) | int) == 24 }}"
+    controller_bootstrap_is_aap_25_plus: "{{ (aap_version | default(controller_bootstrap_aap_version | default(26)) | int) >= 25 }}"
+
 - name: AAP | Resolve effective environment
   ansible.builtin.set_fact:
     bootstrap_controller_effective_env: >-

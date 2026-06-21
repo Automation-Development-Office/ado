@@ -100,15 +100,14 @@
       - "Selected apps: {{ bootstrap_generate_playbook_repo_selected_apps }}"
       - "Generated playbooks: {{ bootstrap_generate_playbook_repo_selected_playbooks | map(attribute='dest') | list }}"
 
-- name: Generate playbook repo | Git init
-  ansible.builtin.git:
-    repo: "{{ bootstrap_generate_playbook_repo_git_url }}"
-    dest: "{{ bootstrap_generate_playbook_repo_dest_resolved }}"
-    version: "{{ bootstrap_generate_playbook_repo_git_branch | default('main') }}"
-    bare: false
-  when:
-    - bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
-    - bootstrap_generate_playbook_repo_git_url | default('') | length > 0
+- name: Generate playbook repo | Git init  # noqa command-instead-of-module
+  ansible.builtin.command: >-
+    git init -b {{ bootstrap_generate_playbook_repo_git_branch | default('main') }}
+  args:
+    chdir: "{{ bootstrap_generate_playbook_repo_dest_resolved }}"
+    creates: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/.git"
+  changed_when: false
+  when: bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
 
 - name: Generate playbook repo | Configure git credential helper
   ansible.builtin.shell: |

@@ -1,8 +1,8 @@
-{% set preflight_jira = generate_env_vars_preflight.jira | default({}) %}
+{% set preflight_jira = bootstrap_generate_env_vars_preflight.jira | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
 ---
-jira_url: "{{ preflight_jira.url if generate_env_vars_preflight is defined else generate_env_vars_prompt_jira_url.user_input }}"
-jira_project_key: "{{ preflight_jira.project_key if generate_env_vars_preflight is defined else generate_env_vars_prompt_jira_project_key.user_input }}"
-jira_custom_ac_field: {{ ('"' ~ preflight_jira.custom_ac_field ~ '"') if (generate_env_vars_preflight is defined and preflight_jira.custom_ac_field) else ((generate_env_vars_prompt_jira_custom_ac_field.user_input | length > 0) | ternary('"' ~ generate_env_vars_prompt_jira_custom_ac_field.user_input ~ '"', 'null')) }}
-
-jira_templates_dir: {{ ('"' ~ preflight_jira.templates_dir ~ '"') if (generate_env_vars_preflight is defined and preflight_jira.templates_dir) else ((generate_env_vars_prompt_jira_templates_dir.user_input | length > 0) | ternary('"' ~ generate_env_vars_prompt_jira_templates_dir.user_input ~ '"', 'null')) }}
-jira_create_subtasks: {{ preflight_jira.create_subtasks if generate_env_vars_preflight is defined else (((generate_env_vars_prompt_jira_create_subtasks.user_input | default('y', true) | lower) not in ['n', 'no']) | ternary('true', 'false')) }}
+jira_enabled: "{{ preflight_jira.enabled | default(true, true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_enable_jira | default(false) }}"
+jira_url: "{{ preflight_jira.url | default('', true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_jira_url.user_input }}"
+jira_project_key: "{{ preflight_jira.project_key | default('', true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_jira_project_key.user_input }}"
+jira_custom_ac_field: "{{ preflight_jira.custom_ac_field | default('', true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_jira_custom_ac_field.user_input }}"
+jira_templates_dir: "{{ preflight_jira.templates_dir | default('', true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_jira_templates_dir.user_input | default('', true) }}"
+jira_create_subtasks: "{{ preflight_jira.create_subtasks | default(true, true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_jira_create_subtasks.user_input | default('y', true) | lower) not in ['n', 'no'] }}"
