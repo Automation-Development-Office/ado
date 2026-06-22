@@ -75,16 +75,28 @@ export K8S_AUTH_VERIFY_SSL="no"
 
 ## 🧪 Role Molecule Testing
 
-The Molecule scenario lives at `roles/grafana_install/molecule/default`.
+This role uses an extension-level integration scenario:
 
-Run from the role directory:
+- `extensions/molecule/integration_grafana_install/molecule.yml`
+
+Shared playbooks are located at:
+
+- `extensions/molecule/utils/playbooks/grafana_install_prepare.yml`
+- `extensions/molecule/utils/playbooks/grafana_install_converge.yml`
+- `extensions/molecule/utils/playbooks/grafana_install_verify.yml`
+- `extensions/molecule/utils/playbooks/grafana_install_destroy.yml`
+
+Run from `extensions/molecule`:
 
 ```bash
-cd roles/grafana_install
-molecule test
+molecule test -s integration_grafana_install
 ```
 
-For cluster integration, export `K8S_AUTH_*` variables before converge.
+Converge is mock-safe by default for CI. Set `GRAFANA_INSTALL_ENABLE_LIVE_CHECKS=true`
+and export `K8S_AUTH_*` plus Grafana variables for cluster integration.
+
+A legacy role-local scenario remains at `roles/grafana_install/molecule/default` for
+manual OpenShift testing with dependent `ado.openshift.*` roles.
 
 ## 📁 Role Structure
 
