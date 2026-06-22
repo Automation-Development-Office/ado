@@ -1,0 +1,53 @@
+---
+# UBI 8 Molecule workaround: Python 3.11 lacks python3-dnf bindings, so the
+# ansible.builtin.dnf module cannot run. These command tasks mirror the role
+# discovery path for EL8 integration testing only.
+
+- name: Fail if unsupported RHEL version is detected (Out of Support)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == "RedHat"
+      - ansible_facts['distribution_major_version'] | int >= 8
+    fail_msg: "RHEL{{ ansible_facts['distribution_major_version'] }} and earlier machines are out-of-support and will not be patched."
+    success_msg: "RHEL{{ ansible_facts['distribution_major_version'] }} detected. Proceeding with patching."
+
+- name: Obtain repository information with dnf CLI
+  ansible.builtin.command:
+    cmd: dnf repolist --enabled
+  register: rhel_patching_el8_repo_facts
+  changed_when: false
+
+- name: Register pre-patching statistics
+  ansible.builtin.set_fact:
+    rhel_patching_pre_kernel: "{{ ansible_kernel }}"
+    rhel_patching_pre_uptime: "{{ (ansible_facts.uptime_seconds / 86400) | round }}"
+
+- name: Refresh package metadata with dnf CLI
+  ansible.builtin.command:
+    cmd: dnf makecache
+  register: rhel_patching_el8_cache_update
+  changed_when: false
+  failed_when: rhel_patching_el8_cache_update.rc != 0
+  when: rhel_patching_update_cache | bool
+
+- name: Discover available package updates with dnf CLI
+  ansible.builtin.command:
+    cmd: dnf -q check-update
+  register: rhel_patching_el8_check_update
+  changed_when: false
+  failed_when: rhel_patching_el8_check_update.rc not in [0, 100]
+
+- name: Display number of available updates
+  ansible.builtin.debug:
+    msg: >-
+      Number of Updates:
+      {{
+        rhel_patching_el8_check_update.stdout_lines
+        | default([])
+        | map('trim')
+        | reject('equalto', '')
+        | reject('search', '^Obsoleting Packages')
+        | select('search', '\\S+\\s+\\S+')
+        | list
+        | length
+      }}
