@@ -28,13 +28,26 @@ ORG_RE = re.compile(
 )
 IPV4_RE = re.compile(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}")
 FQDN_RE = re.compile(
-    r"([a-zA-Z0-9-]+\.)+(lab|local|internal|corp|com|gov|net|org)",
+    r"([a-zA-Z0-9-]+\.)+(lab|local|internal|corp|com|gov|net|org)\b",
 )
 PRIVATE_IP_RE = re.compile(
     r"^(?:10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[0-1])\.|127\.)",
 )
 
 DEFAULT_SKIP_DIRECTORIES = {".git"}
+
+
+@dataclass
+class PenaltyCaps:
+    """Maximum score deduction allowed per category."""
+
+    org: int | None = None
+    public_ip: int | None = None
+    private_ip: int | None = 10
+    fqdn: int | None = 30
+
+
+DEFAULT_PENALTY_CAPS = PenaltyCaps()
 
 
 @dataclass
@@ -53,6 +66,8 @@ class ExposureScanConfig:
 
     skip_directories: set[str] = field(default_factory=lambda: set(DEFAULT_SKIP_DIRECTORIES))
     skip_files: list[str] = field(default_factory=list)
+    skip_line_contains: list[str] = field(default_factory=list)
+    penalty_caps: PenaltyCaps = field(default_factory=PenaltyCaps)
     categories: dict[str, CategorySkipRules] = field(default_factory=dict)
     config_path: str | None = None
 
@@ -77,6 +92,12 @@ class ExposureReport:
     skipped_hits: int
     score: int
     result: str
+    org_penalty: int = 0
+    private_ip_penalty: int = 0
+    public_ip_penalty: int = 0
+    fqdn_penalty: int = 0
+    private_ip_penalty_cap: int | None = DEFAULT_PENALTY_CAPS.private_ip
+    fqdn_penalty_cap: int | None = DEFAULT_PENALTY_CAPS.fqdn
     config_path: str | None = None
     pass_min_score: int = PASS_MIN_SCORE
     org_findings: list[ExposureFinding] = field(default_factory=list)
@@ -131,6 +152,27 @@ def _compile_regex_patterns(patterns: list[str]) -> list[re.Pattern[str]]:
     return compiled
 
 
+def _penalty_caps_from_mapping(mapping: dict | None) -> PenaltyCaps:
+    """Build PenaltyCaps from a config mapping."""
+    if not mapping:
+        return PenaltyCaps()
+
+    def _cap_value(key: str, default: int | None) -> int | None:
+        if key not in mapping:
+            return default
+        value = mapping[key]
+        if value is None:
+            return None
+        return int(value)
+
+    return PenaltyCaps(
+        org=_cap_value("org", None),
+        public_ip=_cap_value("public_ip", None),
+        private_ip=_cap_value("private_ip", DEFAULT_PENALTY_CAPS.private_ip),
+        fqdn=_cap_value("fqdn", DEFAULT_PENALTY_CAPS.fqdn),
+    )
+
+
 def _category_rules_from_mapping(mapping: dict) -> CategorySkipRules:
     """Build CategorySkipRules from a config mapping."""
     return CategorySkipRules(
@@ -154,9 +196,18 @@ def default_config() -> ExposureScanConfig:
                 ),
             ),
             "org": CategorySkipRules(),
-            "public_ip": CategorySkipRules(),
+            "public_ip": CategorySkipRules(
+                value_contains=[
+                    "192.0.2.",
+                    "198.51.100.",
+                    "203.0.113.",
+                    "1.1.1.1",
+                    "8.8.8.8",
+                ],
+            ),
             "private_ip": CategorySkipRules(),
         },
+        penalty_caps=DEFAULT_PENALTY_CAPS,
     )
 
 
@@ -184,10 +235,14 @@ def load_config(config_path: Path) -> ExposureScanConfig:
 
     skip_directories = set(data.get("skip_directories") or DEFAULT_SKIP_DIRECTORIES)
     skip_files = [str(item) for item in data.get("skip_files") or []]
+    skip_line_contains = [str(item) for item in data.get("skip_line_contains") or []]
+    penalty_caps = _penalty_caps_from_mapping(data.get("penalty_caps"))
 
     return ExposureScanConfig(
         skip_directories=skip_directories,
         skip_files=skip_files,
+        skip_line_contains=skip_line_contains,
+        penalty_caps=penalty_caps,
         categories=categories,
         config_path=str(config_path),
     )
@@ -198,12 +253,16 @@ def should_skip_finding(
     config: ExposureScanConfig,
 ) -> bool:
     """Return True when a finding matches configured skip rules."""
+    line_text = finding.text.casefold()
+
+    if any(substring.casefold() in line_text for substring in config.skip_line_contains):
+        return True
+
     rules = config.categories.get(finding.category)
     if rules is None:
         return False
 
     matched_value = finding.matched_value.casefold()
-    line_text = finding.text.casefold()
 
     if any(substring.casefold() in matched_value for substring in rules.value_contains):
         return True
@@ -317,25 +376,58 @@ def scan_file(
     return findings, skipped
 
 
+def deduplicate_findings(findings: list[ExposureFinding]) -> list[ExposureFinding]:
+    """Keep one finding per file, line, and category (grep line semantics)."""
+    seen: set[tuple[str, int, str]] = set()
+    unique: list[ExposureFinding] = []
+
+    for finding in findings:
+        key = (finding.file, finding.line, finding.category)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(finding)
+
+    return unique
+
+
+def _category_penalty(hit_count: int, per_hit: int, cap: int | None) -> int:
+    """Apply per-hit penalty with an optional category cap."""
+    raw_penalty = hit_count * per_hit
+    if cap is None:
+        return raw_penalty
+    return min(raw_penalty, cap)
+
+
 def score_report(
     org_hits: int,
     private_ip_hits: int,
     public_ip_hits: int,
     fqdn_hits: int,
-) -> tuple[int, str, int]:
-    """Return score, result label, and fail flag."""
-    score = 100
-    score -= org_hits * PENALTY_ORG_STRING
-    score -= private_ip_hits * PENALTY_PRIVATE_IP
-    score -= public_ip_hits * PENALTY_PUBLIC_IP
-    score -= fqdn_hits * PENALTY_INTERNAL_FQDN
+    penalty_caps: PenaltyCaps,
+) -> tuple[int, str, int, int, int, int, int]:
+    """Return score, result, fail flag, and per-category penalties applied."""
+    org_penalty = _category_penalty(org_hits, PENALTY_ORG_STRING, penalty_caps.org)
+    private_ip_penalty = _category_penalty(
+        private_ip_hits,
+        PENALTY_PRIVATE_IP,
+        penalty_caps.private_ip,
+    )
+    public_ip_penalty = _category_penalty(
+        public_ip_hits,
+        PENALTY_PUBLIC_IP,
+        penalty_caps.public_ip,
+    )
+    fqdn_penalty = _category_penalty(fqdn_hits, PENALTY_INTERNAL_FQDN, penalty_caps.fqdn)
+
+    score = 100 - org_penalty - private_ip_penalty - public_ip_penalty - fqdn_penalty
     score = max(score, 0)
 
     if org_hits > 0 or public_ip_hits > 0:
-        return score, "FAIL", 1
+        return score, "FAIL", 1, org_penalty, private_ip_penalty, public_ip_penalty, fqdn_penalty
     if score >= PASS_MIN_SCORE:
-        return score, "PASS", 0
-    return score, "WARN", 0
+        return score, "PASS", 0, org_penalty, private_ip_penalty, public_ip_penalty, fqdn_penalty
+    return score, "WARN", 0, org_penalty, private_ip_penalty, public_ip_penalty, fqdn_penalty
 
 
 def run_scan(root: Path, config: ExposureScanConfig) -> ExposureReport:
@@ -349,16 +441,27 @@ def run_scan(root: Path, config: ExposureScanConfig) -> ExposureReport:
         all_findings.extend(file_findings)
         skipped_hits += file_skipped
 
+    all_findings = deduplicate_findings(all_findings)
+
     org_findings = [finding for finding in all_findings if finding.category == "org"]
     private_ip_findings = [finding for finding in all_findings if finding.category == "private_ip"]
     public_ip_findings = [finding for finding in all_findings if finding.category == "public_ip"]
     fqdn_findings = [finding for finding in all_findings if finding.category == "fqdn"]
 
-    score, result, _fail = score_report(
+    (
+        score,
+        result,
+        _fail,
+        org_penalty,
+        private_ip_penalty,
+        public_ip_penalty,
+        fqdn_penalty,
+    ) = score_report(
         len(org_findings),
         len(private_ip_findings),
         len(public_ip_findings),
         len(fqdn_findings),
+        config.penalty_caps,
     )
 
     return ExposureReport(
@@ -371,6 +474,12 @@ def run_scan(root: Path, config: ExposureScanConfig) -> ExposureReport:
         skipped_hits=skipped_hits,
         score=score,
         result=result,
+        org_penalty=org_penalty,
+        private_ip_penalty=private_ip_penalty,
+        public_ip_penalty=public_ip_penalty,
+        fqdn_penalty=fqdn_penalty,
+        private_ip_penalty_cap=config.penalty_caps.private_ip,
+        fqdn_penalty_cap=config.penalty_caps.fqdn,
         config_path=config.config_path,
         org_findings=org_findings,
         private_ip_findings=private_ip_findings,
@@ -431,6 +540,13 @@ def print_report(report: ExposureReport) -> None:
     print(f"Public IP hits: {report.public_ip_hits}")
     print(f"FQDN hits: {report.fqdn_hits}")
     print(f"Skipped hits: {report.skipped_hits}")
+    print(
+        "Penalties applied: "
+        f"org={report.org_penalty}, "
+        f"public_ip={report.public_ip_penalty}, "
+        f"private_ip={report.private_ip_penalty}, "
+        f"fqdn={report.fqdn_penalty}",
+    )
     print(f"Score: {report.score}/100")
 
     if report.result == "PASS":
@@ -467,12 +583,18 @@ def render_github_summary(report: ExposureReport) -> str:
         f"**Files scanned:** {report.files_scanned}",
         f"**Skipped hits:** {report.skipped_hits}",
         "",
-        "| Category | Count | Penalty each |",
-        "| --- | ---: | ---: |",
-        f"| Organization terms | {report.org_hits} | {PENALTY_ORG_STRING} |",
-        f"| Public IPv4 addresses | {report.public_ip_hits} | {PENALTY_PUBLIC_IP} |",
-        f"| Private IPv4 addresses | {report.private_ip_hits} | {PENALTY_PRIVATE_IP} |",
-        f"| FQDN/hostname patterns | {report.fqdn_hits} | {PENALTY_INTERNAL_FQDN} |",
+        "| Category | Count | Penalty applied | Cap |",
+        "| --- | ---: | ---: | ---: |",
+        f"| Organization terms | {report.org_hits} | {report.org_penalty} | — |",
+        f"| Public IPv4 addresses | {report.public_ip_hits} | {report.public_ip_penalty} | — |",
+        (
+            f"| Private IPv4 addresses | {report.private_ip_hits} | "
+            f"{report.private_ip_penalty} | {report.private_ip_penalty_cap or '—'} |"
+        ),
+        (
+            f"| FQDN/hostname patterns | {report.fqdn_hits} | "
+            f"{report.fqdn_penalty} | {report.fqdn_penalty_cap or '—'} |"
+        ),
         "",
         "### Findings by category",
         "",
