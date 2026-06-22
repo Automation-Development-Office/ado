@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-3.0-or-later-0
+---
+# defaults file for ocp_compliance_scan
+ocp_compliance_scan_schedule_scan: false
+ocp_compliance_scan_run_scan: false
+
+ocp_compliance_scan_scan_name: ""
+ocp_compliance_scan_suite_name: ""
+ocp_compliance_scan_profile: ""
+ocp_compliance_scan_operator_namespace: openshift-compliance
+ocp_compliance_scan_content_image: "quay.io/complianceascode/content:latest"
