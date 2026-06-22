@@ -10,6 +10,7 @@ import re
 import sys
 
 from dataclasses import asdict, dataclass, field
+from fnmatch import fnmatch
 from pathlib import Path
 
 
@@ -19,6 +20,8 @@ PENALTY_PRIVATE_IP = 1
 PENALTY_INTERNAL_FQDN = 3
 
 PASS_MIN_SCORE = 98
+
+DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "data_exposure_scan_config.yaml"
 
 ORG_RE = re.compile(
     r"(FBI|Federal Bureau of Investigation|Federal Bureau of Investigations)",
@@ -31,7 +34,27 @@ PRIVATE_IP_RE = re.compile(
     r"^(?:10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[0-1])\.|127\.)",
 )
 
-SKIP_DIR_NAMES = {".git"}
+DEFAULT_SKIP_DIRECTORIES = {".git"}
+
+
+@dataclass
+class CategorySkipRules:
+    """Skip rules for one finding category."""
+
+    value_contains: list[str] = field(default_factory=list)
+    value_regex: list[re.Pattern[str]] = field(default_factory=list)
+    line_contains: list[str] = field(default_factory=list)
+    file_patterns: list[str] = field(default_factory=list)
+
+
+@dataclass
+class ExposureScanConfig:
+    """Loaded skip-list configuration for the exposure scan."""
+
+    skip_directories: set[str] = field(default_factory=lambda: set(DEFAULT_SKIP_DIRECTORIES))
+    skip_files: list[str] = field(default_factory=list)
+    categories: dict[str, CategorySkipRules] = field(default_factory=dict)
+    config_path: str | None = None
 
 
 @dataclass
@@ -51,8 +74,10 @@ class ExposureReport:
     private_ip_hits: int
     public_ip_hits: int
     fqdn_hits: int
+    skipped_hits: int
     score: int
     result: str
+    config_path: str | None = None
     pass_min_score: int = PASS_MIN_SCORE
     org_findings: list[ExposureFinding] = field(default_factory=list)
     private_ip_findings: list[ExposureFinding] = field(default_factory=list)
@@ -74,6 +99,15 @@ def parse_args() -> argparse.Namespace:
         help="Repository root to scan (default: current directory)",
     )
     parser.add_argument(
+        "--config",
+        metavar="PATH",
+        default=str(DEFAULT_CONFIG_PATH),
+        help=(
+            "Skip-list config file (YAML or JSON). "
+            f"Default: {DEFAULT_CONFIG_PATH.name} beside this script."
+        ),
+    )
+    parser.add_argument(
         "--json-report",
         metavar="PATH",
         help="Write machine-readable JSON results to PATH",
@@ -86,14 +120,119 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def iter_scan_files(root: Path) -> list[Path]:
-    """Return text files under root, skipping .git directories."""
+def _compile_regex_patterns(patterns: list[str]) -> list[re.Pattern[str]]:
+    """Compile regex patterns, ignoring invalid entries."""
+    compiled: list[re.Pattern[str]] = []
+    for pattern in patterns:
+        try:
+            compiled.append(re.compile(pattern, re.IGNORECASE))
+        except re.error:
+            print(f"Warning: ignoring invalid skip regex: {pattern}", file=sys.stderr)
+    return compiled
+
+
+def _category_rules_from_mapping(mapping: dict) -> CategorySkipRules:
+    """Build CategorySkipRules from a config mapping."""
+    return CategorySkipRules(
+        value_contains=[str(item) for item in mapping.get("value_contains", [])],
+        value_regex=_compile_regex_patterns(
+            [str(item) for item in mapping.get("value_regex", [])],
+        ),
+        line_contains=[str(item) for item in mapping.get("line_contains", [])],
+        file_patterns=[str(item) for item in mapping.get("file_patterns", [])],
+    )
+
+
+def default_config() -> ExposureScanConfig:
+    """Return built-in skip rules used when no config file is present."""
+    return ExposureScanConfig(
+        categories={
+            "fqdn": CategorySkipRules(
+                value_contains=["example", ".example."],
+                value_regex=_compile_regex_patterns(
+                    [r"\.example(\.|$)", r"(^|\.)example\."],
+                ),
+            ),
+            "org": CategorySkipRules(),
+            "public_ip": CategorySkipRules(),
+            "private_ip": CategorySkipRules(),
+        },
+    )
+
+
+def load_config(config_path: Path) -> ExposureScanConfig:
+    """Load skip-list config from YAML or JSON."""
+    if not config_path.is_file():
+        return default_config()
+
+    raw_text = config_path.read_text(encoding="utf-8")
+    if config_path.suffix.lower() == ".json":
+        data = json.loads(raw_text)
+    else:
+        try:
+            import yaml
+        except ImportError as exc:
+            raise SystemExit(
+                "PyYAML is required to load YAML config files. " "Install with: pip install pyyaml",
+            ) from exc
+        data = yaml.safe_load(raw_text) or {}
+
+    categories: dict[str, CategorySkipRules] = {}
+    for category_name, category_data in (data.get("categories") or {}).items():
+        if isinstance(category_data, dict):
+            categories[str(category_name)] = _category_rules_from_mapping(category_data)
+
+    skip_directories = set(data.get("skip_directories") or DEFAULT_SKIP_DIRECTORIES)
+    skip_files = [str(item) for item in data.get("skip_files") or []]
+
+    return ExposureScanConfig(
+        skip_directories=skip_directories,
+        skip_files=skip_files,
+        categories=categories,
+        config_path=str(config_path),
+    )
+
+
+def should_skip_finding(
+    finding: ExposureFinding,
+    config: ExposureScanConfig,
+) -> bool:
+    """Return True when a finding matches configured skip rules."""
+    rules = config.categories.get(finding.category)
+    if rules is None:
+        return False
+
+    matched_value = finding.matched_value.casefold()
+    line_text = finding.text.casefold()
+
+    if any(substring.casefold() in matched_value for substring in rules.value_contains):
+        return True
+
+    if any(pattern.search(finding.matched_value) for pattern in rules.value_regex):
+        return True
+
+    if any(substring.casefold() in line_text for substring in rules.line_contains):
+        return True
+
+    if rules.file_patterns and any(
+        fnmatch(finding.file, pattern) for pattern in rules.file_patterns
+    ):
+        return True
+
+    return False
+
+
+def iter_scan_files(root: Path, config: ExposureScanConfig) -> list[Path]:
+    """Return text files under root, honoring configured directory skips."""
     files: list[Path] = []
 
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
-        if any(part in SKIP_DIR_NAMES for part in path.parts):
+        if any(part in config.skip_directories for part in path.parts):
+            continue
+        relative_path = str(path.relative_to(root))
+        if any(fnmatch(relative_path, pattern) for pattern in config.skip_files):
             continue
         if _looks_binary(path):
             continue
@@ -119,54 +258,63 @@ def classify_ip(ip_address: str) -> str:
     return "public_ip"
 
 
-def scan_file(path: Path, root: Path) -> list[ExposureFinding]:
+def scan_file(
+    path: Path,
+    root: Path,
+    config: ExposureScanConfig,
+) -> tuple[list[ExposureFinding], int]:
     """Scan one file for org strings, IPs, and FQDN patterns."""
     findings: list[ExposureFinding] = []
+    skipped = 0
     display_path = str(path.relative_to(root))
 
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
-        return findings
+        return findings, skipped
 
     for line_number, line in enumerate(lines, start=1):
-        if ORG_RE.search(line):
-            findings.append(
-                ExposureFinding(
-                    file=display_path,
-                    line=line_number,
-                    text=line.rstrip(),
-                    category="org",
-                    matched_value=ORG_RE.search(line).group(0),
-                ),
+        for org_match in ORG_RE.finditer(line):
+            finding = ExposureFinding(
+                file=display_path,
+                line=line_number,
+                text=line.rstrip(),
+                category="org",
+                matched_value=org_match.group(0),
             )
+            if should_skip_finding(finding, config):
+                skipped += 1
+                continue
+            findings.append(finding)
 
-        ip_match = IPV4_RE.search(line)
-        if ip_match:
+        for ip_match in IPV4_RE.finditer(line):
             ip_address = ip_match.group(0)
-            category = classify_ip(ip_address)
-            findings.append(
-                ExposureFinding(
-                    file=display_path,
-                    line=line_number,
-                    text=line.rstrip(),
-                    category=category,
-                    matched_value=ip_address,
-                ),
+            finding = ExposureFinding(
+                file=display_path,
+                line=line_number,
+                text=line.rstrip(),
+                category=classify_ip(ip_address),
+                matched_value=ip_address,
             )
+            if should_skip_finding(finding, config):
+                skipped += 1
+                continue
+            findings.append(finding)
 
-        if FQDN_RE.search(line):
-            findings.append(
-                ExposureFinding(
-                    file=display_path,
-                    line=line_number,
-                    text=line.rstrip(),
-                    category="fqdn",
-                    matched_value=FQDN_RE.search(line).group(0),
-                ),
+        for fqdn_match in FQDN_RE.finditer(line):
+            finding = ExposureFinding(
+                file=display_path,
+                line=line_number,
+                text=line.rstrip(),
+                category="fqdn",
+                matched_value=fqdn_match.group(0),
             )
+            if should_skip_finding(finding, config):
+                skipped += 1
+                continue
+            findings.append(finding)
 
-    return findings
+    return findings, skipped
 
 
 def score_report(
@@ -190,13 +338,16 @@ def score_report(
     return score, "WARN", 0
 
 
-def run_scan(root: Path) -> ExposureReport:
+def run_scan(root: Path, config: ExposureScanConfig) -> ExposureReport:
     """Scan files and return a structured exposure report."""
-    files = iter_scan_files(root)
+    files = iter_scan_files(root, config)
     all_findings: list[ExposureFinding] = []
+    skipped_hits = 0
 
     for path in files:
-        all_findings.extend(scan_file(path, root))
+        file_findings, file_skipped = scan_file(path, root, config)
+        all_findings.extend(file_findings)
+        skipped_hits += file_skipped
 
     org_findings = [finding for finding in all_findings if finding.category == "org"]
     private_ip_findings = [finding for finding in all_findings if finding.category == "private_ip"]
@@ -217,8 +368,10 @@ def run_scan(root: Path) -> ExposureReport:
         private_ip_hits=len(private_ip_findings),
         public_ip_hits=len(public_ip_findings),
         fqdn_hits=len(fqdn_findings),
+        skipped_hits=skipped_hits,
         score=score,
         result=result,
+        config_path=config.config_path,
         org_findings=org_findings,
         private_ip_findings=private_ip_findings,
         public_ip_findings=public_ip_findings,
@@ -245,6 +398,8 @@ def print_report(report: ExposureReport) -> None:
     """Print the human-readable exposure report."""
     print("== Data exposure scan (org strings, IPs, hostnames, domains) ==")
     print(f"Root: {report.root}")
+    if report.config_path:
+        print(f"Config: {report.config_path}")
     print()
 
     print_findings(
@@ -275,6 +430,7 @@ def print_report(report: ExposureReport) -> None:
     print(f"Private IP hits: {report.private_ip_hits}")
     print(f"Public IP hits: {report.public_ip_hits}")
     print(f"FQDN hits: {report.fqdn_hits}")
+    print(f"Skipped hits: {report.skipped_hits}")
     print(f"Score: {report.score}/100")
 
     if report.result == "PASS":
@@ -295,6 +451,11 @@ def render_github_summary(report: ExposureReport) -> str:
 
     bar_chart_values = f"{report.score}, {PASS_MIN_SCORE}"
     mermaid_bar_line = "    bar [" + bar_chart_values + "]"
+    config_line = (
+        f"**Config:** `{report.config_path}`"
+        if report.config_path
+        else "**Config:** built-in defaults"
+    )
 
     lines = [
         "## Data Exposure Scan Dashboard",
@@ -302,7 +463,9 @@ def render_github_summary(report: ExposureReport) -> str:
         f"**Result:** {result_icon} {report.result}",
         f"**Score:** {report.score}/100",
         f"**Scan root:** `{report.root}`",
+        config_line,
         f"**Files scanned:** {report.files_scanned}",
+        f"**Skipped hits:** {report.skipped_hits}",
         "",
         "| Category | Count | Penalty each |",
         "| --- | ---: | ---: |",
@@ -370,7 +533,8 @@ def main() -> int:
     """Run the data exposure scan and return the process exit code."""
     args = parse_args()
     root = Path(args.root).resolve()
-    report = run_scan(root)
+    config = load_config(Path(args.config).resolve())
+    report = run_scan(root, config)
     print_report(report)
 
     if args.json_report:
