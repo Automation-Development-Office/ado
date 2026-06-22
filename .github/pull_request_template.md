@@ -37,10 +37,14 @@
 - [ ] Reviewed diff locally
 - [ ] `ansible-lint` passes (if Ansible content changed)
 - [ ] README format check passes (if a role README changed):
+- [ ] Security scan passed if a role was updated
 
   ```bash
   python scripts/verify_readme.py roles/<role>/README.md \
     --template docs/templates/role_readme_format_template.md
+  ```
+  ```bash
+  python3 python3 scripts/security_checks.py roles/<role_name>
   ```
 
 - [ ] Molecule scenario run (if applicable):
