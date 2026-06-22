@@ -103,23 +103,23 @@
     kind: StatefulSet
     namespace: "{{ name_space }}"
     name: "{{ postgres_statefulset_name }}"
-  register: ocp_rhbk_ss_info
+  register: install_rhbk_ss_info
   failed_when: false
 
 - name: Decide if StatefulSet needs recreation due to immutable changes
   ansible.builtin.set_fact:
-    ocp_rhbk_requires_ss_recreation: >-
+    install_rhbk_requires_ss_recreation: >-
       {{
         (ocp_rhbk_recreate_ss_on_immutable_change | bool) and
-        (ocp_rhbk_ss_info.resources | length > 0) and (
+        (install_rhbk_ss_info.resources | length > 0) and (
           (
-            (ocp_rhbk_ss_info.resources[0].spec
+            (install_rhbk_ss_info.resources[0].spec
             .volumeClaimTemplates[0].spec.storageClassName | default(''))
             != (postgres_storage_class | default(''))
           )
           or
           (
-            (ocp_rhbk_ss_info.resources[0].spec.serviceName | default('')) != postgres_service_name
+            (install_rhbk_ss_info.resources[0].spec.serviceName | default('')) != postgres_service_name
           )
         )
       }}
