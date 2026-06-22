@@ -65,6 +65,11 @@ on:
         required: false
         default: true
         type: boolean
+      run_security_checks:
+        description: "Run security_checks.py on collection roles"
+        required: false
+        default: false
+        type: boolean
       run_platform_repos_default:
         description: "Run platform_repos default scenario"
         required: false
@@ -194,6 +199,61 @@ jobs:
         with:
           name: readme-verification-report
           path: readme-verification.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+    # Runs on manual dispatch when selected; PRs use the standalone security-check.yml workflow.
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.run_security_checks == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run security checks
+        id: security_check
+        continue-on-error: true
+        run: |
+          set +e
+          python scripts/security_checks.py roles \
+            --json-report security-check-report.json \
+            --summary-markdown security-check-summary.md \
+            > security-check-report.txt 2>&1
+          exit_code=$?
+          cat security-check-report.txt
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          exit "$exit_code"
+
+      - name: Add security check dashboard to job summary
+        if: always()
+        run: |
+          if [ -f security-check-summary.md ]; then
+            cat security-check-summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Security Check Dashboard"
+              echo
+              echo "Summary file was not generated."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload security check reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-check-report
+          path: |
+            security-check-report.txt
+            security-check-report.json
+            security-check-summary.md
           if-no-files-found: error
           retention-days: 30
 

@@ -130,12 +130,13 @@ molecule test -s integration_rhel_cron_full_special
 The `Ansible Collection CI/CD` workflow supports manual execution through `workflow_dispatch`.
 
 - Each Molecule scenario is exposed as a boolean input in the Run workflow form.
+- **Run security_checks.py on collection roles** runs `scripts/security_checks.py` on `roles/`.
 - Checked scenarios are included in the test matrix.
 - Matrix jobs run in parallel.
 
-Pull requests also run an informational **Security Check** workflow (`scripts/security_checks.py` on `roles/`).
+Pull requests also run the standalone **Security Check** workflow automatically.
 Results appear in the workflow job summary and the `security-check-report` artifact. This check is
-not enforced in the PR gate yet. Re-run it manually from the **Security Check** workflow page.
+not enforced in the PR gate yet. You can also re-run it from the **Security Check** workflow page.
 
 ## More information
 
