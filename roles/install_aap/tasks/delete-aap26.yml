@@ -7,10 +7,10 @@
     kind: AutomationController
     namespace: "{{ name_space }}"
     name: "{{ controller_name }}"
-  register: ocp_aap26_ac_delete
+  register: install_aap_ac_delete
   failed_when: >
-    (ocp_aap26_ac_delete is failed) and
-    ('NotFound' not in (ocp_aap26_ac_delete.msg | default('')))
+    (install_aap_ac_delete is failed) and
+    ('NotFound' not in (install_aap_ac_delete.msg | default('')))
 
 # Delete likely route names (ignore NotFound)
 - name: Delete controller Route(s)
@@ -24,11 +24,11 @@
     - "{{ controller_name }}"
     - "{{ controller_name }}-route"
     - "{{ controller_name }}-service"
-  register: ocp_aap26_route_delete
+  register: install_aap_route_delete
   failed_when: >
-    (ocp_aap26_route_delete is failed) and
+    (install_aap_route_delete is failed) and
     (
-      (ocp_aap26_route_delete.results | default([]))
+      (install_aap_route_delete.results | default([]))
       | selectattr('failed', 'equalto', true)
       | rejectattr('msg', 'search', 'NotFound')
       | list
@@ -41,7 +41,7 @@
     api_version: v1
     kind: PersistentVolumeClaim
     namespace: "{{ name_space }}"
-  register: ocp_aap26_pvc_list
+  register: install_aap_pvc_list
 
 # Delete ONLY the controller postgres PVC(s) (ignore NotFound)
 - name: Delete postgres PVCs for this controller (wipe DB)
@@ -51,13 +51,13 @@
     kind: PersistentVolumeClaim
     namespace: "{{ name_space }}"
     name: "{{ item.metadata.name }}"
-  loop: "{{ ocp_aap26_pvc_list.resources | default([]) }}"
+  loop: "{{ install_aap_pvc_list.resources | default([]) }}"
   when: item.metadata.name is search('postgres-15-' ~ controller_name)
-  register: ocp_aap26_pvc_delete
+  register: install_aap_pvc_delete
   failed_when: >
-    (ocp_aap26_pvc_delete is failed) and
+    (install_aap_pvc_delete is failed) and
     (
-      (ocp_aap26_pvc_delete.results | default([]))
+      (install_aap_pvc_delete.results | default([]))
       | selectattr('failed', 'equalto', true)
       | rejectattr('msg', 'search', 'NotFound')
       | list
@@ -80,11 +80,11 @@
     - "{{ controller_name }}-receptor-work-signing"
     - "{{ controller_name }}-route-tls"
     - "{{ controller_name }}-secret-key"
-  register: ocp_aap26_secret_delete
+  register: install_aap_secret_delete
   failed_when: >
-    (ocp_aap26_secret_delete is failed) and
+    (install_aap_secret_delete is failed) and
     (
-      (ocp_aap26_secret_delete.results | default([]))
+      (install_aap_secret_delete.results | default([]))
       | selectattr('failed', 'equalto', true)
       | rejectattr('msg', 'search', 'NotFound')
       | list

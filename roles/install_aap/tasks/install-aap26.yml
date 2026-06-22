@@ -12,8 +12,8 @@
     kind: Secret
     namespace: openshift-config
     name: pull-secret
-  register: ocp_aap26_cluster_pull
-  failed_when: (ocp_aap26_cluster_pull.get('resources', []) | length) != 1
+  register: install_aap_cluster_pull
+  failed_when: (install_aap_cluster_pull.get('resources', []) | length) != 1
 
 - name: Create redhat-operators-pull-secret in target namespace
   kubernetes.core.k8s:
@@ -26,7 +26,7 @@
         namespace: "{{ name_space }}"
       type: kubernetes.io/dockerconfigjson
       data:
-        .dockerconfigjson: "{{ ocp_aap26_cluster_pull.resources[0].data['.dockerconfigjson'] }}"
+        .dockerconfigjson: "{{ install_aap_cluster_pull.resources[0].data['.dockerconfigjson'] }}"
 
 # Admin password secret (must exist BEFORE CR)
 - name: Create admin password secret
@@ -67,10 +67,10 @@
     kind: Secret
     namespace: "{{ name_space }}"
     name: "{{ controller_tls_secret }}"
-  register: ocp_aap26_tls_secret
+  register: install_aap_tls_secret
   retries: 60
   delay: 10
-  until: (ocp_aap26_tls_secret.get('resources', []) | length) == 1
+  until: (install_aap_tls_secret.get('resources', []) | length) == 1
 
 # Create AutomationController
 - name: Create AutomationController
@@ -104,12 +104,12 @@
     api_version: route.openshift.io/v1
     kind: Route
     namespace: "{{ name_space }}"
-  register: ocp_aap26_routes
+  register: install_aap_routes
   retries: 240
   delay: 10
   until: >
     (
-      ocp_aap26_routes.get('resources', [])
+      install_aap_routes.get('resources', [])
       | selectattr('spec.host', 'equalto', controller_route_host)
       | list | length
     ) > 0

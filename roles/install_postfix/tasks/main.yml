@@ -54,9 +54,9 @@
     name: postfix-pod
     state: absent
   failed_when: >
-    (ocp_postfix_result is defined and ocp_postfix_result.failed) and
-    ('NotFound' not in (ocp_postfix_result.msg | default('')))
-  register: ocp_postfix_result
+    (install_postfix_ocp_postfix_result is defined and install_postfix_ocp_postfix_result.failed) and
+    ('NotFound' not in (install_postfix_ocp_postfix_result.msg | default('')))
+  register: install_postfix_ocp_postfix_result
 
 - name: Deploy Postfix Pod
   kubernetes.core.k8s:
@@ -110,8 +110,8 @@
     kind: Pod
     namespace: "{{ name_space }}"
     name: postfix-pod
-  register: ocp_postfix_pod_info
-  until: ocp_postfix_pod_info.resources[0].status.phase == "Running"
+  register: install_postfix_pod_info
+  until: install_postfix_pod_info.resources[0].status.phase == "Running"
   retries: 12
   delay: 10
 
@@ -138,14 +138,14 @@
     kind: Service
     namespace: "{{ name_space }}"
     name: postfix-service
-  register: ocp_postfix_service_info
+  register: install_postfix_ocp_postfix_service_info
 
 - name: Display Service Details
   ansible.builtin.debug:
     msg: |
       Postfix Service is exposed:
-      Cluster IP: {{ ocp_postfix_service_info.resources[0].spec.clusterIP }}
-      Node Port: {{ ocp_postfix_service_info.resources[0].spec.ports[0].nodePort | default('N/A') }}
+      Cluster IP: {{ install_postfix_ocp_postfix_service_info.resources[0].spec.clusterIP }}
+      Node Port: {{ install_postfix_ocp_postfix_service_info.resources[0].spec.ports[0].nodePort | default('N/A') }}
 
 - name: Test sending email from pod
   kubernetes.core.k8s_exec:

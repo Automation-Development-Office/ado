@@ -5,13 +5,13 @@
     method: GET
     validate_certs: false
     status_code: 200
-  register: ocp_aap26_ping
+  register: install_aap_ping
   retries: 60
   delay: 10
-  until: ocp_aap26_ping.status == 200
+  until: install_aap_ping.status == 200
 
 - name: Create Automation Hub credential (token)
-  awx.awx.credential:
+  ansible.controller.credential:
     controller_host: "https://{{ controller_route_host }}"
     controller_username: "{{ admin_user }}"
     controller_password: "{{ ocp_aap26_admin_password }}"
@@ -25,7 +25,7 @@
   no_log: true
 
 - name: Configure Galaxy server to use Automation Hub
-  awx.awx.settings:
+  ansible.controller.settings:
     controller_host: "https://{{ controller_route_host }}"
     controller_username: "{{ admin_user }}"
     controller_password: "{{ ocp_aap26_admin_password }}"
