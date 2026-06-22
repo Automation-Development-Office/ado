@@ -4,7 +4,7 @@
     api_version: v1
     kind: Namespace
     name: "{{ name_space }}"
-  register: ocp_operator_groups_op_ns
+  register: ocp_operatorgroups_op_ns
   failed_when: false
   when: (state | default('present')) == 'absent'
 
@@ -18,32 +18,34 @@
   failed_when: false
   when:
     - (state | default('present')) == 'absent'
-    - (ocp_operator_groups_op_ns.resources | default([])) | length == 1
+    - (ocp_operatorgroups_op_ns.resources | default([])) | length == 1
 
 - name: Delete OperatorGroup when present
   kubernetes.core.k8s:
     state: absent
-    api_version: operators.coreos.com/v1
-    kind: OperatorGroup
-    name: "{{ operatorgroup }}"
-    namespace: "{{ name_space }}"
+    definition:
+      api_version: operators.coreos.com/v1
+      kind: OperatorGroup
+      metadata:
+        name: "{{ operatorgroup }}"
+        namespace: "{{ name_space }}"
   when:
     - (state | default('present')) == 'absent'
-    - (ocp_operator_groups_op_ns.resources | default([])) | length == 1
+    - (ocp_operatorgroups_op_ns.resources | default([])) | length == 1
     - (ocp_operatorgroups_og.resources | default([])) | length == 1
 
 - name: Note already-absent state
   ansible.builtin.debug:
     msg: >-
       {{
-        (ocp_operator_groups_op_ns.resources | default([])) | length == 0
+        (ocp_operatorgroups_op_ns.resources | default([])) | length == 0
           | ternary("ℹ️ Namespace '" ~ name_space ~ "' already absent; OperatorGroup implicitly absent.",
                     "ℹ️ OperatorGroup '" ~ operatorgroup ~ "' already absent in namespace '" ~ name_space ~ "'.")
       }}
   when:
     - (state | default('present')) == 'absent'
     - >-
-      (ocp_operator_groups_op_ns.resources | default([])) | length == 0 or (ocp_operatorgroups_og.resources
+      (ocp_operatorgroups_op_ns.resources | default([])) | length == 0 or (ocp_operatorgroups_og.resources
       | default([])) | length == 0
 
 - name: Confirm OperatorGroup is gone (final check)

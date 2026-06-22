@@ -51,3 +51,4 @@ mock_modules:
   - kubernetes.core.k8s_info
   - kubernetes.core.k8s_exec 
   - kubernetes.core.helm_repository 
+  - kubernetes.core.helm 
