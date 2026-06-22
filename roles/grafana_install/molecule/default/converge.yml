@@ -19,9 +19,9 @@
     operator_source_namespace: openshift-marketplace
 
     # grafana vars
-    grafana_hostname: grafana.{{ app_domain }}
+    grafana_install_hostname: grafana.{{ app_domain }}
     storage_size: 2Gi
-    storage: synology-iscsi-storage
+    storage_class: synology-iscsi-storage
 
     env: prod
 
@@ -42,5 +42,5 @@
     - role: ado.openshift.namespace
     - role: ado.openshift.operatorgroup
     - role: ado.openshift.subscription_operator
-    - role: ado.openshift.grafana
+    - role: infra.ado.grafana_install
     - role: ado.openshift.wait_for_pods_running

@@ -1,0 +1,58 @@
+---
+# Skip rules for scripts/security_data_exposure_scan.py
+#
+# Rules are evaluated against each finding's matched value (org term, IP, or FQDN)
+# unless a rule documents a different target.
+#
+# value_contains: case-insensitive substring match on the matched value
+# value_regex:    regex match on the matched value (case-insensitive)
+# line_contains:  case-insensitive substring match on the full source line
+# file_patterns:  fnmatch globs on the file path (relative to scan root)
+#
+# skip_line_contains: global line substrings; skips all categories when matched
+#
+# penalty_caps: max score deduction per category (omit a key for no cap)
+
+skip_directories:
+  - .git
+
+skip_line_contains:
+  - apiVersion
+  - api_version
+
+penalty_caps:
+  private_ip: 10
+  fqdn: 30
+
+categories:
+  fqdn:
+    value_contains:
+      - example
+      - .example.
+      - spdx.org
+      - redhat.com
+      - grafana.integreatly.org
+      - ansible.builtin.
+      - galaxy.ansible.com
+      - story.labels
+      - .microsoftonline.com
+    value_regex:
+      - '\.example(\.|$)'
+      - '(^|\.)example\.'
+
+  org:
+    value_contains: []
+    value_regex: []
+
+  public_ip:
+    value_contains:
+      - 192.0.2.
+      - 198.51.100.
+      - 203.0.113.
+      - 1.1.1.1
+      - 8.8.8.8
+    value_regex: []
+
+  private_ip:
+    value_contains: []
+    value_regex: []

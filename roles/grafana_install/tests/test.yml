@@ -3,4 +3,4 @@
   hosts: localhost
   remote_user: root
   roles:
-    - openshift_install_grafana
+    - grafana_install
