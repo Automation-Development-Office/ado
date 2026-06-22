@@ -14,7 +14,7 @@
     kind: OperatorGroup
     name: "{{ operatorgroup }}"
     namespace: "{{ name_space }}"
-  register: ocp_operator_groups_og
+  register: ocp_operatorgroups_og
   failed_when: false
   when:
     - (state | default('present')) == 'absent'
@@ -30,7 +30,7 @@
   when:
     - (state | default('present')) == 'absent'
     - (ocp_operator_groups_op_ns.resources | default([])) | length == 1
-    - (ocp_operator_groups_og.resources | default([])) | length == 1
+    - (ocp_operatorgroups_og.resources | default([])) | length == 1
 
 - name: Note already-absent state
   ansible.builtin.debug:
@@ -43,7 +43,7 @@
   when:
     - (state | default('present')) == 'absent'
     - >-
-      (ocp_operator_groups_op_ns.resources | default([])) | length == 0 or (ocp_operator_groups_og.resources
+      (ocp_operator_groups_op_ns.resources | default([])) | length == 0 or (ocp_operatorgroups_og.resources
       | default([])) | length == 0
 
 - name: Confirm OperatorGroup is gone (final check)
@@ -52,14 +52,14 @@
     kind: OperatorGroup
     name: "{{ operatorgroup }}"
     namespace: "{{ name_space }}"
-  register: ocp_operator_groups_gone
+  register: ocp_operatorgroups_gone
   failed_when: false
   when: (state | default('present')) == 'absent'
 
 - name: Assert OperatorGroup deleted
   ansible.builtin.assert:
     that:
-      - (ocp_operator_groups_gone.resources | default([])) | length == 0
+      - (ocp_operatorgroups_gone.resources | default([])) | length == 0
     success_msg: "✅ k8s confirms OperatorGroup '{{ operatorgroup }}' is not present in namespace '{{ name_space }}'."
     fail_msg: "❌ OperatorGroup '{{ operatorgroup }}' still present in namespace '{{ name_space }}'."
   when: (state | default('present')) == 'absent'
