@@ -109,7 +109,7 @@ def parse_args() -> argparse.Namespace:
     """Parse command-line options."""
     parser = argparse.ArgumentParser(
         description=(
-            "Scan repository content for org-specific strings, IP addresses, " "and FQDN patterns."
+            "Scan repository content for org-specific strings, IP addresses, and FQDN patterns."
         ),
     )
     parser.add_argument(
@@ -223,7 +223,7 @@ def load_config(config_path: Path) -> ExposureScanConfig:
             import yaml
         except ImportError as exc:
             raise SystemExit(
-                "PyYAML is required to load YAML config files. " "Install with: pip install pyyaml",
+                "PyYAML is required to load YAML config files. Install with: pip install pyyaml",
             ) from exc
         data = yaml.safe_load(raw_text) or {}
 
@@ -513,7 +513,7 @@ def print_report(report: ExposureReport) -> None:
     print_findings(
         "[1/3] Organization terms...",
         report.org_findings,
-        "remove/replace org-specific strings with neutral placeholders " "(e.g., <agency>, <org>).",
+        "remove/replace org-specific strings with neutral placeholders (e.g., <agency>, <org>).",
     )
     print_findings(
         "[2/3] IPv4 addresses...",

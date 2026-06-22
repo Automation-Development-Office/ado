@@ -220,7 +220,7 @@ def load_config(config_path: Path) -> SecurityScanConfig:
             import yaml
         except ImportError as exc:
             raise SystemExit(
-                "PyYAML is required to load YAML config files. " "Install with: pip install pyyaml",
+                "PyYAML is required to load YAML config files. Install with: pip install pyyaml",
             ) from exc
         data = yaml.safe_load(raw_text) or {}
 
@@ -263,7 +263,7 @@ def suggest_no_log(file_path: Path, line: int, why: str) -> None:
     print("     Suggestion:")
     print("       - Add: no_log: true")
     print(
-        "       - (Optional) Gate debug behind a flag, " "e.g. when: <role>_debug | default(false)",
+        "       - (Optional) Gate debug behind a flag, e.g. when: <role>_debug | default(false)",
     )
     print(f"     Why: {why}")
     print("     Fix hint:")
