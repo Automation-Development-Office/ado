@@ -70,6 +70,11 @@ on:
         required: false
         default: true
         type: boolean
+      run_security_checks:
+        description: "Run security_checks.py and security_data_exposure_scan.py on collection roles"
+        required: false
+        default: false
+        type: boolean
       run_platform_repos_default:
         description: "Run platform_repos default scenario"
         required: false
@@ -199,6 +204,87 @@ jobs:
         with:
           name: readme-verification-report
           path: readme-verification.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+    # Runs on manual dispatch when selected; PRs use the standalone security-check.yml workflow.
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.run_security_checks == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install scan dependencies
+        run: pip install pyyaml
+
+      - name: Run security checks
+        id: security_check
+        continue-on-error: true
+        run: |
+          set +e
+          python scripts/security_checks.py roles \
+            --json-report security-check-report.json \
+            --summary-markdown security-check-summary.md \
+            > security-check-report.txt 2>&1
+          security_exit=$?
+          cat security-check-report.txt
+
+          python scripts/security_data_exposure_scan.py roles \
+            --json-report data-exposure-report.json \
+            --summary-markdown data-exposure-summary.md \
+            > data-exposure-report.txt 2>&1
+          exposure_exit=$?
+          cat data-exposure-report.txt
+
+          if [ "$security_exit" -ne 0 ] || [ "$exposure_exit" -ne 0 ]; then
+            echo "exit_code=1" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          echo "exit_code=0" >> "$GITHUB_OUTPUT"
+
+      - name: Add security check dashboard to job summary
+        if: always()
+        run: |
+          if [ -f security-check-summary.md ]; then
+            cat security-check-summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Security Check Dashboard"
+              echo
+              echo "Summary file was not generated."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f data-exposure-summary.md ]; then
+            cat data-exposure-summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Data Exposure Scan Dashboard"
+              echo
+              echo "Summary file was not generated."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload security check reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-check-report
+          path: |
+            security-check-report.txt
+            security-check-report.json
+            security-check-summary.md
+            data-exposure-report.txt
+            data-exposure-report.json
+            data-exposure-summary.md
           if-no-files-found: error
           retention-days: 30
 
