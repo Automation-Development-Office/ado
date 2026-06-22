@@ -1,0 +1,10 @@
+---
+- name: Converge — lookup_operator_defaults
+  hosts: localhost
+  gather_facts: false
+  vars:
+    # namespace vars
+    app_name: grafana
+
+  roles:
+    - role: ado.openshift.lookup_operator_defaults

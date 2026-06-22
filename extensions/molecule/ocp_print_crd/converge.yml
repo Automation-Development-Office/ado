@@ -1,0 +1,9 @@
+---
+- name: Converge — print CRD
+  hosts: localhost
+  gather_facts: false
+  vars:
+    name_space: aap
+    validate_certs: false
+  roles:
+    - role: ado.openshift.print_crd
