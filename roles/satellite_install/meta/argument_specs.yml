@@ -1,0 +1,10 @@
+---
+# argument spec file for infra.ado.satellite_install
+argument_specs:
+  main:
+    short_description: Role to install Red Hat Satellite
+    options:
+      my_variable:
+        type: str
+        description: A simple string argument for demonstration.
+        default: "default_value"
