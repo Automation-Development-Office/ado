@@ -1,0 +1,227 @@
+---
+# roles/ocp_awspca/tasks/main.yml
+
+# =========================================================
+# AWSPCAClusterIssuer (cert-manager AWS PCA Issuer)
+# - Creates namespace + secret (namespaced)
+# - Creates cluster-scoped AWSPCAClusterIssuer
+# - Optionally waits for Ready=True
+# - Supports state: present|absent
+# =========================================================
+
+# ---------------------------
+# Validate required inputs
+# ---------------------------
+- name: Awspca_clusterissuer | Validate inputs
+  ansible.builtin.assert:
+    that:
+      - state is defined
+      - state in ['present', 'absent']
+      - ocp_awspca_issuer_name is defined
+      - (ocp_awspca_issuer_name | string | length) > 0
+      - ocp_awspca_namespace is defined
+      - (ocp_awspca_namespace | string | length) > 0
+      - ocp_awspca_secret_name is defined
+      - (ocp_awspca_secret_name | string | length) > 0
+      - ocp_awspca_region is defined
+      - (ocp_awspca_region | string | length) > 0
+    fail_msg: >-
+      Required vars:
+        state (present|absent),
+        ocp_awspca_issuer_name, ocp_awspca_namespace, ocp_awspca_secret_name, ocp_awspca_region.
+
+- name: Awspca_clusterissuer | Validate PCA ARN for present
+  ansible.builtin.assert:
+    that:
+      - ocp_awspca_pca_arn is defined
+      - (ocp_awspca_pca_arn | string | length) > 0
+    fail_msg: "ocp_awspca_pca_arn must be set when state=present."
+  when: state == 'present'
+
+# ---------------------------
+# Ensure namespace exists
+# ---------------------------
+- name: Awspca_clusterissuer | Ensure namespace exists
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ ocp_awspca_namespace }}"
+  when: state == 'present'
+
+# ---------------------------
+# Resolve credentials
+# (prefer vars; fallback to env)
+# ---------------------------
+- name: Awspca_clusterissuer | Resolve AWS creds from vars or env
+  ansible.builtin.set_fact:
+    ocp_awspca_access_key_id_resolved: >-
+      {{
+        (ocp_awspca_access_key_id | default('') | string | length > 0)
+        | ternary(
+            ocp_awspca_access_key_id,
+            (lookup('ansible.builtin.env', 'AWS_ACCESS_KEY_ID') | default('', true))
+          )
+      }}
+    ocp_awspca_secret_access_key_resolved: >-
+      {{
+        (ocp_awspca_secret_access_key | default('') | string | length > 0)
+        | ternary(
+            ocp_awspca_secret_access_key,
+            (lookup('ansible.builtin.env', 'AWS_SECRET_ACCESS_KEY') | default('', true))
+          )
+      }}
+  when: state == 'present'
+  no_log: "{{ ocp_awspca_no_log | default(true) | bool }}"
+
+- name: Awspca_clusterissuer | Assert AWS creds are present
+  ansible.builtin.assert:
+    that:
+      - (ocp_awspca_access_key_id_resolved | default('') | string | length) > 0
+      - (ocp_awspca_secret_access_key_resolved | default('') | string | length) > 0
+    fail_msg: >-
+      AWS creds missing. Provide ocp_awspca_access_key_id/ocp_awspca_secret_access_key
+      (preferred via vault) OR export AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY in env.
+  when: state == 'present'
+
+# ---------------------------
+# Detect served CRD version (present only)
+# ---------------------------
+- name: Awspca_clusterissuer | Read AWSPCAClusterIssuer CRD to detect served version
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: awspcaclusterissuers.awspca.cert-manager.io
+  register: ocp_awspca_crd
+  when: state == 'present'
+
+- name: Awspca_clusterissuer | Assert AWSPCAClusterIssuer CRD exists
+  ansible.builtin.assert:
+    that:
+      - (ocp_awspca_crd.resources | default([]) | length) > 0
+    fail_msg: >-
+      CRD awspcaclusterissuers.awspca.cert-manager.io not found.
+      Install the AWS PCA Issuer for cert-manager (CRDs) before running this role.
+  when: state == 'present'
+
+- name: Awspca_clusterissuer | Pick best served API version
+  ansible.builtin.set_fact:
+    ocp_awspca_api_version: >-
+      {{
+        'awspca.cert-manager.io/' ~ (
+          ocp_awspca_crd.resources[0].spec.versions
+          | selectattr('served', 'equalto', true)
+          | map(attribute='name')
+          | list
+          | sort
+          | last
+        )
+      }}
+  when: state == 'present'
+
+# ---------------------------
+# Secret (namespaced)
+# ---------------------------
+- name: Awspca_clusterissuer | Ensure AWS PCA credentials secret present
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ ocp_awspca_namespace }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ ocp_awspca_secret_name }}"
+        namespace: "{{ ocp_awspca_namespace }}"
+      type: Opaque
+      stringData:
+        "{{ ocp_awspca_secret_key_id_field | default('AWS_ACCESS_KEY_ID') }}": "{{ ocp_awspca_access_key_id_resolved }}"
+        ? >-
+          {{ ocp_awspca_secret_secret_key_field | default('AWS_SECRET_ACCESS_KEY') }}
+        : "{{ ocp_awspca_secret_access_key_resolved }}"
+  when: state == 'present'
+  no_log: "{{ ocp_awspca_no_log | default(true) | bool }}"
+
+# ---------------------------
+# ClusterIssuer (cluster-scoped)
+# ---------------------------
+- name: Awspca_clusterissuer | Ensure AWSPCAClusterIssuer present
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: "{{ ocp_awspca_api_version }}"
+      kind: AWSPCAClusterIssuer
+      metadata:
+        name: "{{ ocp_awspca_issuer_name }}"
+      spec:
+        arn: "{{ ocp_awspca_pca_arn }}"
+        region: "{{ ocp_awspca_region }}"
+        secretRef:
+          name: "{{ ocp_awspca_secret_name }}"
+          namespace: "{{ ocp_awspca_namespace }}"
+  when: state == 'present'
+
+- name: Awspca_clusterissuer | Wait for issuer Ready=True
+  kubernetes.core.k8s_info:
+    api_version: "{{ ocp_awspca_api_version }}"
+    kind: AWSPCAClusterIssuer
+    name: "{{ ocp_awspca_issuer_name }}"
+  register: ocp_awspca_issuer_status
+  until:
+    - (ocp_awspca_issuer_status.resources | default([]) | length) > 0
+    - ocp_awspca_issuer_status.resources[0].status is defined
+    - ocp_awspca_issuer_status.resources[0].status.conditions is defined
+    - >-
+      ( ocp_awspca_issuer_status.resources[0].status.conditions | selectattr('type', 'equalto', 'Ready')
+      | selectattr('status', 'equalto', 'True') | list | length )
+      > 0
+  retries: "{{ ocp_awspca_wait_retries | default(30) }}"
+  delay: "{{ ocp_awspca_wait_delay | default(10) }}"
+  when:
+    - state == 'present'
+    - ocp_awspca_wait_ready | default(true) | bool
+
+# ---------------------------
+# Absent path
+# ---------------------------
+- name: Awspca_clusterissuer | Delete AWSPCAClusterIssuer when absent
+  kubernetes.core.k8s:
+    state: absent
+    api_version: "{{ ocp_awspca_api_version_absent | default('awspca.cert-manager.io/v1beta1') }}"
+    kind: AWSPCAClusterIssuer
+    name: "{{ ocp_awspca_issuer_name }}"
+  when: state == 'absent'
+  register: ocp_awspca_delete_clusterissuer_result
+  failed_when: >
+    (ocp_awspca_delete_clusterissuer_result is failed) and
+    (ocp_awspca_delete_clusterissuer_result.msg is not search('NotFound')) and
+    (ocp_awspca_delete_clusterissuer_result.msg is not search('404'))
+
+- name: Awspca_clusterissuer | Delete AWS creds Secret when absent
+  kubernetes.core.k8s:
+    state: absent
+    namespace: "{{ ocp_awspca_namespace }}"
+    api_version: v1
+    kind: Secret
+    name: "{{ ocp_awspca_secret_name }}"
+  when: state == 'absent'
+  register: ocp_awspca_delete_secret_result
+  failed_when: >
+    (ocp_awspca_delete_secret_result is failed) and
+    (ocp_awspca_delete_secret_result.msg is not search('NotFound')) and
+    (ocp_awspca_delete_secret_result.msg is not search('404'))
+
+# ---------------------------
+# Summary (safe)
+# ---------------------------
+- name: Awspca_clusterissuer | Summary
+  ansible.builtin.debug:
+    msg:
+      - "state={{ state }}"
+      - "issuer={{ ocp_awspca_issuer_name }}"
+      - "namespace(secret)={{ ocp_awspca_namespace }}"
+      - "secret={{ ocp_awspca_secret_name }}"
+      - "region={{ ocp_awspca_region }}"
+      - "arn={{ ocp_awspca_pca_arn | default('n/a') }}"
+      - "apiVersion={{ ocp_awspca_api_version | default('n/a') }}"
