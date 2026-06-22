@@ -1,0 +1,13 @@
+---
+# UBI 8 Molecule workaround: apply targeted package updates via dnf CLI.
+
+- name: Update targeted packages with dnf CLI
+  ansible.builtin.command:
+    cmd: dnf -y update {{ rhel_patching_package_list | join(' ') }}
+  register: rhel_patching_el8_patch
+  changed_when: >-
+    rhel_patching_el8_patch.stdout is search('Installed', ignorecase=true)
+    or rhel_patching_el8_patch.stdout is search('Updated', ignorecase=true)
+    or rhel_patching_el8_patch.stdout is search('Upgrade', ignorecase=true)
+  failed_when: rhel_patching_el8_patch.rc != 0
+  when: rhel_patching_package_list | length > 0

@@ -1,0 +1,19 @@
+---
+# Skip and scoring rules for scripts/security_checks.py
+#
+# skip_high_risk_line_patterns: regexes; matching lines are not reported as high-risk
+# score_high_risk_by_file_phrase: when true, score one penalty per file+phrase pair
+# penalty_caps: maximum score deduction per category (omit a key for no cap)
+
+score_high_risk_by_file_phrase: true
+
+penalty_caps:
+  high_risk: 40
+  warnings: 25
+
+skip_high_risk_line_patterns:
+  - '^\s*#'
+  - '^\s*-\s+(when|failed_when):'
+  - '\bis not defined\b'
+  - '\bis defined\b'
+  - 'fail_msg:'

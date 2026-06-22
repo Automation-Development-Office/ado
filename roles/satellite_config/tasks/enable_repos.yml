@@ -1,0 +1,22 @@
+---
+- name: enable_repos | Checking pulp directory is owned by pulp
+  ansible.builtin.file:
+    path: /var/lib/pulp
+    owner: pulp
+    group: pulp
+    mode: '0775'
+
+- name: enable_repos | Enable Red Hat repos
+  redhat.satellite.repository_set:
+    username: "{{ satellite_config_username }}"
+    password: "{{ satellite_config_password }}"
+    server_url: "{{ satellite_config_server_url }}"
+    organization: "{{ satellite_config_organization }}"
+    label: "{{ item['label'] }}"
+    repositories: "{{ item['repos'] | default(omit) }}"
+    all_repositories: "{{ item['all'] | default(omit) }}"
+    state: enabled
+    validate_certs: "{{ satellite_config_validate_certs }}"
+  loop: "{{ satellite_config_satellite_redhat_repos }}"
+
+...

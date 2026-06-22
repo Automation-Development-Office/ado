@@ -1,5 +1,8 @@
 # Infra Ado Collection
 
+[![Ansible Collection CI/CD](https://github.com/Automation-Development-Office/ado/actions/workflows/main.yml/badge.svg)](https://github.com/Automation-Development-Office/ado/actions/workflows/main.yml)
+[![Security Check](https://github.com/Automation-Development-Office/ado/actions/workflows/security-check.yml/badge.svg)](https://github.com/Automation-Development-Office/ado/actions/workflows/security-check.yml)
+
 This repository contains the `infra.ado` Ansible Collection.
 
 <!--start requires_ansible-->
@@ -127,8 +130,14 @@ molecule test -s integration_rhel_cron_full_special
 The `Ansible Collection CI/CD` workflow supports manual execution through `workflow_dispatch`.
 
 - Each Molecule scenario is exposed as a boolean input in the Run workflow form.
+- **Run security_checks.py on collection roles** runs `scripts/security_checks.py` and
+  `scripts/security_data_exposure_scan.py` on `roles/`.
 - Checked scenarios are included in the test matrix.
 - Matrix jobs run in parallel.
+
+Pull requests also run the standalone **Security Check** workflow automatically.
+Results appear in the workflow job summary and the `security-check-report` artifact. This check is
+not enforced in the PR gate yet. You can also re-run it from the **Security Check** workflow page.
 
 ## More information
 

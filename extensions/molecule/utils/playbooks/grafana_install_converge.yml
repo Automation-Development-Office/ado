@@ -1,0 +1,45 @@
+---
+- name: Converge - grafana_install scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    grafana_install_enable_live_checks: >-
+      {{
+        (lookup('env', 'GRAFANA_INSTALL_ENABLE_LIVE_CHECKS')
+        | default('false', true)) | bool
+      }}
+
+  tasks:
+    - name: Explain live-check toggle
+      ansible.builtin.debug:
+        msg: >-
+          grafana_install execution is skipped by default in Molecule.
+          Set GRAFANA_INSTALL_ENABLE_LIVE_CHECKS=true and provide required
+          OpenShift credentials plus Grafana variables to run live checks.
+      when: not grafana_install_enable_live_checks
+
+    - name: Run grafana_install role with live checks enabled
+      ansible.builtin.include_role:
+        name: infra.ado.grafana_install
+      vars:
+        name_space: >-
+          {{ lookup('env', 'GRAFANA_INSTALL_NAMESPACE') | default('grafana', true) }}
+        state: present
+        grafana_install_hostname: >-
+          {{ lookup('env', 'GRAFANA_INSTALL_HOSTNAME') | default('', true) }}
+        grafana_install_admin_user: >-
+          {{ lookup('env', 'GRAFANA_INSTALL_ADMIN_USER') | default('', true) }}
+        grafana_install_admin_password: >-
+          {{ lookup('env', 'GRAFANA_INSTALL_ADMIN_PASSWORD') | default('', true) }}
+        storage_size: >-
+          {{ lookup('env', 'GRAFANA_INSTALL_STORAGE_SIZE') | default('2Gi', true) }}
+        storage_class: >-
+          {{ lookup('env', 'GRAFANA_INSTALL_STORAGE_CLASS') | default('', true) }}
+        grafana_install_validate_certs: >-
+          {{
+            (lookup('env', 'GRAFANA_INSTALL_VALIDATE_CERTS')
+            | default('false', true)) | bool
+          }}
+      when: grafana_install_enable_live_checks
