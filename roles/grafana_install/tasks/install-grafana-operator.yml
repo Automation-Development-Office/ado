@@ -60,6 +60,7 @@
   when:
     - grafana_install_oidc_enabled | default(false) | bool
     - grafana_install_oidc_client_secret is not defined
+  no_log: true
 
 # ---------------------------------------------------------
 # Build issuer URL using outputs from secret role
