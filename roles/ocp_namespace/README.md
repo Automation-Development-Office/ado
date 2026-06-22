@@ -1,4 +1,4 @@
-# Role: ado.openshift.namespace
+# Role: ocp_namespace
 
 Ensure an OpenShift **Namespace** is present or absent.
 
@@ -42,7 +42,7 @@ Ensure an OpenShift **Namespace** is present or absent.
 - hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift.namespace
+    - role: ocp_namespace
       vars:
         name_space: my-app
         state: present
@@ -54,7 +54,7 @@ Ensure an OpenShift **Namespace** is present or absent.
 - hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift.namespace
+    - role: ocp_namespace
       vars:
         name_space: my-app
         state: absent

@@ -5,5 +5,4 @@
     kind: Namespace
     name: "{{ name_space }}"
     state: "{{ state }}"
-    validate_certs: false
-  when: state == "present"
+    validate_certs: {{ validate_certs }} 
