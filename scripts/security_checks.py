@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Security real-leaks check (scored) for Ansible task and handler files."""
 # flake8: noqa: E501, E203
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Data exposure scan (org strings, IPs, hostnames, domains) with scoring."""
 # flake8: noqa: E501, E203
 
