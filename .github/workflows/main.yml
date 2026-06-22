@@ -66,7 +66,7 @@ on:
         default: true
         type: boolean
       run_security_checks:
-        description: "Run security_checks.py on collection roles"
+        description: "Run security_checks.py and security_data_exposure_scan.py on collection roles"
         required: false
         default: false
         type: boolean
@@ -227,10 +227,21 @@ jobs:
             --json-report security-check-report.json \
             --summary-markdown security-check-summary.md \
             > security-check-report.txt 2>&1
-          exit_code=$?
+          security_exit=$?
           cat security-check-report.txt
-          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
-          exit "$exit_code"
+
+          python scripts/security_data_exposure_scan.py roles \
+            --json-report data-exposure-report.json \
+            --summary-markdown data-exposure-summary.md \
+            > data-exposure-report.txt 2>&1
+          exposure_exit=$?
+          cat data-exposure-report.txt
+
+          if [ "$security_exit" -ne 0 ] || [ "$exposure_exit" -ne 0 ]; then
+            echo "exit_code=1" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          echo "exit_code=0" >> "$GITHUB_OUTPUT"
 
       - name: Add security check dashboard to job summary
         if: always()
@@ -240,6 +251,15 @@ jobs:
           else
             {
               echo "## Security Check Dashboard"
+              echo
+              echo "Summary file was not generated."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f data-exposure-summary.md ]; then
+            cat data-exposure-summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Data Exposure Scan Dashboard"
               echo
               echo "Summary file was not generated."
             } >> "$GITHUB_STEP_SUMMARY"
@@ -254,6 +274,9 @@ jobs:
             security-check-report.txt
             security-check-report.json
             security-check-summary.md
+            data-exposure-report.txt
+            data-exposure-report.json
+            data-exposure-summary.md
           if-no-files-found: error
           retention-days: 30
 
