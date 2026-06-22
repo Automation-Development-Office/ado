@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# tasks file for ocp_secret_replicator
+
+- name: Fetch the source secret
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: "{{ ocp_secret_replicator_source_secret_name }}"
+    namespace: "{{ ocp_secret_replicator_source_namespace }}"
+  register: ocp_secret_replicator_original_secret
+
+- name: Fail if source secret is missing
+  ansible.builtin.fail:
+    msg: "Source secret {{ ocp_secret_replicator_source_secret_name }} not found in {{ ocp_secret_replicator_source_namespace }}!"
+  when: ocp_secret_replicator_original_secret.resources | length == 0
+
+- name: Prepare the secret for replication
+  ansible.builtin.set_fact:
+    ocp_secret_replicator_clean_secret_data: "{{ ocp_secret_replicator_original_secret.resources[0].data }}"
+    ocp_secret_replicator_secret_type: "{{ ocp_secret_replicator_original_secret.resources[0].type }}"
+
+- name: Replicate source secret to Hashicorp Vault
+  ansible.builtin.include_tasks: hashicorp.yml
+  when: ocp_secret_replicator_vault_push is true
+
+- name: Replicate secret to target namespaces
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ ocp_secret_replicator_source_secret_name }}"
+        namespace: "{{ item }}"
+        labels:
+          replicated-by: "secret-replicator"
+          source-ns: "{{ ocp_secret_replicator_source_namespace }}"
+      type: "{{ ocp_secret_replicator_secret_type }}"
+      data: "{{ ocp_secret_replicator_clean_secret_data }}"
+  loop: "{{ ocp_secret_replicator_target_namespaces }}"
+  loop_control:
+    label: "Replicating to namespace -> {{ item }}"
+  when: ocp_secret_replicator_namespace_replication is true
+
+- name: Replicate to different clusters
+  kubernetes.core.k8s:
+    context: "{{ item.context }}"
+    namespace: "{{ item.ns }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ ocp_secret_replicator_source_secret_name }}"
+        labels:
+          replicated-by: "secret-replicator"
+          source-ns: "{{ ocp_secret_replicator_target_clusters[0].ns }}"
+          source-cluster: "{{ ocp_secret_replicator_target_clusters[0].context }}"
+      type: "{{ ocp_secret_replicator_secret_type }}"
+      data: "{{ ocp_secret_replicator_clean_secret_data }}"
+  loop: "{{ ocp_secret_replicator_target_clusters }}"
+  loop_control:
+    label: "Replicating to cluster -> {{ item.context }} in namespace -> {{ item.ns }}"
+  when: ocp_secret_replicator_cluster_replication is true

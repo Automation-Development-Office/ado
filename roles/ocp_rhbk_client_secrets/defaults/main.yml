@@ -1,0 +1,28 @@
+---
+# Role: ocp_rhbk_get_client_secret
+
+# Which client to fetch
+ocp_rhbk_client_secrets_client_key: "" # e.g. "ocp_grafana_client" (key under ocp_rhbk_clients dict)
+ocp_rhbk_client_secrets_client_id: "" # e.g. "grafana" or "openshift-prod" (Keycloak clientId)
+
+# If provided, set this variable name with the fetched secret (example: ocp_grafana_oidc_client_secret)
+ocp_rhbk_client_secrets_set_var_name: ""
+
+# Don't clobber if var already exists (keeps precedence contract)
+ocp_rhbk_client_secrets_do_not_override_existing: true
+
+# TLS verification for Keycloak API calls
+ocp_rhbk_client_secrets_validate_certs: false
+
+# If you have a route for Keycloak that requires /auth or not, adjust base path:
+# In modern Keycloak (incl. RHBK), admin endpoints are /admin/realms/<realm>/...
+ocp_rhbk_client_secrets_base_path: "" # leave empty unless you need a prefix
+
+# Realm (defaults to ocp_rhbk_realm if present)
+ocp_rhbk_client_secrets_realm: ""
+
+# Admin creds (prefer to come from vault/env)
+ocp_rhbk_client_secrets_admin_user: "{{ ocp_rhbk_admin_user | default('admin') }}"
+ocp_rhbk_client_secrets_admin_password: "{{ ocp_rhbk_admin_password | default(omit) }}"
+
+ocp_rhbk_client_secrets_no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"

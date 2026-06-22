@@ -1,0 +1,76 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+
+- name: Set Secret Data for Hashicorp Vault Push
+  ansible.builtin.set_fact:
+    ocp_secret_replicator_vault_data: >-
+      {{
+        ocp_secret_replicator_clean_secret_data
+        | combine(
+            (
+              (ocp_secret_replicator_vault_store_k8s_secret_type | default(true) | bool)
+              | ternary(
+                  {
+                    (ocp_secret_replicator_vault_k8s_secret_type_key | default('k8s_secret_type')):
+                      ocp_secret_replicator_secret_type
+                  },
+                  {}
+                )
+            ),
+            recursive=True
+          )
+      }}
+  when: ocp_secret_replicator_vault_push | bool
+
+- name: Validate Vault KV Version for Push
+  ansible.builtin.assert:
+    that:
+      - (ocp_secret_replicator_vault_kv_version | default(2) | int) in [1, 2]
+    fail_msg: >-
+      ocp_secret_replicator_vault_kv_version must be 1 or 2.
+  when: ocp_secret_replicator_vault_push | bool
+
+- name: Show effective Vault write settings
+  ansible.builtin.debug:
+    msg:
+      kv_version: "{{ ocp_secret_replicator_vault_kv_version | default(2) | int }}"
+      mount: "{{ ocp_secret_replicator_vault_kv_mount }}"
+      path: "{{ ocp_secret_replicator_vault_kv_path }}"
+      namespace: "{{ ocp_secret_replicator_vault_namespace | default('') }}"
+  when: ocp_secret_replicator_vault_push | bool
+
+- name: Push source secret to Hashicorp Vault KV v1
+  hashicorp.vault.kv1_secret:
+    url: "{{ ocp_secret_replicator_vault_url | default(lookup('env', 'VAULT_ADDR'), true) }}"
+    token: >-
+      {{
+        (ocp_secret_replicator_vault_token | default('') | length > 0)
+        | ternary(ocp_secret_replicator_vault_token, omit)
+      }}
+    engine_mount_point: "{{ ocp_secret_replicator_vault_kv_mount }}"
+    path: "{{ ocp_secret_replicator_vault_kv_path }}"
+    data: "{{ ocp_secret_replicator_vault_data }}"
+    namespace: "{{ ocp_secret_replicator_vault_namespace | default('') }}"
+    state: present
+  register: ocp_secret_replicator_vault_response
+  when:
+    - ocp_secret_replicator_vault_push | bool
+    - (ocp_secret_replicator_vault_kv_version | default(2) | int) == 1
+
+- name: Push source secret to Hashicorp Vault KV v2
+  hashicorp.vault.kv2_secret:
+    url: "{{ ocp_secret_replicator_vault_url | default(lookup('env', 'VAULT_ADDR'), true) }}"
+    token: >-
+      {{
+        (ocp_secret_replicator_vault_token | default('') | length > 0)
+        | ternary(ocp_secret_replicator_vault_token, omit)
+      }}
+    engine_mount_point: "{{ ocp_secret_replicator_vault_kv_mount }}"
+    path: "{{ ocp_secret_replicator_vault_kv_path }}"
+    data: "{{ ocp_secret_replicator_vault_data }}"
+    namespace: "{{ ocp_secret_replicator_vault_namespace | default('') }}"
+    state: present
+  register: ocp_secret_replicator_vault_response
+  when:
+    - ocp_secret_replicator_vault_push | bool
+    - (ocp_secret_replicator_vault_kv_version | default(2) | int) == 2

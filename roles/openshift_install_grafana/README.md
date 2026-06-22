@@ -10,7 +10,7 @@ This role deploys Grafana on OpenShift using the Grafana Operator, including per
   - `kubernetes.core`
 - The following components created ahead of this role:
   - Namespace where Grafana will be deployed
-  - OperatorGroup and Subscription for the Grafana Operator
+  - openshift_tools_operator_groups and Subscription for the Grafana Operator
 
 ## 📦 Role Variables
 
