@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 ---
-# tasks file for patching
+# tasks file for rhel_patching
 
 
 - name: Importing patching tasks

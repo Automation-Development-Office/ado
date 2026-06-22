@@ -1,0 +1,13 @@
+---
+
+- name: Obtaining Repo Information
+  ansible.builtin.dnf:
+    list: repos
+  register: rhel_patching_yum_repo
+  changed_when: false
+
+- name: (debug) Show rhel_patching_yum_repo
+  ansible.builtin.debug:
+    var: rhel_patching_yum_repo.results
+    verbosity: 1
+  when: rhel_patching_yum_repo is defined
