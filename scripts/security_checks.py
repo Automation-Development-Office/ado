@@ -20,12 +20,15 @@ PENALTY_TOKEN_URI_DEBUG_WARNING = 5
 PASS_MIN_SCORE = 98
 WARN_MIN_SCORE = 90
 
+DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "security_checks_config.yaml"
+
 SECRET_VAR_RE = re.compile(
-    r"(password|passwd|token|client_secret|clientSecret|bind_password|"
-    r"pull_secret|private_key|secret)",
+    r"(password|passwd|client_secret|clientSecret|bind_password|"
+    r"pull_secret|private_key|\bsecret\b|(?<![_\w])token(?![_\w]))",
 )
 DEBUG_LINE_RE = re.compile(r"^\s*(debug:|ansible\.builtin\.debug:)")
 NO_LOG_RE = re.compile(r"^\s*no_log:\s*true\s*$")
+TASK_START_RE = re.compile(r"^\s*-\s+name:")
 MSG_SECRET_RE = re.compile(r"msg:.*" + SECRET_VAR_RE.pattern)
 
 HIGH_RISK_PHRASES = (
@@ -48,6 +51,37 @@ TASK_GLOB_PATTERNS = (
     "**/handlers/*.yml",
     "**/handlers/*.yaml",
 )
+
+
+DEFAULT_SKIP_HIGH_RISK_LINE_PATTERNS = (
+    r"^\s*#",
+    r"^\s*-\s+(when|failed_when):",
+    r"\bis not defined\b",
+    r"\bis defined\b",
+    r"fail_msg:",
+)
+
+
+@dataclass
+class PenaltyCaps:
+    """Maximum score deduction allowed per category."""
+
+    confirmed: int | None = None
+    high_risk: int | None = 40
+    warnings: int | None = 25
+
+
+DEFAULT_PENALTY_CAPS = PenaltyCaps()
+
+
+@dataclass
+class SecurityScanConfig:
+    """Loaded configuration for security checks."""
+
+    penalty_caps: PenaltyCaps = field(default_factory=PenaltyCaps)
+    score_high_risk_by_file_phrase: bool = True
+    skip_high_risk_line_patterns: list[re.Pattern[str]] = field(default_factory=list)
+    config_path: str | None = None
 
 
 @dataclass
@@ -78,6 +112,11 @@ class SecurityReport:
     warning_count: int
     score: int
     result: str
+    confirmed_penalty: int = 0
+    highrisk_penalty: int = 0
+    warning_penalty: int = 0
+    highrisk_penalty_cap: int | None = DEFAULT_PENALTY_CAPS.high_risk
+    warning_penalty_cap: int | None = DEFAULT_PENALTY_CAPS.warnings
     pass_min_score: int = PASS_MIN_SCORE
     warn_min_score: int = WARN_MIN_SCORE
     confirmed_findings: list[ConfirmedFinding] = field(default_factory=list)
@@ -95,6 +134,15 @@ def parse_args() -> argparse.Namespace:
         nargs="?",
         default=".",
         help="Repository root to scan (default: current directory)",
+    )
+    parser.add_argument(
+        "--config",
+        metavar="PATH",
+        default=str(DEFAULT_CONFIG_PATH),
+        help=(
+            "Security check config file (YAML or JSON). "
+            f"Default: {DEFAULT_CONFIG_PATH.name} beside this script."
+        ),
     )
     parser.add_argument(
         "--json-report",
@@ -117,6 +165,98 @@ def find_task_files(root: Path) -> list[Path]:
             if path.is_file() and ".git" not in path.parts:
                 files.add(path)
     return sorted(files)
+
+
+def _compile_regex_patterns(patterns: list[str]) -> list[re.Pattern[str]]:
+    """Compile regex patterns, ignoring invalid entries."""
+    compiled: list[re.Pattern[str]] = []
+    for pattern in patterns:
+        try:
+            compiled.append(re.compile(pattern, re.IGNORECASE))
+        except re.error:
+            print(f"Warning: ignoring invalid skip regex: {pattern}", file=sys.stderr)
+    return compiled
+
+
+def _penalty_caps_from_mapping(mapping: dict | None) -> PenaltyCaps:
+    """Build PenaltyCaps from a config mapping."""
+    if not mapping:
+        return PenaltyCaps()
+
+    def _cap_value(key: str, default: int | None) -> int | None:
+        if key not in mapping:
+            return default
+        value = mapping[key]
+        if value is None:
+            return None
+        return int(value)
+
+    return PenaltyCaps(
+        confirmed=_cap_value("confirmed", None),
+        high_risk=_cap_value("high_risk", DEFAULT_PENALTY_CAPS.high_risk),
+        warnings=_cap_value("warnings", DEFAULT_PENALTY_CAPS.warnings),
+    )
+
+
+def default_config() -> SecurityScanConfig:
+    """Return built-in configuration when no config file is present."""
+    return SecurityScanConfig(
+        penalty_caps=DEFAULT_PENALTY_CAPS,
+        skip_high_risk_line_patterns=_compile_regex_patterns(
+            list(DEFAULT_SKIP_HIGH_RISK_LINE_PATTERNS),
+        ),
+    )
+
+
+def load_config(config_path: Path) -> SecurityScanConfig:
+    """Load security check configuration from YAML or JSON."""
+    if not config_path.is_file():
+        return default_config()
+
+    raw_text = config_path.read_text(encoding="utf-8")
+    if config_path.suffix.lower() == ".json":
+        data = json.loads(raw_text)
+    else:
+        try:
+            import yaml
+        except ImportError as exc:
+            raise SystemExit(
+                "PyYAML is required to load YAML config files. " "Install with: pip install pyyaml",
+            ) from exc
+        data = yaml.safe_load(raw_text) or {}
+
+    patterns = data.get("skip_high_risk_line_patterns") or DEFAULT_SKIP_HIGH_RISK_LINE_PATTERNS
+
+    return SecurityScanConfig(
+        penalty_caps=_penalty_caps_from_mapping(data.get("penalty_caps")),
+        score_high_risk_by_file_phrase=bool(
+            data.get("score_high_risk_by_file_phrase", True),
+        ),
+        skip_high_risk_line_patterns=_compile_regex_patterns(
+            [str(item) for item in patterns],
+        ),
+        config_path=str(config_path),
+    )
+
+
+def task_has_no_log(lines: list[str], index: int, forward_window: int = 25) -> bool:
+    """Return True when the surrounding Ansible task sets no_log: true."""
+    for line_index in range(index, -1, -1):
+        if TASK_START_RE.match(lines[line_index]) and line_index != index:
+            break
+        if NO_LOG_RE.match(lines[line_index]):
+            return True
+
+    for line_index in range(index + 1, min(len(lines), index + forward_window)):
+        if NO_LOG_RE.match(lines[line_index]):
+            return True
+
+    return False
+
+
+def is_skipped_high_risk_line(line: str, config: SecurityScanConfig) -> bool:
+    """Return True when a line matches configured high-risk skip patterns."""
+    return any(pattern.search(line) for pattern in config.skip_high_risk_line_patterns)
 
 
 def suggest_no_log(file_path: Path, line: int, why: str) -> None:
@@ -195,10 +335,9 @@ def collect_confirmed_leaks(files: list[Path]) -> list[ConfirmedFinding]:
 
             line_number = index + 1
             snippet = lines[index : index + 25]
-            has_no_log = any(NO_LOG_RE.match(snippet_line) for snippet_line in snippet)
             has_secret_msg = any(MSG_SECRET_RE.search(snippet_line) for snippet_line in snippet)
 
-            if has_secret_msg and not has_no_log:
+            if has_secret_msg and not task_has_no_log(lines, index):
                 findings.append(
                     ConfirmedFinding(file=str(file_path), line=line_number),
                 )
@@ -206,20 +345,27 @@ def collect_confirmed_leaks(files: list[Path]) -> list[ConfirmedFinding]:
     return findings
 
 
-def collect_high_risk_patterns(files: list[Path]) -> list[HighRiskFinding]:
+def collect_high_risk_patterns(
+    files: list[Path],
+    config: SecurityScanConfig,
+) -> list[HighRiskFinding]:
     """Collect known high-risk phrases in task files."""
     findings: list[HighRiskFinding] = []
 
     for file_path in files:
         lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
         for phrase in HIGH_RISK_PHRASES:
-            for line_number, line in enumerate(lines, start=1):
+            for index, line in enumerate(lines):
                 if phrase not in line:
+                    continue
+                if is_skipped_high_risk_line(line, config):
+                    continue
+                if task_has_no_log(lines, index):
                     continue
                 findings.append(
                     HighRiskFinding(
                         file=str(file_path),
-                        line=line_number,
+                        line=index + 1,
                         phrase=phrase,
                         text=line,
                     ),
@@ -240,48 +386,83 @@ def collect_token_uri_debug_warnings(files: list[Path]) -> list[WarningFinding]:
     return findings
 
 
+def _category_penalty(hit_count: int, per_hit: int, cap: int | None) -> int:
+    """Apply per-hit penalty with an optional category cap."""
+    raw_penalty = hit_count * per_hit
+    if cap is None:
+        return raw_penalty
+    return min(raw_penalty, cap)
+
+
+def highrisk_score_count(
+    findings: list[HighRiskFinding],
+    config: SecurityScanConfig,
+) -> int:
+    """Return the high-risk hit count used for scoring."""
+    if config.score_high_risk_by_file_phrase:
+        return len({(finding.file, finding.phrase) for finding in findings})
+    return len(findings)
+
+
 def score_report(
     confirmed_count: int,
     highrisk_count: int,
     warning_count: int,
-) -> tuple[int, str, int]:
-    """Return score, result label, and fail flag for the collected counts."""
-    score = 100
-    fail = 0
+    penalty_caps: PenaltyCaps,
+) -> tuple[int, str, int, int, int, int]:
+    """Return score, result, fail flag, and per-category penalties applied."""
+    fail = 1 if confirmed_count > 0 else 0
 
-    if confirmed_count > 0:
-        score -= confirmed_count * PENALTY_CONFIRMED_LEAK
-        fail = 1
+    confirmed_penalty = _category_penalty(
+        confirmed_count,
+        PENALTY_CONFIRMED_LEAK,
+        penalty_caps.confirmed,
+    )
+    highrisk_penalty = _category_penalty(
+        highrisk_count,
+        PENALTY_HIGH_RISK_PATTERN,
+        penalty_caps.high_risk,
+    )
+    warning_penalty = _category_penalty(
+        warning_count,
+        PENALTY_TOKEN_URI_DEBUG_WARNING,
+        penalty_caps.warnings,
+    )
 
-    if highrisk_count > 0:
-        score -= highrisk_count * PENALTY_HIGH_RISK_PATTERN
-
-    if warning_count > 0:
-        score -= warning_count * PENALTY_TOKEN_URI_DEBUG_WARNING
-
+    score = 100 - confirmed_penalty - highrisk_penalty - warning_penalty
     score = max(score, 0)
 
-    if score >= PASS_MIN_SCORE and fail == 0:
-        result = "PASS"
-    elif score >= WARN_MIN_SCORE and fail == 0:
-        result = "WARN"
-    else:
+    if fail == 1:
         result = "FAIL"
+    elif score >= PASS_MIN_SCORE:
+        result = "PASS"
+    else:
+        result = "WARN"
 
-    return score, result, fail
+    return score, result, fail, confirmed_penalty, highrisk_penalty, warning_penalty
 
 
-def run_checks(root: Path) -> SecurityReport:
+def run_checks(root: Path, config: SecurityScanConfig) -> SecurityReport:
     """Scan task files and return a structured security report."""
     task_files = find_task_files(root)
     confirmed_findings = collect_confirmed_leaks(task_files)
-    highrisk_findings = collect_high_risk_patterns(task_files)
+    highrisk_findings = collect_high_risk_patterns(task_files, config)
     warning_findings = collect_token_uri_debug_warnings(task_files)
 
-    score, result, _fail = score_report(
+    scored_highrisk_count = highrisk_score_count(highrisk_findings, config)
+
+    (
+        score,
+        result,
+        _fail,
+        confirmed_penalty,
+        highrisk_penalty,
+        warning_penalty,
+    ) = score_report(
         len(confirmed_findings),
-        len(highrisk_findings),
+        scored_highrisk_count,
         len(warning_findings),
+        config.penalty_caps,
     )
 
     return SecurityReport(
@@ -292,6 +473,11 @@ def run_checks(root: Path) -> SecurityReport:
         warning_count=len(warning_findings),
         score=score,
         result=result,
+        confirmed_penalty=confirmed_penalty,
+        highrisk_penalty=highrisk_penalty,
+        warning_penalty=warning_penalty,
+        highrisk_penalty_cap=config.penalty_caps.high_risk,
+        warning_penalty_cap=config.penalty_caps.warnings,
         confirmed_findings=confirmed_findings,
         highrisk_findings=highrisk_findings,
         warning_findings=warning_findings,
@@ -355,14 +541,23 @@ def print_report(report: SecurityReport) -> None:
     print_token_uri_debug_warnings(report.warning_findings)
 
     print("== Summary ==")
+    print(f"Confirmed issues: {report.confirmed_count}")
+    print(f"High-risk hits: {report.highrisk_count}")
+    print(f"Token/URI warnings: {report.warning_count}")
+    print(
+        "Penalties applied: "
+        f"confirmed={report.confirmed_penalty}, "
+        f"high_risk={report.highrisk_penalty}, "
+        f"warnings={report.warning_penalty}",
+    )
     print(f"Score: {report.score}/100")
 
     if report.result == "PASS":
         print(f"Result: ✅ PASS (>= {PASS_MIN_SCORE})")
     elif report.result == "WARN":
-        print(f"Result: ⚠️  WARN (>= {WARN_MIN_SCORE}, < {PASS_MIN_SCORE})")
+        print(f"Result: ⚠️  WARN (< {PASS_MIN_SCORE}, no confirmed leaks)")
     else:
-        print(f"Result: ❌ FAIL (< {WARN_MIN_SCORE} OR confirmed leaks found)")
+        print("Result: ❌ FAIL (confirmed leaks found)")
 
 
 def render_github_summary(report: SecurityReport) -> str:
@@ -387,11 +582,17 @@ def render_github_summary(report: SecurityReport) -> str:
         f"**Scan root:** `{report.root}`",
         f"**Task files scanned:** {report.task_files_scanned}",
         "",
-        "| Category | Count | Penalty each |",
-        "| --- | ---: | ---: |",
-        f"| Confirmed leaks | {report.confirmed_count} | {PENALTY_CONFIRMED_LEAK} |",
-        f"| High-risk patterns | {report.highrisk_count} | {PENALTY_HIGH_RISK_PATTERN} |",
-        f"| Token/URI + debug warnings | {report.warning_count} | {PENALTY_TOKEN_URI_DEBUG_WARNING} |",
+        "| Category | Count | Penalty applied | Cap |",
+        "| --- | ---: | ---: | ---: |",
+        f"| Confirmed leaks | {report.confirmed_count} | {report.confirmed_penalty} | — |",
+        (
+            f"| High-risk patterns | {report.highrisk_count} | "
+            f"{report.highrisk_penalty} | {report.highrisk_penalty_cap or '—'} |"
+        ),
+        (
+            f"| Token/URI + debug warnings | {report.warning_count} | "
+            f"{report.warning_penalty} | {report.warning_penalty_cap or '—'} |"
+        ),
         "",
         "### Findings by category",
         "",
@@ -452,7 +653,8 @@ def main() -> int:
     """Run security checks and return the process exit code."""
     args = parse_args()
     root = Path(args.root).resolve()
-    report = run_checks(root)
+    config = load_config(Path(args.config).resolve())
+    report = run_checks(root, config)
     print_report(report)
 
     if args.json_report:

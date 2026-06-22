@@ -75,6 +75,7 @@
     - (openshift_tools_rhbk_get_client_secrets__hostname | length) > 0
     - openshift_tools_rhbk_get_client_secrets__realm is defined
     - (openshift_tools_rhbk_get_client_secrets__realm | length) > 0
+  no_log: true
 
 - name: Fail if OIDC enabled but issuer URL cannot be derived
   ansible.builtin.fail:
