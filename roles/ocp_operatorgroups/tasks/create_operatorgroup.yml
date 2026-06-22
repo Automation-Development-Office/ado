@@ -35,7 +35,7 @@
         api_version: operators.coreos.com/v1
         kind: OperatorGroup
         namespace: "{{ ocp_operator_groups_operator_ns }}"
-      register: ocp_operator_groups_og_info
+      register: ocp_operatorgroups_og_info
       when: (state | default('present')) == 'present'
 
     - name: Guard — OLM requires exactly 0 or 1 OG in a namespace
