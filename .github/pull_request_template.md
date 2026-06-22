@@ -45,7 +45,7 @@
   - [ ] Security scan passed if a role was updated
 
   ```bash
-  python3 python3 scripts/security_checks.py roles/<role_name>
+  python3 scripts/security_checks.py roles/<role_name>
   ```
 
 - [ ] Molecule scenario run (if applicable):
