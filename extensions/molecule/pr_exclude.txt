@@ -6,3 +6,8 @@
 #
 # OpenShift scenarios require K8S_AUTH_* credentials and a reachable cluster.
 ocp_*
+install_aap
+install_dirsrv
+install_elastic
+install_postfix
+install_rhbk
