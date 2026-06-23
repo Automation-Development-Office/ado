@@ -3,16 +3,32 @@
   hosts: localhost
   gather_facts: false
   become: false
+  connection: local
 
   vars:
-    playbook_dir_path: "{{ playbook_dir }}"
-    repo_root_guess: "{{ playbook_dir_path | regex_replace('/extensions/molecule/utils/playbooks$', '') }}"
-    role_readme_path: "{{ repo_root_guess }}/roles/ocp_console_banner/README.md"
-    verify_script_path: "{{ repo_root_guess }}/scripts/verify_readme.py"
+    repo_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/../.."
+    ocp_console_banner_readme_path: "{{ repo_root }}/roles/ocp_console_banner/README.md"
+    ocp_console_banner_verify_script: "{{ repo_root }}/scripts/verify_readme.py"
+    ocp_console_banner_readme_template: >-
+      {{ repo_root }}/docs/templates/role_readme_format_template.md
 
   tasks:
-    - name: Verify role README format using project script
+    - name: Verify role README format with verify_readme.py
       ansible.builtin.command:
-        cmd: >-
-          python {{ verify_script_path }} {{ role_readme_path }}
+        argv:
+          - python
+          - "{{ ocp_console_banner_verify_script }}"
+          - "{{ ocp_console_banner_readme_path }}"
+          - --template
+          - "{{ ocp_console_banner_readme_template }}"
+        chdir: "{{ repo_root }}"
+      register: ocp_console_banner_verify_readme
       changed_when: false
+
+    - name: Fail when README verification fails
+      ansible.builtin.fail:
+        msg: >-
+          README verification failed for {{ ocp_console_banner_readme_path }}:
+          {{ ocp_console_banner_verify_readme.stdout }}
+          {{ ocp_console_banner_verify_readme.stderr }}
+      when: ocp_console_banner_verify_readme.rc != 0
