@@ -1,0 +1,18 @@
+---
+- name: Verify - ocp_console_banner scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    playbook_dir_path: "{{ playbook_dir }}"
+    repo_root_guess: "{{ playbook_dir_path | regex_replace('/extensions/molecule/utils/playbooks$', '') }}"
+    role_readme_path: "{{ repo_root_guess }}/roles/ocp_console_banner/README.md"
+    verify_script_path: "{{ repo_root_guess }}/scripts/verify_readme.py"
+
+  tasks:
+    - name: Verify role README format using project script
+      ansible.builtin.command:
+        cmd: >-
+          python {{ verify_script_path }} {{ role_readme_path }}
+      changed_when: false

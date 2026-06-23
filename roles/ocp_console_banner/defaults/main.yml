@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-or-later-0
+---
+# defaults file for ocp_console_banner
+ocp_console_banner_name_prefix: ado-banner
+ocp_console_banner_name: ado-banner
+ocp_console_banner_location: BannerTop
+ocp_console_banner_background_color: "#1f7a1f"
+ocp_console_banner_text_color: "#ffffff"
