@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later-0
+---
+# defaults file for ocp_compliance_profiles
+ocp_compliance_profiles_manage_profile: create
+
+ocp_compliance_profiles_profile: ""
+ocp_compliance_profiles_profile_title: ""
+ocp_compliance_profiles_profile_description: ""
+ocp_compliance_profiles_operator_namespace: openshift-compliance

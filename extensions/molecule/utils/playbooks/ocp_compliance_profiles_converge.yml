@@ -1,0 +1,67 @@
+---
+- name: Converge - ocp_compliance_profiles scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    ocp_compliance_profiles_enable_live_checks: >-
+      {{
+        (lookup('env', 'OCP_COMPLIANCE_PROFILES_ENABLE_LIVE_CHECKS')
+        | default('false', true)) | bool
+      }}
+    ocp_compliance_profiles_manage_profile_env: >-
+      {{
+        lookup('env', 'OCP_COMPLIANCE_PROFILES_MANAGE_PROFILE')
+        | default('create', true)
+      }}
+
+  tasks:
+    - name: Explain live-check toggle
+      ansible.builtin.debug:
+        msg: >-
+          ocp_compliance_profiles execution is skipped by default in Molecule.
+          Set OCP_COMPLIANCE_PROFILES_ENABLE_LIVE_CHECKS=true and provide
+          required OpenShift profile values to run live checks.
+      when: not ocp_compliance_profiles_enable_live_checks
+
+    - name: Validate required live-check inputs for create flow
+      ansible.builtin.assert:
+        that:
+          - (lookup('env', 'OCP_COMPLIANCE_PROFILES_PROFILE_NAME') | default('', true) | length) > 0
+          - (lookup('env', 'OCP_COMPLIANCE_PROFILES_PROFILE_TITLE') | default('', true) | length) > 0
+          - (lookup('env', 'OCP_COMPLIANCE_PROFILES_PROFILE_DESCRIPTION') | default('', true) | length) > 0
+        fail_msg: >-
+          Set OCP_COMPLIANCE_PROFILES_PROFILE_NAME,
+          OCP_COMPLIANCE_PROFILES_PROFILE_TITLE, and
+          OCP_COMPLIANCE_PROFILES_PROFILE_DESCRIPTION for live-check create
+          execution.
+      when:
+        - ocp_compliance_profiles_enable_live_checks
+        - ocp_compliance_profiles_manage_profile_env == 'create'
+
+    - name: Validate required live-check inputs for delete flow
+      ansible.builtin.assert:
+        that:
+          - (lookup('env', 'OCP_COMPLIANCE_PROFILES_PROFILE_NAME') | default('', true) | length) > 0
+        fail_msg: >-
+          Set OCP_COMPLIANCE_PROFILES_PROFILE_NAME for live-check delete
+          execution.
+      when:
+        - ocp_compliance_profiles_enable_live_checks
+        - ocp_compliance_profiles_manage_profile_env == 'delete'
+
+    - name: Run ocp_compliance_profiles role with live checks enabled
+      ansible.builtin.include_role:
+        name: infra.ado.ocp_compliance_profiles
+      vars:
+        ocp_compliance_profiles_manage_profile: "{{ ocp_compliance_profiles_manage_profile_env }}"
+        ocp_compliance_profiles_profile: >-
+          {{ lookup('env', 'OCP_COMPLIANCE_PROFILES_PROFILE_NAME') | default('', true) }}
+        ocp_compliance_profiles_profile_title: >-
+          {{ lookup('env', 'OCP_COMPLIANCE_PROFILES_PROFILE_TITLE') | default('', true) }}
+        ocp_compliance_profiles_profile_description: >-
+          {{ lookup('env', 'OCP_COMPLIANCE_PROFILES_PROFILE_DESCRIPTION') | default('', true) }}
+        ocp_compliance_profiles_operator_namespace: >-
+          {{ lookup('env', 'OCP_COMPLIANCE_PROFILES_OPERATOR_NAMESPACE') | default('openshift-compliance', true) }}
+      when: ocp_compliance_profiles_enable_live_checks
