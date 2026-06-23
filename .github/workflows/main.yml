@@ -130,10 +130,12 @@ jobs:
       - name: Install Ansible collections
         run: |
           set -euo pipefail
+          collections_path="${{ github.workspace }}/.ansible/collections"
+          mkdir -p "$collections_path"
           if [ -f collections/requirements.yml ]; then
             attempts=3
             for attempt in $(seq 1 "$attempts"); do
-              if ansible-galaxy collection install -r collections/requirements.yml; then
+              if ansible-galaxy collection install -r collections/requirements.yml -p "$collections_path"; then
                 break
               fi
               if [ "$attempt" -eq "$attempts" ]; then
@@ -146,9 +148,12 @@ jobs:
             done
           fi
         env:
+          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
           ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
 
       - name: Run ansible-lint
+        env:
+          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
         run: |
           ansible --version
           ansible-lint --version
