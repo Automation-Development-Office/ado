@@ -1,0 +1,10 @@
+---
+- name: Destroy - ocp_console_banner scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Destroy step is intentionally a no-op
+      ansible.builtin.debug:
+        msg: "No infrastructure teardown required for ocp_console_banner."
