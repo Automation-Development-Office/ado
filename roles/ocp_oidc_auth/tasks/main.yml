@@ -1,0 +1,269 @@
+---
+# ==========================================
+# OpenShift OIDC Auth (Keycloak/RHBK)
+# - Uses ocp_rhbk_hostname + ocp_rhbk_realm resolved by component: rhbk
+# - Uses openshift_oidc_auth dict flattened by resolve_component
+# - Fetches client secret from Keycloak (no hardcode)
+# - Inserts OIDC provider FIRST, preserves all others
+# - Does not delete or modify other providers besides moving/refreshing OIDC
+# ==========================================
+
+# -----------------------------
+# Validate required inputs
+# -----------------------------
+- name: Assert required OIDC inputs are set
+  ansible.builtin.assert:
+    that:
+      - ocp_rhbk_hostname is defined
+      - ocp_rhbk_realm is defined
+      - ocp_rhbk_admin_user is defined
+      - ocp_rhbk_admin_password is defined
+      - openshift_oidc_auth is defined
+      - openshift_oidc_auth.keycloak_client_id is defined
+      - openshift_oidc_auth.openshift_oidc_idp_name is defined
+      - (ocp_rhbk_hostname | string | length) > 0
+      - (ocp_rhbk_realm | string | length) > 0
+      - (ocp_rhbk_admin_user | string | length) > 0
+      - (ocp_rhbk_admin_password | string | length) > 0
+      - (openshift_oidc_auth.keycloak_client_id | string | length) > 0
+      - (openshift_oidc_auth.openshift_oidc_idp_name | string | length) > 0
+    fail_msg: >
+      Missing required vars.
+      Required:
+        - ocp_rhbk_hostname
+        - ocp_rhbk_realm
+        - ocp_rhbk_admin_user
+        - ocp_rhbk_admin_password
+        - openshift_oidc_auth.keycloak_client_id
+        - openshift_oidc_auth.openshift_oidc_idp_name
+
+# -----------------------------
+# Build Keycloak endpoints
+# -----------------------------
+- name: Build Keycloak URLs
+  ansible.builtin.set_fact:
+    ocp_oidc_auth_keycloak_base: "https://{{ ocp_rhbk_hostname }}"
+    ocp_oidc_auth_issuer: "https://{{ ocp_rhbk_hostname }}/realms/{{ ocp_rhbk_realm }}"
+    ocp_oidc_auth_idp_secret_name: "{{ openshift_oidc_auth.openshift_oidc_idp_name | lower }}-oidc-secret"
+  no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
+
+# ==========================================================
+# Fetch Keycloak client secret
+# Prefer module, fallback to REST if module doesn't return it
+# ==========================================================
+
+- name: Try to get Keycloak client secret via module
+  community.general.keycloak_clientsecret_info:
+    auth_keycloak_url: "{{ ocp_oidc_auth_keycloak_base }}"
+    auth_realm: "{{ auth_realm | default('master') }}"
+    auth_username: "{{ auth_username | default(ocp_rhbk_admin_user) }}"
+    auth_password: "{{ auth_password | default(ocp_rhbk_admin_password) }}"
+    realm: "{{ ocp_rhbk_realm }}"
+    client_id: "{{ openshift_oidc_auth.keycloak_client_id }}"
+    validate_certs: "{{ ocp_rhbk_verify_ssl | default(false) | bool }}"
+  register: ocp_oidc_auth_client_secret_raw
+  delegate_to: localhost
+  no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
+
+- name: Extract Keycloak client secret from module result
+  ansible.builtin.set_fact:
+    ocp_oidc_auth_client_secret_value: >-
+      {{
+        ocp_oidc_auth_client_secret_raw.secret
+          | default(ocp_oidc_auth_client_secret_raw.clientsecret)
+          | default(ocp_oidc_auth_client_secret_raw.value)
+          | default(ocp_oidc_auth_client_secret_raw.clientSecret)
+          | default('')
+      }}
+  no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
+
+# ---- Fallback path: use Keycloak REST if module didn't give a secret ----
+- name: Get admin access token (fallback path)
+  ansible.builtin.uri:
+    url: "{{ ocp_oidc_auth_keycloak_base }}/realms/{{ auth_realm | default('master') }}/protocol/openid-connect/token"
+    method: POST
+    validate_certs: "{{ ocp_rhbk_verify_ssl | default(false) | bool }}"
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+    body_format: form-urlencoded
+    body:
+      grant_type: password
+      client_id: "{{ auth_client_id | default('admin-cli') }}"
+      username: "{{ auth_username | default(ocp_rhbk_admin_user) }}"
+      password: "{{ auth_password | default(ocp_rhbk_admin_password) }}"
+  register: ocp_oidc_auth_token_resp
+  when: (ocp_oidc_auth_client_secret_value | string | length) == 0
+  no_log: true
+
+- name: Lookup client UUID by clientId (fallback path)
+  ansible.builtin.uri:
+    url: >-
+      {{ ocp_oidc_auth_keycloak_base }}/admin/realms/
+      {{ ocp_rhbk_realm }}/clients?clientId=
+      {{ openshift_oidc_auth.keycloak_client_id }}
+    method: GET
+    validate_certs: "{{ ocp_rhbk_verify_ssl | default(false) | bool }}"
+    headers:
+      Authorization: "Bearer {{ ocp_oidc_auth_token_resp.json.access_token }}"
+  register: ocp_oidc_auth_clients_lookup
+  when: (ocp_oidc_auth_client_secret_value | string | length) == 0
+  no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
+
+- name: Assert client exists (fallback path)
+  ansible.builtin.assert:
+    that:
+      - ocp_oidc_auth_clients_lookup.json is defined
+      - (ocp_oidc_auth_clients_lookup.json | length) > 0
+      - ocp_oidc_auth_clients_lookup.json[0].id is defined
+    fail_msg: "Keycloak client '{{ openshift_oidc_auth.keycloak_client_id }}' not found in realm '{{ ocp_rhbk_realm }}'."
+  when: (ocp_oidc_auth_client_secret_value | string | length) == 0
+  no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
+
+- name: Get client secret via REST (fallback path)
+  ansible.builtin.uri:
+    url: >-
+      {{ ocp_oidc_auth_keycloak_base }}/admin/realms/
+      {{ ocp_rhbk_realm }}/clients/
+      {{ ocp_oidc_auth_clients_lookup.json[0].id }}/client-secret
+    method: GET
+    validate_certs: "{{ ocp_rhbk_verify_ssl | default(false) | bool }}"
+    headers:
+      Authorization: "Bearer {{ ocp_oidc_auth_token_resp.json.access_token }}"
+  register: ocp_oidc_auth_secret_resp
+  when: (ocp_oidc_auth_client_secret_value | string | length) == 0
+  no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
+
+- name: Set secret value from REST (fallback path)
+  ansible.builtin.set_fact:
+    ocp_oidc_auth_client_secret_value: "{{ ocp_oidc_auth_secret_resp.json.value | default('') }}"
+  when: (ocp_oidc_auth_client_secret_value | string | length) == 0
+  no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
+
+- name: Assert client secret was retrieved
+  ansible.builtin.assert:
+    that:
+      - (ocp_oidc_auth_client_secret_value | string | length) > 0
+    fail_msg: >-
+      Failed to retrieve Keycloak client secret for client_id={{ openshift_oidc_auth.keycloak_client_id }} in realm={{ ocp_rhbk_realm }}.
+      Ensure the client is confidential (public_client: false) and has a secret.
+  no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
+
+# -----------------------------
+# Create/update OpenShift secret
+# -----------------------------
+- name: Create OpenShift OIDC client secret
+  kubernetes.core.k8s:
+    state: present
+    namespace: openshift-config
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ ocp_oidc_auth_idp_secret_name }}"
+      type: Opaque
+      stringData:
+        clientSecret: "{{ ocp_oidc_auth_client_secret_value }}"
+  no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
+
+# -----------------------------
+# Get existing OAuth config
+# -----------------------------
+- name: Get current OAuth config
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: OAuth
+    name: "{{ openshift_oidc_auth.openshift_oauth_resource_name | default('cluster') }}"
+  register: ocp_oidc_auth_oauth_config
+
+- name: Extract current identity providers
+  ansible.builtin.set_fact:
+    ocp_oidc_auth_existing_providers: "{{ ocp_oidc_auth_oauth_config.resources[0].spec.identityProviders | default([]) }}"
+
+# -----------------------------
+# Define OIDC provider
+# -----------------------------
+- name: Define OIDC provider
+  ansible.builtin.set_fact:
+    ocp_oidc_auth_provider_def:
+      name: "{{ openshift_oidc_auth.openshift_oidc_idp_name }}"
+      mappingMethod: "{{ openshift_oidc_auth.openshift_oidc_mapping_method | default('claim') }}"
+      type: OpenID
+      openID:
+        issuer: "{{ ocp_oidc_auth_issuer }}"
+        clientID: "{{ openshift_oidc_auth.keycloak_client_id }}"
+        clientSecret:
+          name: "{{ ocp_oidc_auth_idp_secret_name }}"
+        extraScopes: "{{ openshift_oidc_auth.extra_scopes | default(['email', 'profile']) }}"
+        claims:
+          preferredUsername:
+            - "{{ openshift_oidc_auth.claims.preferred_username | default('preferred_username') }}"
+          name:
+            - "{{ openshift_oidc_auth.claims.name | default('name') }}"
+          email:
+            - "{{ openshift_oidc_auth.claims.email | default('email') }}"
+
+# -----------------------------
+# Build desired provider list:
+# - OIDC FIRST
+# - Preserve all others in existing order
+# - Replace existing OIDC def if present
+# -----------------------------
+- name: Build desired identity provider list (OIDC first, preserve rest)
+  ansible.builtin.set_fact:
+    ocp_oidc_auth_updated_providers: >-
+      {{
+        [ocp_oidc_auth_provider_def]
+        + (
+            ocp_oidc_auth_existing_providers
+            | rejectattr('name', 'equalto', openshift_oidc_auth.openshift_oidc_idp_name)
+            | list
+          )
+      }}
+
+- name: Determine if OAuth config needs update
+  ansible.builtin.set_fact:
+    ocp_oidc_auth_needs_update: "{{ ocp_oidc_auth_updated_providers != ocp_oidc_auth_existing_providers }}"
+
+# -----------------------------
+# Update OAuth config if needed
+# -----------------------------
+- name: Update OAuth config with OIDC provider
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: config.openshift.io/v1
+      kind: OAuth
+      metadata:
+        name: "{{ openshift_oidc_auth.openshift_oauth_resource_name | default('cluster') }}"
+      spec:
+        identityProviders: "{{ ocp_oidc_auth_updated_providers }}"
+  when: ocp_oidc_auth_needs_update
+
+# -----------------------------
+# Wait for authentication rollout
+# -----------------------------
+- name: Wait for authentication operator rollout
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: ClusterOperator
+    name: authentication
+  register: ocp_oidc_auth_operator
+  until: >
+    ocp_oidc_auth_operator.resources is defined and
+    ocp_oidc_auth_operator.resources | length > 0 and
+    (
+      ocp_oidc_auth_operator.resources[0].status.conditions
+      | selectattr('type','equalto','Progressing')
+      | list | first
+    ).status | default('False') == 'False'
+  retries: 30
+  delay: 10
+  changed_when: false
+
+# -----------------------------
+# Small pause for console sync
+# -----------------------------
+- name: Pause for OAuth provider propagation
+  ansible.builtin.pause:
+    seconds: 25
+  when: ocp_oidc_auth_needs_update

@@ -1,6 +1,0 @@
----
-- name: Test role
-  hosts: localhost
-  remote_user: root
-  roles:
-    - openshift_tools_ensure_alt_routes_from_list

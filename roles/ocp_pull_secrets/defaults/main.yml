@@ -1,0 +1,12 @@
+---
+# Target secret
+ocp_pull_secrets_name: pull-secret
+ocp_pull_secrets_namespace: openshift-config
+
+# What to do: present | absent
+
+# Registry entry
+ocp_pull_secrets_registry_host: ""
+ocp_pull_secrets_registry_username: ""
+ocp_pull_secrets_registry_password: ""
+ocp_pull_secrets_registry_email: ""
