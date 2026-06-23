@@ -1,0 +1,8 @@
+# Scenarios excluded from automatic Molecule runs on pull_request.
+#
+# One scenario name or shell glob per line. Lines starting with # are ignored.
+# Matched scenarios are skipped in PR CI but can still be run locally or via
+# workflow_dispatch (enable "Run OpenShift (ocp_*) scenarios").
+#
+# OpenShift scenarios require K8S_AUTH_* credentials and a reachable cluster.
+ocp_*
