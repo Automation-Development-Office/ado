@@ -1,0 +1,17 @@
+---
+- name: Wait for Compliance Operator pods to be running
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ ocp_compliance_install_operator_namespace }}"
+  register: ocp_compliance_install_pods
+
+- name: Check for running Compliance Operator pods
+  ansible.builtin.set_fact:
+    ocp_compliance_install_running: >-
+      {{ ocp_compliance_install_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0 }}
+
+- name: Wait until at least one Compliance Operator pod is running
+  ansible.builtin.wait_for:
+    timeout: 600
+    path: "/dev/null"
+  when: ocp_compliance_install_running

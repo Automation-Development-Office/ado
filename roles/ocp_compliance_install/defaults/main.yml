@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later-0
+---
+# defaults file for ocp_compliance_install
+ocp_compliance_install_operator_namespace: openshift-compliance
