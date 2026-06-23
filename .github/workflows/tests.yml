@@ -20,7 +20,35 @@ jobs:
   build-import:
     uses: ansible/ansible-content-actions/.github/workflows/build_import.yaml@main
   ansible-lint:
-    uses: ansible/ansible-content-actions/.github/workflows/ansible_lint.yaml@main
+    name: Ansible Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install ansible-lint
+        run: |
+          pip install ansible-lint
+          ansible-lint --version
+
+      - name: Install Ansible collections
+        run: |
+          collections_path="${{ github.workspace }}/.ansible/collections"
+          mkdir -p "$collections_path"
+          ansible-galaxy collection install -r collections/requirements.yml -p "$collections_path"
+        env:
+          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
+          ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
+
+      - name: Run ansible-lint
+        env:
+          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
+        run: ansible-lint --offline
   readme-format:
     name: README Format Verification
     runs-on: ubuntu-latest

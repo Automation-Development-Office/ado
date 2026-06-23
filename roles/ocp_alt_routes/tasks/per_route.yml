@@ -1,0 +1,152 @@
+---
+# per_route.yml
+# Input: _p (dict) with at least:
+#   _p.namespace, _p.name, _p.host
+#   _p.service (string)
+#   _p.targetPort (string)
+#   _p.tls_termination (string)
+#   _p.tls_insecure_policy (string)
+#   _p.wildcard_policy (string)
+#
+# Also uses:
+#   app_domain, app_domain_alt
+#   alt_routes_print_only (bool)
+#   alt_routes_suffix (string) default "-alt"
+#   alt_routes_force_replace (bool) default false
+
+- name: Ensure_Alt_Routes_From_List Per_Route Derive Alt Route Fields
+  ansible.builtin.set_fact:
+    ocp_alt_routes_alt_name: "{{ _p.name ~ alt_routes_suffix }}"
+    ocp_alt_routes_ns: "{{ _p.namespace }}"
+    ocp_alt_routes_svc: "{{ _p.service | default('') }}"
+    ocp_alt_routes_port: "{{ _p.targetPort | default('') }}"
+    ocp_alt_routes_wildcard: "{{ _p.wildcard_policy | default('None') }}"
+    ocp_alt_routes_labels: "{{ _p.labels | default({}) }}"
+    ocp_alt_routes_path: "{{ _p.path | default('') }}"
+    ocp_alt_routes_alt_host: >-
+      {{
+        (_p.host | default(''))
+          | regex_replace(((app_domain | regex_escape) ~ '$'), app_domain_alt)
+      }}
+    ocp_alt_routes_tls: >-
+      {{
+        {
+          "termination": (_p.tls_termination | default('')),
+          "insecureEdgeTerminationPolicy": (_p.tls_insecure_policy | default(''))
+        }
+      }}
+
+- name: Ensure_Alt_Routes_From_List Per_Route Validate Computed Essentials
+  ansible.builtin.assert:
+    that:
+      - (ocp_alt_routes_ns  string  length) > 0
+      - (ocp_alt_routes_alt_name  string  length) > 0
+      - (ocp_alt_routes_alt_host  string  length) > 0
+      - (ocp_alt_routes_svc  string  length) > 0
+    fail_msg: >-
+      Candidate missing required fields or alt host rewrite failed.
+      candidate={{ _p }}
+
+- name: Ensure_Alt_Routes_From_List Per_Route Build ALT Route Definition (Pure Dict)
+  ansible.builtin.set_fact:
+    ocp_alt_routes_alt_route_def: >-
+      {{
+        {
+          "apiVersion": "route.openshift.io/v1",
+          "kind": "Route",
+          "metadata": {
+            "name": ocp_alt_routes_alt_name,
+            "namespace": ocp_alt_routes_ns,
+            "labels": ocp_alt_routes_labels
+          },
+          "spec": (
+            {
+              "host": ocp_alt_routes_alt_host,
+              "to": {"kind": "Service", "name": ocp_alt_routes_svc, "weight": 100},
+              "wildcardPolicy": ocp_alt_routes_wildcard
+            }
+            | combine(
+                ((ocp_alt_routes_tls.termination | default('')) | string | length > 0)
+                | ternary({"tls": ocp_alt_routes_tls}, {}),
+                recursive=True
+              )
+            | combine(
+                ((ocp_alt_routes_path | string | length) > 0)
+                | ternary({"path": ocp_alt_routes_path}, {}),
+                recursive=True
+              )
+            | combine(
+                ((ocp_alt_routes_port | string | length) > 0)
+                | ternary({"port": {"targetPort": ocp_alt_routes_port}}, {}),
+                recursive=True
+              )
+          )
+        }
+      }}
+
+- name: Ensure_Alt_Routes_From_List Per_Route Show Planned ALT Route (Dry-Run)
+  ansible.builtin.debug:
+    msg:
+      - "ALT route: {{ ocp_alt_routes_ns }}/{{ ocp_alt_routes_alt_name }}"
+      - "  host: {{ ocp_alt_routes_alt_host }}"
+      - "  svc:  {{ ocp_alt_routes_svc }}"
+      - "  port: {{ ocp_alt_routes_port }}"
+      - "  tls termination: {{ ocp_alt_routes_tls.termination | default('') }}"
+      - "  tls insecureEdgeTerminationPolicy: {{ ocp_alt_routes_tls.insecureEdgeTerminationPolicy | default('') }}"
+      - "  wildcardPolicy: {{ ocp_alt_routes_wildcard }}"
+  when: alt_routes_print_only  bool
+
+- name: Ensure_Alt_Routes_From_List Per_Route Get Existing ALT Route (If Any)
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ ocp_alt_routes_ns }}"
+    name: "{{ ocp_alt_routes_alt_name }}"
+  register: ocp_alt_routes_existing_alt_route
+  when: not (alt_routes_print_only | bool)
+
+- name: Ensure_Alt_Routes_From_List Per_Route Decide If ALT Must Be Replaced
+  ansible.builtin.set_fact:
+    ocp_alt_routes_replace_alt_route: >-
+      {{
+        (alt_routes_force_replace | bool)
+        or (
+          (ocp_alt_routes_existing_alt_route.resources | length) > 0 and (
+            (ocp_alt_routes_existing_alt_route.resources[0].spec.host
+             | default('')) != ocp_alt_routes_alt_host or
+            (ocp_alt_routes_existing_alt_route.resources[0].spec.to.name
+             | default('')) != ocp_alt_routes_svc or
+            ((ocp_alt_routes_existing_alt_route.resources[0].spec.port.targetPort
+             | default('')) != ocp_alt_routes_port) or
+            (
+              (ocp_alt_routes_existing_alt_route.resources[0].spec.tls.termination
+               | default('')) !=
+              (ocp_alt_routes_tls.termination | default(''))
+            ) or
+            (
+              (ocp_alt_routes_existing_alt_route.resources[0].spec.tls.insecureEdgeTerminationPolicy
+               | default('')) !=
+              (ocp_alt_routes_tls.insecureEdgeTerminationPolicy | default(''))
+            )
+          )
+        )
+      }}
+  when: not (alt_routes_print_only | bool)
+
+- name: Ensure_Alt_Routes_From_List Per_Route Delete ALT route if wrong
+  kubernetes.core.k8s:
+    state: absent
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ ocp_alt_routes_ns }}"
+    name: "{{ ocp_alt_routes_alt_name }}"
+  when:
+    - not (alt_routes_print_only  bool)
+    - (ocp_alt_routes_replace_alt_route  bool)
+
+- name: Ensure_Alt_Routes_From_List Per_Route Ensure ALT Route Exists
+  kubernetes.core.k8s:
+    state: present
+    namespace: "{{ ocp_alt_routes_ns }}"
+    definition: "{{ ocp_alt_routes_alt_route_def }}"
+  when: not (alt_routes_print_only  bool)

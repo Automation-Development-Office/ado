@@ -100,6 +100,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_ocp_scenarios:
+        description: "Run all ocp_* Molecule scenarios (requires OpenShift cluster secrets)"
+        required: false
+        default: false
+        type: boolean
 
 env:
   NAMESPACE: ado
@@ -125,10 +130,12 @@ jobs:
       - name: Install Ansible collections
         run: |
           set -euo pipefail
+          collections_path="${{ github.workspace }}/.ansible/collections"
+          mkdir -p "$collections_path"
           if [ -f collections/requirements.yml ]; then
             attempts=3
             for attempt in $(seq 1 "$attempts"); do
-              if ansible-galaxy collection install -r collections/requirements.yml; then
+              if ansible-galaxy collection install -r collections/requirements.yml -p "$collections_path"; then
                 break
               fi
               if [ "$attempt" -eq "$attempts" ]; then
@@ -141,9 +148,12 @@ jobs:
             done
           fi
         env:
+          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
           ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
 
       - name: Run ansible-lint
+        env:
+          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
         run: |
           ansible --version
           ansible-lint --version
@@ -304,6 +314,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          EXCLUDE_FILE="extensions/molecule/pr_exclude.txt"
+
+          is_pr_excluded() {
+            local scenario="$1"
+            [[ ! -f "$EXCLUDE_FILE" ]] && return 1
+            while IFS= read -r pattern || [[ -n "$pattern" ]]; do
+              pattern="${pattern%%#*}"
+              pattern="$(echo "$pattern" | xargs)"
+              [[ -z "$pattern" ]] && continue
+              [[ "$scenario" == $pattern ]] && return 0
+            done < "$EXCLUDE_FILE"
+            return 1
+          }
+
+          add_unique_dir() {
+            local candidate="$1"
+            local existing
+            for existing in "${dirs[@]:-}"; do
+              [[ "$existing" == "$candidate" ]] && return 0
+            done
+            dirs+=("$candidate")
+          }
+
           dirs=()
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             declare -A checks=(
@@ -325,12 +358,30 @@ jobs:
             )
             for scenario in "${!checks[@]}"; do
               if [[ "${checks[$scenario]}" == "true" ]]; then
-                dirs+=("extensions/molecule/$scenario")
+                add_unique_dir "extensions/molecule/$scenario"
               fi
             done
-            IFS=$'\n' dirs=($(sort <<< "${dirs[*]}"))
+            if [[ "${{ github.event.inputs.run_ocp_scenarios }}" == "true" ]]; then
+              while IFS= read -r dir; do
+                add_unique_dir "$dir"
+              done < <(
+                find extensions/molecule -mindepth 2 -maxdepth 2 -type f -name molecule.yml -printf '%h\n' \
+                  | awk -F/ '$NF ~ /^ocp_/' \
+                  | sort
+              )
+            fi
+            IFS=$'\n' dirs=($(sort <<< "${dirs[*]:-}"))
           else
-            mapfile -t dirs < <(find extensions/molecule -mindepth 2 -maxdepth 2 -type f -name molecule.yml -printf '%h\n' | sort)
+            while IFS= read -r dir; do
+              scenario="$(basename "$dir")"
+              if is_pr_excluded "$scenario"; then
+                echo "Skipping PR scenario (pr_exclude.txt): $scenario" >&2
+                continue
+              fi
+              add_unique_dir "$dir"
+            done < <(
+              find extensions/molecule -mindepth 2 -maxdepth 2 -type f -name molecule.yml -printf '%h\n' | sort
+            )
           fi
           if [ ${#dirs[@]} -eq 0 ]; then
             echo "No Molecule scenarios found under extensions/molecule"

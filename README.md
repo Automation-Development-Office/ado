@@ -135,6 +135,14 @@ The `Ansible Collection CI/CD` workflow supports manual execution through `workf
 - Checked scenarios are included in the test matrix.
 - Matrix jobs run in parallel.
 
+Pull requests run Molecule for all scenarios under `extensions/molecule/` except
+those listed in `extensions/molecule/pr_exclude.txt` (currently all `ocp_*`
+scenarios, which need a live OpenShift cluster).
+
+To run OpenShift scenarios in CI, use **Ansible Collection CI/CD** → **Run workflow** and enable
+**Run all ocp_* Molecule scenarios** (configure `K8S_AUTH_HOST`, `K8S_AUTH_API_KEY`, and
+`K8S_AUTH_VERIFY_SSL` as repository secrets first).
+
 Pull requests also run the standalone **Security Check** workflow automatically.
 Results appear in the workflow job summary and the `security-check-report` artifact. This check is
 not enforced in the PR gate yet. You can also re-run it from the **Security Check** workflow page.
