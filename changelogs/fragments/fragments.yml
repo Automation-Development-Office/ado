@@ -1,0 +1,2 @@
+breaking changes: 
+- aap_build_ee - created a version variable to allow for version pinning
