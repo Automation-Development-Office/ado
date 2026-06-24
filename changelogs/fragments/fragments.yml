@@ -1,4 +1,4 @@
-breaking changes: 
+breaking_changes: 
   - aap_build_ee - created a version variable to allow for version pinning
   - satellite_install - Renamed role variables from ``platform_satellite_install_*`` to ``satellite_install_*``.
 minor_changes:
