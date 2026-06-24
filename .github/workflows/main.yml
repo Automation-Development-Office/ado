@@ -112,6 +112,22 @@ env:
 
 jobs:
   # Quality stage
+  changelog:
+    name: Changelog
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'pull_request' &&
+      !contains(github.event.pull_request.labels.*.name, 'skip-changelog')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ github.event.pull_request.head.sha }}"
+          fetch-depth: 0
+
+      - name: Validate changelog
+        uses: ansible/ansible-content-actions/.github/actions/ansible_validate_changelog@main
+
   linting:
     name: Ansible Lint
     runs-on: ubuntu-latest
