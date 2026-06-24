@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """Script to check if a PR has a correct changelog fragment."""
 
 import argparse
