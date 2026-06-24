@@ -1,0 +1,4 @@
+breaking_changes:
+  - satellite_install - Renamed role variables from ``platform_satellite_install_*`` to ``satellite_install_*``.
+minor_changes:
+  - satellite_install - Added reboot handler triggered after IPv6 kernel argument updates.
