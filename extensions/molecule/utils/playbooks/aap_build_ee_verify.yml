@@ -31,3 +31,18 @@
           - aap_build_ee_definition_stat.stat.exists
           - aap_build_ee_requirements_stat.stat.exists
           - aap_build_ee_mock_marker_stat.stat.exists
+
+    - name: Read generated requirements definition
+      ansible.builtin.slurp:
+        path: "{{ aap_build_ee_context }}/requirements.yml"
+      register: aap_build_ee_requirements_raw
+
+    - name: Set generated requirements content
+      ansible.builtin.set_fact:
+        aap_build_ee_requirements_content: "{{ aap_build_ee_requirements_raw.content | b64decode }}"
+
+    - name: Assert generated requirements contain pinned version
+      ansible.builtin.assert:
+        that:
+          - aap_build_ee_requirements_content is search('name:\\s+\"ansible\\.posix\"', multiline=True)
+          - aap_build_ee_requirements_content is search('version:\\s+\"1\\.5\\.4\"', multiline=True)

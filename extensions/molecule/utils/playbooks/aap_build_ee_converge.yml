@@ -17,6 +17,8 @@
     aap_build_ee_source_image_repository: quay.io/ansible
     aap_build_ee_collections:
       - ansible.posix
+    aap_build_ee_collection_versions:
+      ansible.posix: "1.5.4"
     aap_build_ee_collection_files:
       - "{{ aap_build_ee_local_tarball }}"
     aap_build_ee_builder_executable: "{{ aap_build_ee_mock_builder }}"

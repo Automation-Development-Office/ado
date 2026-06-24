@@ -7,4 +7,5 @@ aap_build_ee_build_context: /tmp/aap_build_ee
 aap_build_ee_builder_executable: ansible-builder
 aap_build_ee_package_manager_path: /usr/bin/microdnf
 aap_build_ee_collections: []
+aap_build_ee_collection_versions: {}
 aap_build_ee_collection_files: []

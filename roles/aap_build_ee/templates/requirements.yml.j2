@@ -2,6 +2,9 @@
 collections:
 {% for collection_name in aap_build_ee_collections %}
   - name: "{{ collection_name }}"
+{% if aap_build_ee_collection_versions[collection_name] is defined and (aap_build_ee_collection_versions[collection_name] | string | trim | length) > 0 %}
+    version: "{{ aap_build_ee_collection_versions[collection_name] }}"
+{% endif %}
 {% endfor %}
 {% for collection_file in aap_build_ee_collection_files %}
   - name: "{{ 'collection-artifacts/' ~ (collection_file | basename) }}"

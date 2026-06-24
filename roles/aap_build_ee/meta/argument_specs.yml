@@ -21,6 +21,10 @@ argument_specs:
         elements: str
         description: List of Ansible collections to include in the built EE image.
         default: []
+      aap_build_ee_collection_versions:
+        type: dict
+        description: Optional mapping of collection name to version constraint.
+        default: {}
       aap_build_ee_collection_files:
         type: list
         elements: str

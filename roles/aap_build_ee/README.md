@@ -9,6 +9,7 @@ Build a custom Ansible **Execution Environment (EE)** image with `ansible-builde
 ---
 
 ## Role Author
+
 - Automation Development Office
 
 ---
@@ -24,10 +25,11 @@ Build a custom Ansible **Execution Environment (EE)** image with `ansible-builde
 ## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
+| -------- | ----------- |
 | `aap_build_ee_base_ee` | Base EE image name and tag (for example `ee-minimal-rhel9:latest`). **Required.** |
 | `aap_build_ee_source_image_repository` | Source image repository path used with the base EE image name (for example `registry.redhat.io/ansible-automation-platform-24`). **Required.** |
 | `aap_build_ee_collections` | List of Ansible collections to include in the EE image. Default: `[]`. |
+| `aap_build_ee_collection_versions` | Optional map of collection name to version/constraint used in generated `requirements.yml` (for example `ansible.posix: "1.5.4"` or `community.general: ">=9.0.0,<11.0.0"`). Default: `{}`. |
 | `aap_build_ee_collection_files` | List of local built collection artifact files (`*.tar.gz`). The role copies them into build context and installs them with `type: file`. Default: `[]`. |
 | `aap_build_ee_output_image` | Output image name and tag for the built EE. Default: `custom-ee:latest`. |
 | `aap_build_ee_build_context` | Build context directory used by `ansible-builder`. Default: `/tmp/aap_build_ee`. |
@@ -46,6 +48,7 @@ At least one of `aap_build_ee_collections` or
 ## 🚀 Role Usage
 
 ### Build a custom EE image
+
 ```yaml
 - hosts: localhost
   gather_facts: false
@@ -61,6 +64,7 @@ At least one of `aap_build_ee_collections` or
 ```
 
 ### Build with a custom context directory
+
 ```yaml
 - hosts: localhost
   gather_facts: false
@@ -75,7 +79,27 @@ At least one of `aap_build_ee_collections` or
         aap_build_ee_output_image: localhost/custom-ee:demo
 ```
 
+### Build with pinned collection versions
+
+```yaml
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: infra.ado.aap_build_ee
+      vars:
+        aap_build_ee_base_ee: ee-minimal-rhel9:latest
+        aap_build_ee_source_image_repository: registry.redhat.io/ansible-automation-platform-24
+        aap_build_ee_collections:
+          - ansible.posix
+          - community.general
+        aap_build_ee_collection_versions:
+          ansible.posix: "1.5.4"
+          community.general: ">=9.0.0,<11.0.0"
+        aap_build_ee_output_image: localhost/custom-ee:versioned
+```
+
 ### Build using a local collection artifact
+
 ```yaml
 - hosts: localhost
   gather_facts: false
@@ -136,8 +160,6 @@ export ANSIBLE_REMOTE_TMP="$PWD/.ansible/tmp"
 ```
 
 ---
-
-
 
 ## 📁 Role Structure
 
