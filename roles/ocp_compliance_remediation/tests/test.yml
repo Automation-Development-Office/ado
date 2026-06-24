@@ -4,4 +4,4 @@
   hosts: localhost
   remote_user: root
   roles:
-    - openshift_configure_compliance_remidiation_acs
+    - ocp_compliance_remediation
