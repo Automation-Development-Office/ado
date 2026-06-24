@@ -1,0 +1,2 @@
+minor_changes:
+  - aap_build_ee - Added ``aap_build_ee_collection_versions`` to pin collection versions in generated ``requirements.yml``.
