@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# defaults file for aap_configuration
+
+# defaults file for aap_configuration
+aap_configuration_namespace: "{{ lookup('env', 'AAP_CONFIGURATION_NAMESPACE') }}"
+aap_configuration_secret: "{{ lookup('env', 'AAP_CONFIGURATION_SECRET') }}"
+aap_configuration_configmap: "{{ lookup('env', 'AAP_CONFIGURATION_CONFIGMAP') }}"
+aap_configuration_serviceaccount: "{{ lookup('env', 'AAP_CONFIGURATION_SERVICEACCOUNT') }}"
+aap_configuration_role: "{{ lookup('env', 'AAP_CONFIGURATION_ROLE') }}"
+aap_configuration_rolebinding: "{{ lookup('env', 'AAP_CONFIGURATION_ROLEBINDING') }}"

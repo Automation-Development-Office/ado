@@ -1,0 +1,3 @@
+---
+ocp_wait_operator_retries: 30
+ocp_wait_operator_delay: 10

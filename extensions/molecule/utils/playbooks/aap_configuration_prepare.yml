@@ -1,0 +1,67 @@
+---
+- name: Prepare integration_aap_configuration scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    aap_configuration_scenario_dir: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}"
+    aap_configuration_test_root: "{{ aap_configuration_scenario_dir }}"
+    aap_configuration_mock_collection_root: >-
+      {{ aap_configuration_test_root }}/mock_collections/ansible_collections/infra/aap_configuration
+    aap_configuration_mock_dispatch_tasks: >-
+      {{ aap_configuration_mock_collection_root }}/roles/dispatch/tasks/main.yml
+
+  tasks:
+    - name: Ensure integration test directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ aap_configuration_test_root }}"
+        - "{{ aap_configuration_mock_collection_root }}/roles/dispatch/tasks"
+        - "{{ aap_configuration_mock_collection_root }}/roles/dispatch/meta"
+        - "{{ playbook_dir }}/configs"
+
+    - name: Create mock infra.aap_configuration collection metadata
+      ansible.builtin.copy:
+        dest: "{{ aap_configuration_mock_collection_root }}/galaxy.yml"
+        mode: "0644"
+        content: |
+          namespace: infra
+          name: aap_configuration
+          version: 0.0.1
+          readme: README.md
+          authors:
+            - Molecule mock
+          description: Mock collection for aap_configuration Molecule tests
+          license:
+            - GPL-3.0-or-later
+
+    - name: Create mock dispatch role metadata
+      ansible.builtin.copy:
+        dest: "{{ aap_configuration_mock_collection_root }}/roles/dispatch/meta/main.yml"
+        mode: "0644"
+        content: |
+          ---
+          galaxy_info:
+            author: Molecule mock
+            description: Mock dispatch role for aap_configuration Molecule tests
+            license: GPL-3.0-or-later
+            min_ansible_version: "2.16"
+          dependencies: []
+
+    - name: Create mock dispatch role tasks
+      ansible.builtin.copy:
+        src: ../files/aap_configuration_mock_dispatch_tasks.yml
+        dest: "{{ aap_configuration_mock_dispatch_tasks }}"
+        mode: "0644"
+
+    - name: Create example AAP configuration fixture
+      ansible.builtin.copy:
+        dest: "{{ playbook_dir }}/configs/aap_configuration.example.yml"
+        mode: "0644"
+        content: |
+          ---
+          aap_configuration_example_setting: molecule-test

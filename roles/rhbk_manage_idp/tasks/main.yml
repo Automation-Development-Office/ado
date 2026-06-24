@@ -1,0 +1,7 @@
+- name: Create RHBK identity provider
+  ansible.builtin.import_tasks: rhbk_manage_idp.yml
+  when: state == "present"
+
+- name: Delete RHBK identity provider
+  ansible.builtin.import_tasks: rhbk_delete_idp.yml
+  when: state == "absent"

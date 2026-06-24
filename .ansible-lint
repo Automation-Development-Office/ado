@@ -47,3 +47,8 @@ mock_modules:
   - redhat.rhbk.keycloak_user_group_mapping
   - redhat.rhbk.keycloak_client_scope
   - redhat.rhbk.keycloak_client_scope_group_mapper
+  - kubernetes.core.k8s
+  - kubernetes.core.k8s_info
+  - kubernetes.core.k8s_exec 
+  - kubernetes.core.helm_repository 
+  - kubernetes.core.helm 

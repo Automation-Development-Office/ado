@@ -1,0 +1,58 @@
+---
+driver:
+  name: podman
+
+platforms:
+  - name: rhel-patching-el8
+    image: registry.access.redhat.com/ubi8/ubi:latest
+    pre_build_image: true
+    command: sleep infinity
+    user: root
+    groups:
+      - el8
+
+  - name: rhel-patching-el9
+    image: registry.access.redhat.com/ubi9/ubi:latest
+    pre_build_image: true
+    command: sleep infinity
+    user: root
+    groups:
+      - el9
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}"
+  playbooks:
+    prepare: ../utils/playbooks/rhel_patching_prepare.yml
+    converge: ../utils/playbooks/rhel_patching_converge.yml
+    verify: ../utils/playbooks/rhel_patching_verify.yml
+    destroy: ../utils/playbooks/rhel_patching_destroy.yml
+  config_options:
+    defaults:
+      collections_path: "${ANSIBLE_COLLECTIONS_PATH}"
+      remote_tmp: /tmp/.ansible-tmp
+  inventory:
+    group_vars:
+      all:
+        ansible_become: false
+        ansible_remote_tmp: /tmp/.ansible-tmp
+        rhel_patching_target_packages:
+          - tar
+      el8:
+        ansible_python_interpreter: /usr/bin/python3.11
+        rhel_patching_expected_major_version: 8
+      el9:
+        ansible_python_interpreter: /usr/bin/python3
+        rhel_patching_expected_major_version: 9
+
+scenario:
+  test_sequence:
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - verify
+    - destroy
+  destroy_sequence:
+    - destroy

@@ -1,0 +1,67 @@
+---
+- name: Check if operator namespace exists (delete guard)
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Namespace
+    name: "{{ name_space }}"
+  register: ocp_operatorgroups_op_ns
+  failed_when: false
+  when: (state | default('present')) == 'absent'
+
+- name: Check if openshift_tools_operator_groups exists (delete guard)
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1
+    kind: openshift_tools_operator_groups
+    name: "{{ openshift_tools_operator_groups }}"
+    namespace: "{{ name_space }}"
+  register: ocp_operatorgroups_og
+  failed_when: false
+  when:
+    - (state | default('present')) == 'absent'
+    - (ocp_operatorgroups_op_ns.resources | default([])) | length == 1
+
+- name: Delete openshift_tools_operator_groups when present
+  kubernetes.core.k8s:
+    state: absent
+    definition:
+      api_version: operators.coreos.com/v1
+      kind: OperatorGroup
+      metadata:
+        name: "{{ operatorgroup }}"
+        namespace: "{{ name_space }}"
+  when:
+    - (state | default('present')) == 'absent'
+    - (ocp_operatorgroups_op_ns.resources | default([])) | length == 1
+    - (ocp_operatorgroups_og.resources | default([])) | length == 1
+
+- name: Note already-absent state
+  ansible.builtin.debug:
+    msg: >-
+      {{
+        (ocp_operatorgroups_op_ns.resources | default([])) | length == 0
+          | ternary("ℹ️ Namespace '" ~ name_space ~ "' already absent; OperatorGroup implicitly absent.",
+                    "ℹ️ OperatorGroup '" ~ operatorgroup ~ "' already absent in namespace '" ~ name_space ~ "'.")
+      }}
+  when:
+    - (state | default('present')) == 'absent'
+    - >-
+      (ocp_operatorgroups_op_ns.resources | default([])) | length == 0 or (ocp_operatorgroups_og.resources
+      | default([])) | length == 0
+
+- name: Confirm openshift_tools_operator_groups is gone (final check)
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1
+    kind: openshift_tools_operator_groups
+    name: "{{ openshift_tools_operator_groups }}"
+    namespace: "{{ name_space }}"
+  register: ocp_operatorgroups_gone
+  failed_when: false
+  when: (state | default('present')) == 'absent'
+
+- name: Assert openshift_tools_operator_groups deleted
+  ansible.builtin.assert:
+    that:
+      - (ocp_operatorgroups_gone.resources | default([])) | length == 0
+    success_msg: "✅ k8s confirms OperatorGroup '{{ operatorgroup }}' is not present in namespace '{{ name_space }}'."
+    fail_msg: "❌ OperatorGroup '{{ operatorgroup }}' still present in namespace '{{ name_space }}'."
+  when: (state | default('present')) == 'absent'

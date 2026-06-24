@@ -42,6 +42,16 @@
   python scripts/verify_readme.py roles/<role>/README.md \
     --template docs/templates/role_readme_format_template.md
   ```
+  - [ ] Security scan passed if a role was updated
+
+  ```bash
+  python3 scripts/security_checks.py roles/<role_name>
+  ```
+
+- [ ] Simulate CI changelog validation compared to `main` branch
+```bash
+python3 scripts/validate_changelog.py --ref main
+```
 
 - [ ] Molecule scenario run (if applicable):
 
@@ -58,6 +68,18 @@
 <!-- Paste relevant command output or manual test steps. -->
 
 ## Release notes
+
+Add a changelog fragment under `changelogs/fragments/` when the PR modifies existing
+roles, plugins, or modules. New plugins/modules and documentation-only changes do not
+require a fragment. Use the `skip-changelog` label to bypass validation when no entry is
+needed.
+
+Example fragment (`changelogs/fragments/my-change.yml`):
+
+```yaml
+minor_changes:
+  - my_role - Added support for example configuration.
+```
 
 <!-- Optional user-facing note for a changelog entry. Leave blank if not applicable. -->
 

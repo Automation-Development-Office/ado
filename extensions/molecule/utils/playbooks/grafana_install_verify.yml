@@ -1,0 +1,34 @@
+---
+- name: Verify integration_grafana_install scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+  connection: local
+
+  vars:
+    repo_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/../.."
+    grafana_install_readme_path: "{{ repo_root }}/roles/grafana_install/README.md"
+    grafana_install_verify_script: "{{ repo_root }}/scripts/verify_readme.py"
+    grafana_install_readme_template: >-
+      {{ repo_root }}/docs/templates/role_readme_format_template.md
+
+  tasks:
+    - name: Verify role README format with verify_readme.py
+      ansible.builtin.command:
+        argv:
+          - python
+          - "{{ grafana_install_verify_script }}"
+          - "{{ grafana_install_readme_path }}"
+          - --template
+          - "{{ grafana_install_readme_template }}"
+        chdir: "{{ repo_root }}"
+      register: grafana_install_verify_readme
+      changed_when: false
+
+    - name: Fail when README verification fails
+      ansible.builtin.fail:
+        msg: >-
+          README verification failed for {{ grafana_install_readme_path }}:
+          {{ grafana_install_verify_readme.stdout }}
+          {{ grafana_install_verify_readme.stderr }}
+      when: grafana_install_verify_readme.rc != 0

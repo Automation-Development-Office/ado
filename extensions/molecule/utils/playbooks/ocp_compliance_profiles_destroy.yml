@@ -1,0 +1,10 @@
+---
+- name: Destroy - ocp_compliance_profiles scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Destroy step is intentionally minimal
+      ansible.builtin.debug:
+        msg: "No explicit destroy actions required for ocp_compliance_profiles."

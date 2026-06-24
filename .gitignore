@@ -1,4 +1,8 @@
 .ansible/
-*.retry
-*.log
-.vault_pass
+changelogs/.plugin-cache.yaml
+
+# Ephemeral Molecule symlink created by CI/local runs (ln -sfn . molecule)
+extensions/molecule/molecule
+
+# VSCode
+.vscode/

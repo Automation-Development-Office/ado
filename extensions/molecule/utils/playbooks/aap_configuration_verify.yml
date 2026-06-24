@@ -1,0 +1,70 @@
+---
+- name: Verify integration_aap_configuration scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    repo_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/../.."
+    aap_configuration_scenario_dir: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}"
+    aap_configuration_test_root: "{{ aap_configuration_scenario_dir }}"
+    aap_configuration_role_configs_candidates:
+      - "{{ repo_root }}/roles/aap_configuration/configs"
+      - "{{ repo_root }}/.ansible/collections/ansible_collections/infra/ado/roles/aap_configuration/configs"
+      - "{{ lookup('env', 'HOME') }}/.ansible/collections/ansible_collections/infra/ado/roles/aap_configuration/configs"
+    aap_configuration_enable_live_checks: >-
+      {{
+        (lookup('env', 'AAP_CONFIGURATION_ENABLE_LIVE_CHECKS')
+        | default('false', true)) | bool
+      }}
+    aap_configuration_readme_path: "{{ repo_root }}/roles/aap_configuration/README.md"
+    aap_configuration_verify_script: "{{ repo_root }}/scripts/verify_readme.py"
+    aap_configuration_readme_template: >-
+      {{ repo_root }}/docs/templates/role_readme_format_template.md
+
+  tasks:
+    - name: Find copied configuration file
+      ansible.builtin.find:
+        paths: "{{ aap_configuration_role_configs_candidates }}"
+        patterns: aap_configuration.example.yml
+        file_type: file
+      register: aap_configuration_verify_config_files
+      when: not aap_configuration_enable_live_checks
+
+    - name: Find mock dispatch marker file
+      ansible.builtin.find:
+        paths: "{{ aap_configuration_role_configs_candidates }}"
+        patterns: dispatch-invoked.yml
+        file_type: file
+      register: aap_configuration_verify_dispatch_markers
+      when: not aap_configuration_enable_live_checks
+
+    - name: Assert wrapper workflow artifacts exist
+      ansible.builtin.assert:
+        that:
+          - aap_configuration_verify_config_files.matched | int >= 1
+          - aap_configuration_verify_dispatch_markers.matched | int >= 1
+        fail_msg: >-
+          Expected copied config and dispatch marker under one of:
+          {{ aap_configuration_role_configs_candidates | join(', ') }}.
+      when: not aap_configuration_enable_live_checks
+
+    - name: Verify role README format with verify_readme.py
+      ansible.builtin.command:
+        argv:
+          - python
+          - "{{ aap_configuration_verify_script }}"
+          - "{{ aap_configuration_readme_path }}"
+          - --template
+          - "{{ aap_configuration_readme_template }}"
+        chdir: "{{ repo_root }}"
+      register: aap_configuration_verify_readme
+      changed_when: false
+
+    - name: Fail when README verification fails
+      ansible.builtin.fail:
+        msg: >-
+          README verification failed for {{ aap_configuration_readme_path }}:
+          {{ aap_configuration_verify_readme.stdout }}
+          {{ aap_configuration_verify_readme.stderr }}
+      when: aap_configuration_verify_readme.rc != 0
