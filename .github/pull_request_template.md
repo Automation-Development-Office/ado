@@ -64,6 +64,18 @@
 
 ## Release notes
 
+Add a changelog fragment under `changelogs/fragments/` when the PR modifies existing
+roles, plugins, or modules. New plugins/modules and documentation-only changes do not
+require a fragment. Use the `skip-changelog` label to bypass validation when no entry is
+needed.
+
+Example fragment (`changelogs/fragments/my-change.yml`):
+
+```yaml
+minor_changes:
+  - my_role - Added support for example configuration.
+```
+
 <!-- Optional user-facing note for a changelog entry. Leave blank if not applicable. -->
 
 -
