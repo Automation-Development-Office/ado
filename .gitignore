@@ -165,6 +165,7 @@ cython_debug/
 
 # Ansible
 .ansible/
+changelogs/.plugin-cache.yaml
 
 # Ephemeral Molecule symlink created by CI/local runs (ln -sfn . molecule)
 extensions/molecule/molecule
