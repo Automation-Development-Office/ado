@@ -1,0 +1,13 @@
+---
+- name: Launch ACS remediation
+  ansible.builtin.uri:
+    url: "https://{{ ocp_compliance_remediation_acs_api_url }}/remediations"
+    method: POST
+    body_format: json
+    body:
+      profile: "{{ ocp_compliance_remediation_profile }}"
+      scan_id: "{{ ocp_compliance_remediation_scan_id }}"
+    headers:
+      Authorization: "Bearer {{ ocp_compliance_remediation_acs_token }}"
+    validate_certs: false
+  when: ocp_compliance_remediation_enabled | bool

@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-or-later-0
+---
+# defaults file for ocp_compliance_remediation
+ocp_compliance_remediation_enabled: false
+ocp_compliance_remediation_acs_api_url: ""
+ocp_compliance_remediation_acs_token: ""
+ocp_compliance_remediation_profile: ""
+ocp_compliance_remediation_scan_id: ""
