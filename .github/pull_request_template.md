@@ -48,6 +48,11 @@
   python3 scripts/security_checks.py roles/<role_name>
   ```
 
+- [ ] Simulate CI changelog validation compared to `main` branch
+```bash
+python3 scripts/validate_changelog.py --ref main
+```
+
 - [ ] Molecule scenario run (if applicable):
 
   ```bash
