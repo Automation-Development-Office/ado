@@ -16,6 +16,82 @@
       one of aap_build_ee_collections or
       aap_build_ee_collection_files must be provided with values.
 
+- name: Normalize aap_build_ee_collections input
+  ansible.builtin.set_fact:
+    __aap_build_ee_collections: "{{ __aap_build_ee_normalized }}"
+  vars:
+    __aap_build_ee_input: "{{ aap_build_ee_collections | default({}, true) }}"
+    __aap_build_ee_is_list: >-
+      {{
+        __aap_build_ee_input is sequence
+        and __aap_build_ee_input is not string
+        and __aap_build_ee_input is not mapping
+      }}
+    __aap_build_ee_is_flat_object: >-
+      {{
+        __aap_build_ee_input is mapping
+        and __aap_build_ee_input | length > 0
+        and ('name' in __aap_build_ee_input)
+        and (__aap_build_ee_input.keys() | list | difference(['name', 'version']) | length == 0)
+      }}
+    __aap_build_ee_normalized: >-
+      {%- set result = [] -%}
+      {%- if __aap_build_ee_is_list -%}
+      {%- for item in __aap_build_ee_input -%}
+      {%- set _ = result.append({'name': item.name | string, 'version': item.version | default('') | string}) -%}
+      {%- endfor -%}
+      {%- elif __aap_build_ee_is_flat_object -%}
+      {%- set _ = result.append({'name': __aap_build_ee_input.name | string, 'version': __aap_build_ee_input.version | default('') | string}) -%}
+      {%- elif __aap_build_ee_input is mapping and __aap_build_ee_input | length > 0 -%}
+      {%- for item in __aap_build_ee_input | dict2items -%}
+      {%- set _ = result.append({'name': item.key | string, 'version': item.value | default('') | string}) -%}
+      {%- endfor -%}
+      {%- endif -%}
+      {{ result }}
+
+- name: Assert normalized collection requirements include collection names
+  ansible.builtin.assert:
+    that:
+      - __aap_build_ee_collection.name | default('') | trim | length > 0
+    fail_msg: >-
+      Each item in aap_build_ee_collections must include a non-empty name.
+      Accepted formats are dict keyed by collection name, a list of name/version
+      objects, or a single flat object with name and version keys.
+  loop: "{{ __aap_build_ee_collections }}"
+  loop_control:
+    loop_var: __aap_build_ee_collection
+  when: __aap_build_ee_collections | length > 0
+
+- name: Normalize ansible dependency pip specs
+  ansible.builtin.set_fact:
+    __aap_build_ee_ansible_core_pip: "{{ __aap_build_ee_core_pip | trim }}"
+    __aap_build_ee_ansible_runner_pip: "{{ __aap_build_ee_runner_pip | trim }}"
+  vars:
+    __aap_build_ee_core_input: "{{ aap_build_ee_ansible_core | default('', true) | trim }}"
+    __aap_build_ee_runner_input: "{{ aap_build_ee_ansible_runner | default('', true) | trim }}"
+    __aap_build_ee_core_pip: >-
+      {%- set v = __aap_build_ee_core_input -%}
+      {%- set pkg = 'ansible-core' -%}
+      {%- if v | length == 0 -%}
+      {%- elif v is match('^(' ~ pkg ~ '|https?://)') -%}
+      {{ v }}
+      {%- elif ('==' in v) or ('>=' in v) or ('<=' in v) or ('~=' in v) or ('!=' in v) or (v[0:1] in ['<', '>']) -%}
+      {{ pkg ~ v }}
+      {%- else -%}
+      {{ pkg ~ '==' ~ v }}
+      {%- endif -%}
+    __aap_build_ee_runner_pip: >-
+      {%- set v = __aap_build_ee_runner_input -%}
+      {%- set pkg = 'ansible-runner' -%}
+      {%- if v | length == 0 -%}
+      {%- elif v is match('^(' ~ pkg ~ '|https?://)') -%}
+      {{ v }}
+      {%- elif ('==' in v) or ('>=' in v) or ('<=' in v) or ('~=' in v) or ('!=' in v) or (v[0:1] in ['<', '>']) -%}
+      {{ pkg ~ v }}
+      {%- else -%}
+      {{ pkg ~ '==' ~ v }}
+      {%- endif -%}
+
 - name: Set resolved base EE image reference
   ansible.builtin.set_fact:
     aap_build_ee_base_image: >-

@@ -6,7 +6,7 @@ argument_specs:
     short_description: Build a custom Ansible execution environment image.
     description: |
       This role builds an Ansible execution environment (EE) image from a caller-selected
-      base EE image and a caller-provided list of collections.
+      base EE image and caller-provided collection requirements.
     options:
       aap_build_ee_base_ee:
         type: str
@@ -17,10 +17,12 @@ argument_specs:
         description: Source container repository path used to pull the base EE image.
         required: true
       aap_build_ee_collections:
-        type: list
-        elements: str
-        description: List of Ansible collections to include in the built EE image.
-        default: []
+        type: raw
+        description: >-
+          Collection requirements input. Accepts a dict keyed by collection name
+          (for example redhat.satellite: "5.11.0"), a list of name/version objects,
+          or a single flat object with name and version keys.
+        default: {}
       aap_build_ee_collection_files:
         type: list
         elements: str
@@ -40,5 +42,22 @@ argument_specs:
         default: ansible-builder
       aap_build_ee_package_manager_path:
         type: str
-        description: Package manager executable path used by ansible-builder in the base image.
-        default: /usr/bin/microdnf
+        description: >-
+          Optional package manager executable path override used by ansible-builder in the
+          base image. When empty, ansible-builder uses its own default.
+        default: ""
+      aap_build_ee_ansible_core:
+        type: str
+        description: >-
+          Optional ansible-core pip spec rendered to dependencies.ansible_core.package_pip.
+          Accepts a version shorthand (for example "2.16") or any pip-compatible value
+          (for example ansible-core==2.16.0). Required for minimal base images that do
+          not include Ansible.
+        default: ""
+      aap_build_ee_ansible_runner:
+        type: str
+        description: >-
+          Optional ansible-runner pip spec rendered to dependencies.ansible_runner.package_pip.
+          Accepts a version shorthand (for example "2.4") or any pip-compatible value.
+          Required for minimal base images that do not include Ansible Runner.
+        default: ""
