@@ -35,22 +35,19 @@
         and (__aap_build_ee_input.keys() | list | difference(['name', 'version']) | length == 0)
       }}
     __aap_build_ee_normalized: >-
-      {{
-        __aap_build_ee_input | json_query('[].{name: name, version: version || ``}')
-        if __aap_build_ee_is_list
-        else (
-          [{
-            'name': __aap_build_ee_input.name | string,
-            'version': __aap_build_ee_input.version | default('') | string
-          }]
-          if __aap_build_ee_is_flat_object
-          else (
-            __aap_build_ee_input | dict2items | json_query('[].{name: key, version: value}')
-            if __aap_build_ee_input is mapping and __aap_build_ee_input | length > 0
-            else []
-          )
-        )
-      }}
+      {%- set result = [] -%}
+      {%- if __aap_build_ee_is_list -%}
+      {%- for item in __aap_build_ee_input -%}
+      {%- set _ = result.append({'name': item.name | string, 'version': item.version | default('') | string}) -%}
+      {%- endfor -%}
+      {%- elif __aap_build_ee_is_flat_object -%}
+      {%- set _ = result.append({'name': __aap_build_ee_input.name | string, 'version': __aap_build_ee_input.version | default('') | string}) -%}
+      {%- elif __aap_build_ee_input is mapping and __aap_build_ee_input | length > 0 -%}
+      {%- for item in __aap_build_ee_input | dict2items -%}
+      {%- set _ = result.append({'name': item.key | string, 'version': item.value | default('') | string}) -%}
+      {%- endfor -%}
+      {%- endif -%}
+      {{ result }}
 
 - name: Assert normalized collection requirements include collection names
   ansible.builtin.assert:
