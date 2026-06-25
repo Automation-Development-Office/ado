@@ -4,6 +4,9 @@
     name: lvm2
     state: present
 
+- name: storage_config | Refresh facts for next facts
+  ansible.builtin.setup:
+
 - name: storage_config | Check to see if LVM exists from previous install attempt
   ansible.builtin.set_fact:
     satellite_install_lvm_exists: true
