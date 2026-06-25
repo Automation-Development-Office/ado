@@ -29,7 +29,11 @@
     - not item['value']['partitions']
     - not item['value']['holders'] # Holders = Mountpoints
 
-# TODO multiple when statements for the block, fix if needed
+- name: storage_config | Ensure lvm2 package is installed
+  ansible.builtin.dnf:
+    name: lvm2
+    state: present
+
 - name: storage_config | Find suitable disk device for installation
   when:
     - satellite_install_satellite_data_device_name is not defined
@@ -72,13 +76,6 @@
         - not item['value']['holders']
         - satellite_install_data_disk_list is not defined
 
-- name: storage_config | Ensure lvm2 package is installed
-  ansible.builtin.dnf:
-    name: lvm2
-    state: present
-
-# https://access.redhat.com/documentation/en-us/red_hat_satellite/6.15/pdf/installing_satellite_server_in_a_connected_network_environment/red_hat_satellite-6.15-installing_satellite_server_in_a_connected_network_environment-en-us.pdf
-# See Section 1.2 - Table 1.1
 - name: storage_config | Create the directory path to Satellite's required dirs
   ansible.builtin.file:
     path: "{{ item['mount_point'] }}"
