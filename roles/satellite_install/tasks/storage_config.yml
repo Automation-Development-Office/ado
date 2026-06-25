@@ -1,12 +1,13 @@
 ---
+- name: storage_config | Ensure lvm2 package is installed
+  ansible.builtin.dnf:
+    name: lvm2
+    state: present
+
 - name: storage_config | Check to see if LVM exists from previous install attempt
   ansible.builtin.set_fact:
     satellite_install_lvm_exists: true
   when: ansible_facts['lvm']['vgs'][satellite_install_satellite_vg_name] is defined
-
-# - name: create satellite_install_data_disk_list
-#  ansible.builtin.set_fact:
-#    satellite_install_data_disk_list: ''
 
 - name: storage_config | Find existing storage device
   ansible.builtin.set_fact:
@@ -28,11 +29,6 @@
     - item['value']['size'] | human_to_bytes >= satellite_install_satellite_data_disk_min_size | string | human_to_bytes(default_unit="G")
     - not item['value']['partitions']
     - not item['value']['holders'] # Holders = Mountpoints
-
-- name: storage_config | Ensure lvm2 package is installed
-  ansible.builtin.dnf:
-    name: lvm2
-    state: present
 
 - name: storage_config | Find suitable disk device for installation
   when:
