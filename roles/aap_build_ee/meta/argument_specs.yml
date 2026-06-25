@@ -6,7 +6,7 @@ argument_specs:
     short_description: Build a custom Ansible execution environment image.
     description: |
       This role builds an Ansible execution environment (EE) image from a caller-selected
-      base EE image and a caller-provided list of collections.
+      base EE image and caller-provided collection requirements.
     options:
       aap_build_ee_base_ee:
         type: str
@@ -17,13 +17,10 @@ argument_specs:
         description: Source container repository path used to pull the base EE image.
         required: true
       aap_build_ee_collections:
-        type: list
-        elements: str
-        description: List of Ansible collections to include in the built EE image.
-        default: []
-      aap_build_ee_collection_versions:
         type: dict
-        description: Optional mapping of collection name to version constraint.
+        description: >-
+          Mapping of collection name to version constraint used when rendering
+          requirements.yml.
         default: {}
       aap_build_ee_collection_files:
         type: list
@@ -47,4 +44,16 @@ argument_specs:
         description: >-
           Optional package manager executable path override used by ansible-builder in the
           base image. When empty, ansible-builder uses its own default.
+        default: ""
+      aap_build_ee_ansible_core:
+        type: str
+        description: >-
+          Optional ansible-core version constraint installed via ansible-builder
+          dependencies. Required for minimal base images that do not include Ansible.
+        default: ""
+      aap_build_ee_ansible_runner:
+        type: str
+        description: >-
+          Optional ansible-runner version constraint installed via ansible-builder
+          dependencies. Required for minimal base images that do not include Ansible Runner.
         default: ""

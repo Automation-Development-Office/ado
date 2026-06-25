@@ -16,8 +16,6 @@
     aap_build_ee_base_ee: ee-minimal-rhel9:latest
     aap_build_ee_source_image_repository: quay.io/ansible
     aap_build_ee_collections:
-      - ansible.posix
-    aap_build_ee_collection_versions:
       ansible.posix: "1.5.4"
     aap_build_ee_collection_files:
       - "{{ aap_build_ee_local_tarball }}"
@@ -25,6 +23,8 @@
     aap_build_ee_build_context: "{{ aap_build_ee_context }}"
     aap_build_ee_output_image: localhost/custom-ee:latest
     aap_build_ee_package_manager_path: /usr/bin/microdnf
+    aap_build_ee_ansible_core: "2.16"
+    aap_build_ee_ansible_runner: "2.4"
 
   roles:
     - role: infra.ado.aap_build_ee
