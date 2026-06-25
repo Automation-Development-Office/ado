@@ -34,8 +34,8 @@ Build a custom Ansible **Execution Environment (EE)** image with `ansible-builde
 | `aap_build_ee_build_context` | Build context directory used by `ansible-builder`. Default: `/tmp/aap_build_ee`. |
 | `aap_build_ee_builder_executable` | `ansible-builder` executable name or full path. Default: `ansible-builder`. |
 | `aap_build_ee_package_manager_path` | Optional package manager path override used by `ansible-builder` (for example `/usr/bin/microdnf` or `/usr/bin/dnf`). Leave empty to use ansible-builder defaults. Default: `""`. |
-| `aap_build_ee_ansible_core` | Optional ansible-core version/constraint installed via `dependencies.ansible_core` (for example `"2.16"`). Required for minimal base images without preinstalled Ansible. Default: `""`. |
-| `aap_build_ee_ansible_runner` | Optional ansible-runner version/constraint installed via `dependencies.ansible_runner` (for example `"2.4"`). Required for minimal base images without preinstalled Ansible Runner. Default: `""`. |
+| `aap_build_ee_ansible_core` | Optional ansible-core pip spec for `dependencies.ansible_core.package_pip`. Accepts a version shorthand (for example `"2.16"` renders as `ansible-core==2.16`) or any pip-compatible value (for example `ansible-core==2.16.0`, `>=2.16,<2.17`). Required for minimal base images without preinstalled Ansible. Default: `""`. |
+| `aap_build_ee_ansible_runner` | Optional ansible-runner pip spec for `dependencies.ansible_runner.package_pip`. Accepts a version shorthand (for example `"2.4"` renders as `ansible-runner==2.4`) or any pip-compatible value. Required for minimal base images without preinstalled Ansible Runner. Default: `""`. |
 
 ### Auth via environment (optional)
 
@@ -178,8 +178,8 @@ Single flat object (single collection convenience):
 - It injects local collection artifacts via `additional_build_files` into `collection-artifacts/` inside `_build`.
 - It sets `options.package_manager_path` in the EE definition only when
   `aap_build_ee_package_manager_path` is explicitly provided.
-- It sets `dependencies.ansible_core` and `dependencies.ansible_runner` only when
-  the corresponding role variables are explicitly provided.
+- It sets `dependencies.ansible_core.package_pip` and `dependencies.ansible_runner.package_pip`
+  only when the corresponding role variables are explicitly provided.
 - Required inputs are enforced by role argument specs and runtime assertions.
 
 ---

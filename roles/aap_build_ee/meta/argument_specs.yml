@@ -49,12 +49,15 @@ argument_specs:
       aap_build_ee_ansible_core:
         type: str
         description: >-
-          Optional ansible-core version constraint installed via ansible-builder
-          dependencies. Required for minimal base images that do not include Ansible.
+          Optional ansible-core pip spec rendered to dependencies.ansible_core.package_pip.
+          Accepts a version shorthand (for example "2.16") or any pip-compatible value
+          (for example ansible-core==2.16.0). Required for minimal base images that do
+          not include Ansible.
         default: ""
       aap_build_ee_ansible_runner:
         type: str
         description: >-
-          Optional ansible-runner version constraint installed via ansible-builder
-          dependencies. Required for minimal base images that do not include Ansible Runner.
+          Optional ansible-runner pip spec rendered to dependencies.ansible_runner.package_pip.
+          Accepts a version shorthand (for example "2.4") or any pip-compatible value.
+          Required for minimal base images that do not include Ansible Runner.
         default: ""

@@ -63,5 +63,5 @@
     - name: Assert generated EE definition contains ansible dependencies
       ansible.builtin.assert:
         that:
-          - aap_build_ee_definition_content is search('ansible_core:\\s+\"2\\.16\"', multiline=True)
-          - aap_build_ee_definition_content is search('ansible_runner:\\s+\"2\\.4\"', multiline=True)
+          - aap_build_ee_definition_content is search('package_pip:\\s+\"ansible-core==2\\.16\"', multiline=True)
+          - aap_build_ee_definition_content is search('package_pip:\\s+\"ansible-runner==2\\.4\"', multiline=True)

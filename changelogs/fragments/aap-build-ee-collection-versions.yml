@@ -2,3 +2,5 @@ minor_changes:
   - aap_build_ee - Updated ``aap_build_ee_collections`` to accept a mapping of collection name to version constraint for generated ``requirements.yml``.
   - aap_build_ee - Added optional ``aap_build_ee_ansible_core`` and ``aap_build_ee_ansible_runner`` variables for minimal base image builds.
   - aap_build_ee - Normalized ``aap_build_ee_collections`` input to support dict, list, and flat object formats when rendering ``requirements.yml``.
+bugfixes:
+  - aap_build_ee - Fixed ``ansible_core`` and ``ansible_runner`` rendering to use ansible-builder 3.x ``package_pip`` object schema.

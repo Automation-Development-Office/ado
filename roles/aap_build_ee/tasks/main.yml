@@ -62,6 +62,36 @@
     loop_var: __aap_build_ee_collection
   when: __aap_build_ee_collections | length > 0
 
+- name: Normalize ansible dependency pip specs
+  ansible.builtin.set_fact:
+    __aap_build_ee_ansible_core_pip: "{{ __aap_build_ee_core_pip | trim }}"
+    __aap_build_ee_ansible_runner_pip: "{{ __aap_build_ee_runner_pip | trim }}"
+  vars:
+    __aap_build_ee_core_input: "{{ aap_build_ee_ansible_core | default('', true) | trim }}"
+    __aap_build_ee_runner_input: "{{ aap_build_ee_ansible_runner | default('', true) | trim }}"
+    __aap_build_ee_core_pip: >-
+      {%- set v = __aap_build_ee_core_input -%}
+      {%- set pkg = 'ansible-core' -%}
+      {%- if v | length == 0 -%}
+      {%- elif v is match('^(' ~ pkg ~ '|https?://)') -%}
+      {{ v }}
+      {%- elif ('==' in v) or ('>=' in v) or ('<=' in v) or ('~=' in v) or ('!=' in v) or (v[0:1] in ['<', '>']) -%}
+      {{ pkg ~ v }}
+      {%- else -%}
+      {{ pkg ~ '==' ~ v }}
+      {%- endif -%}
+    __aap_build_ee_runner_pip: >-
+      {%- set v = __aap_build_ee_runner_input -%}
+      {%- set pkg = 'ansible-runner' -%}
+      {%- if v | length == 0 -%}
+      {%- elif v is match('^(' ~ pkg ~ '|https?://)') -%}
+      {{ v }}
+      {%- elif ('==' in v) or ('>=' in v) or ('<=' in v) or ('~=' in v) or ('!=' in v) or (v[0:1] in ['<', '>']) -%}
+      {{ pkg ~ v }}
+      {%- else -%}
+      {{ pkg ~ '==' ~ v }}
+      {%- endif -%}
+
 - name: Set resolved base EE image reference
   ansible.builtin.set_fact:
     aap_build_ee_base_image: >-

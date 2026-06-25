@@ -16,9 +16,11 @@ additional_build_files:
 {% endif %}
 dependencies:
 {% if aap_build_ee_ansible_core | default('', true) | trim | length > 0 %}
-  ansible_core: "{{ aap_build_ee_ansible_core }}"
+  ansible_core:
+    package_pip: "{{ __aap_build_ee_ansible_core_pip }}"
 {% endif %}
 {% if aap_build_ee_ansible_runner | default('', true) | trim | length > 0 %}
-  ansible_runner: "{{ aap_build_ee_ansible_runner }}"
+  ansible_runner:
+    package_pip: "{{ __aap_build_ee_ansible_runner_pip }}"
 {% endif %}
   galaxy: requirements.yml
