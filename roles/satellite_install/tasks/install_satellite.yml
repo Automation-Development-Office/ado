@@ -10,7 +10,7 @@
   changed_when: false
 
 - name: Block if satellite is not installed
-  when: satellite_install_service.rc != 0
+  when: satellite_install_service.rc != 0 or (satellite_install_force_reinstall | default(false) | bool)
   block:
     - name: install_satellite | Run satellite installer
       ansible.builtin.command: >-

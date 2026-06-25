@@ -1,0 +1,8 @@
+breaking_changes:
+  - satellite_install - Renamed role variables from ``platform_satellite_install_*`` to ``satellite_install_*``.
+minor_changes:
+  - satellite_install - Added `satellite_install_force_reinstall` variable to reinstall Satellite when services already exist.
+  - satellite_install - Added prerequisite package installation for `firewalld` and `lvm2`.
+  - satellite_install - Prevented privilege escalation on certificate template preparation by setting `become: false`.
+  - satellite_install - Fixed DNS template variables to use `satellite_install_*` names.
+  - satellite_install - Added reboot handler triggered after IPv6 kernel argument updates.

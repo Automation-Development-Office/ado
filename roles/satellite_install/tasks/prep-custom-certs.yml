@@ -21,6 +21,7 @@
     path: "{{ role_path }}/templates/openssl.cnf.j2"
   register: satellite_install_template_check
   delegate_to: localhost
+  become: false
 
 - name: Assert template exists
   ansible.builtin.assert:

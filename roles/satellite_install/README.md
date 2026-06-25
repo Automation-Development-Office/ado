@@ -30,13 +30,14 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `satellite_install_pre_check` | When `true`, only run `preliminary_check.yml` and skip all other tasks | ❌ | `false` |
-| `satellite_install_satellite_deployment_version` | Target Satellite version validated during preliminary checks and used in RHSM repo names | ✅ | `""` |
+| `satellite_install_force_reinstall` | When `true`, force the Satellite installer to run even if Satellite services appear installed | ❌ | `false` |
+| `satellite_install_satellite_deployment_version` | Target Satellite version validated during checks and used in RHSM repo names | ✅ | `""` |
 | `satellite_install_satellite_location` | Logical location/name for the Satellite deployment | ✅ | `""` |
 | `satellite_install_satellite_min_memory_size` | Minimum required memory in MB (`ansible_facts["memtotal_mb"]`) | ❌ | `1024` |
 | `satellite_install_satellite_min_cpu_count` | Minimum required vCPU count and input to the Satellite tuning profile template | ❌ | `4` |
 | `satellite_install_satellite_rhn_connected` | When `true`, validate RHSM credentials during preliminary checks | ❌ | `false` |
 | `satellite_install_satellite_rhn_org_id` | RHSM organization ID used for host registration | ✅* | `""` |
-| `satellite_install_satellite_admin_password` | Password to set for admin user when installing Satellite | ✅ | `""` |
+| `satellite_install_satellite_admin_password` | Password to set for admin user after installation | ✅ | `""` |
 | `satellite_install_satellite_rhn_activation_key` | RHSM activation key used for host registration | ✅* | `""` |
 | `satellite_install_satellite_rhn_repos` | RHSM repository IDs enabled after registration | ❌ | See `defaults/main.yml` |
 | `satellite_install_satellite_timezone` | System timezone set before RHSM registration | ❌ | `"UTC"` |
@@ -53,7 +54,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `satellite_install_satellite_dns_device` | NetworkManager connection name updated with DNS settings | ✅‡ | `""` |
 | `satellite_install_satellite_dns_servers` | DNS servers applied via NetworkManager and `/etc/resolv.conf` | ❌ | `[]` |
 | `satellite_install_satellite_dns_search` | DNS search domains applied via NetworkManager | ❌ | `[]` |
-| `satellite_install_satellite_size` | List of tuning tiers (`name`, `min_cpu`) used by `templates/tuning_profile.j2` to select the `satellite-installer --tuning` profile | ✅§ | Not defined in role defaults |
+| `satellite_install_satellite_size` | List of tuning tiers (`name`, `min_cpu`) used by `templates/tuning_profile.j2` to select the `satellite-installer --tuning` profile. Must include tier names `default`, `medium`, `large`, `extra-large`, and `extra-extra-large`. | ✅§ | Not defined in role defaults |
 
 > **Notes:**
 > \* Required when `satellite_install_satellite_rhn_connected: true`
@@ -96,12 +97,24 @@ Define the Satellite installation configuration in your playbook or inventory us
     satellite_install_satellite_rhn_connected: true
     satellite_install_satellite_rhn_org_id: "12345678"
     satellite_install_satellite_rhn_activation_key: "satellite-rhel9"
+    satellite_install_satellite_admin_password: "StrongAdminPassword123!"
     satellite_install_satellite_timezone: America/New_York
     satellite_install_satellite_min_memory_size: 20480
     satellite_install_satellite_min_cpu_count: 4
+    satellite_install_satellite_size:
+      - name: default
+        min_cpu: 4
+      - name: medium
+        min_cpu: 8
+      - name: large
+        min_cpu: 12
+      - name: extra-large
+        min_cpu: 16
+      - name: extra-extra-large
+        min_cpu: 24
     satellite_install_satellite_vg_name: satellite
     satellite_install_satellite_data_device: /dev
-    satellite_install_satellite_data_disk_min_size: 500
+    satellite_install_satellite_data_disk_min_size: "500G"
     satellite_install_satellite_req_dirs:
       - lv_name: pulp
         lv_size: 250G

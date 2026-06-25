@@ -1,8 +1,8 @@
 # {{ ansible_managed }}
 
-{% if satellite_dns_search is defined and satellite_dns_search |length > 0 %}
-search {{ satellite_dns_search | join(' ') }}
+{% if satellite_install_dns_search is defined and satellite_install_dns_search |length > 0 %}
+search {{ satellite_install_dns_search | join(' ') }}
 {% endif %}
-{% for nameserver in satellite_dns_servers %}
+{% for nameserver in satellite_install_dns_servers %}
 nameserver {{ nameserver }}
 {% endfor %}

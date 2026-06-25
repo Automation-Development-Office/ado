@@ -30,6 +30,3 @@ satellite_install_satellite_req_dirs: []
 satellite_install_satellite_data_disk_min_size: "10G"
 satellite_install_satellite_data_device_name: ""
 satellite_install_satellite_data_device: "/dev"
-satellite_install_satellite_dns_device: ""
-satellite_install_satellite_dns_servers: []
-satellite_install_satellite_dns_search: []
