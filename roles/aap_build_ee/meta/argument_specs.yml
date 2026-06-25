@@ -17,10 +17,11 @@ argument_specs:
         description: Source container repository path used to pull the base EE image.
         required: true
       aap_build_ee_collections:
-        type: dict
+        type: raw
         description: >-
-          Mapping of collection name to version constraint used when rendering
-          requirements.yml.
+          Collection requirements input. Accepts a dict keyed by collection name
+          (for example redhat.satellite: "5.11.0"), a list of name/version objects,
+          or a single flat object with name and version keys.
         default: {}
       aap_build_ee_collection_files:
         type: list

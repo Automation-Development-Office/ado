@@ -1,9 +1,9 @@
 ---
 collections:
-{% for collection_name, collection_version in aap_build_ee_collections.items() %}
-  - name: "{{ collection_name }}"
-{% if collection_version | string | trim | length > 0 %}
-    version: "{{ collection_version }}"
+{% for collection in __aap_build_ee_collections %}
+  - name: "{{ collection.name }}"
+{% if collection.version | default('', true) | string | trim | length > 0 %}
+    version: "{{ collection.version }}"
 {% endif %}
 {% endfor %}
 {% for collection_file in aap_build_ee_collection_files %}

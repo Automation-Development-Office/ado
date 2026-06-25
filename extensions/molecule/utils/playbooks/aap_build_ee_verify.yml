@@ -52,6 +52,8 @@
         that:
           - aap_build_ee_requirements_content is search('name:\\s+\"ansible\\.posix\"', multiline=True)
           - aap_build_ee_requirements_content is search('version:\\s+\"1\\.5\\.4\"', multiline=True)
+          - not aap_build_ee_requirements_content is search('name:\\s+\"name\"', multiline=True)
+          - not aap_build_ee_requirements_content is search('name:\\s+\"version\"', multiline=True)
 
     - name: Assert generated EE definition contains explicit package manager path
       ansible.builtin.assert:

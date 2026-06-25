@@ -16,6 +16,55 @@
       one of aap_build_ee_collections or
       aap_build_ee_collection_files must be provided with values.
 
+- name: Normalize aap_build_ee_collections input
+  ansible.builtin.set_fact:
+    __aap_build_ee_collections: "{{ __aap_build_ee_normalized }}"
+  vars:
+    __aap_build_ee_input: "{{ aap_build_ee_collections | default({}, true) }}"
+    __aap_build_ee_is_list: >-
+      {{
+        __aap_build_ee_input is sequence
+        and __aap_build_ee_input is not string
+        and __aap_build_ee_input is not mapping
+      }}
+    __aap_build_ee_is_flat_object: >-
+      {{
+        __aap_build_ee_input is mapping
+        and __aap_build_ee_input | length > 0
+        and ('name' in __aap_build_ee_input)
+        and (__aap_build_ee_input.keys() | list | difference(['name', 'version']) | length == 0)
+      }}
+    __aap_build_ee_normalized: >-
+      {{
+        __aap_build_ee_input | json_query('[].{name: name, version: version || ``}')
+        if __aap_build_ee_is_list
+        else (
+          [{
+            'name': __aap_build_ee_input.name | string,
+            'version': __aap_build_ee_input.version | default('') | string
+          }]
+          if __aap_build_ee_is_flat_object
+          else (
+            __aap_build_ee_input | dict2items | json_query('[].{name: key, version: value}')
+            if __aap_build_ee_input is mapping and __aap_build_ee_input | length > 0
+            else []
+          )
+        )
+      }}
+
+- name: Assert normalized collection requirements include collection names
+  ansible.builtin.assert:
+    that:
+      - __aap_build_ee_collection.name | default('') | trim | length > 0
+    fail_msg: >-
+      Each item in aap_build_ee_collections must include a non-empty name.
+      Accepted formats are dict keyed by collection name, a list of name/version
+      objects, or a single flat object with name and version keys.
+  loop: "{{ __aap_build_ee_collections }}"
+  loop_control:
+    loop_var: __aap_build_ee_collection
+  when: __aap_build_ee_collections | length > 0
+
 - name: Set resolved base EE image reference
   ansible.builtin.set_fact:
     aap_build_ee_base_image: >-

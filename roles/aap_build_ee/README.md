@@ -28,7 +28,7 @@ Build a custom Ansible **Execution Environment (EE)** image with `ansible-builde
 | -------- | ----------- |
 | `aap_build_ee_base_ee` | Base EE image name and tag (for example `ee-minimal-rhel9:latest`). **Required.** |
 | `aap_build_ee_source_image_repository` | Source image repository path used with the base EE image name (for example `registry.redhat.io/ansible-automation-platform-24`). **Required.** |
-| `aap_build_ee_collections` | Mapping of collection name to optional version/constraint used in generated `requirements.yml` (for example `ansible.posix: "1.5.4"` or `community.general: ">=9.0.0,<11.0.0"`; use `""` for no pin). Default: `{}`. |
+| `aap_build_ee_collections` | Collection requirements for generated `requirements.yml`. Accepts a dict keyed by collection name (for example `redhat.satellite: "5.11.0"`), a list of `name`/`version` objects, or a single flat object with `name` and `version` keys. Use `""` for no version pin. Default: `{}`. |
 | `aap_build_ee_collection_files` | List of local built collection artifact files (`*.tar.gz`). The role copies them into build context and installs them with `type: file`. Default: `[]`. |
 | `aap_build_ee_output_image` | Output image name and tag for the built EE. Default: `custom-ee:latest`. |
 | `aap_build_ee_build_context` | Build context directory used by `ansible-builder`. Default: `/tmp/aap_build_ee`. |
@@ -82,6 +82,8 @@ At least one of `aap_build_ee_collections` or
 
 ### Build with pinned collection versions
 
+Dict keyed by collection name:
+
 ```yaml
 - hosts: localhost
   gather_facts: false
@@ -93,6 +95,38 @@ At least one of `aap_build_ee_collections` or
         aap_build_ee_collections:
           ansible.posix: "1.5.4"
           community.general: ">=9.0.0,<11.0.0"
+        aap_build_ee_output_image: localhost/custom-ee:versioned
+```
+
+List of name/version objects (matches ansible-builder requirements structure):
+
+```yaml
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: infra.ado.aap_build_ee
+      vars:
+        aap_build_ee_base_ee: ee-minimal-rhel9:latest
+        aap_build_ee_source_image_repository: registry.redhat.io/ansible-automation-platform-24
+        aap_build_ee_collections:
+          - name: redhat.satellite
+            version: "5.11.0"
+        aap_build_ee_output_image: localhost/custom-ee:versioned
+```
+
+Single flat object (single collection convenience):
+
+```yaml
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: infra.ado.aap_build_ee
+      vars:
+        aap_build_ee_base_ee: ee-minimal-rhel9:latest
+        aap_build_ee_source_image_repository: registry.redhat.io/ansible-automation-platform-24
+        aap_build_ee_collections:
+          name: redhat.satellite
+          version: "5.11.0"
         aap_build_ee_output_image: localhost/custom-ee:versioned
 ```
 
@@ -137,6 +171,8 @@ At least one of `aap_build_ee_collections` or
 
 - The role composes the base image reference from repository + base EE image.
 - It renders `execution-environment.yml` and `requirements.yml` into the build context.
+- It normalizes `aap_build_ee_collections` from dict, list, or flat object input into
+  a canonical list before rendering `requirements.yml`.
 - It runs `ansible-builder build` using the rendered files and selected output tag.
 - It validates local artifact paths from `aap_build_ee_collection_files` before build.
 - It injects local collection artifacts via `additional_build_files` into `collection-artifacts/` inside `_build`.
