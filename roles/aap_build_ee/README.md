@@ -34,7 +34,7 @@ Build a custom Ansible **Execution Environment (EE)** image with `ansible-builde
 | `aap_build_ee_output_image` | Output image name and tag for the built EE. Default: `custom-ee:latest`. |
 | `aap_build_ee_build_context` | Build context directory used by `ansible-builder`. Default: `/tmp/aap_build_ee`. |
 | `aap_build_ee_builder_executable` | `ansible-builder` executable name or full path. Default: `ansible-builder`. |
-| `aap_build_ee_package_manager_path` | Package manager path inside the base image used by `ansible-builder` (for example `/usr/bin/microdnf` or `/usr/bin/dnf`). Default: `/usr/bin/microdnf`. |
+| `aap_build_ee_package_manager_path` | Optional package manager path override used by `ansible-builder` (for example `/usr/bin/microdnf` or `/usr/bin/dnf`). Leave empty to use ansible-builder defaults. Default: `""`. |
 
 ### Auth via environment (optional)
 
@@ -98,6 +98,22 @@ At least one of `aap_build_ee_collections` or
         aap_build_ee_output_image: localhost/custom-ee:versioned
 ```
 
+### Build with explicit package manager override (minimal base image)
+
+```yaml
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: infra.ado.aap_build_ee
+      vars:
+        aap_build_ee_base_ee: ee-minimal-rhel9:latest
+        aap_build_ee_source_image_repository: registry.redhat.io/ansible-automation-platform-24
+        aap_build_ee_collections:
+          - ansible.posix
+        aap_build_ee_package_manager_path: /usr/bin/microdnf
+        aap_build_ee_output_image: localhost/custom-ee:minimal
+```
+
 ### Build using a local collection artifact
 
 ```yaml
@@ -124,7 +140,8 @@ At least one of `aap_build_ee_collections` or
 - It runs `ansible-builder build` using the rendered files and selected output tag.
 - It validates local artifact paths from `aap_build_ee_collection_files` before build.
 - It injects local collection artifacts via `additional_build_files` into `collection-artifacts/` inside `_build`.
-- It sets `options.package_manager_path` in the EE definition to match the selected base image.
+- It sets `options.package_manager_path` in the EE definition only when
+  `aap_build_ee_package_manager_path` is explicitly provided.
 - Required inputs are enforced by role argument specs and runtime assertions.
 
 ---
