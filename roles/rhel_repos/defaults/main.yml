@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 ---
-# defaults file for repos
+# defaults file for rhel_repos
 
 # List of repositories to disable (required for disable_repo.yml)
 # repos_to_disable:
@@ -25,7 +25,7 @@
 # repos_enable_method: "rhsm_repository"
 
 # Whether to backup repository files when using file-edit method
-platform_repos_backup_files: true
+rhel_repos_backup_files: true
 
 # Whether to clean package cache after disabling repositories
-platform_repos_clean_cache: false
+rhel_repos_clean_cache: false

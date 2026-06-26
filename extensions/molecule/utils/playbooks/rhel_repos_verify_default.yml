@@ -1,5 +1,5 @@
 ---
-- name: Verify - platform_repos default scenario
+- name: Verify - rhel_repos default scenario
   hosts: localhost
   gather_facts: true
   # become: true
@@ -7,12 +7,12 @@
   #   - name: Assert test repository fixture exists
   #     ansible.builtin.stat:
   #       path: /etc/yum.repos.d/test-repos.repo
-  #     register: platform_repos_verify_repo_file
+  #     register: rhel_repos_verify_repo_file
 
   #   - name: Validate test repository fixture is present
   #     ansible.builtin.assert:
   #       that:
-  #         - platform_repos_verify_repo_file.stat.exists
+  #         - rhel_repos_verify_repo_file.stat.exists
   #       fail_msg: "Expected /etc/yum.repos.d/test-repos.repo to exist"
   #       success_msg: "Test repository fixture exists"
 
@@ -20,12 +20,12 @@
   #     ansible.builtin.find:
   #       paths: /etc/yum.repos.d/
   #       patterns: "test-repos.repo.*"
-  #     register: platform_repos_verify_backup_files
+  #     register: rhel_repos_verify_backup_files
 
   #   - name: Validate backup files were created
   #     ansible.builtin.assert:
   #       that:
-  #         - platform_repos_verify_backup_files.matched | int >= 1
+  #         - rhel_repos_verify_backup_files.matched | int >= 1
   #       fail_msg: "Expected at least one backup file from file-edit method"
   #       success_msg: "Backup files were created as expected"
 
@@ -33,27 +33,27 @@
   #     ansible.builtin.shell: |
   #       set -o pipefail
   #       {{ ansible_pkg_mgr }} repolist all --quiet
-  #     register: platform_repos_verify_repolist
+  #     register: rhel_repos_verify_repolist
   #     changed_when: false
 
   #   - name: Validate repository listing command succeeded
   #     ansible.builtin.assert:
   #       that:
-  #         - platform_repos_verify_repolist.rc == 0
+  #         - rhel_repos_verify_repolist.rc == 0
   #       fail_msg: "Expected '{{ ansible_pkg_mgr }} repolist all --quiet' to succeed"
   #       success_msg: "Repository listing command succeeded"
 
   #   - name: Check for Ansible marker text in repo files
   #     ansible.builtin.shell: |
   #       grep -r "enabled by Ansible" /etc/yum.repos.d/ || true
-  #     register: platform_repos_verify_ansible_markers
+  #     register: rhel_repos_verify_ansible_markers
   #     changed_when: false
 
   #   - name: Show verify summary
   #     ansible.builtin.debug:
   #       msg: |
   #         Verify summary:
-  #         - fixture exists: {{ platform_repos_verify_repo_file.stat.exists }}
-  #         - backup files found: {{ platform_repos_verify_backup_files.matched }}
-  #         - repolist rc: {{ platform_repos_verify_repolist.rc }}
-  #         - ansible markers present: {{ platform_repos_verify_ansible_markers.stdout_lines | length > 0 }}
+  #         - fixture exists: {{ rhel_repos_verify_repo_file.stat.exists }}
+  #         - backup files found: {{ rhel_repos_verify_backup_files.matched }}
+  #         - repolist rc: {{ rhel_repos_verify_repolist.rc }}
+  #         - ansible markers present: {{ rhel_repos_verify_ansible_markers.stdout_lines | length > 0 }}

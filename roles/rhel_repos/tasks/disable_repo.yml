@@ -23,7 +23,7 @@
 
 - name: Check if subscription-manager is available
   ansible.builtin.command: which subscription-manager
-  register: platform_repos_subscription_manager_check
+  register: rhel_repos_subscription_manager_check
   failed_when: false
   changed_when: false
 
@@ -32,9 +32,9 @@
     name: "{{ item }}"
     state: disabled
   loop: "{{ repos_to_disable.split(',') | map('trim') | list }}"
-  register: platform_repos_rhsm_repository_disable
+  register: rhel_repos_rhsm_repository_disable
   when:
-    - platform_repos_subscription_manager_check.rc == 0
+    - rhel_repos_subscription_manager_check.rc == 0
     - repos_disable_method is not defined or repos_disable_method == "rhsm_repository"
 
 - name: Disable repositories using yum_repository module
@@ -44,19 +44,19 @@
     state: absent
     description: "Repository {{ item }} disabled by Ansible"
   loop: "{{ repos_to_disable.split(',') }}"
-  register: platform_repos_yum_repository_disable
+  register: rhel_repos_yum_repository_disable
   when:
     - repos_disable_method is not defined or repos_disable_method == "yum_repository"
-    - platform_repos_subscription_manager_check.rc != 0 or (repos_disable_method is defined and repos_disable_method == "yum_repository")
+    - rhel_repos_subscription_manager_check.rc != 0 or (repos_disable_method is defined and repos_disable_method == "yum_repository")
 
 - name: Disable repositories by modifying repo files directly (fallback method)
   ansible.builtin.replace:
     path: "/etc/yum.repos.d/{{ item }}.repo"
     regexp: '^enabled\s*=\s*1'
     replace: 'enabled=0'
-    backup: "{{ platform_repos_backup_files | default(repos_backup_files | default(true)) }}"
+    backup: "{{ rhel_repos_backup_files | default(repos_backup_files | default(true)) }}"
   loop: "{{ repos_to_disable.split(',') | map('trim') | list }}"
-  register: platform_repos_file_disable
+  register: rhel_repos_file_disable
   failed_when: false
   when:
     - repos_disable_method is defined and repos_disable_method == "file-edit"
@@ -66,11 +66,11 @@
     set -o pipefail
     subscription-manager repos --list-disabled | grep -E '^Repo ID:\s*{{ item }}$'
   loop: "{{ repos_to_disable.split(',') }}"
-  register: platform_repos_verify_rhsm_disabled
+  register: rhel_repos_verify_rhsm_disabled
   failed_when: false
   changed_when: false
   when:
-    - platform_repos_subscription_manager_check.rc == 0
+    - rhel_repos_subscription_manager_check.rc == 0
     - repos_disable_method is not defined or repos_disable_method == "rhsm_repository"
 
 - name: Verify repositories are disabled (yum_repository method)
@@ -78,17 +78,17 @@
     set -o pipefail
     {{ ansible_pkg_mgr }} repolist disabled | grep -E '^{{ item }}\s+'
   loop: "{{ repos_to_disable.split(',') }}"
-  register: platform_repos_verify_yum_disabled
+  register: rhel_repos_verify_yum_disabled
   failed_when: false
   changed_when: false
   when:
     - repos_disable_method is not defined or repos_disable_method == "yum_repository"
-    - platform_repos_subscription_manager_check.rc != 0 or (repos_disable_method is defined and repos_disable_method == "yum_repository")
+    - rhel_repos_subscription_manager_check.rc != 0 or (repos_disable_method is defined and repos_disable_method == "yum_repository")
 
 - name: Verify repositories are disabled (file-edit method)
   ansible.builtin.shell: "grep -E '^enabled\\s*=\\s*0' /etc/yum.repos.d/{{ item }}.repo"
   loop: "{{ repos_to_disable.split(',') }}"
-  register: platform_repos_verify_file_disabled
+  register: rhel_repos_verify_file_disabled
   failed_when: false
   changed_when: false
   when:
@@ -101,14 +101,14 @@
       {% for repo in repos_to_disable.split(',')  | map('trim') | list %}
       - {{ repo }}: {{
           (
-            (platform_repos_rhsm_repository_disable.results | selectattr('item', 'equalto', repo) | list | first).changed
-            if platform_repos_rhsm_repository_disable.results is defined
+            (rhel_repos_rhsm_repository_disable.results | selectattr('item', 'equalto', repo) | list | first).changed
+            if rhel_repos_rhsm_repository_disable.results is defined
             else
-            (platform_repos_yum_repository_disable.results | selectattr('item', 'equalto', repo) | list | first).changed
-            if platform_repos_yum_repository_disable.results is defined
+            (rhel_repos_yum_repository_disable.results | selectattr('item', 'equalto', repo) | list | first).changed
+            if rhel_repos_yum_repository_disable.results is defined
             else
-            (platform_repos_file_disable.results | selectattr('item', 'equalto', repo) | list | first).changed
-            if platform_repos_file_disable.results is defined
+            (rhel_repos_file_disable.results | selectattr('item', 'equalto', repo) | list | first).changed
+            if rhel_repos_file_disable.results is defined
             else None
           ) | ternary('Successfully disabled', 'Already disabled or no change needed', 'Status unknown')
         }}
@@ -117,4 +117,4 @@
 - name: Clean package cache after disabling repositories
   ansible.builtin.command: "{{ ansible_pkg_mgr }} clean all"
   changed_when: true
-  when: platform_repos_clean_cache | default(repos_clean_cache | default(false))
+  when: rhel_repos_clean_cache | default(repos_clean_cache | default(false))

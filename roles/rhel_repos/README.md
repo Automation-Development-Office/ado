@@ -1,6 +1,11 @@
-# Role: ado.platform.repos
+# Role: infra.ado.rhel_repos
 
-Manages repository enable/disable operations on Red Hat-based systems.
+Manages repository enable/disable operations on Red Hat Enterprise Linux systems.
+
+## Role Author
+
+- Jeff Radabaugh
+- Automation Development Office
 
 The role supports:
 - enabling repositories
@@ -59,10 +64,13 @@ Each action task:
 | `repos_to_disable` | Comma-separated repo IDs to disable | required for `disable` | none |
 | `repos_enable_method` | Enable method: `rhsm_repository`, `yum_repository`, `file-edit` | no | auto |
 | `repos_disable_method` | Disable method: `rhsm_repository`, `yum_repository`, `file-edit` | no | auto |
-| `platform_repos_backup_files` | Backup repo files during `file-edit` method | no | `true` |
-| `platform_repos_clean_cache` | Run package manager cache cleanup after action | no | `false` |
+| `rhel_repos_backup_files` | Backup repo files during `file-edit` method | no | `true` |
+| `rhel_repos_clean_cache` | Run package manager cache cleanup after action | no | `false` |
 
 Compatibility note: legacy vars `repos_backup_files` and `repos_clean_cache` are still honored in task logic.
+
+> **Migration:** This role was renamed from `platform_repos`. Use `infra.ado.rhel_repos` and
+> `rhel_repos_*` variables instead of `ado.platform.repos` / `platform_repos_*`.
 
 ## Method Selection
 
@@ -85,7 +93,7 @@ When no method is explicitly set:
     repos_action: "enable"
     repos_to_enable: "rhel-8-for-x86_64-appstream-rpms,rhel-8-for-x86_64-baseos-rpms"
   roles:
-    - role: ado.platform.repos
+    - role: infra.ado.rhel_repos
 ```
 
 ### Disable repositories (auto method)
@@ -98,7 +106,7 @@ When no method is explicitly set:
     repos_action: "disable"
     repos_to_disable: "rhel-8-for-x86_64-appstream-rpms,rhel-8-for-x86_64-baseos-rpms"
   roles:
-    - role: ado.platform.repos
+    - role: infra.ado.rhel_repos
 ```
 
 ### Enable with explicit method and cleanup
@@ -111,9 +119,9 @@ When no method is explicitly set:
     repos_action: "enable"
     repos_to_enable: "rhel-8-for-x86_64-supplementary-rpms"
     repos_enable_method: "rhsm_repository"
-    platform_repos_clean_cache: true
+    rhel_repos_clean_cache: true
   roles:
-    - role: ado.platform.repos
+    - role: infra.ado.rhel_repos
 ```
 
 ### Disable with file-edit fallback
@@ -126,34 +134,34 @@ When no method is explicitly set:
     repos_action: "disable"
     repos_to_disable: "epel,epel-modular"
     repos_disable_method: "file-edit"
-    platform_repos_backup_files: true
+    rhel_repos_backup_files: true
   roles:
-    - role: ado.platform.repos
+    - role: infra.ado.rhel_repos
 ```
 
 ## Testing
 
 Molecule testing for this role is normalized to the extension scenarios:
 
-- `extensions/molecule/integration_platform_repos_default`
-- `extensions/molecule/integration_platform_repos_rhsm`
+- `extensions/molecule/integration_rhel_repos_default`
+- `extensions/molecule/integration_rhel_repos_rhsm`
 
 These scenarios run shared stage playbooks from:
 
-- `extensions/molecule/utils/playbooks/platform_repos_prepare_default.yml`
-- `extensions/molecule/utils/playbooks/platform_repos_converge_default.yml`
-- `extensions/molecule/utils/playbooks/platform_repos_verify_default.yml`
-- `extensions/molecule/utils/playbooks/platform_repos_destroy_default.yml`
-- `extensions/molecule/utils/playbooks/platform_repos_prepare_rhsm.yml`
-- `extensions/molecule/utils/playbooks/platform_repos_converge_rhsm.yml`
-- `extensions/molecule/utils/playbooks/platform_repos_verify_rhsm.yml`
-- `extensions/molecule/utils/playbooks/platform_repos_destroy_rhsm.yml`
+- `extensions/molecule/utils/playbooks/rhel_repos_prepare_default.yml`
+- `extensions/molecule/utils/playbooks/rhel_repos_converge_default.yml`
+- `extensions/molecule/utils/playbooks/rhel_repos_verify_default.yml`
+- `extensions/molecule/utils/playbooks/rhel_repos_destroy_default.yml`
+- `extensions/molecule/utils/playbooks/rhel_repos_prepare_rhsm.yml`
+- `extensions/molecule/utils/playbooks/rhel_repos_converge_rhsm.yml`
+- `extensions/molecule/utils/playbooks/rhel_repos_verify_rhsm.yml`
+- `extensions/molecule/utils/playbooks/rhel_repos_destroy_rhsm.yml`
 
 Run tests from `extensions/molecule`:
 
 ```bash
-molecule test -s integration_platform_repos_default
-molecule test -s integration_platform_repos_rhsm
+molecule test -s integration_rhel_repos_default
+molecule test -s integration_rhel_repos_rhsm
 ```
 
 The role-level `tests/` directory is optional legacy skeleton content and is not used by the extension Molecule CI flow.

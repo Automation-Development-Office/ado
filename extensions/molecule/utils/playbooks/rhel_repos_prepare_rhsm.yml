@@ -1,5 +1,5 @@
 ---
-- name: Prepare - platform_repos RHSM scenario
+- name: Prepare - rhel_repos RHSM scenario
   hosts: localhost
   gather_facts: false
   # become: true

@@ -1,5 +1,5 @@
 ---
-- name: Destroy - platform_repos RHSM scenario
+- name: Destroy - rhel_repos RHSM scenario
   hosts: localhost
   gather_facts: true
   become: true

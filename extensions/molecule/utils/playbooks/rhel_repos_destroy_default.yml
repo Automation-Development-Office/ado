@@ -1,5 +1,5 @@
 ---
-- name: Destroy - platform_repos default scenario
+- name: Destroy - rhel_repos default scenario
   hosts: localhost
   gather_facts: true
   become: true
@@ -14,13 +14,13 @@
       ansible.builtin.find:
         paths: /etc/yum.repos.d/
         patterns: "test-repos.repo.*"
-      register: platform_repos_destroy_backup_files
+      register: rhel_repos_destroy_backup_files
 
     - name: Remove test repository backup files
       ansible.builtin.file:
         path: "{{ item.path }}"
         state: absent
-      loop: "{{ platform_repos_destroy_backup_files.files }}"
+      loop: "{{ rhel_repos_destroy_backup_files.files }}"
       failed_when: false
 
     - name: Clean package manager cache

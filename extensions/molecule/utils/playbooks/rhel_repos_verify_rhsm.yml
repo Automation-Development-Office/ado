@@ -1,12 +1,12 @@
 ---
-- name: Verify - platform_repos RHSM scenario
+- name: Verify - rhel_repos RHSM scenario
   hosts: localhost
   gather_facts: true
   # become: true
   # tasks:
   #   - name: Check subscription-manager binary availability
   #     ansible.builtin.command: which subscription-manager
-  #     register: platform_repos_rhsm_verify_sm_check
+  #     register: rhel_repos_rhsm_verify_sm_check
   #     changed_when: false
   #     failed_when: false
 
@@ -14,22 +14,22 @@
   #     ansible.builtin.shell: |
   #       set -o pipefail
   #       {{ ansible_pkg_mgr }} repolist all --quiet || true
-  #     register: platform_repos_rhsm_verify_repolist
+  #     register: rhel_repos_rhsm_verify_repolist
   #     changed_when: false
   #     failed_when: false
 
   #   - name: Validate subscription-manager command does not crash
   #     ansible.builtin.shell: |
   #       subscription-manager status || true
-  #     register: platform_repos_rhsm_verify_status
+  #     register: rhel_repos_rhsm_verify_status
   #     changed_when: false
   #     failed_when: false
 
   #   - name: Assert RHSM scenario sanity checks
   #     ansible.builtin.assert:
   #       that:
-  #         - platform_repos_rhsm_verify_repolist.rc in [0, 1]
-  #         - platform_repos_rhsm_verify_status.rc in [0, 1]
+  #         - rhel_repos_rhsm_verify_repolist.rc in [0, 1]
+  #         - rhel_repos_rhsm_verify_status.rc in [0, 1]
   #       fail_msg: "RHSM verify sanity checks failed unexpectedly"
   #       success_msg: "RHSM verify sanity checks passed"
 
@@ -37,6 +37,6 @@
   #     ansible.builtin.debug:
   #       msg: |
   #         RHSM verify summary:
-  #         - subscription-manager present: {{ platform_repos_rhsm_verify_sm_check.rc == 0 }}
-  #         - repolist rc: {{ platform_repos_rhsm_verify_repolist.rc }}
-  #         - subscription status rc: {{ platform_repos_rhsm_verify_status.rc }}
+  #         - subscription-manager present: {{ rhel_repos_rhsm_verify_sm_check.rc == 0 }}
+  #         - repolist rc: {{ rhel_repos_rhsm_verify_repolist.rc }}
+  #         - subscription status rc: {{ rhel_repos_rhsm_verify_status.rc }}

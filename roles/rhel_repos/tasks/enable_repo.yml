@@ -23,7 +23,7 @@
 
 - name: Check if subscription-manager is available
   ansible.builtin.command: which subscription-manager
-  register: platform_repos_subscription_manager_check
+  register: rhel_repos_subscription_manager_check
   failed_when: false
   changed_when: false
 
@@ -32,9 +32,9 @@
     name: "{{ item }}"
     state: enabled
   loop: "{{ repos_to_enable.split(',') | map('trim') | list }}"
-  register: platform_repos_rhsm_repository_enable
+  register: rhel_repos_rhsm_repository_enable
   when:
-    - platform_repos_subscription_manager_check.rc == 0
+    - rhel_repos_subscription_manager_check.rc == 0
     - repos_enable_method is not defined or repos_enable_method == "rhsm_repository"
 
 - name: Enable repositories using yum_repository module
@@ -47,19 +47,19 @@
     mirrorlist: "{{ repos_mirrorlist[item] | default(omit) }}"
     metalink: "{{ repos_metalink[item] | default(omit) }}"
   loop: "{{ repos_to_enable.split(',') }}"
-  register: platform_repos_yum_repository_enable
+  register: rhel_repos_yum_repository_enable
   when:
     - repos_enable_method is not defined or repos_enable_method == "yum_repository"
-    - platform_repos_subscription_manager_check.rc != 0 or (repos_enable_method is defined and repos_enable_method == "yum_repository")
+    - rhel_repos_subscription_manager_check.rc != 0 or (repos_enable_method is defined and repos_enable_method == "yum_repository")
 
 - name: Enable repositories by modifying repo files directly (fallback method)
   ansible.builtin.replace:
     path: "/etc/yum.repos.d/{{ item }}.repo"
     regexp: '^enabled\s*=\s*0'
     replace: 'enabled=1'
-    backup: "{{ platform_repos_backup_files | default(repos_backup_files | default(true)) }}"
+    backup: "{{ rhel_repos_backup_files | default(repos_backup_files | default(true)) }}"
   loop: "{{ repos_to_enable.split(',') }}"
-  register: platform_repos_file_enable
+  register: rhel_repos_file_enable
   failed_when: false
   when:
     - repos_enable_method is defined and repos_enable_method == "file-edit"
@@ -69,11 +69,11 @@
     set -o pipefail
     subscription-manager repos --list-enabled | grep -E '^Repo ID:\s*{{ item }}$'
   loop: "{{ repos_to_enable.split(',') }}"
-  register: platform_repos_verify_rhsm_enabled
+  register: rhel_repos_verify_rhsm_enabled
   failed_when: false
   changed_when: false
   when:
-    - platform_repos_subscription_manager_check.rc == 0
+    - rhel_repos_subscription_manager_check.rc == 0
     - repos_enable_method is not defined or repos_enable_method == "rhsm_repository"
 
 - name: Verify repositories are enabled (yum_repository method)
@@ -81,17 +81,17 @@
     set -o pipefail
     {{ ansible_pkg_mgr }} repolist enabled | grep -E '^{{ item }}\s+'
   loop: "{{ repos_to_enable.split(',') }}"
-  register: platform_repos_verify_yum_enabled
+  register: rhel_repos_verify_yum_enabled
   failed_when: false
   changed_when: false
   when:
     - repos_enable_method is not defined or repos_enable_method == "yum_repository"
-    - platform_repos_subscription_manager_check.rc != 0 or (repos_enable_method is defined and repos_enable_method == "yum_repository")
+    - rhel_repos_subscription_manager_check.rc != 0 or (repos_enable_method is defined and repos_enable_method == "yum_repository")
 
 - name: Verify repositories are enabled (file-edit method)
   ansible.builtin.shell: "grep -E '^enabled\\s*=\\s*1' /etc/yum.repos.d/{{ item }}.repo"
   loop: "{{ repos_to_enable.split(',') }}"
-  register: platform_repos_verify_file_enabled
+  register: rhel_repos_verify_file_enabled
   failed_when: false
   changed_when: false
   when:
@@ -104,14 +104,14 @@
       {% for repo in repos_to_enable.split(',')  | map('trim') | list %}
       - {{ repo }}: {{
           (
-            (platform_repos_rhsm_repository_enable.results | selectattr('item', 'equalto', repo) | list | first).changed
-            if platform_repos_rhsm_repository_enable.results is defined
+            (rhel_repos_rhsm_repository_enable.results | selectattr('item', 'equalto', repo) | list | first).changed
+            if rhel_repos_rhsm_repository_enable.results is defined
             else
-            (platform_repos_yum_repository_enable.results | selectattr('item', 'equalto', repo) | list | first).changed
-            if platform_repos_yum_repository_enable.results is defined
+            (rhel_repos_yum_repository_enable.results | selectattr('item', 'equalto', repo) | list | first).changed
+            if rhel_repos_yum_repository_enable.results is defined
             else
-            (platform_repos_file_enable.results | selectattr('item', 'equalto', repo) | list | first).changed
-            if platform_repos_file_enable.results is defined
+            (rhel_repos_file_enable.results | selectattr('item', 'equalto', repo) | list | first).changed
+            if rhel_repos_file_enable.results is defined
             else None
           ) | ternary('Successfully enabled', 'Already enabled or no change needed', 'Status unknown')
         }}
@@ -120,4 +120,4 @@
 - name: Clean package cache after enabling repositories
   ansible.builtin.command: "{{ ansible_pkg_mgr }} clean all"
   changed_when: true
-  when: platform_repos_clean_cache | default(repos_clean_cache | default(false))
+  when: rhel_repos_clean_cache | default(repos_clean_cache | default(false))

@@ -1,16 +1,16 @@
 ---
 platforms:
   - name: na
-  
+
 provisioner:
   name: ansible
   env:
     ANSIBLE_ROLES_PATH: "${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}"
   playbooks:
-    prepare: ../utils/playbooks/platform_repos_prepare_default.yml
-    converge: ../utils/playbooks/platform_repos_converge_default.yml
-    verify: ../utils/playbooks/platform_repos_verify_default.yml
-    destroy: ../utils/playbooks/platform_repos_destroy_default.yml
+    prepare: ../utils/playbooks/rhel_repos_prepare_default.yml
+    converge: ../utils/playbooks/rhel_repos_converge_default.yml
+    verify: ../utils/playbooks/rhel_repos_verify_default.yml
+    destroy: ../utils/playbooks/rhel_repos_destroy_default.yml
   config_options:
     defaults:
       collections_path: ${ANSIBLE_COLLECTIONS_PATH}

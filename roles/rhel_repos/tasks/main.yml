@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 ---
-# tasks file for repos
+# tasks file for rhel_repos
 
 - name: Include repository disable tasks
   ansible.builtin.include_tasks: disable_repo.yml
