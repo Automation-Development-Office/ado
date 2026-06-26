@@ -1,0 +1,47 @@
+---
+- name: Converge - ocp_awspca scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    ocp_awspca_enable_live_checks: >-
+      {{
+        (lookup('env', 'OCP_AWSPCA_ENABLE_LIVE_CHECKS')
+        | default('false', true)) | bool
+      }}
+    ocp_awspca_state: "{{ lookup('env', 'OCP_AWSPCA_STATE') | default('present', true) }}"
+    ocp_awspca_pca_arn_env: "{{ lookup('env', 'OCP_AWSPCA_PCA_ARN') | default('', true) }}"
+
+  tasks:
+    - name: Explain live-check toggle
+      ansible.builtin.debug:
+        msg: >-
+          ocp_awspca execution is skipped by default in Molecule.
+          Set OCP_AWSPCA_ENABLE_LIVE_CHECKS=true and provide required
+          OpenShift/AWS values to run live checks.
+      when: not ocp_awspca_enable_live_checks
+
+    - name: Validate required live-check inputs
+      ansible.builtin.assert:
+        that:
+          - ocp_awspca_state in ['present', 'absent']
+          - ocp_awspca_state != 'present' or (ocp_awspca_pca_arn_env | length) > 0
+        fail_msg: >-
+          OCP_AWSPCA_PCA_ARN must be set when running live checks with
+          OCP_AWSPCA_STATE=present.
+      when: ocp_awspca_enable_live_checks
+
+    - name: Run ocp_awspca role with live checks enabled
+      ansible.builtin.include_role:
+        name: infra.ado.ocp_awspca
+      vars:
+        state: "{{ ocp_awspca_state }}"
+        ocp_awspca_namespace: "{{ lookup('env', 'OCP_AWSPCA_NAMESPACE') | default('cert-manager', true) }}"
+        ocp_awspca_secret_name: "{{ lookup('env', 'OCP_AWSPCA_SECRET_NAME') | default('awspca-creds', true) }}"
+        ocp_awspca_issuer_name: "{{ lookup('env', 'OCP_AWSPCA_ISSUER_NAME') | default('awspca-clusterissuer', true) }}"
+        ocp_awspca_region: "{{ lookup('env', 'OCP_AWSPCA_REGION') | default('us-gov-west-1', true) }}"
+        ocp_awspca_pca_arn: "{{ ocp_awspca_pca_arn_env }}"
+        ocp_awspca_access_key_id: "{{ lookup('env', 'OCP_AWSPCA_ACCESS_KEY_ID') | default('', true) }}"
+        ocp_awspca_secret_access_key: "{{ lookup('env', 'OCP_AWSPCA_SECRET_ACCESS_KEY') | default('', true) }}"
+      when: ocp_awspca_enable_live_checks

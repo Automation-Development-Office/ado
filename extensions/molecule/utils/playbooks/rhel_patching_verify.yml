@@ -1,0 +1,92 @@
+---
+- name: Verify integration_rhel_patching scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+  connection: local
+
+  vars:
+    repo_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/../.."
+    rhel_patching_readme_path: "{{ repo_root }}/roles/rhel_patching/README.md"
+    rhel_patching_verify_script: "{{ repo_root }}/scripts/verify_readme.py"
+    rhel_patching_readme_template: >-
+      {{ repo_root }}/docs/templates/role_readme_format_template.md
+
+  tasks:
+    - name: Verify role README format with verify_readme.py
+      ansible.builtin.command:
+        argv:
+          - python
+          - "{{ rhel_patching_verify_script }}"
+          - "{{ rhel_patching_readme_path }}"
+          - --template
+          - "{{ rhel_patching_readme_template }}"
+        chdir: "{{ repo_root }}"
+      register: rhel_patching_verify_readme
+      changed_when: false
+
+    - name: Fail when README verification fails
+      ansible.builtin.fail:
+        msg: >-
+          README verification failed for {{ rhel_patching_readme_path }}:
+          {{ rhel_patching_verify_readme.stdout }}
+          {{ rhel_patching_verify_readme.stderr }}
+      when: rhel_patching_verify_readme.rc != 0
+
+- name: Verify integration_rhel_patching role effects on target hosts
+  hosts: all
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Assert target host is a supported Red Hat family release
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == "RedHat"
+          - ansible_facts.distribution_major_version | int == rhel_patching_expected_major_version | int
+        fail_msg: >-
+          Expected a RHEL-compatible EL{{ rhel_patching_expected_major_version }}
+          host for {{ inventory_hostname }}.
+
+    - name: Assert dnf is functional on UBI 8 target host
+      ansible.builtin.command:
+        cmd: dnf repolist
+      register: rhel_patching_verify_repolist
+      changed_when: false
+      failed_when: rhel_patching_verify_repolist.rc != 0
+      when: inventory_hostname is search('el8')
+
+    - name: Assert dnf is functional on UBI 9 target host
+      ansible.builtin.dnf:
+        list: repos
+      register: rhel_patching_verify_repolist
+      changed_when: false
+      when: inventory_hostname is search('el9')
+
+    - name: Assert UBI 8 target host reports available package updates
+      ansible.builtin.command:
+        cmd: dnf -q check-update
+      register: rhel_patching_verify_updates
+      changed_when: false
+      failed_when: rhel_patching_verify_updates.rc not in [0, 100]
+      when: inventory_hostname is search('el8')
+
+    - name: Assert UBI 9 target host reports available package updates
+      ansible.builtin.dnf:
+        list: updates
+      register: rhel_patching_verify_updates
+      changed_when: false
+      when: inventory_hostname is search('el9')
+
+    - name: Validate update discovery succeeded
+      ansible.builtin.assert:
+        that:
+          - rhel_patching_verify_updates is defined
+        fail_msg: Expected package update discovery to succeed on the target host.
+
+    - name: Assert targeted package is installed after converge
+      ansible.builtin.command:
+        cmd: rpm -q {{ rhel_patching_target_packages | first }}
+      register: rhel_patching_verify_target_pkg
+      changed_when: false
+      failed_when: rhel_patching_verify_target_pkg.rc != 0

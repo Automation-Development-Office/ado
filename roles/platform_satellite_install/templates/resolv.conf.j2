@@ -1,8 +1,0 @@
-# {{ ansible_managed }}
-
-{% if satellite_dns_search is defined and satellite_dns_search |length > 0 %}
-search {{ satellite_dns_search | join(' ') }}
-{% endif %}
-{% for nameserver in satellite_dns_servers %}
-nameserver {{ nameserver }}
-{% endfor %}

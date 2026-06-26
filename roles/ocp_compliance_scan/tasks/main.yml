@@ -1,0 +1,31 @@
+---
+- name: Create ComplianceScan resource to schedule a scan
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: compliance.openshift.io/v1alpha1
+      kind: ComplianceScan
+      metadata:
+        name: "{{ ocp_compliance_scan_scan_name }}"
+        namespace: "{{ ocp_compliance_scan_operator_namespace }}"
+      spec:
+        profile: "{{ ocp_compliance_scan_profile }}"
+        contentImage: "{{ ocp_compliance_scan_content_image }}"
+        debug: false
+        autoApplyRemediations: false
+        scanType: "Node"
+  when: ocp_compliance_scan_schedule_scan | bool
+
+- name: Start ComplianceSuite to run the scan
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: compliance.openshift.io/v1alpha1
+      kind: ComplianceSuite
+      metadata:
+        name: "{{ ocp_compliance_scan_suite_name }}"
+        namespace: "{{ ocp_compliance_scan_operator_namespace }}"
+      spec:
+        scans:
+          - name: "{{ ocp_compliance_scan_scan_name }}"
+  when: ocp_compliance_scan_run_scan | bool

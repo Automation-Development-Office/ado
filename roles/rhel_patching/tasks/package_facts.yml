@@ -1,0 +1,15 @@
+---
+
+- name: Get a list of upgradable packages
+  ansible.builtin.dnf:
+    list: updates
+  register: rhel_patching_yum_updates
+
+- name: Displaying upgradable packages
+  ansible.builtin.debug:
+    msg: "Package: {{ item.name }} Current Version: {{ item.version }}) needs update."
+    verbosity: 1
+  loop: "{{ rhel_patching_yum_updates.results }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: rhel_patching_yum_updates is defined

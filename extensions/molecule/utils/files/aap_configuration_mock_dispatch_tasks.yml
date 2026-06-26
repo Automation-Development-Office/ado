@@ -1,0 +1,14 @@
+---
+- name: Record dispatcher invocation
+  ansible.builtin.copy:
+    dest: "{{ aap_configuration_config_path }}/dispatch-invoked.yml"
+    content: |
+      aap_configuration_dispatch_invoked: true
+      aap_configuration_config_path: "{{ aap_configuration_config_path }}"
+    mode: "0644"
+
+- name: Assert config path was provided
+  ansible.builtin.assert:
+    that:
+      - aap_configuration_config_path is defined
+      - aap_configuration_config_path | length > 0

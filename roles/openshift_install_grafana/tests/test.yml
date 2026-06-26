@@ -1,6 +1,0 @@
----
-- name: Test Grafana role
-  hosts: localhost
-  remote_user: root
-  roles:
-    - openshift_install_grafana

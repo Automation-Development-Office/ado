@@ -1,0 +1,52 @@
+---
+- name: Converge integration_rhel_patching scenario - discovery mode (role)
+  hosts: el9
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Run rhel_patching role with discovery-only settings
+      ansible.builtin.include_role:
+        name: infra.ado.rhel_patching
+      vars:
+        rhel_patching_reboot: false
+        rhel_patching_update_cache: true
+        rhel_patching_package_cleanup: false
+        rhel_patching_package_list: []
+
+- name: Converge integration_rhel_patching scenario - discovery mode (EL8 command workaround)
+  hosts: el8
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Run EL8 discovery path with dnf CLI tasks
+      ansible.builtin.include_tasks: tasks/rhel_patching_el8_discovery.yml
+      vars:
+        rhel_patching_update_cache: true
+
+- name: Converge integration_rhel_patching scenario - targeted package update (role)
+  hosts: el9
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Run rhel_patching role with targeted package list
+      ansible.builtin.include_role:
+        name: infra.ado.rhel_patching
+      vars:
+        rhel_patching_reboot: false
+        rhel_patching_update_cache: false
+        rhel_patching_package_cleanup: false
+        rhel_patching_package_list: "{{ rhel_patching_target_packages }}"
+
+- name: Converge integration_rhel_patching scenario - targeted package update (EL8 command workaround)
+  hosts: el8
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Run EL8 targeted update with dnf CLI tasks
+      ansible.builtin.include_tasks: tasks/rhel_patching_el8_update.yml
+      vars:
+        rhel_patching_package_list: "{{ rhel_patching_target_packages }}"

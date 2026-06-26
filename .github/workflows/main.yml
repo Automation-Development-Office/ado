@@ -15,6 +15,16 @@ on:
         required: false
         default: false
         type: boolean
+      run_integration_aap_configuration:
+        description: "Run integration_aap_configuration"
+        required: false
+        default: false
+        type: boolean
+      run_integration_rhel_patching:
+        description: "Run integration_rhel_patching"
+        required: false
+        default: false
+        type: boolean
       run_integration_rhel_cron_full_special:
         description: "Run integration_rhel_cron_full_special"
         required: false
@@ -60,6 +70,11 @@ on:
         required: false
         default: true
         type: boolean
+      run_security_checks:
+        description: "Run security_checks.py and security_data_exposure_scan.py on collection roles"
+        required: false
+        default: false
+        type: boolean
       run_platform_repos_default:
         description: "Run platform_repos default scenario"
         required: false
@@ -85,6 +100,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_ocp_scenarios:
+        description: "Run all ocp_* Molecule scenarios (requires OpenShift cluster secrets)"
+        required: false
+        default: false
+        type: boolean
 
 env:
   NAMESPACE: ado
@@ -92,6 +112,22 @@ env:
 
 jobs:
   # Quality stage
+  changelog:
+    name: Changelog
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'pull_request' &&
+      !contains(github.event.pull_request.labels.*.name, 'skip-changelog')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ github.event.pull_request.head.sha }}"
+          fetch-depth: 0
+
+      - name: Validate changelog
+        uses: ansible/ansible-content-actions/.github/actions/ansible_validate_changelog@main
+
   linting:
     name: Ansible Lint
     runs-on: ubuntu-latest
@@ -110,10 +146,12 @@ jobs:
       - name: Install Ansible collections
         run: |
           set -euo pipefail
+          collections_path="${{ github.workspace }}/.ansible/collections"
+          mkdir -p "$collections_path"
           if [ -f collections/requirements.yml ]; then
             attempts=3
             for attempt in $(seq 1 "$attempts"); do
-              if ansible-galaxy collection install -r collections/requirements.yml; then
+              if ansible-galaxy collection install -r collections/requirements.yml -p "$collections_path"; then
                 break
               fi
               if [ "$attempt" -eq "$attempts" ]; then
@@ -126,9 +164,12 @@ jobs:
             done
           fi
         env:
+          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
           ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
 
       - name: Run ansible-lint
+        env:
+          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
         run: |
           ansible --version
           ansible-lint --version
@@ -145,9 +186,11 @@ jobs:
   readme-format-check:
     name: README Format Verification
     runs-on: ubuntu-latest
+    # Runs on PRs for visibility; informational only until added to pr-gate.
     if: |
-      github.event_name == 'workflow_dispatch' &&
-      github.event.inputs.run_readme_verification == 'true'
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.run_readme_verification == 'true')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -158,9 +201,28 @@ jobs:
           python-version: '3.11'
 
       - name: Run README format verification
+        id: readme_verify
+        # Informational only for now; enable PR gate check when ready to enforce.
+        continue-on-error: true
         run: |
-          set -o pipefail
-          python scripts/verify_readme.py --template docs/templates/role_readme_format_template.md 2>&1 | tee readme-verification.txt
+          set +e
+          python scripts/verify_readme.py --template docs/templates/role_readme_format_template.md \
+            > readme-verification.txt 2>&1
+          exit_code=$?
+          cat readme-verification.txt
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          exit "$exit_code"
+
+      - name: Add README verification summary
+        if: always()
+        run: |
+          {
+            echo "## README Format Verification"
+            echo
+            echo '```text'
+            cat readme-verification.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload README verification report
         if: always()
@@ -168,6 +230,89 @@ jobs:
         with:
           name: readme-verification-report
           path: readme-verification.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+    # Runs on manual dispatch when selected; PRs use the standalone security-check.yml workflow.
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.run_security_checks == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install scan dependencies
+        run: pip install pyyaml
+
+      - name: Run security checks
+        id: security_check
+        continue-on-error: true
+        run: |
+          set +e
+          python scripts/security_checks.py roles \
+            --json-report security-check-report.json \
+            --summary-markdown security-check-summary.md \
+            > security-check-report.txt 2>&1
+          security_exit=$?
+          cat security-check-report.txt
+
+          python scripts/security_data_exposure_scan.py roles \
+            --json-report data-exposure-report.json \
+            --summary-markdown data-exposure-summary.md \
+            > data-exposure-report.txt 2>&1
+          exposure_exit=$?
+          cat data-exposure-report.txt
+
+          if [ "$security_exit" -ne 0 ] || [ "$exposure_exit" -ne 0 ]; then
+            echo "exit_code=1" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          echo "exit_code=0" >> "$GITHUB_OUTPUT"
+
+      - name: Add security check dashboard to job summary
+        if: always()
+        run: |
+          if [ -f security-check-summary.md ]; then
+            cat security-check-summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Security Check Dashboard"
+              echo
+              echo "Summary file was not generated."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f data-exposure-summary.md ]; then
+            cat data-exposure-summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Data Exposure Scan Dashboard"
+              echo
+              echo "Summary file was not generated."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload security check reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-check-report
+          path: |
+            security-check-report.txt
+            security-check-report.json
+            security-check-summary.md
+            data-exposure-report.txt
+            data-exposure-report.json
+            data-exposure-summary.md
+          if-no-files-found: error
+          retention-days: 30
 
   # Testing stage
   discover-molecule-scenarios:
@@ -185,11 +330,36 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          EXCLUDE_FILE="extensions/molecule/pr_exclude.txt"
+
+          is_pr_excluded() {
+            local scenario="$1"
+            [[ ! -f "$EXCLUDE_FILE" ]] && return 1
+            while IFS= read -r pattern || [[ -n "$pattern" ]]; do
+              pattern="${pattern%%#*}"
+              pattern="$(echo "$pattern" | xargs)"
+              [[ -z "$pattern" ]] && continue
+              [[ "$scenario" == $pattern ]] && return 0
+            done < "$EXCLUDE_FILE"
+            return 1
+          }
+
+          add_unique_dir() {
+            local candidate="$1"
+            local existing
+            for existing in "${dirs[@]:-}"; do
+              [[ "$existing" == "$candidate" ]] && return 0
+            done
+            dirs+=("$candidate")
+          }
+
           dirs=()
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             declare -A checks=(
               [integration_vm_image_management]="${{ github.event.inputs.run_integration_vm_image_management }}"
               [integration_aap_build_ee]="${{ github.event.inputs.run_integration_aap_build_ee }}"
+              [integration_aap_configuration]="${{ github.event.inputs.run_integration_aap_configuration }}"
+              [integration_rhel_patching]="${{ github.event.inputs.run_integration_rhel_patching }}"
               [integration_rhel_cron_full_special]="${{ github.event.inputs.run_integration_rhel_cron_full_special }}"
               [integration_rhel_cron_full_special_removal]="${{ github.event.inputs.run_integration_rhel_cron_full_special_removal }}"
               [integration_rhel_cron_single_special]="${{ github.event.inputs.run_integration_rhel_cron_single_special }}"
@@ -204,12 +374,30 @@ jobs:
             )
             for scenario in "${!checks[@]}"; do
               if [[ "${checks[$scenario]}" == "true" ]]; then
-                dirs+=("extensions/molecule/$scenario")
+                add_unique_dir "extensions/molecule/$scenario"
               fi
             done
-            IFS=$'\n' dirs=($(sort <<< "${dirs[*]}"))
+            if [[ "${{ github.event.inputs.run_ocp_scenarios }}" == "true" ]]; then
+              while IFS= read -r dir; do
+                add_unique_dir "$dir"
+              done < <(
+                find extensions/molecule -mindepth 2 -maxdepth 2 -type f -name molecule.yml -printf '%h\n' \
+                  | awk -F/ '$NF ~ /^ocp_/' \
+                  | sort
+              )
+            fi
+            IFS=$'\n' dirs=($(sort <<< "${dirs[*]:-}"))
           else
-            mapfile -t dirs < <(find extensions/molecule -mindepth 2 -maxdepth 2 -type f -name molecule.yml -printf '%h\n' | sort)
+            while IFS= read -r dir; do
+              scenario="$(basename "$dir")"
+              if is_pr_excluded "$scenario"; then
+                echo "Skipping PR scenario (pr_exclude.txt): $scenario" >&2
+                continue
+              fi
+              add_unique_dir "$dir"
+            done < <(
+              find extensions/molecule -mindepth 2 -maxdepth 2 -type f -name molecule.yml -printf '%h\n' | sort
+            )
           fi
           if [ ${#dirs[@]} -eq 0 ]; then
             echo "No Molecule scenarios found under extensions/molecule"
@@ -243,15 +431,16 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-utils
+          sudo apt-get install -y qemu-utils podman
           pip install --upgrade pip
-          pip install ansible-core molecule[docker] docker
+          pip install ansible-core 'molecule-plugins[docker,podman]' docker
 
       - name: Install collection from local source
         run: |
           ansible-galaxy collection install . --force -p ~/.ansible/collections
           ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
           ansible-galaxy collection install community.general --force -p ~/.ansible/collections
+          ansible-galaxy collection install containers.podman --force -p ~/.ansible/collections
         env:
           ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
 

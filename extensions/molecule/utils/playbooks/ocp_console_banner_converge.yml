@@ -1,0 +1,47 @@
+---
+- name: Converge - ocp_console_banner scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    ocp_console_banner_enable_live_checks: >-
+      {{
+        (lookup('env', 'OCP_CONSOLE_BANNER_ENABLE_LIVE_CHECKS')
+        | default('false', true)) | bool
+      }}
+    ocp_console_banner_state_env: "{{ lookup('env', 'OCP_CONSOLE_BANNER_STATE') | default('present', true) }}"
+
+  tasks:
+    - name: Explain live-check toggle
+      ansible.builtin.debug:
+        msg: >-
+          ocp_console_banner execution is skipped by default in Molecule.
+          Set OCP_CONSOLE_BANNER_ENABLE_LIVE_CHECKS=true and provide required
+          OpenShift/banner values to run live checks.
+      when: not ocp_console_banner_enable_live_checks
+
+    - name: Validate required live-check inputs
+      ansible.builtin.assert:
+        that:
+          - ocp_console_banner_state_env in ['present', 'new', 'absent']
+          - ocp_console_banner_state_env == 'absent' or (lookup('env', 'OCP_CONSOLE_BANNER_TEXT') | default('', true) | length) > 0
+        fail_msg: >-
+          OCP_CONSOLE_BANNER_TEXT must be set for live checks when
+          OCP_CONSOLE_BANNER_STATE is present or new.
+      when: ocp_console_banner_enable_live_checks
+
+    - name: Run ocp_console_banner role with live checks enabled
+      ansible.builtin.include_role:
+        name: infra.ado.ocp_console_banner
+      vars:
+        state: "{{ ocp_console_banner_state_env }}"
+        ocp_console_banner_text: "{{ lookup('env', 'OCP_CONSOLE_BANNER_TEXT') | default('', true) }}"
+        ocp_console_banner_name: "{{ lookup('env', 'OCP_CONSOLE_BANNER_NAME') | default('ado-banner', true) }}"
+        ocp_console_banner_name_prefix: "{{ lookup('env', 'OCP_CONSOLE_BANNER_NAME_PREFIX') | default('ado-banner', true) }}"
+        ocp_console_banner_location: "{{ lookup('env', 'OCP_CONSOLE_BANNER_LOCATION') | default('BannerTop', true) }}"
+        ocp_console_banner_background_color: >-
+          {{ lookup('env', 'OCP_CONSOLE_BANNER_BACKGROUND_COLOR') | default('#1f7a1f', true) }}
+        ocp_console_banner_text_color: >-
+          {{ lookup('env', 'OCP_CONSOLE_BANNER_TEXT_COLOR') | default('#ffffff', true) }}
+      when: ocp_console_banner_enable_live_checks

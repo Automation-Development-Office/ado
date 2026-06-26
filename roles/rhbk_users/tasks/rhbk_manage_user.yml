@@ -1,0 +1,17 @@
+- name: Create a user user1
+  community.general.keycloak_user:
+    auth_keycloak_url: "{{ rhbk_hostname }}"
+    auth_username: "{{ rhbk_username }}"
+    auth_password: "{{ rhbk_password }}"
+    realm: "{{ rhbk_realm }}"
+    username: "{{ rhbk_new_username }}"
+    firstName: "{{ rhbk_new_firstname }}"
+    lastName: "{{ rhbk_new_lastname }}"
+    email: "{{ rhbk_new_email }}"
+    enabled: "{{ rhbk_user_enabled }}"
+    emailVerified: "{{ rhbk_user_email_verified }}"
+    credentials:
+      - type: password
+        value: "{{ rhbk_new_user_pwd }}"
+        temporary: "{{ rhbk_user_pwd_temporary }}"
+    state: "{{ state }}"

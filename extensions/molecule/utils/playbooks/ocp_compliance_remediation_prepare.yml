@@ -1,0 +1,10 @@
+---
+- name: Prepare - ocp_compliance_remediation scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Prepare step is intentionally minimal
+      ansible.builtin.debug:
+        msg: "No explicit prepare actions required for ocp_compliance_remediation."

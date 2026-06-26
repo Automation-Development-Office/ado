@@ -1,0 +1,34 @@
+---
+- name: Verify - ocp_compliance_scan scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+  connection: local
+
+  vars:
+    repo_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/../.."
+    ocp_compliance_scan_readme_path: "{{ repo_root }}/roles/ocp_compliance_scan/README.md"
+    ocp_compliance_scan_verify_script: "{{ repo_root }}/scripts/verify_readme.py"
+    ocp_compliance_scan_readme_template: >-
+      {{ repo_root }}/docs/templates/role_readme_format_template.md
+
+  tasks:
+    - name: Verify role README format with verify_readme.py
+      ansible.builtin.command:
+        argv:
+          - python
+          - "{{ ocp_compliance_scan_verify_script }}"
+          - "{{ ocp_compliance_scan_readme_path }}"
+          - --template
+          - "{{ ocp_compliance_scan_readme_template }}"
+        chdir: "{{ repo_root }}"
+      register: ocp_compliance_scan_verify_readme
+      changed_when: false
+
+    - name: Fail when README verification fails
+      ansible.builtin.fail:
+        msg: >-
+          README verification failed for {{ ocp_compliance_scan_readme_path }}:
+          {{ ocp_compliance_scan_verify_readme.stdout }}
+          {{ ocp_compliance_scan_verify_readme.stderr }}
+      when: ocp_compliance_scan_verify_readme.rc != 0

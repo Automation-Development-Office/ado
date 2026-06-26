@@ -30,6 +30,7 @@ This Ansible role automates registration and deregistration of hosts with Red Ha
 ## 🚀 Usage Example
 ```yaml
 - hosts: all
+  become: true
   roles:
     - role: infra.ado.rhel_sat_reg
       vars:
@@ -58,6 +59,7 @@ This Ansible role automates registration and deregistration of hosts with Red Ha
 
 ## 🧪 Molecule Testing
 This role currently does not include an active dedicated Molecule scenario in the repository.
+
 
 ## 📁 Structure
 ```
