@@ -1,0 +1,8 @@
+breaking_changes:
+  - rhel_repos - Renamed role from ``platform_repos``; use ``infra.ado.rhel_repos`` and ``rhel_repos_*`` variables instead of ``platform_repos_*``.
+removed_features:
+  - platform_ec2 - Removed role.
+minor_changes:
+  - rhel_repos - Added Podman Molecule integration scenario on UBI 8 and UBI 9.
+doc_changes:
+  - CODE_OF_CONDUCT - Added repository Code of Conduct with Ansible Community CoC adoption and ADO addendum.
