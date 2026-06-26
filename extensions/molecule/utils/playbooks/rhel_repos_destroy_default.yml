@@ -1,29 +1,11 @@
 ---
-- name: Destroy - rhel_repos default scenario
+- name: Destroy integration_rhel_repos_default scenario
   hosts: localhost
-  gather_facts: true
-  become: true
+  gather_facts: false
+  become: false
+  connection: local
+
   tasks:
-    - name: Remove test repository fixture file
-      ansible.builtin.file:
-        path: /etc/yum.repos.d/test-repos.repo
-        state: absent
-      failed_when: false
-
-    - name: Find test repository backup files
-      ansible.builtin.find:
-        paths: /etc/yum.repos.d/
-        patterns: "test-repos.repo.*"
-      register: rhel_repos_destroy_backup_files
-
-    - name: Remove test repository backup files
-      ansible.builtin.file:
-        path: "{{ item.path }}"
-        state: absent
-      loop: "{{ rhel_repos_destroy_backup_files.files }}"
-      failed_when: false
-
-    - name: Clean package manager cache
-      ansible.builtin.command: "{{ ansible_pkg_mgr }} clean all"
-      changed_when: true
-      failed_when: false
+    - name: Destroy step is intentionally minimal
+      ansible.builtin.debug:
+        msg: "Podman platform cleanup is handled by the Molecule destroy sequence."

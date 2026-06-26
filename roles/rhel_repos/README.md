@@ -106,10 +106,35 @@ explicitly requested.
 
 ## 🧪 Role Molecule Testing
 
-Molecule testing for this role uses extension scenarios:
+Automated Molecule testing uses UBI 8 and UBI 9 Podman containers in
+`extensions/molecule/integration_rhel_repos_default`.
 
-- `extensions/molecule/integration_rhel_repos_default`
-- `extensions/molecule/integration_rhel_repos_rhsm`
+| Instance | Image | Coverage |
+|----------|-------|----------|
+| `rhel-repos-el8` | UBI 8 | `file-edit` enable/disable |
+| `rhel-repos-el9` | UBI 9 | `file-edit` enable/disable and `yum_repository` enable |
+
+UBI 8 uses Python 3.11 for Ansible connectivity. The `yum_repository` method is
+exercised on UBI 9 only because Python 3.11 on UBI 8 lacks `python3-dnf`
+bindings.
+
+The `integration_rhel_repos_rhsm` scenario is manual-only (excluded from PR CI)
+and requires a registered RHEL host for `rhsm_repository` testing.
+
+Install the collection and ensure Podman is available, then run locally:
+
+```bash
+cd /path/to/your/git/checkout/ado
+ansible-galaxy collection install . --force -p ~/.ansible/collections
+ansible-galaxy collection install ansible.posix containers.podman community.general \
+  --force -p ~/.ansible/collections
+export ANSIBLE_COLLECTIONS_PATH="$HOME/.ansible/collections:${ANSIBLE_COLLECTIONS_PATH:-}"
+
+pip install 'molecule-plugins[podman]'
+
+cd extensions/molecule
+molecule test -s integration_rhel_repos_default
+```
 
 Shared stage playbooks live under `extensions/molecule/utils/playbooks/`:
 
@@ -117,17 +142,6 @@ Shared stage playbooks live under `extensions/molecule/utils/playbooks/`:
 - `rhel_repos_converge_default.yml`
 - `rhel_repos_verify_default.yml`
 - `rhel_repos_destroy_default.yml`
-- `rhel_repos_prepare_rhsm.yml`
-- `rhel_repos_converge_rhsm.yml`
-- `rhel_repos_verify_rhsm.yml`
-- `rhel_repos_destroy_rhsm.yml`
-
-Run tests from `extensions/molecule`:
-
-```bash
-molecule test -s integration_rhel_repos_default
-molecule test -s integration_rhel_repos_rhsm
-```
 
 The role-level `tests/` directory is legacy skeleton content and is not used by
 the extension Molecule CI flow.
