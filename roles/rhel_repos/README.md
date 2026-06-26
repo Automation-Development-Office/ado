@@ -1,87 +1,52 @@
 # Role: infra.ado.rhel_repos
 
-Manages repository enable/disable operations on Red Hat Enterprise Linux systems.
+Manages repository enable and disable operations on Red Hat Enterprise Linux systems.
 
 ## Role Author
 
 - Jeff Radabaugh
 - Automation Development Office
 
-The role supports:
-- enabling repositories
-- disabling repositories
-- multiple execution methods (`rhsm_repository`, `yum_repository`, `file-edit`)
-- optional cache cleanup and backup behavior
-
-## Current Input Format and Planned Enhancement
-
-Current implementation expects repository inputs as comma-separated strings.
-
-Supported today:
-
-```yaml
-repos_to_enable: "repo1,repo2,repo3"
-repos_to_disable: "repo4,repo5"
-```
-
-Planned enhancement (not implemented yet): support YAML/JSON list format.
-
-```yaml
-repos_to_enable:
-  - repo1
-  - repo2
-```
-
-## Requirements
+## ✅ Role Requirements
 
 - Target host OS family: `RedHat`
 - Ansible with facts enabled (uses `ansible_os_family` and `ansible_pkg_mgr`)
 - `community.general` collection for `rhsm_repository`
 - Privileged access to manage repositories
 
-## Workflow
+Repository inputs are comma-separated strings today (for example,
+`repos_to_enable: "repo1,repo2"`). YAML list input is planned but not
+implemented yet.
+
+> **Migration:** This role was renamed from `platform_repos`. Use
+> `infra.ado.rhel_repos` and `rhel_repos_*` variables instead of
+> `ado.platform.repos` / `platform_repos_*`.
+
+## 📦 Role Variables
+
+| Variable | Description |
+| --- | --- |
+| `repos_action` | Action to perform: `enable` or `disable`. Required. |
+| `repos_to_enable` | Comma-separated repository IDs to enable. Required when `repos_action` is `enable`. |
+| `repos_to_disable` | Comma-separated repository IDs to disable. Required when `repos_action` is `disable`. |
+| `repos_enable_method` | Enable method: `rhsm_repository`, `yum_repository`, or `file-edit`. Default: auto-detect. |
+| `repos_disable_method` | Disable method: `rhsm_repository`, `yum_repository`, or `file-edit`. Default: auto-detect. |
+| `rhel_repos_backup_files` | Backup repo files when using the `file-edit` method. Default: `true`. |
+| `rhel_repos_clean_cache` | Run package manager cache cleanup after the action. Default: `false`. |
+
+Legacy vars `repos_backup_files` and `repos_clean_cache` are still honored in
+task logic.
+
+## 🚀 Role Usage
 
 `tasks/main.yml` dispatches based on `repos_action`:
 
-- `repos_action: "enable"` -> runs `tasks/enable_repo.yml` (requires `repos_to_enable`)
-- `repos_action: "disable"` -> runs `tasks/disable_repo.yml` (requires `repos_to_disable`)
+- `repos_action: "enable"` runs `tasks/enable_repo.yml` (requires `repos_to_enable`)
+- `repos_action: "disable"` runs `tasks/disable_repo.yml` (requires `repos_to_disable`)
 
-Each action task:
-1. validates required variables
-2. validates OS compatibility (`RedHat`)
-3. detects `subscription-manager` availability
-4. applies selected/auto method
-5. verifies repo state
-6. optionally runs cache cleanup
-7. prints summary output
-
-## Role Variables
-
-| Variable | Description | Required | Default |
-| --- | --- | --- | --- |
-| `repos_action` | Action to perform (`enable` or `disable`) | yes | none |
-| `repos_to_enable` | Comma-separated repo IDs to enable | required for `enable` | none |
-| `repos_to_disable` | Comma-separated repo IDs to disable | required for `disable` | none |
-| `repos_enable_method` | Enable method: `rhsm_repository`, `yum_repository`, `file-edit` | no | auto |
-| `repos_disable_method` | Disable method: `rhsm_repository`, `yum_repository`, `file-edit` | no | auto |
-| `rhel_repos_backup_files` | Backup repo files during `file-edit` method | no | `true` |
-| `rhel_repos_clean_cache` | Run package manager cache cleanup after action | no | `false` |
-
-Compatibility note: legacy vars `repos_backup_files` and `repos_clean_cache` are still honored in task logic.
-
-> **Migration:** This role was renamed from `platform_repos`. Use `infra.ado.rhel_repos` and
-> `rhel_repos_*` variables instead of `ado.platform.repos` / `platform_repos_*`.
-
-## Method Selection
-
-When no method is explicitly set:
-
-- if `subscription-manager` exists, role uses `rhsm_repository`
-- otherwise role uses `yum_repository`
-
-`file-edit` is only used when explicitly requested.
-
-## Examples
+When no method is set, the role uses `rhsm_repository` if `subscription-manager`
+is available; otherwise it uses `yum_repository`. Use `file-edit` only when
+explicitly requested.
 
 ### Enable repositories (auto method)
 
@@ -139,23 +104,23 @@ When no method is explicitly set:
     - role: infra.ado.rhel_repos
 ```
 
-## Testing
+## 🧪 Role Molecule Testing
 
-Molecule testing for this role is normalized to the extension scenarios:
+Molecule testing for this role uses extension scenarios:
 
 - `extensions/molecule/integration_rhel_repos_default`
 - `extensions/molecule/integration_rhel_repos_rhsm`
 
-These scenarios run shared stage playbooks from:
+Shared stage playbooks live under `extensions/molecule/utils/playbooks/`:
 
-- `extensions/molecule/utils/playbooks/rhel_repos_prepare_default.yml`
-- `extensions/molecule/utils/playbooks/rhel_repos_converge_default.yml`
-- `extensions/molecule/utils/playbooks/rhel_repos_verify_default.yml`
-- `extensions/molecule/utils/playbooks/rhel_repos_destroy_default.yml`
-- `extensions/molecule/utils/playbooks/rhel_repos_prepare_rhsm.yml`
-- `extensions/molecule/utils/playbooks/rhel_repos_converge_rhsm.yml`
-- `extensions/molecule/utils/playbooks/rhel_repos_verify_rhsm.yml`
-- `extensions/molecule/utils/playbooks/rhel_repos_destroy_rhsm.yml`
+- `rhel_repos_prepare_default.yml`
+- `rhel_repos_converge_default.yml`
+- `rhel_repos_verify_default.yml`
+- `rhel_repos_destroy_default.yml`
+- `rhel_repos_prepare_rhsm.yml`
+- `rhel_repos_converge_rhsm.yml`
+- `rhel_repos_verify_rhsm.yml`
+- `rhel_repos_destroy_rhsm.yml`
 
 Run tests from `extensions/molecule`:
 
@@ -164,8 +129,28 @@ molecule test -s integration_rhel_repos_default
 molecule test -s integration_rhel_repos_rhsm
 ```
 
-The role-level `tests/` directory is optional legacy skeleton content and is not used by the extension Molecule CI flow.
+The role-level `tests/` directory is legacy skeleton content and is not used by
+the extension Molecule CI flow.
 
-## License
+## 📁 Role Structure
 
-GPL-3.0-or-later
+```text
+roles/
+└─ rhel_repos/
+   ├─ README.md
+   ├─ defaults/
+   │  └─ main.yml
+   ├─ handlers/
+   │  └─ main.yml
+   ├─ meta/
+   │  └─ main.yml
+   ├─ tasks/
+   │  ├─ main.yml
+   │  ├─ enable_repo.yml
+   │  └─ disable_repo.yml
+   ├─ tests/
+   │  ├─ inventory
+   │  └─ test.yml
+   └─ vars/
+      └─ main.yml
+```
