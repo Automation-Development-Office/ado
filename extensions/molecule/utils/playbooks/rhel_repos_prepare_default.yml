@@ -1,0 +1,65 @@
+---
+- name: Prepare integration_rhel_repos_default scenario
+  hosts: all
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Remove leftover test repository fixtures from prior runs
+      ansible.builtin.raw: >-
+        rm -f /etc/yum.repos.d/test-repo-disabled.repo
+        /etc/yum.repos.d/test-repo-enabled.repo
+        /etc/yum.repos.d/test-repo-yum.repo
+        /etc/yum.repos.d/test-repo-*.repo.*
+      changed_when: false
+      failed_when: false
+
+    - name: Bootstrap Python 3.11 on UBI 8 for Ansible compatibility
+      ansible.builtin.raw: dnf install -y python3.11
+      register: rhel_repos_prepare_bootstrap_el8
+      changed_when: "'Complete!' in rhel_repos_prepare_bootstrap_el8.stdout"
+      failed_when: rhel_repos_prepare_bootstrap_el8.rc != 0
+      when: inventory_hostname is search('el8')
+
+    - name: Gather facts after bootstrap
+      ansible.builtin.setup:
+
+    - name: Create disabled test repository fixture
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/test-repo-disabled.repo
+        mode: "0644"
+        content: |
+          [test-repo-disabled]
+          name=Test Repository Disabled
+          baseurl=https://example.com/test-repo-disabled/
+          enabled=0
+          gpgcheck=0
+      register: rhel_repos_prepare_disabled_fixture
+      changed_when: rhel_repos_prepare_disabled_fixture.changed
+
+    - name: Create enabled test repository fixture
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/test-repo-enabled.repo
+        mode: "0644"
+        content: |
+          [test-repo-enabled]
+          name=Test Repository Enabled
+          baseurl=https://example.com/test-repo-enabled/
+          enabled=1
+          gpgcheck=0
+      register: rhel_repos_prepare_enabled_fixture
+      changed_when: rhel_repos_prepare_enabled_fixture.changed
+
+    - name: Create yum_repository method test fixture on UBI 9
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/test-repo-yum.repo
+        mode: "0644"
+        content: |
+          [test-repo-yum]
+          name=Test Repository Yum Method
+          baseurl=https://example.com/test-repo-yum/
+          enabled=0
+          gpgcheck=0
+      register: rhel_repos_prepare_yum_fixture
+      changed_when: rhel_repos_prepare_yum_fixture.changed
+      when: inventory_hostname is search('el9')
