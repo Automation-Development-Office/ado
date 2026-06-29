@@ -1,2 +1,0 @@
-minor_changes:
-  - satellite_config - Added condition to skip third-party product creation when `satellite_products` is not defined or empty.

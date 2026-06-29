@@ -36,6 +36,9 @@
     mode: '0600'
     remote_src: true
   loop: "{{ satellite_config_custom_repo_files }}"
+  when:
+    - satellite_config_custom_repo_files is defined
+    - satellite_products |length > 0
 
 - name: third_party_products | Upload custom repos"
   redhat.satellite.content_upload:
