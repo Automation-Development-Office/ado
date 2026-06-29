@@ -15,8 +15,9 @@
 - name: third_party_products | Create 3rd party products and repos on satellite
   ansible.builtin.include_role:
     name: redhat.satellite.repositories
-  when: satellite_products is defined and satellite_products | bool
-
+  when:
+    - satellite_products is defined
+    - satellite_products | length > 0
 
 - name: third_party_products | Create custom repo destination directory
   ansible.builtin.file:

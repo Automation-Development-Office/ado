@@ -1,2 +1,0 @@
-bugfixes:
-  - satellite_config - Added a condition to only create 3rd party products and repositories when ``satellite_products`` is defined and enabled.
