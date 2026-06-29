@@ -51,4 +51,7 @@
     repository: "{{ item.0.repository }}"
     validate_certs: "{{ satellite_config_validate_certs }}"
   loop: "{{ satellite_config_custom_repos | subelements('files') }}"
+  when:
+    - satellite_config_custom_repos is defined
+    - satellite_config_custom_repos |length > 0
 ...
