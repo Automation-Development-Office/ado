@@ -5,6 +5,9 @@
     state: directory
     mode: "0750"
 
+- name: prep-custom-certs | Reset SSH connection
+  ansible.builtin.meta: reset_connection
+
 - name: prep-custom-certs | Generate server private key
   community.crypto.openssl_privatekey:
     path: "/tmp/backup/satellite-certificates/{{ inventory_hostname }}/{{ inventory_hostname }}_cert_key.pem"
