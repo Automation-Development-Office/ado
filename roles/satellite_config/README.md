@@ -52,7 +52,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `satellite_config_custom_repo_src` | Source directory containing custom repository archives | ✅§ | Not defined in role defaults |
 | `satellite_config_custom_repo_files` | Archive filenames extracted from `satellite_config_custom_repo_src` | ✅§ | Not defined in role defaults |
 | `satellite_config_custom_repos` | Custom repository upload definitions passed to `subelements('files')`; each item requires `product`, `repository`, and `files` | ✅§ | Not defined in role defaults |
-| `satellite_config_repo_sync_wait_time` | Async timeout in seconds while waiting for repository sync jobs to finish | ✅§ | Not defined in role defaults |
+| `satellite_config_repo_sync_wait_time` | Async timeout in seconds while waiting for repository sync jobs to finish | ❌ | See `defaults/main.yml` |
 | `satellite_config_lifecycle_envs` | Lifecycle environments to create; each item requires `env_name` and `prior` | ✅¶ | Not defined in role defaults |
 | `satellite_config_content_views` | Content views to publish and promote; each item requires `name` and `lifecycle_environments` | ✅¶ | Not defined in role defaults |
 
