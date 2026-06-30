@@ -32,10 +32,10 @@
 
 - name: repo_sync | Wait for repo sync to finish
   ansible.builtin.async_status:
-    jid: "{{ item['ansible_job_id'] }}"
+    jid: "{{ item.ansible_job_id }}"
   register: satellite_config_repo_sync_status_results
   retries: "{{ (satellite_config_repo_sync_wait_time // 10) }}"
   delay: 10
-  until: satellite_config_repo_sync_status_jobs['finished']
-  loop: "{{ satellite_config_repo_sync_status['results'] }}"
+  until: satellite_config_repo_sync_status_results.finished
+  loop: "{{ satellite_config_repo_sync_status.results }}"
 ...
