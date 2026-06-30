@@ -74,3 +74,4 @@ satellite_config_settings:
 satellite_config_server_url: "https://{{ ansible_fqdn }}"
 satellite_config_gpg_key_files:
   - files/RPM-GPG-KEY-EPEL-9
+satellite_config_repo_sync_wait_time: 21600
