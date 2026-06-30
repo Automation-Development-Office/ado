@@ -29,15 +29,15 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `satellite_install_pre_check` | When `true`, only run `preliminary_check.yml` and skip all other tasks | ❌ | `false` |
-| `satellite_install_force_reinstall` | When `true`, force the Satellite installer to run even if Satellite services appear installed | ❌ | `false` |
+| `satellite_install_pre_check` | When `true`, only run the preliminary validation tasks and skip the remaining install/import tasks | ❌ | `false` |
+| `satellite_install_force_reinstall` | When `true`, rerun the Satellite installer even if Satellite services already appear to be installed | ❌ | `false` |
 | `satellite_install_satellite_deployment_version` | Target Satellite version validated during checks and used in RHSM repo names | ✅ | `""` |
 | `satellite_install_satellite_location` | Logical location/name for the Satellite deployment | ✅ | `""` |
 | `satellite_install_satellite_min_memory_size` | Minimum required memory in MB (`ansible_facts["memtotal_mb"]`) | ❌ | `1024` |
 | `satellite_install_satellite_min_cpu_count` | Minimum required vCPU count and input to the Satellite tuning profile template | ❌ | `4` |
 | `satellite_install_satellite_rhn_connected` | When `true`, validate RHSM credentials during preliminary checks | ❌ | `false` |
 | `satellite_install_satellite_rhn_org_id` | RHSM organization ID used for host registration | ✅* | `""` |
-| `satellite_install_satellite_admin_password` | Password to set for admin user after installation | ✅ | `""` |
+| `satellite_install_satellite_admin_password` | Password to set for the Satellite admin user after installation | ✅ | `""` |
 | `satellite_install_satellite_rhn_activation_key` | RHSM activation key used for host registration | ✅* | `""` |
 | `satellite_install_satellite_rhn_repos` | RHSM repository IDs enabled after registration | ❌ | See `defaults/main.yml` |
 | `satellite_install_satellite_timezone` | System timezone set before RHSM registration | ❌ | `"UTC"` |
@@ -51,7 +51,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `satellite_install_satellite_data_device_name` | Disk device basename override when auto-discovery finds multiple suitable disks | ❌ | `""` |
 | `satellite_install_satellite_data_device` | Base device path prefix joined with the selected disk (for example `/dev/sdb`) | ❌ | `"/dev"` |
 | `satellite_install_satellite_packages` | Package list installed before Satellite configuration | ❌ | See `defaults/main.yml` |
-| `satellite_install_satellite_dns_device` | NetworkManager connection name updated with DNS settings | ✅‡ | `""` |
+| `satellite_install_satellite_dns_device` | NetworkManager connection name updated by the DNS configuration tasks | ✅‡ | `""` |
 | `satellite_install_satellite_dns_servers` | DNS servers applied via NetworkManager and `/etc/resolv.conf` | ❌ | `[]` |
 | `satellite_install_satellite_dns_search` | DNS search domains applied via NetworkManager | ❌ | `[]` |
 | `satellite_install_satellite_size` | List of tuning tiers (`name`, `min_cpu`) used by `templates/tuning_profile.j2` to select the `satellite-installer --tuning` profile. Must include tier names `default`, `medium`, `large`, `extra-large`, and `extra-extra-large`. | ✅§ | Not defined in role defaults |
