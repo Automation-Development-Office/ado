@@ -1,0 +1,136 @@
+---
+- name: "6.1.1 | PATCH | Ensure AIDE is installed"
+  when:
+    - remediate_rhel8_cis_config_aide
+    - remediate_rhel8_cis_rule_6_1_1
+  tags:
+    - level1-server
+    - level1-workstation
+    - aide
+    - patch
+    - rule_6.1.1
+    - NIST800-53R5_AU-2
+    - NIST800-53R5_SI-6
+  block:
+    - name: "6.1.1 | PATCH | Ensure AIDE is installed"
+      ansible.builtin.package:
+        name: "{{ remediate_rhel8_cis_aide_packages }}"
+        state: present
+        update_cache: true
+      register: remediate_rhel8_cis_discovered_aide_pkg_added
+
+    - name: "6.1.1 | PATCH | Ensure AIDE is installed | Recapture packages"
+      when: remediate_rhel8_cis_discovered_aide_pkg_added.skipped is not defined
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: "6.1.1 | AUDIT | Ensure AIDE is installed | Check file exists"
+      ansible.builtin.stat:
+        path: "{{ remediate_rhel8_cis_aide_db_file }}"
+      register: remediate_rhel8_cis_discovered_aide_db_file
+
+    - name: "6.1.1 | AUDIT | Ensure AIDE is installed | Check current db file age"
+      when: remediate_rhel8_cis_discovered_aide_db_file.stat.exists
+      ansible.builtin.find:
+        path: "{{ remediate_rhel8_cis_aide_db_file | dirname }}"
+        pattern: "{{ remediate_rhel8_cis_aide_db_file | basename }}"
+        age: "{{ remediate_rhel8_cis_aide_db_file_age }}"
+      register: remediate_rhel8_cis_discovered_aide_db_age
+
+    - name: "6.1.1 | PATCH | Ensure AIDE is installed | Configure AIDE"
+      when:
+        - not ansible_check_mode
+        - not remediate_rhel8_cis_discovered_aide_db_file.stat.exists or (remediate_rhel8_cis_discovered_aide_db_age.files | length > 0) or remediate_rhel8_cis_aide_db_recreate
+      block:
+        - name: "6.1.1 | PATCH | Ensure AIDE is installed | Build AIDE DB"
+          ansible.builtin.command: "{{ remediate_rhel8_cis_aide_initiate_command }}"
+          changed_when: true
+          args:
+            creates: /var/lib/aide/aide.db.new.gz
+          async: "{{ remediate_rhel8_cis_aide_init_async }}"
+          poll: "{{ remediate_rhel8_cis_aide_init_poll }}"
+
+        - name: "6.1.1 | PATCH | Ensure AIDE is installed | Build AIDE DB | copy AIDE DB"
+          ansible.builtin.copy:
+            src: /var/lib/aide/aide.db.new.gz
+            dest: "{{ remediate_rhel8_cis_aide_db_file }}"
+            remote_src: true
+            mode: "u-x,g-wx,o-rwx"
+          register: remediate_rhel8_cis_discovered_aide_db_cp
+          failed_when:
+            - not ansible_check_mode
+            - remediate_rhel8_cis_discovered_aide_db_cp.failed
+
+- name: "6.1.2 | PATCH | Ensure filesystem integrity is regularly checked"
+  when:
+    - remediate_rhel8_cis_config_aide
+    - remediate_rhel8_cis_rule_6_1_2
+  tags:
+    - level1-server
+    - level1-workstation
+    - patch
+    - rule_6.1.2
+    - NIST800-53R5_AU-2
+    - cron
+    - aide
+  block:
+    - name: "6.1.2 | PATCH | Ensure filesystem integrity is regularly checked | cron"
+      when: remediate_rhel8_cis_aide_scan == 'cron'
+      ansible.builtin.cron:
+        name: Run AIDE integrity check
+        cron_file: "{{ remediate_rhel8_cis_aide_cron_file }}"
+        user: "{{ remediate_rhel8_cis_aide_cron_user }}"
+        minute: "{{ remediate_rhel8_cis_aide_cron_minute | default('0') }}"
+        hour: "{{ remediate_rhel8_cis_aide_cron_hour | default('5') }}"
+        day: "{{ remediate_rhel8_cis_aide_cron_day | default('*') }}"
+        month: "{{ remediate_rhel8_cis_aide_cron_month | default('*') }}"
+        weekday: "{{ remediate_rhel8_cis_aide_cron_weekday | default('*') }}"
+        job: "{{ remediate_rhel8_cis_aide_cron_job }}"
+
+    - name: "6.1.2 | PATCH | Ensure filesystem integrity is regularly checked | timer template"
+      when: remediate_rhel8_cis_aide_scan == 'timer'
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "/{{ item }}"
+        owner: root
+        group: root
+        mode: "go-r"
+      loop:
+        - etc/systemd/system/aidecheck.service
+        - etc/systemd/system/aidecheck.timer
+
+    - name: "6.1.2 | PATCH | Ensure filesystem integrity is regularly checked | timer service"
+      when: remediate_rhel8_cis_aide_scan == 'timer'
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+        daemon_reload: true
+      loop:
+        - aidecheck.service
+        - aidecheck.timer
+
+- name: "6.1.3 | Ensure cryptographic mechanisms are used to protect the integrity of audit tools"
+  when: remediate_rhel8_cis_rule_6_1_3
+  tags:
+    - level1-server
+    - level1-workstation
+    - aide
+    - file_integrity
+    - patch
+    - rule_6.1.3
+  ansible.builtin.blockinfile:
+    path: /etc/aide.conf
+    marker: "# {mark} Audit tools - CIS benchmark - Ansible-lockdown"
+    block: |
+      /sbin/auditctl p+i+n+u+g+s+b+acl+xattrs+sha512
+      /sbin/auditd p+i+n+u+g+s+b+acl+xattrs+sha512
+      /sbin/ausearch p+i+n+u+g+s+b+acl+xattrs+sha512
+      /sbin/aureport p+i+n+u+g+s+b+acl+xattrs+sha512
+      /sbin/autrace p+i+n+u+g+s+b+acl+xattrs+sha512
+      /sbin/augenrules p+i+n+u+g+s+b+acl+xattrs+sha512
+    validate: aide -D --config %s
+  register: remediate_rhel8_cis_discovered_aide_file_integrity_check
+  failed_when:
+    - not ansible_check_mode
+    - remediate_rhel8_cis_discovered_aide_file_integrity_check.failed

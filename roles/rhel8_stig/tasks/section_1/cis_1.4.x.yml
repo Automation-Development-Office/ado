@@ -1,0 +1,70 @@
+---
+- name: "1.4.1 | PATCH | Ensure bootloader password is set"
+  when:
+    - rhel8cis_set_boot_pass
+    - rhel8cis_rule_1_4_1
+  tags:
+    - level1-server
+    - level1-workstation
+    - automated
+    - grub
+    - patch
+    - NIST800-53R5_AC-3
+    - rule_1.4.1
+  ansible.builtin.copy:
+    dest: "{{ rhel8cis_boot_path }}user.cfg" # noqa template-instead-of-copy
+    content: "GRUB2_PASSWORD={{ rhel8_compiled_bootloader_password }}"
+    owner: root
+    group: root
+    mode: "go-rwx"
+  notify: Rebuild grub
+
+- name: "1.4.2 | PATCH | Ensure access to bootloader config is configured"
+  when:
+    - rhel8cis_rule_1_4_2
+    - prelim_grub_cfg.stat.exists
+    - prelim_grub_cfg.stat.islnk
+  tags:
+    - level1-server
+    - level1-workstation
+    - automated
+    - grub
+    - patch
+    - NIST800-53R5_CM-6
+    - rule_1.4.2
+  block:
+    - name: "1.4.2 | PATCH | Ensure access to bootloader config is configured | BIOS"
+      ansible.builtin.file:
+        path: "{{ rhel8cis_boot_path }}"
+        owner: root
+        group: root
+        mode: "u-x,go-rwx"
+        recurse: true
+
+    - name: "1.4.2 | PATCH | Ensure access to bootloader config is configured | EFI"
+      when: rhel8cis_legacy_boot
+      block:
+        - name: "1.4.2 | PATCH | Ensure access to bootloader config is configured | EFI"
+          when: not rhel8cis_legacy_boot
+          ansible.builtin.file:
+            path: "{{ rhel8cis_boot_path }}"
+            owner: root
+            group: root
+            mode: "u=rwx,go-rwx"
+            recurse: true
+
+        - name: "1.4.2 | PATCH | Ensure access to bootloader config is configured | EFI mount opts"
+          when:
+            - not rhel8cis_legacy_boot
+            - item.mount == "/boot/efi"
+          notify: Set reboot required
+          ansible.posix.mount:
+            name: /boot/efi
+            src: "UUID={{ item.uuid }}"
+            fstype: vfat
+            state: present
+            opts: defaults,umask=0027,fmask=0077,uid=0,gid=0
+            passno: "0"
+          loop: "{{ ansible_facts.mounts }}"
+          loop_control:
+            label: "{{ item.mount }}"
