@@ -1,0 +1,72 @@
+---
+
+- name: "MEDIUM | RHEL-09-431015 | PATCH | RHEL 9 must enable the SELinux targeted policy."
+  when: rhel_09_431015
+  tags:
+    - RHEL-09-431015
+    - CAT2
+    - CCI-002696
+    - SRG-OS-000445-GPOS-00199
+    - SV-258079r1045159_rule
+    - V-258079
+    - NIST800-53R4_SI-6
+  ansible.builtin.lineinfile:
+    path: /etc/selinux/config
+    regexp: ^(#|)SELINUXTYPE\s*=\s*\w+
+    line: SELINUXTYPE=targeted
+
+- name: "MEDIUM | RHEL-09-431025 | PATCH | RHEL 9 must have policycoreutils package installed."
+  when: rhel_09_431025
+  tags:
+    - RHEL-09-431025
+    - CAT2
+    - CCI-001084
+    - SRG-OS-000480-GPOS-00227
+    - SRG-OS-000134-GPOS-00068
+    - SV-258081r1045164_rule
+    - V-258081
+    - NIST800-53R4_SC-3
+  ansible.builtin.package:
+    name: policycoreutils
+    state: present
+
+- name: "MEDIUM | RHEL-09-431030 | PATCH | RHEL 9 policycoreutils-python-utils package must be installed."
+  when: rhel_09_431030
+  tags:
+    - RHEL-09-431030
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-258082r1045166_rule
+    - V-258082
+    - NIST800-53R4_CM-6
+  ansible.builtin.package:
+    name: policycoreutils-python-utils
+    state: present
+
+## RHEL-09-431025 and 431030 are Pre-reqs for this control
+
+- name: "MEDIUM | RHEL-09-431020 | PATCH | RHEL 9 must enable the SELinux targeted policy."
+  when: rhel_09_431020
+  tags:
+    - RHEL-09-431020
+    - CAT2
+    - CCI-000044
+    - SRG-OS-000021-GPOS-00005
+    - SV-258080r1045162_rule
+    - V-258080
+    - NIST800-53R4_AC-7
+  block:
+    - name: "MEDIUM | RHEL-09-431020 | PATCH | RHEL 9 must enable the SELinux targeted policy."
+      community.general.sefcontext:
+        target: "{{ rhel9_stig_faillock_dir }}(/.*)?"
+        ftype: a
+        setype: faillog_t
+        seuser: system_u
+        state: present
+      register: rhel9_stig_discovered_faillock_secontext
+
+    - name: "MEDIUM | RHEL-09-431020 | PATCH | RHEL 9 must enable the SELinux targeted policy."
+      when: rhel9_stig_discovered_faillock_secontext.changed  # noqa no-handler
+      ansible.builtin.command: "restorecon -irvF {{ rhel9_stig_faillock_dir }}"
+      changed_when: true

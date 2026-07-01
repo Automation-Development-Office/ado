@@ -1,0 +1,905 @@
+---
+
+## metadata for Audit benchmark
+benchmark_version: 'v2r3'
+
+## Benchmark name used by auditing control role
+# The audit variable found at the base
+benchmark: RHEL9-STIG
+
+# Whether to skip the OS check for supported OS's
+skip_os_check: false
+
+rhel9stig_cat1: true
+rhel9stig_cat2: true
+rhel9stig_cat3: true
+
+# We've defined complexity-high to mean that we cannot automatically remediate
+# the rule in question.  In the future this might mean that the remediation
+# may fail in some cases.
+rhel9stig_complexity_high: false
+
+# Show "changed" for complex items not remediated per complexity-high setting
+# to make them stand out.  "changed" items on a second run of the role would
+# indicate items requiring manual review.
+rhel9stig_audit_complex: true
+
+# We've defined disruption-high to indicate items that are likely to cause
+# disruption in a normal workflow.  These items can be remediated automatically
+# but are disabled by default to avoid disruption.
+rhel9stig_disruption_high: false
+
+# tweak role to run in a chroot, such as in kickstart %post script
+rhel9stig_system_is_chroot: "{{ ansible_is_chroot | default(False) }}"
+
+# Set if system uses ipv6
+rhel9stig_system_uses_ipv6: false
+
+# Place to find the container yml file for your environment - /vars/...
+container_vars_file: is_container.yml
+
+# rhel9stig is left off the front of this var for consistency in testing pipeline
+# system_is_ec2 toggle will disable tasks that fail on Amazon EC2 instances. Set true to skip and false to run tasks
+system_is_ec2: false
+
+# Create managed not custom local_facts files
+create_benchmark_facts: true
+ansible_facts_path: /etc/ansible/facts.d
+
+# Connecting user, due to the way many users work differently this is to try and assist the use of connecting user if required
+# This is useful when part of kickstart build or running as root and not defining the ansible_user option
+# used @ RHEL-09-411015
+rhel9stig_default_user: root
+rhel9stig_connecting_user: "{{ ansible_env.SUDO_USER | default(rhel9stig_default_user) }}"
+rhel9stig_playbook_user: "{{ ansible_user | default(rhel9stig_connecting_user) }}"
+
+# Whether to skip the reboot
+skip_reboot: true
+
+rhel9stig_workaround_for_disa_benchmark: true
+rhel9stig_workaround_for_ssg_benchmark: true
+
+# system acts or requires router networking options
+rhel9stig_system_is_router: false
+
+###
+### Settings for associated Audit role using Goss
+###
+
+###########################################
+### Goss is required on the remote host ###
+### vars/audit.yml for other settings  ###
+
+# Allow audit to setup the requirements including installing git (if option chosen and downloading and adding goss binary to system)
+setup_audit: false
+
+# enable audits to run - this runs the audit and get the latest content
+run_audit: false
+# Run heavy tests - some tests can have more impact on a system enabling these can have greater impact on a system
+audit_run_heavy_tests: true
+
+## Only run Audit do not remediate
+audit_only: false
+
+#############################
+
+# How to retrieve audit binary
+# Options are copy or download - detailed settings at the bottom of this file
+# you will need to access to either github or the file already downloaded
+get_audit_binary_method: download
+
+## if get_audit_binary_method - copy the following needs to be updated for your environment
+## it is expected that it will be copied from somewhere accessible to the control node
+## e.g copy from ansible control node to remote host
+audit_bin_copy_location: /some/accessible/path
+
+# how to get audit files onto host options
+# options are git/copy/archive/get_url other e.g. if you wish to run from already downloaded conf
+audit_content: git
+
+# If using either archive, copy, get_url:
+## Note will work with .tar files - zip will require extra configuration
+### If using get_url this is expecting github url in tar.gz format e.g.
+### https://github.com/ansible-lockdown/RHEL9-STIG-Audit/archive/refs/heads/benchmark-v1.0.0.tar.gz
+audit_conf_source: "some path or url to copy from"
+
+# Destination for the audit content to be placed on managed node
+# note may not need full path e.g. /opt with the directory being the {{ benchmark }}-Audit directory
+audit_conf_dest: "/opt"
+
+# Where the audit logs are stored
+audit_log_dir: '/opt'
+
+## Ability to collect and take audit files moving to a centralised location
+# This enables the collection of the files from the host
+fetch_audit_output: false
+
+# Method of getting,uploading the summary files
+## Ensure access and permissions are available for these to occur.
+## options are
+# fetch - fetches from server and moves to location on the ansible controller (could be a mount point available to controller)
+# copy - copies file to a location available to the managed node
+audit_output_collection_method: fetch
+
+# Location to put the audit files
+audit_output_destination: /opt/audit_summaries/
+
+### Goss Settings ##
+####### END ########
+
+#### CAT 1
+rhel_09_211010: true
+rhel_09_211045: true
+rhel_09_211050: true
+rhel_09_212020: true
+rhel_09_214015: true
+rhel_09_214020: true
+rhel_09_214025: true
+rhel_09_215015: true
+rhel_09_215060: true
+rhel_09_231190: true
+rhel_09_252070: true
+rhel_09_252075: true
+rhel_09_255040: true
+rhel_09_255050: true
+rhel_09_271040: true
+rhel_09_411100: true
+rhel_09_431010: true
+rhel_09_611025: true
+rhel_09_671010: true
+rhel_09_672020: true
+
+#### CAT 2
+rhel_09_211015: true
+rhel_09_211020: true
+rhel_09_211030: true
+rhel_09_211040: true
+rhel_09_211055: true
+rhel_09_212010: true
+rhel_09_212015: true
+rhel_09_212025: true
+rhel_09_212030: true
+rhel_09_212035: true
+rhel_09_212040: true
+rhel_09_212045: true
+rhel_09_213010: true
+rhel_09_213015: true
+rhel_09_213020: true
+rhel_09_213025: true
+rhel_09_213030: true
+rhel_09_213035: true
+rhel_09_213040: true
+rhel_09_213045: true
+rhel_09_213050: true
+rhel_09_213055: true
+rhel_09_213060: true
+rhel_09_213065: true
+rhel_09_213070: true
+rhel_09_213075: true
+rhel_09_213080: true
+rhel_09_213085: true
+rhel_09_213090: true
+rhel_09_213095: true
+rhel_09_213100: true
+rhel_09_213105: true
+rhel_09_213110: true
+rhel_09_213115: true
+rhel_09_214010: true
+rhel_09_214030: true
+rhel_09_215010: true
+rhel_09_215020: true
+rhel_09_215025: true
+rhel_09_215030: true
+rhel_09_215035: true
+rhel_09_215040: true
+rhel_09_215045: true
+rhel_09_215050: true
+rhel_09_215055: true
+rhel_09_215065: true
+rhel_09_215070: true
+rhel_09_215075: true
+rhel_09_215080: true
+rhel_09_215085: true
+rhel_09_215090: true
+rhel_09_215095: true
+rhel_09_215100: true
+rhel_09_215105: true
+
+rhel_09_231010: true
+rhel_09_231015: true
+rhel_09_231035: true
+rhel_09_231040: true
+rhel_09_231045: true
+rhel_09_231050: true
+rhel_09_231055: true
+rhel_09_231065: true
+rhel_09_231070: true
+rhel_09_231075: true
+rhel_09_231080: true
+rhel_09_231085: true
+rhel_09_231090: true
+rhel_09_231095: true
+rhel_09_231100: true
+rhel_09_231105: true
+rhel_09_231110: true
+rhel_09_231115: true
+rhel_09_231120: true
+rhel_09_231125: true
+rhel_09_231130: true
+rhel_09_231135: true
+rhel_09_231140: true
+rhel_09_231145: true
+rhel_09_231150: true
+rhel_09_231155: true
+rhel_09_231160: true
+rhel_09_231165: true
+rhel_09_231170: true
+rhel_09_231175: true
+rhel_09_231180: true
+rhel_09_231185: true
+rhel_09_231200: true
+rhel_09_232010: true
+rhel_09_232015: true
+rhel_09_232020: true
+rhel_09_232025: true
+rhel_09_232030: true
+rhel_09_232035: true
+rhel_09_232040: true
+rhel_09_232045: true
+rhel_09_232050: true
+rhel_09_232055: true
+rhel_09_232060: true
+rhel_09_232065: true
+rhel_09_232070: true
+rhel_09_232075: true
+rhel_09_232080: true
+rhel_09_232085: true
+rhel_09_232090: true
+rhel_09_232095: true
+rhel_09_232100: true
+rhel_09_232103: true
+rhel_09_232104: true
+rhel_09_232105: true
+rhel_09_232110: true
+rhel_09_232115: true
+rhel_09_232120: true
+rhel_09_232125: true
+rhel_09_232130: true
+rhel_09_232135: true
+rhel_09_232140: true
+rhel_09_232145: true
+rhel_09_232150: true
+rhel_09_232155: true
+rhel_09_232160: true
+rhel_09_232165: true
+rhel_09_232170: true
+rhel_09_232175: true
+rhel_09_232180: true
+rhel_09_232185: true
+rhel_09_232190: true
+rhel_09_232195: true
+rhel_09_232200: true
+rhel_09_232205: true
+rhel_09_232210: true
+rhel_09_232215: true
+rhel_09_232220: true
+rhel_09_232225: true
+rhel_09_232230: true
+rhel_09_232235: true
+rhel_09_232240: true
+rhel_09_232245: true
+rhel_09_232250: true
+rhel_09_232255: true
+rhel_09_232260: true
+rhel_09_232265: true
+rhel_09_232270: true
+
+rhel_09_251010: true
+rhel_09_251015: true
+rhel_09_251020: true
+rhel_09_251030: true
+rhel_09_251035: true
+rhel_09_251040: true
+rhel_09_251045: true
+rhel_09_252010: true
+rhel_09_252015: true
+rhel_09_252020: true
+rhel_09_252030: true
+rhel_09_252035: true
+rhel_09_252040: true
+rhel_09_252045: true
+rhel_09_252050: true
+rhel_09_252060: true
+rhel_09_252065: true
+rhel_09_253010: true
+rhel_09_253015: true
+rhel_09_253020: true
+rhel_09_253025: true
+rhel_09_253030: true
+rhel_09_253035: true
+rhel_09_253040: true
+rhel_09_253045: true
+rhel_09_253050: true
+rhel_09_253055: true
+rhel_09_253060: true
+rhel_09_253065: true
+rhel_09_253070: true
+rhel_09_253075: true
+rhel_09_254010: true
+rhel_09_254015: true
+rhel_09_254020: true
+rhel_09_254025: true
+rhel_09_254030: true
+rhel_09_254035: true
+rhel_09_254040: true
+rhel_09_255010: true
+rhel_09_255015: true
+rhel_09_255020: true
+rhel_09_255025: true
+rhel_09_255030: true
+rhel_09_255035: true
+rhel_09_255045: true
+rhel_09_255055: true
+rhel_09_255060: true
+rhel_09_255064: true
+rhel_09_255065: true
+rhel_09_255070: true
+rhel_09_255075: true
+rhel_09_255080: true
+rhel_09_255085: true
+rhel_09_255090: true
+rhel_09_255095: true
+rhel_09_255100: true
+rhel_09_255105: true
+rhel_09_255110: true
+rhel_09_255115: true
+rhel_09_255120: true
+rhel_09_255125: true
+rhel_09_255130: true
+rhel_09_255135: true
+rhel_09_255140: true
+rhel_09_255145: true
+rhel_09_255150: true
+rhel_09_255155: true
+rhel_09_255160: true
+rhel_09_255165: true
+rhel_09_255175: true
+rhel_09_271010: true
+rhel_09_271015: true
+rhel_09_271020: true
+rhel_09_271025: true
+rhel_09_271030: true
+rhel_09_271035: true
+rhel_09_271045: true
+rhel_09_271050: true
+rhel_09_271055: true
+rhel_09_271060: true
+rhel_09_271065: true
+rhel_09_271070: true
+rhel_09_271075: true
+rhel_09_271080: true
+rhel_09_271085: true
+rhel_09_271090: true
+rhel_09_271095: true
+rhel_09_271100: true
+rhel_09_271105: true
+rhel_09_271110: true
+rhel_09_271115: true
+
+rhel_09_291010: true
+rhel_09_291015: true
+rhel_09_291020: true
+rhel_09_291030: true
+rhel_09_291035: true
+rhel_09_291040: true
+
+## CAT2 4xxxxx
+rhel_09_411010: true
+rhel_09_411015: true
+rhel_09_411020: true
+rhel_09_411025: true
+rhel_09_411030: true
+rhel_09_411035: true
+rhel_09_411040: true
+rhel_09_411045: true
+rhel_09_411050: true
+rhel_09_411055: true
+rhel_09_411060: true
+rhel_09_411065: true
+rhel_09_411070: true
+rhel_09_411075: true
+rhel_09_411080: true
+rhel_09_411085: true
+rhel_09_411090: true
+rhel_09_411095: true
+rhel_09_411105: true
+rhel_09_411110: true
+rhel_09_411115: true
+rhel_09_412035: true
+rhel_09_412045: true
+rhel_09_412050: true
+rhel_09_412055: true
+rhel_09_412060: true
+rhel_09_412065: true
+rhel_09_412070: true
+rhel_09_412080: true
+rhel_09_431015: true
+rhel_09_431020: true
+rhel_09_431025: true
+rhel_09_431030: true
+rhel_09_432010: true
+rhel_09_432015: true
+rhel_09_432020: true
+rhel_09_432025: true
+rhel_09_432030: true
+rhel_09_432035: true
+rhel_09_433010: true
+rhel_09_433015: true
+rhel_09_433016: true
+
+### CAT2 61xxxx
+rhel_09_611010: true
+rhel_09_611030: true
+rhel_09_611035: true
+rhel_09_611040: true
+rhel_09_611045: true
+rhel_09_611050: true
+rhel_09_611055: true
+rhel_09_611060: true
+rhel_09_611065: true
+rhel_09_611070: true
+rhel_09_611075: true
+rhel_09_611080: true
+rhel_09_611085: true
+rhel_09_611090: true
+rhel_09_611100: true
+rhel_09_611105: true
+rhel_09_611110: true
+rhel_09_611115: true
+rhel_09_611120: true
+rhel_09_611125: true
+rhel_09_611130: true
+rhel_09_611135: true
+rhel_09_611140: true
+rhel_09_611145: true
+rhel_09_611155: true
+rhel_09_611160: true
+rhel_09_611165: true
+rhel_09_611170: true
+rhel_09_611175: true
+rhel_09_611180: true
+rhel_09_611185: true
+rhel_09_611190: true
+rhel_09_611195: true
+rhel_09_611200: true
+rhel_09_611205: true
+
+### CAT2 63xxxx
+rhel_09_631010: true
+rhel_09_631015: true
+rhel_09_631020: true
+### CAT2 65xxxx
+rhel_09_651010: true
+rhel_09_651015: true
+rhel_09_651020: true
+rhel_09_651025: true
+rhel_09_652010: true
+rhel_09_652015: true
+rhel_09_652020: true
+rhel_09_652025: true
+rhel_09_652030: true
+rhel_09_653130: true  # NOTE Required before 652035 can run
+rhel_09_652035: true
+rhel_09_652040: true
+rhel_09_652045: true
+rhel_09_652050: true
+rhel_09_652055: true
+rhel_09_652060: true
+
+### CAT2 65xxxx
+rhel_09_653010: true
+rhel_09_653015: true
+rhel_09_653020: true
+rhel_09_653025: true
+rhel_09_653030: true
+rhel_09_653035: true
+rhel_09_653040: true
+rhel_09_653045: true
+rhel_09_653050: true
+rhel_09_653055: true
+rhel_09_653060: true
+rhel_09_653065: true
+rhel_09_653070: true
+rhel_09_653075: true
+rhel_09_653080: true
+rhel_09_653085: true
+rhel_09_653090: true
+rhel_09_653095: true
+rhel_09_653100: true
+rhel_09_653105: true
+rhel_09_653110: true
+rhel_09_653115: true
+rhel_09_653125: true
+
+### CAT2 65xxxx
+
+rhel_09_654010: true
+rhel_09_654015: true
+rhel_09_654020: true
+rhel_09_654025: true
+rhel_09_654030: true
+rhel_09_654035: true
+rhel_09_654040: true
+rhel_09_654045: true
+rhel_09_654050: true
+rhel_09_654055: true
+rhel_09_654060: true
+rhel_09_654065: true
+rhel_09_654070: true
+rhel_09_654075: true
+rhel_09_654080: true
+rhel_09_654085: true
+rhel_09_654090: true
+rhel_09_654095: true
+rhel_09_654100: true
+rhel_09_654105: true
+rhel_09_654110: true
+rhel_09_654115: true
+rhel_09_654120: true
+rhel_09_654125: true
+rhel_09_654130: true
+rhel_09_654135: true
+rhel_09_654140: true
+rhel_09_654145: true
+rhel_09_654150: true
+rhel_09_654155: true
+rhel_09_654160: true
+rhel_09_654165: true
+rhel_09_654170: true
+rhel_09_654175: true
+rhel_09_654180: true
+rhel_09_654185: true
+rhel_09_654190: true
+rhel_09_654195: true
+rhel_09_654200: true
+rhel_09_654205: true
+rhel_09_654210: true
+rhel_09_654215: true
+rhel_09_654220: true
+rhel_09_654225: true
+rhel_09_654230: true
+rhel_09_654235: true
+rhel_09_654240: true
+rhel_09_654245: true
+rhel_09_654250: true
+rhel_09_654255: true
+rhel_09_654260: true
+rhel_09_654265: true
+rhel_09_654270: true
+rhel_09_654275: true
+
+rhel_09_671015: true
+rhel_09_671020: true
+rhel_09_671025: true
+rhel_09_672025: true
+rhel_09_672050: true
+
+### Cat3
+rhel_09_211035: true
+rhel_09_212050: true
+rhel_09_212055: true
+rhel_09_214035: true
+rhel_09_231020: true
+rhel_09_231025: true
+rhel_09_231030: true
+rhel_09_231195: true
+rhel_09_252025: true
+rhel_09_291025: true
+rhel_09_412030: true
+rhel_09_412040: true
+rhel_09_412075: true
+rhel_09_651030: true
+rhel_09_651035: true
+rhel_09_653120: true
+
+### CONTROLS
+
+## Graphical/Gnome interface approved to be present
+rhel9stig_gui_approved: false
+
+# If gui not installed
+rhel9stig_gui: "{{ rhel_09_gnome_present.stat.exists | default(false) }}"
+
+## SSHD
+rhel9stig_sshd_config_file: /etc/ssh/sshd_config
+rhel9stig_sshd_required: true
+rhel9stig_sshd_config_maxlogins: 10
+rhel9stig_sshd_config:
+  banner_file: /etc/issue
+  ciphers: "{{ rhel9stig_dod_ciphers }}"
+  clientalivecountmax: 1
+  clientaliveinterval: 600  # max 600
+  compress: 'no'
+  gssapiauth: 'no'
+  hostauth: 'no'
+  ignoreknownhosts: 'yes'
+  ignorerhosts: 'yes'
+  include_conf: /etc/ssh/sshd_config.d/*.conf
+  kerbauth: 'no'
+  lastlog: 'yes'
+  loglevel: VERBOSE
+  macs: "{{ rhel9stig_dod_macs }}"
+  pubkeyauth: 'yes'
+  permitroot: 'no'
+  privsep: sandbox
+  rekeylimit: '1G 1h'
+  strictmodes: 'yes'
+  userenv: 'no'
+  x11forward: 'no'
+  x11uselocal: 'yes'
+
+## Bootloader/Grub settings
+rhel9stig_grub_superuser: root
+rhel9stig_bootloader_password_hash: 'grub.pbkdf2.sha512.changethispassword'  # pragma: allowlist secret
+rhel9stig_set_bootloader_password: false
+rhel9stig_grub2_path: /etc/grub2.cfg
+
+## Banner
+rhel9stig_logon_banner: "{{ rhel9stig_workaround_for_disa_benchmark | ternary(
+        rhel9stig_logon_banner_nice | regex_replace('(?s)(?<!\\n)\\n(?!(\n|$))', ' '),
+        rhel9stig_logon_banner_nice) }}"
+rhel9stig_logon_banner_nice: |
+    You are accessing a U.S. Government (USG) Information System (IS) that is
+    provided for USG-authorized use only.
+
+    By using this IS (which includes any device attached to this IS), you consent
+    to the following conditions:
+
+    -The USG routinely intercepts and monitors communications on this IS for
+    purposes including, but not limited to, penetration testing, COMSEC monitoring,
+    network operations and defense, personnel misconduct (PM), law enforcement
+    (LE), and counterintelligence (CI) investigations.
+
+    -At any time, the USG may inspect and seize data stored on this IS.
+
+    -Communications using, or data stored on, this IS are not private, are subject
+    to routine monitoring, interception, and search, and may be disclosed or used
+    for any USG-authorized purpose.
+
+    -This IS includes security measures (e.g., authentication and access controls)
+    to protect USG interests--not for your personal benefit or privacy.
+
+    -Notwithstanding the above, using this IS does not constitute consent to PM, LE
+    or CI investigative searching or monitoring of the content of privileged
+    communications, or work product, related to personal representation or services
+    by attorneys, psychotherapists, or clergy, and their assistants. Such
+    communications and work product are private and confidential. See User
+    Agreement for details.
+
+# Packages and services
+rhel9stig_is_ftp_server: false
+rhel9stig_is_tftp_server: false
+rhel9stig_sendmail_required: false
+rhel9stig_nfs_utils_required: false
+rhel9stig_ypserv_required: false
+rhel9stig_rsh_server_required: false
+rhel9stig_telnet_server_required: false
+rhel9stig_gssproxy_required: false
+rhel9stig_iprutils_required: false
+rhel9stig_tuned_required: false
+rhel9stig_quagga_required: false
+
+## 215xxx
+# Add list of additional crypto subpolicies to be added to FIPS
+rhel9stig_additional_fips_crypto_subpolicies: false
+rhel9stig_additional_fips_crypto_subpolicies_list:
+# - AD-SUPPORT
+# - NO-ENFORCE-EMS
+
+## 23xxxx
+rhel9stig_home_filesystem: '/home'
+
+## 25xxxx
+## Firewalld
+# rhel9stig_custom_firewall_zone is the desired name for the firewall zone
+rhel9stig_custom_firewall:
+  zone: "drop"
+  interface: "{{ ansible_default_ipv4.interface }}"
+
+# rhel9stig_white_list_services is the services that you want to allow through initially for the new firewall zone
+# http and ssh need to be enabled for the role to run.
+# This can also be a port number if no service exists
+rhel9stig_white_list_services:
+- ssh
+
+## Interface list allowed to have promiscuous mode set
+rhel9stig_promisc_if:
+- none
+
+# Set sysctl files
+# Sysctl file
+rhel9stig_sysctl_file_default: /etc/sysctl.d/99-sysctl.conf
+rhel9stig_sysctl_file:
+  fs: "{{ rhel9stig_sysctl_file_default }}"
+  kernel: "{{ rhel9stig_sysctl_file_default }}"
+  network: "{{ rhel9stig_sysctl_file_default }}"
+  user: "{{ rhel9stig_sysctl_file_default }}"
+# Systems that run containers must set this value to greater then 0 for example: 65536
+rhel9stig_sysctl_max_user_namespaces: '0'
+
+## Chrony
+rhel9stig_time_synchronization_servers:
+- '0.us.pool.ntp.mil'
+- '1.us.pool.ntp.mil'
+rhel9stig_chrony_server_options: "iburst maxpoll 16"  # Max Settings is maxpoll 16
+
+## fapolicy
+# Allow adding of fapolicy rules to be updated - also needs rhel9stig_disruption_high
+rhel9stig_allow_fapolicy_updates: false
+
+# rhel9stig_fapolicy_white_list is the whitelist for fapolicyd
+rhel9stig_fapolicy_white_list:
+- '# Allow Ansible'
+- "allow perm=any trust=1 : dir={{ ansible_env.PWD }}/.ansible/"
+- 'allow perm=any trust=1 : dir=/root/.ansible/'
+- 'allow perm=any trust=1 : dir=/tmp/ansible/'
+
+## DNS
+# Please adjust accordingly for ipv4 or ipv6
+rhel9stig_dns_ip4_servers:
+- 8.8.8.8
+- 8.8.4.4
+
+# rhel9stig_dns_ip6_servers:
+#   - '2001:4860:4860::8888'
+#   - '2001:4860:4860::8844'
+
+## Optional settings Please adjust accordingly for your environment
+# rhel9stig_resolv_domains:
+# - example.com
+# rhel9stig_resolv_search_options: example.com example1.com
+# rhel9stig_resolv_dns_options: 'timeout:2 rotate'
+
+## Mail Settings
+rhel9stig_postfix_client_conf: permit_mynetworks,reject
+
+### ACCOUNTS and AUTH ###
+## PAM and password settings
+rhel9stig_pass_max_days: 60
+rhel9stig_pass_min_days: 1
+rhel9stig_pass_minlen: '15'
+
+rhel9stig_user_inactive_days: '35'  # 35 or less is compliant
+
+# Path to set for users initialization files e.g. echo $PATH expected results
+rhel9stig_env_path: '$PATH:$HOME/.local/bin:$HOME/bin'
+
+# Authselect profile settings
+rhel9stig_authselect_custom_profile: minimal
+# If Set to false will use authselect - Can cause disruption to authentication
+rhel9stig_add_faillock_without_authselect: true
+
+# Faillock settings
+rhel9stig_faillock_deny: '3'  # 3 or less but not 0
+rhel9stig_faillock_fail_interval: '900'  # 900 or less is required not '0'
+rhel9stig_faillock_unlock_time: 0  # should be set to 0 unless documented
+rhel9stig_faillock_dir: '/var/log/faillock'
+
+rhel9stig_unnecessary_accounts:
+- ftp
+- games
+rhel9stig_remove_unnecessary_user_files: false
+
+rhel9stig_login_defs_fail_delay: '4'
+
+rhel9stig_logind_conf_stopsessionidle: '900'
+
+rhel9stig_pam_retry: '3'  # must be set between 1-3 anytning else ia a failure
+rhel9stig_pam_rounds: '5000'
+
+rhel9stig_pwquality_dcredit: -1
+rhel9stig_pwquality_dictcheck: 1
+rhel9stig_pwquality_difok: 8
+rhel9stig_pwquality_lcredit: -1
+rhel9stig_pwquality_maxclassrepeat: 4
+rhel9stig_pwquality_maxrepeat: 3
+rhel9stig_pwquality_minclass: 4
+rhel9stig_pwquality_ocredit: -1
+rhel9stig_pwquality_ucredit: -1
+
+rhel9stig_sudoers_exclude_nopasswd_list:
+- ec2-user
+- vagrant
+
+rhel9stig_smartcard_reader: false
+
+### SSSD
+rhel9stig_sssd_configure: false
+rhel9stig_sssd_config_certmap: |
+  [certmap/{{ rhel9stig_sssd.domain }}/{{ rhel9stig_sssd.rulename }}"]
+  matchrule ='.*example@mil'
+  maprule = (userCertificate;binary={cert!bin})
+  domains = example.com
+
+### Aide
+# AIDE is a file integrity checking tool, similar in nature to Tripwire.
+# While it cannot prevent intrusions, it can detect unauthorized changes
+# to configuration files by alerting when the files are changed. Review
+# the AIDE quick start guide and AIDE documentation before proceeding.
+# By setting this variable to `true`, all of the settings related to AIDE will be applied!
+rhel9stig_use_aide: true
+
+# If DB file older than below will automatically rebuild DB
+# e.g. options:1w = 1 week, 1d = 1day 1h = 1 hour
+rhel9stig_aide_db_file_age: 1w
+
+# If aide already setup this forces a new DB to be created despite age
+rhel9stig_aide_db_recreate: false
+
+# New db file
+rhel9stig_aide_db_new_file: /var/lib/aide/aide.db.new.gz
+# Active db file
+rhel9stig_aide_db_file: /var/lib/aide/aide.db.gz
+
+rhel9stig_aide_cron_file: /etc/cron.daily/aide  # NOTE the path may change if not running daily
+rhel9stig_aide_cron_day: '*'
+rhel9stig_aide_cron_hour: '4'
+rhel9stig_aide_cron_minute: '30'
+rhel9stig_aide_cron_job: '/usr/sbin/aide --check | /bin/mail -s "$HOSTNAME - Daily aide integrity check run" root@sysname.mil'
+rhel9stig_aide_cron_name: 'Aide Job runs Daily at 0430'
+
+# AIDE is a file integrity checking tool, similar in nature to Tripwire.
+# While it cannot prevent intrusions, it can detect unauthorized changes
+# to configuration files by alerting when the files are changed. Review
+# the AIDE quick start guide and AIDE documentation before proceeding.
+# By setting this variable to `true`, all of the settings related to AIDE will be applied!
+rhel9stig_config_aide: true
+
+### Rsyslog
+# Set the type either rsyslogd or syslog-ng this sets the audit tools binary as referred to controls
+# RHEL-09-232035, RHEL-09-232220, RHEL-09-232225
+rhel9stig_syslog_binary: rsyslogd
+# Set the following to true if the server accepts incoming syslog data using rsyslog
+rhel9stig_rsyslog_server: false
+
+# Adjust to match remote syslog server configuration
+rhel9stig_remotelog_server:
+  server: 10.10.10.10
+  port: 9999
+  protocol: '@@'
+
+# Syslog Binary
+rhel9stig_syslog_bin: rsyslogd
+
+### AUDITD
+# Ensure this matches the filesystem where the audit logs are stored.
+# It will affect checks for control RHEL-09-653030
+rhel9stig_auditd_required: true
+rhel9stig_audit_log_filesystem: '/var/log/audit'
+rhel9stig_audit_conf_action_mail_acct: root
+rhel9stig_audit_conf_admin_space_left: 5%
+rhel9stig_audit_conf_admin_space_left_action: single
+rhel9stig_audit_conf_disk_error_action: HALT  # Can be one of "SYSLOG", "SINGLE", or "HALT"
+rhel9stig_audit_conf_disk_full_action: HALT  # Can be one of "SYSLOG", "SINGLE", or "HALT"
+rhel9stig_audit_conf_freq: '100'
+rhel9stig_audit_conf_local_events: 'yes'
+rhel9stig_audit_conf_log_format: ENRICHED
+rhel9stig_audit_conf_logfile: "{{ rhel9stig_audit_log_filesystem }}/audit.log"
+rhel9stig_audit_conf_logfile_group: root
+rhel9stig_audit_conf_max_log_file_action: ROTATE
+rhel9stig_audit_conf_name_format: hostname
+rhel9stig_audit_conf_overflow_action: syslog
+rhel9stig_audit_conf_space_left: 25%
+rhel9stig_audit_conf_space_left_action: email
+rhel9stig_audit_conf_write_logs: 'yes'
+rhel9stig_audit_backlog_limit: 8192
+
+# Audit binaries
+rhel9stig_audit_bins:
+- '/usr/sbin/auditctl'
+- '/usr/sbin/aureport'
+- '/usr/sbin/ausearch'
+- '/usr/sbin/autrace'
+- '/usr/sbin/auditd'
+- '/usr/sbin/{{ rhel9stig_syslog_binary }}'  # Note you may not need this is container
+- '/usr/sbin/augenrules'

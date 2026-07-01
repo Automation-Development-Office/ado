@@ -1,0 +1,739 @@
+---
+
+## metadata for Audit benchmark
+benchmark_version: {{ benchmark_version }}
+
+## Benchmark name used by audting control role
+# The audit variable found at the base
+benchmark: RHEL9-STIG
+
+timeout_ms: {{ audit_cmd_timeout }}
+
+# turn the categories on/off
+rhel9stig_cat1: {{ rhel9stig_cat1 }}
+rhel9stig_cat2: {{ rhel9stig_cat2 }}
+rhel9stig_cat3: {{ rhel9stig_cat3 }}
+
+# set to redhat/rocky/alma
+rhel9stig_os_distribution: {{ ansible_facts.distribution | lower }}
+
+{% if ansible_facts.distribution == "RedHat" %}
+# RHEL
+rpm_gpg_key: /etc/pki/rpm-gpg/RPM-GPG-KEY-RPM-GPG-KEY-redhat-release
+gpg_key:
+  - name: 'release key 2'
+    fingerprint: '567E 347A D004 4ADE 55BA  8A5F 199E 2F91 FD43 1D51'
+  - name: 'auxiliary key'
+    fingerprint: '6A6A A7C9 7C88 90AE C6AE  BFE2 F76F 66C3 D409 2792'
+{% elif ansible_facts.distribution == "Rocky" %}
+# rocky
+rpm_gpg_key: /etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+gpg_key:
+  - name: 'Release Engineering'
+    fingerprint: '21CB 256A E16F C54C 6E65  2949 702D 426D 350D 275D'
+{% elif ansible_facts.distribution == "AlmaLinux" %}
+# Alma
+rpm_gpg_key: /etc/pki/rpm-gpg/RPM-GPG-KEY-AlmaLinux
+gpg_key:
+ - name: 'AlmaLinux'
+   fingerprint: '5E9B 8F56 17B5 066C E920  57C3 488F CF7C 3ABB 34F8'
+{% endif %}
+
+# If using the supplied graphical interface
+rhel9stig_gui: {{ rhel9stig_gui }}
+
+# If using sssd on host
+rhel9stig_uses_sssd: {{ rhel9stig_sssd_configure }}
+
+# Some tests may need to scan every filesystem or have an impact on a system
+# these may need be scheduled to minimise impact
+run_heavy_tests: {{ audit_run_heavy_tests }}
+
+# tweak role to run in a non-privileged container (default value)- dynamically discovered in tasks/main.yml
+system_is_container: {{ system_is_container }}
+
+# rhel9cis/stig is left off the front of this var for consistency in testing pipeline
+# system_is_ec2 toggle will disable tasks that fail on Amazon EC2 instances. Set {{ rhel_09_211010 }} to skip and false to run tasks
+system_is_ec2: {{ system_is_ec2 }}
+
+# system acts or requires router networking options
+rhel9stig_system_is_router: {{ rhel9stig_system_is_router }}
+
+# Cat 1 rules
+#### CAT 1
+rhel_09_211010: {{ rhel_09_211010 }}
+rhel_09_211045: {{ rhel_09_211045 }}
+rhel_09_211050: {{ rhel_09_211050 }}
+rhel_09_212020: {{ rhel_09_212020 }}
+rhel_09_214015: {{ rhel_09_214015 }}
+rhel_09_214020: {{ rhel_09_214020 }}
+rhel_09_214025: {{ rhel_09_214025 }}
+rhel_09_215015: {{ rhel_09_215015 }}
+rhel_09_215060: {{ rhel_09_215060 }}
+rhel_09_231190: {{ rhel_09_231190 }}
+rhel_09_252070: {{ rhel_09_252070 }}
+rhel_09_252075: {{ rhel_09_252075 }}
+rhel_09_255040: {{ rhel_09_255040 }}
+rhel_09_255050: {{ rhel_09_255050 }}
+rhel_09_271040: {{ rhel_09_271040 }}
+rhel_09_411100: {{ rhel_09_411100 }}
+rhel_09_431010: {{ rhel_09_431010 }}
+rhel_09_611025: {{ rhel_09_611025 }}
+rhel_09_671010: {{ rhel_09_671010 }}
+rhel_09_672020: {{ rhel_09_672020 }}
+
+# Cat 2 rules
+rhel_09_211015: {{ rhel_09_211015 }}
+rhel_09_211020: {{ rhel_09_211020 }}
+rhel_09_211030: {{ rhel_09_211030 }}
+rhel_09_211040: {{ rhel_09_211040 }}
+rhel_09_211055: {{ rhel_09_211055 }}
+rhel_09_212010: {{ rhel_09_212010 }}
+rhel_09_212015: {{ rhel_09_212015 }}
+rhel_09_212025: {{ rhel_09_212025 }}
+rhel_09_212030: {{ rhel_09_212030 }}
+rhel_09_212035: {{ rhel_09_212035 }}
+rhel_09_212040: {{ rhel_09_212040 }}
+rhel_09_212045: {{ rhel_09_212045 }}
+rhel_09_213010: {{ rhel_09_213010 }}
+rhel_09_213015: {{ rhel_09_213015 }}
+rhel_09_213020: {{ rhel_09_213020 }}
+rhel_09_213025: {{ rhel_09_213025 }}
+rhel_09_213030: {{ rhel_09_213030 }}
+rhel_09_213035: {{ rhel_09_213035 }}
+rhel_09_213040: {{ rhel_09_213040 }}
+rhel_09_213045: {{ rhel_09_213045 }}
+rhel_09_213050: {{ rhel_09_213050 }}
+rhel_09_213055: {{ rhel_09_213055 }}
+rhel_09_213060: {{ rhel_09_213060 }}
+rhel_09_213065: {{ rhel_09_213065 }}
+rhel_09_213070: {{ rhel_09_213070 }}
+rhel_09_213075: {{ rhel_09_213075 }}
+rhel_09_213080: {{ rhel_09_213080 }}
+rhel_09_213085: {{ rhel_09_213085 }}
+rhel_09_213090: {{ rhel_09_213090 }}
+rhel_09_213095: {{ rhel_09_213095 }}
+rhel_09_213100: {{ rhel_09_213100 }}
+rhel_09_213105: {{ rhel_09_213105 }}
+rhel_09_213110: {{ rhel_09_213110 }}
+rhel_09_213115: {{ rhel_09_213115 }}
+rhel_09_214010: {{ rhel_09_214010 }}
+rhel_09_214030: {{ rhel_09_214030 }}
+rhel_09_215010: {{ rhel_09_215010 }}
+rhel_09_215020: {{ rhel_09_215020 }}
+rhel_09_215025: {{ rhel_09_215025 }}
+rhel_09_215030: {{ rhel_09_215030 }}
+rhel_09_215035: {{ rhel_09_215035 }}
+rhel_09_215040: {{ rhel_09_215040 }}
+rhel_09_215045: {{ rhel_09_215045 }}
+rhel_09_215050: {{ rhel_09_215050 }}
+rhel_09_215055: {{ rhel_09_215055 }}
+rhel_09_215065: {{ rhel_09_215065 }}
+rhel_09_215070: {{ rhel_09_215070 }}
+rhel_09_215075: {{ rhel_09_215075 }}
+rhel_09_215080: {{ rhel_09_215080 }}
+rhel_09_215085: {{ rhel_09_215085 }}
+rhel_09_215090: {{ rhel_09_215090 }}
+rhel_09_215095: {{ rhel_09_215095 }}
+rhel_09_215100: {{ rhel_09_215100 }}
+rhel_09_215105: {{ rhel_09_215105 }}
+
+rhel_09_231010: {{ rhel_09_231010 }}
+rhel_09_231015: {{ rhel_09_231015 }}
+rhel_09_231035: {{ rhel_09_231035 }}
+rhel_09_231040: {{ rhel_09_231040 }}
+rhel_09_231045: {{ rhel_09_231045 }}
+rhel_09_231050: {{ rhel_09_231050 }}
+rhel_09_231055: {{ rhel_09_231055 }}
+
+rhel_09_231065: {{ rhel_09_231065 }}
+rhel_09_231070: {{ rhel_09_231070 }}
+rhel_09_231075: {{ rhel_09_231075 }}
+rhel_09_231080: {{ rhel_09_231080 }}
+rhel_09_231085: {{ rhel_09_231085 }}
+rhel_09_231090: {{ rhel_09_231090 }}
+rhel_09_231095: {{ rhel_09_231095 }}
+rhel_09_231100: {{ rhel_09_231100 }}
+rhel_09_231105: {{ rhel_09_231105 }}
+rhel_09_231110: {{ rhel_09_231110 }}
+rhel_09_231115: {{ rhel_09_231115 }}
+rhel_09_231120: {{ rhel_09_231120 }}
+rhel_09_231125: {{ rhel_09_231125 }}
+rhel_09_231130: {{ rhel_09_231130 }}
+rhel_09_231135: {{ rhel_09_231135 }}
+rhel_09_231140: {{ rhel_09_231140 }}
+rhel_09_231145: {{ rhel_09_231145 }}
+rhel_09_231150: {{ rhel_09_231150 }}
+rhel_09_231155: {{ rhel_09_231155 }}
+rhel_09_231160: {{ rhel_09_231160 }}
+rhel_09_231165: {{ rhel_09_231165 }}
+rhel_09_231170: {{ rhel_09_231170 }}
+rhel_09_231175: {{ rhel_09_231175 }}
+rhel_09_231180: {{ rhel_09_231180 }}
+rhel_09_231185: {{ rhel_09_231185 }}
+rhel_09_231200: {{ rhel_09_231200 }}
+rhel_09_232010: {{ rhel_09_232010 }}
+rhel_09_232015: {{ rhel_09_232015 }}
+rhel_09_232020: {{ rhel_09_232020 }}
+rhel_09_232025: {{ rhel_09_232025 }}
+rhel_09_232030: {{ rhel_09_232030 }}
+rhel_09_232035: {{ rhel_09_232035 }}
+rhel_09_232040: {{ rhel_09_232040 }}
+rhel_09_232045: {{ rhel_09_232045 }}
+rhel_09_232050: {{ rhel_09_232050 }}
+rhel_09_232055: {{ rhel_09_232055 }}
+rhel_09_232060: {{ rhel_09_232060 }}
+rhel_09_232065: {{ rhel_09_232065 }}
+rhel_09_232070: {{ rhel_09_232070 }}
+rhel_09_232075: {{ rhel_09_232075 }}
+rhel_09_232080: {{ rhel_09_232080 }}
+rhel_09_232085: {{ rhel_09_232085 }}
+rhel_09_232090: {{ rhel_09_232090 }}
+rhel_09_232095: {{ rhel_09_232095 }}
+rhel_09_232100: {{ rhel_09_232100 }}
+rhel_09_232103: {{ rhel_09_232103 }}
+rhel_09_232104: {{ rhel_09_232104 }}
+rhel_09_232105: {{ rhel_09_232105 }}
+rhel_09_232110: {{ rhel_09_232110 }}
+rhel_09_232115: {{ rhel_09_232115 }}
+rhel_09_232120: {{ rhel_09_232120 }}
+rhel_09_232125: {{ rhel_09_232125 }}
+rhel_09_232130: {{ rhel_09_232130 }}
+rhel_09_232135: {{ rhel_09_232135 }}
+rhel_09_232140: {{ rhel_09_232140 }}
+rhel_09_232145: {{ rhel_09_232145 }}
+rhel_09_232150: {{ rhel_09_232150 }}
+rhel_09_232155: {{ rhel_09_232155 }}
+rhel_09_232160: {{ rhel_09_232160 }}
+rhel_09_232165: {{ rhel_09_232165 }}
+rhel_09_232170: {{ rhel_09_232170 }}
+rhel_09_232175: {{ rhel_09_232175 }}
+rhel_09_232180: {{ rhel_09_232180 }}
+rhel_09_232185: {{ rhel_09_232185 }}
+rhel_09_232190: {{ rhel_09_232190 }}
+rhel_09_232195: {{ rhel_09_232195 }}
+rhel_09_232200: {{ rhel_09_232200 }}
+rhel_09_232205: {{ rhel_09_232205 }}
+rhel_09_232210: {{ rhel_09_232210 }}
+rhel_09_232215: {{ rhel_09_232215 }}
+rhel_09_232220: {{ rhel_09_232220 }}
+rhel_09_232225: {{ rhel_09_232225 }}
+rhel_09_232230: {{ rhel_09_232230 }}
+rhel_09_232235: {{ rhel_09_232235 }}
+rhel_09_232240: {{ rhel_09_232240 }}
+rhel_09_232245: {{ rhel_09_232245 }}
+rhel_09_232250: {{ rhel_09_232250 }}
+rhel_09_232255: {{ rhel_09_232255 }}
+rhel_09_232260: {{ rhel_09_232260 }}
+rhel_09_232265: {{ rhel_09_232265 }}
+rhel_09_232270: {{ rhel_09_232270 }}
+
+rhel_09_251010: {{ rhel_09_251010 }}
+rhel_09_251015: {{ rhel_09_251015 }}
+rhel_09_251020: {{ rhel_09_251020 }}
+rhel_09_251030: {{ rhel_09_251030 }}
+rhel_09_251035: {{ rhel_09_251035 }}
+rhel_09_251040: {{ rhel_09_251040 }}
+rhel_09_251045: {{ rhel_09_251045 }}
+rhel_09_252010: {{ rhel_09_252010 }}
+rhel_09_252015: {{ rhel_09_252015 }}
+rhel_09_252020: {{ rhel_09_252020 }}
+rhel_09_252030: {{ rhel_09_252030 }}
+rhel_09_252035: {{ rhel_09_252035 }}
+rhel_09_252040: {{ rhel_09_252040 }}
+rhel_09_252045: {{ rhel_09_252045 }}
+rhel_09_252050: {{ rhel_09_252050 }}
+rhel_09_252060: {{ rhel_09_252060 }}
+rhel_09_252065: {{ rhel_09_252065 }}
+rhel_09_253010: {{ rhel_09_253010 }}
+rhel_09_253015: {{ rhel_09_253015 }}
+rhel_09_253020: {{ rhel_09_253020 }}
+rhel_09_253025: {{ rhel_09_253025 }}
+rhel_09_253030: {{ rhel_09_253030 }}
+rhel_09_253035: {{ rhel_09_253035 }}
+rhel_09_253040: {{ rhel_09_253040 }}
+rhel_09_253045: {{ rhel_09_253045 }}
+rhel_09_253050: {{ rhel_09_253050 }}
+rhel_09_253055: {{ rhel_09_253055 }}
+rhel_09_253060: {{ rhel_09_253060 }}
+rhel_09_253065: {{ rhel_09_253065 }}
+rhel_09_253070: {{ rhel_09_253070 }}
+rhel_09_253075: {{ rhel_09_253075 }}
+rhel_09_254010: {{ rhel_09_254010 }}
+rhel_09_254015: {{ rhel_09_254015 }}
+rhel_09_254020: {{ rhel_09_254020 }}
+rhel_09_254025: {{ rhel_09_254025 }}
+rhel_09_254030: {{ rhel_09_254030 }}
+rhel_09_254035: {{ rhel_09_254035 }}
+rhel_09_254040: {{ rhel_09_254040 }}
+rhel_09_255010: {{ rhel_09_255010 }}
+rhel_09_255015: {{ rhel_09_255015 }}
+rhel_09_255020: {{ rhel_09_255020 }}
+rhel_09_255025: {{ rhel_09_255025 }}
+rhel_09_255030: {{ rhel_09_255030 }}
+rhel_09_255035: {{ rhel_09_255035 }}
+rhel_09_255045: {{ rhel_09_255045 }}
+rhel_09_255055: {{ rhel_09_255055 }}
+rhel_09_255060: {{ rhel_09_255060 }}
+rhel_09_255064: {{ rhel_09_255064 }}
+rhel_09_255065: {{ rhel_09_255065 }}
+rhel_09_255070: {{ rhel_09_255070 }}
+rhel_09_255075: {{ rhel_09_255075 }}
+rhel_09_255080: {{ rhel_09_255080 }}
+rhel_09_255085: {{ rhel_09_255085 }}
+rhel_09_255090: {{ rhel_09_255090 }}
+rhel_09_255095: {{ rhel_09_255095 }}
+rhel_09_255100: {{ rhel_09_255100 }}
+rhel_09_255105: {{ rhel_09_255105 }}
+rhel_09_255110: {{ rhel_09_255110 }}
+rhel_09_255115: {{ rhel_09_255115 }}
+rhel_09_255120: {{ rhel_09_255120 }}
+rhel_09_255125: {{ rhel_09_255125 }}
+rhel_09_255130: {{ rhel_09_255130 }}
+rhel_09_255135: {{ rhel_09_255135 }}
+rhel_09_255140: {{ rhel_09_255140 }}
+rhel_09_255145: {{ rhel_09_255145 }}
+rhel_09_255150: {{ rhel_09_255150 }}
+rhel_09_255155: {{ rhel_09_255155 }}
+rhel_09_255160: {{ rhel_09_255160 }}
+rhel_09_255165: {{ rhel_09_255165 }}
+rhel_09_255175: {{ rhel_09_255175 }}
+rhel_09_271010: {{ rhel_09_271010 }}
+rhel_09_271015: {{ rhel_09_271015 }}
+rhel_09_271020: {{ rhel_09_271020 }}
+rhel_09_271025: {{ rhel_09_271025 }}
+rhel_09_271030: {{ rhel_09_271030 }}
+rhel_09_271035: {{ rhel_09_271035 }}
+rhel_09_271045: {{ rhel_09_271045 }}
+rhel_09_271050: {{ rhel_09_271050 }}
+rhel_09_271055: {{ rhel_09_271055 }}
+rhel_09_271060: {{ rhel_09_271060 }}
+rhel_09_271065: {{ rhel_09_271065 }}
+rhel_09_271070: {{ rhel_09_271070 }}
+rhel_09_271075: {{ rhel_09_271075 }}
+rhel_09_271080: {{ rhel_09_271080 }}
+rhel_09_271085: {{ rhel_09_271085 }}
+rhel_09_271090: {{ rhel_09_271090 }}
+rhel_09_271100: {{ rhel_09_271100 }}
+rhel_09_271105: {{ rhel_09_271105 }}
+rhel_09_271110: {{ rhel_09_271110 }}
+rhel_09_271115: {{ rhel_09_271115 }}
+
+rhel_09_291010: {{ rhel_09_291010 }}
+rhel_09_291015: {{ rhel_09_291015 }}
+rhel_09_291020: {{ rhel_09_291020 }}
+rhel_09_291030: {{ rhel_09_291030 }}
+rhel_09_291035: {{ rhel_09_291035 }}
+rhel_09_291040: {{ rhel_09_291040 }}
+
+rhel_09_411010: {{ rhel_09_411010 }}
+rhel_09_411015: {{ rhel_09_411015 }}
+rhel_09_411020: {{ rhel_09_411020 }}
+rhel_09_411025: {{ rhel_09_411025 }}
+rhel_09_411030: {{ rhel_09_411030 }}
+rhel_09_411035: {{ rhel_09_411035 }}
+rhel_09_411040: {{ rhel_09_411040 }}
+rhel_09_411045: {{ rhel_09_411045 }}
+rhel_09_411050: {{ rhel_09_411050 }}
+rhel_09_411055: {{ rhel_09_411055 }}
+rhel_09_411060: {{ rhel_09_411060 }}
+rhel_09_411065: {{ rhel_09_411065 }}
+rhel_09_411070: {{ rhel_09_411070 }}
+rhel_09_411075: {{ rhel_09_411075 }}
+rhel_09_411080: {{ rhel_09_411080 }}
+rhel_09_411085: {{ rhel_09_411085 }}
+rhel_09_411090: {{ rhel_09_411090 }}
+rhel_09_411095: {{ rhel_09_411095 }}
+rhel_09_411105: {{ rhel_09_411105 }}
+rhel_09_411110: {{ rhel_09_411110 }}
+rhel_09_411115: {{ rhel_09_411115 }}
+rhel_09_412035: {{ rhel_09_412035 }}
+rhel_09_412045: {{ rhel_09_412045 }}
+rhel_09_412050: {{ rhel_09_412050 }}
+rhel_09_412055: {{ rhel_09_412055 }}
+rhel_09_412060: {{ rhel_09_412060 }}
+rhel_09_412065: {{ rhel_09_412065 }}
+rhel_09_412070: {{ rhel_09_412070 }}
+rhel_09_412080: {{ rhel_09_412080 }}
+rhel_09_431015: {{ rhel_09_431015 }}
+rhel_09_431020: {{ rhel_09_431020 }}
+rhel_09_431025: {{ rhel_09_431025 }}
+rhel_09_431030: {{ rhel_09_431030 }}
+rhel_09_432010: {{ rhel_09_432010 }}
+rhel_09_432015: {{ rhel_09_432015 }}
+rhel_09_432020: {{ rhel_09_432020 }}
+rhel_09_432025: {{ rhel_09_432025 }}
+rhel_09_432030: {{ rhel_09_432030 }}
+rhel_09_432035: {{ rhel_09_432035 }}
+rhel_09_433010: {{ rhel_09_433010 }}
+rhel_09_433015: {{ rhel_09_433015 }}
+rhel_09_433016: {{ rhel_09_433016 }}
+
+rhel_09_611010: {{ rhel_09_611010 }}
+rhel_09_611030: {{ rhel_09_611030 }}
+rhel_09_611035: {{ rhel_09_611035 }}
+rhel_09_611040: {{ rhel_09_611040 }}
+rhel_09_611045: {{ rhel_09_611045 }}
+rhel_09_611050: {{ rhel_09_611050 }}
+rhel_09_611055: {{ rhel_09_611055 }}
+rhel_09_611060: {{ rhel_09_611060 }}
+rhel_09_611065: {{ rhel_09_611065 }}
+rhel_09_611070: {{ rhel_09_611070 }}
+rhel_09_611075: {{ rhel_09_611075 }}
+rhel_09_611080: {{ rhel_09_611080 }}
+rhel_09_611085: {{ rhel_09_611085 }}
+rhel_09_611090: {{ rhel_09_611090 }}
+rhel_09_611100: {{ rhel_09_611100 }}
+rhel_09_611105: {{ rhel_09_611105 }}
+rhel_09_611110: {{ rhel_09_611110 }}
+rhel_09_611115: {{ rhel_09_611115 }}
+rhel_09_611120: {{ rhel_09_611120 }}
+rhel_09_611125: {{ rhel_09_611125 }}
+rhel_09_611130: {{ rhel_09_611130 }}
+rhel_09_611135: {{ rhel_09_611135 }}
+rhel_09_611140: {{ rhel_09_611140 }}
+rhel_09_611145: {{ rhel_09_611145 }}
+rhel_09_611155: {{ rhel_09_611155 }}
+rhel_09_611160: {{ rhel_09_611160 }}
+rhel_09_611165: {{ rhel_09_611165 }}
+rhel_09_611170: {{ rhel_09_611170 }}
+rhel_09_611175: {{ rhel_09_611175 }}
+rhel_09_611180: {{ rhel_09_611180 }}
+rhel_09_611185: {{ rhel_09_611185 }}
+rhel_09_611190: {{ rhel_09_611190 }}
+rhel_09_611195: {{ rhel_09_611195 }}
+rhel_09_611200: {{ rhel_09_611200 }}
+rhel_09_611205: {{ rhel_09_611205 }}
+
+### CAT2 63xxxx
+rhel_09_631010: {{ rhel_09_631010 }}
+rhel_09_631015: {{ rhel_09_631015 }}
+rhel_09_631020: {{ rhel_09_631020 }}
+### CAT2 65xxxx
+rhel_09_651010: {{ rhel_09_651010 }}
+rhel_09_651015: {{ rhel_09_651015 }}
+rhel_09_651020: {{ rhel_09_651020 }}
+rhel_09_651025: {{ rhel_09_651025 }}
+rhel_09_652010: {{ rhel_09_652010 }}
+rhel_09_652015: {{ rhel_09_652015 }}
+rhel_09_652020: {{ rhel_09_652020 }}
+rhel_09_652025: {{ rhel_09_652025 }}
+rhel_09_652030: {{ rhel_09_652030 }}
+rhel_09_653130: {{ rhel_09_653130 }}  # NOTE Required before 652035 can run
+rhel_09_652035: {{ rhel_09_652035 }}
+rhel_09_652040: {{ rhel_09_652040 }}
+rhel_09_652045: {{ rhel_09_652045 }}
+rhel_09_652050: {{ rhel_09_652050 }}
+rhel_09_652055: {{ rhel_09_652055 }}
+rhel_09_652060: {{ rhel_09_652060 }}
+
+### CAT2 65xxxx
+rhel_09_653010: {{ rhel_09_653010 }}
+rhel_09_653015: {{ rhel_09_653015 }}
+rhel_09_653020: {{ rhel_09_653020 }}
+rhel_09_653025: {{ rhel_09_653025 }}
+rhel_09_653030: {{ rhel_09_653030 }}
+rhel_09_653035: {{ rhel_09_653035 }}
+rhel_09_653040: {{ rhel_09_653040 }}
+rhel_09_653045: {{ rhel_09_653045 }}
+rhel_09_653050: {{ rhel_09_653050 }}
+rhel_09_653055: {{ rhel_09_653055 }}
+rhel_09_653060: {{ rhel_09_653060 }}
+rhel_09_653065: {{ rhel_09_653065 }}
+rhel_09_653070: {{ rhel_09_653070 }}
+rhel_09_653075: {{ rhel_09_653075 }}
+rhel_09_653080: {{ rhel_09_653080 }}
+rhel_09_653085: {{ rhel_09_653085 }}
+rhel_09_653090: {{ rhel_09_653090 }}
+rhel_09_653095: {{ rhel_09_653095 }}
+rhel_09_653100: {{ rhel_09_653100 }}
+rhel_09_653105: {{ rhel_09_653105 }}
+rhel_09_653110: {{ rhel_09_653110 }}
+rhel_09_653115: {{ rhel_09_653115 }}
+rhel_09_653125: {{ rhel_09_653125 }}
+
+rhel_09_654010: {{ rhel_09_654010 }}
+rhel_09_654015: {{ rhel_09_654015 }}
+rhel_09_654020: {{ rhel_09_654020 }}
+rhel_09_654025: {{ rhel_09_654025 }}
+rhel_09_654030: {{ rhel_09_654030 }}
+rhel_09_654035: {{ rhel_09_654035 }}
+rhel_09_654040: {{ rhel_09_654040 }}
+rhel_09_654045: {{ rhel_09_654045 }}
+rhel_09_654050: {{ rhel_09_654050 }}
+rhel_09_654055: {{ rhel_09_654055 }}
+rhel_09_654060: {{ rhel_09_654060 }}
+rhel_09_654065: {{ rhel_09_654065 }}
+rhel_09_654070: {{ rhel_09_654070 }}
+rhel_09_654075: {{ rhel_09_654075 }}
+rhel_09_654080: {{ rhel_09_654080 }}
+rhel_09_654085: {{ rhel_09_654085 }}
+rhel_09_654090: {{ rhel_09_654090 }}
+rhel_09_654095: {{ rhel_09_654095 }}
+rhel_09_654100: {{ rhel_09_654100 }}
+rhel_09_654105: {{ rhel_09_654105 }}
+rhel_09_654110: {{ rhel_09_654110 }}
+rhel_09_654115: {{ rhel_09_654115 }}
+rhel_09_654120: {{ rhel_09_654120 }}
+rhel_09_654125: {{ rhel_09_654125 }}
+rhel_09_654130: {{ rhel_09_654130 }}
+rhel_09_654135: {{ rhel_09_654135 }}
+rhel_09_654140: {{ rhel_09_654140 }}
+rhel_09_654145: {{ rhel_09_654145 }}
+rhel_09_654150: {{ rhel_09_654150 }}
+rhel_09_654155: {{ rhel_09_654155 }}
+rhel_09_654160: {{ rhel_09_654160 }}
+rhel_09_654165: {{ rhel_09_654165 }}
+rhel_09_654170: {{ rhel_09_654170 }}
+rhel_09_654175: {{ rhel_09_654175 }}
+rhel_09_654180: {{ rhel_09_654180 }}
+rhel_09_654185: {{ rhel_09_654185 }}
+rhel_09_654190: {{ rhel_09_654190 }}
+rhel_09_654195: {{ rhel_09_654195 }}
+rhel_09_654200: {{ rhel_09_654200 }}
+rhel_09_654205: {{ rhel_09_654205 }}
+rhel_09_654210: {{ rhel_09_654210 }}
+rhel_09_654215: {{ rhel_09_654215 }}
+rhel_09_654220: {{ rhel_09_654220 }}
+rhel_09_654225: {{ rhel_09_654225 }}
+rhel_09_654230: {{ rhel_09_654230 }}
+rhel_09_654235: {{ rhel_09_654235 }}
+rhel_09_654240: {{ rhel_09_654240 }}
+rhel_09_654245: {{ rhel_09_654245 }}
+rhel_09_654250: {{ rhel_09_654250 }}
+rhel_09_654255: {{ rhel_09_654255 }}
+rhel_09_654260: {{ rhel_09_654260 }}
+rhel_09_654265: {{ rhel_09_654265 }}
+rhel_09_654270: {{ rhel_09_654270 }}
+rhel_09_654275: {{ rhel_09_654275 }}
+
+rhel_09_671015: {{ rhel_09_671015 }}
+rhel_09_671020: {{ rhel_09_671020 }}
+rhel_09_671025: {{ rhel_09_671025 }}
+
+rhel_09_672025: {{ rhel_09_672025 }}
+rhel_09_672050: {{ rhel_09_672050 }}
+
+# Cat 3 controls
+### Cat3
+rhel_09_211035: {{ rhel_09_211035 }}
+rhel_09_212050: {{ rhel_09_212050 }}
+rhel_09_212055: {{ rhel_09_212055 }}
+rhel_09_214035: {{ rhel_09_214035 }}
+rhel_09_231020: {{ rhel_09_231020 }}
+rhel_09_231025: {{ rhel_09_231025 }}
+rhel_09_231030: {{ rhel_09_231030 }}
+rhel_09_231195: {{ rhel_09_231195 }}
+rhel_09_252025: {{ rhel_09_252025 }}
+rhel_09_291025: {{ rhel_09_291025 }}
+rhel_09_412040: {{ rhel_09_412040 }}
+rhel_09_412075: {{ rhel_09_412075 }}
+rhel_09_651030: {{ rhel_09_651030 }}
+rhel_09_651035: {{ rhel_09_651035 }}
+rhel_09_653120: {{ rhel_09_653120 }}
+
+# Variables
+
+## Bootloader Settings
+rhel9stig_password_hash: {{ rhel9stig_bootloader_password_hash }}
+rhel9stig_grub_superuser: {{ rhel9stig_grub_superuser }}
+rhel9stig_legacy_boot: {{ rhel9stig_legacy_boot }}
+
+## UID:
+MIN_UID: {{ min_int_uid }}
+MAX_UID: {{ max_int_uid }}
+
+rhel9stig_logon_banner:
+  - You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only.
+  - By using this IS (which includes any device attached to this IS), you consent to the following conditions
+  - -The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.
+  - -At any time, the USG may inspect and seize data stored on this IS.
+  - -Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.
+  - -This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy.
+  - -Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.
+
+# Packages and services
+rhel9stig_is_ftp_server: {{ rhel9stig_is_ftp_server }}
+rhel9stig_is_tftp_server: {{ rhel9stig_is_tftp_server }}
+rhel9stig_sendmail_required: {{ rhel9stig_sendmail_required }}
+rhel9stig_nfs_utils_required: {{ rhel9stig_nfs_utils_required }}
+rhel9stig_ypserv_required: {{ rhel9stig_ypserv_required }}
+rhel9stig_rsh_server_required: {{ rhel9stig_rsh_server_required }}
+rhel9stig_telnet_server_required: {{ rhel9stig_telnet_server_required }}
+rhel9stig_gssproxy_required: {{ rhel9stig_gssproxy_required }}
+rhel9stig_iprutils_required: {{ rhel9stig_iprutils_required }}
+rhel9stig_tuned_required: {{ rhel9stig_tuned_required }}
+rhel9stig_quagga_required: {{ rhel9stig_quagga_required }}
+
+# Sysctl file
+rhel9stig_sysctl_file_default: {{ rhel9stig_sysctl_file_default }}
+
+# Filesystem and mount options
+rhel9stig_home_filesystem: {{ rhel9stig_home_filesystem }}
+
+## 25xxxx
+## Firewalld
+# rhel9stig_custom_firewall_zone is the desired name for the firewall zone
+rhel9stig_custom_firewall:
+  zone: {{ rhel9stig_custom_firewall.zone }}
+  interface:
+  {% for if in rhel9stig_custom_firewall.interface %}
+  - "{{ if }}"
+  {% endfor %}
+
+# rhel9stig_white_list_services is the services that you want to allow through initially for teh new firewall zone
+# http and ssh need to be enabled for the role to run.
+# This can also be a port number if no service exists
+rhel9stig_white_list_services:
+{% for service in rhel9stig_white_list_services %}
+  - {{ service }}
+{% endfor %}
+
+## Interface list allowed to have promiscuous mode set
+rhel9stig_promisc_if:
+{% for prom_if in rhel9stig_promisc_if %}
+  - {{ prom_if }}
+{% endfor %}
+
+# Set sysctl files
+rhel9stig_sysctl_file:
+  kernel: "{{ rhel9stig_sysctl_file_default }}"
+  network: "{{ rhel9stig_sysctl_file_default }}"
+
+# Chrony
+rhel9stig_time_synchronization_servers:
+{% for time_server in rhel9stig_time_synchronization_servers %}
+  - {{ time_server }}
+{% endfor %}
+rhel9stig_chrony_server_options: "{{ rhel9stig_chrony_server_options }}"  # Max Settings is maxpoll 16
+
+# DNS
+{% if rhel9stig_dns_ip4_servers is defined %}
+rhel9stig_dns_servers:
+{% for server in rhel9stig_dns_ip4_servers %}
+  - nameserver {{ server }}
+{% endfor %}
+{% endif %}
+{% if rhel9stig_dns_ip6_servers is defined %}
+rhel9stig_dns_servers:
+{% for server in rhel9stig_dns_ip6_servers %}
+  - nameserver {{ server }}
+{% endfor %}
+{% endif %}
+
+# Mail
+rhel9stig_postfix_client_conf: {{ rhel9stig_postfix_client_conf }}
+
+## SSHD
+rhel9stig_sshd_config_file: {{ rhel9stig_sshd_config_file }}
+rhel9stig_ssh_required: {{ rhel9stig_sshd_required }}
+rhel9stig_sshd_config:
+  banner_file: {{ rhel9stig_sshd_config.banner_file }}
+  ciphers:
+  {% for cipher in rhel9stig_sshd_config.ciphers %}
+  - {{ cipher }}
+  {% endfor -%}
+
+  clientalivecountmax: {{ rhel9stig_sshd_config.clientalivecountmax }}
+  clientaliveinterval: {{ rhel9stig_sshd_config.clientaliveinterval }}  # max 600
+  compress: {{ rhel9stig_sshd_config.compress }}
+  gssapiauth: {{ rhel9stig_sshd_config.gssapiauth }}
+  hostauth: {{ rhel9stig_sshd_config.hostauth }}
+  ignoreknownhosts: {{ rhel9stig_sshd_config.ignoreknownhosts }}
+  ignorerhosts: {{ rhel9stig_sshd_config.ignorerhosts }}
+  include_conf: {{ rhel9stig_sshd_config.include_conf }}
+  kerbauth: {{ rhel9stig_sshd_config.kerbauth }}
+  lastlog: {{ rhel9stig_sshd_config.lastlog }}
+  loglevel: {{ rhel9stig_sshd_config.loglevel }}
+  macs: {{ rhel9stig_sshd_config.macs }}
+  pubkeyauth: {{ rhel9stig_sshd_config.pubkeyauth }}
+  permitroot: {{ rhel9stig_sshd_config.permitroot }}
+  privsep: {{ rhel9stig_sshd_config.privsep }}
+  rekeylimit: {{ rhel9stig_sshd_config.rekeylimit }}
+  strictmodes: {{ rhel9stig_sshd_config.strictmodes }}
+  userenv: {{ rhel9stig_sshd_config.userenv }}
+  x11forward: {{ rhel9stig_sshd_config.x11forward }}
+  x11uselocal: {{ rhel9stig_sshd_config.x11uselocal }}
+
+##27XXXX GUI Settings
+{% if rhel9stig_dconf_locald_files.files is defined %}
+rhel9stig_dconf_locald_files:
+{% for file in rhel9stig_dconf_locald_files.files %}
+- {{ file.path }}
+{% endfor %}
+{% endif %}
+
+{% if rhel9stig_gui %}
+{% if rhel9stig_dconf_db is defined %}
+rhel9stig_dconf_db: {{ rhel9stig_dconf_db.stdout }}
+{% endif %}
+{% endif %}
+
+# Path to set for users initialization files e.g. echo $PATH expected results
+rhel9stig_env_path: {{ rhel9stig_env_path }}
+
+## PAM and password settings
+rhel9stig_pass:
+  max_days: {{ rhel9stig_pass_max_days }}
+
+rhel9stig_user_inactive_days: {{ rhel9stig_user_inactive_days }}  # must be 35 or less
+
+# Authselect profile settings
+rhel9stig_authselect_custom_profile: {{ rhel9stig_authselect_custom_profile }}
+# If Set to false will use authselect - Can cause disruption to authentication
+rhel9stig_add_faillock_without_authselect: {{ rhel9stig_add_faillock_without_authselect }}
+
+# Faillock settings
+rhel9stig_faillock:
+  - deny: {{ rhel9stig_faillock_deny }}  # 3 or less but not 0
+  - fail_interval: {{ rhel9stig_faillock_fail_interval }}  # 900 or less is required
+  - dir: {{ rhel9stig_faillock_dir }}
+
+rhel9stig_unnecessary_accounts:
+{% for acct in rhel9stig_unnecessary_accounts %}
+  - {{ acct }}
+{% endfor %}
+
+rhel9stig_remove_unnecessary_user_files: {{ rhel9stig_remove_unnecessary_user_files }}
+
+rhel9stig_smartcard_reader: {{ rhel9stig_smartcard_reader }}
+
+### Aide
+rhel9stig_use_aide: {{ rhel9stig_use_aide }}
+rhel9stig_aide_cron_file: {{ rhel9stig_aide_cron_file }}  # NOTE the path may change if not running daily
+rhel9stig_aide_cron:
+  day: "{{ rhel9stig_aide_cron_day }}"
+  hour: "{{ rhel9stig_aide_cron_hour }}"
+  minute: "{{ rhel9stig_aide_cron_minute }}"
+  job: '{{ rhel9stig_aide_cron_job }}'
+  name: "{{ rhel9stig_aide_cron_name }}"
+
+### Rsyslog
+# Set the following to true if the server accepts incoming syslog data using rsyslog
+rhel9stig_rsyslog_server: {{ rhel9stig_rsyslog_server }}
+
+# Adjust to match remote syslog server configuration
+rhel9stig_remotelog_server:
+  server: "{{ rhel9stig_remotelog_server.server }}"
+  port: "{{ rhel9stig_remotelog_server.port }}"
+  protocol: "{{ rhel9stig_remotelog_server.protocol }}"
+
+### AUDITD
+rhel9stig_audit_log_filesystem: /var/log/audit
+rhel9stig_audit_conf:
+  action_mail_acct: {{ rhel9stig_audit_conf_action_mail_acct }}
+  admin_space_left: {{ rhel9stig_audit_conf_admin_space_left }}
+  admin_space_left_action: {{ rhel9stig_audit_conf_admin_space_left_action }}
+  disk_error_action: {{ rhel9stig_audit_conf_disk_error_action }}  # Can be one of "SYSLOG", "SINGLE", or "HALT"
+  disk_full_action: {{ rhel9stig_audit_conf_disk_full_action }}  # Can be one of "SYSLOG", "SINGLE", or "HALT"
+  freq: {{ rhel9stig_audit_conf_freq }}
+  local_events: {{ rhel9stig_audit_conf_local_events }}
+  log_format: {{ rhel9stig_audit_conf_log_format }}
+  logfile: {{ rhel9stig_audit_conf_logfile }}
+  log_group: {{ rhel9stig_audit_conf_logfile_group }}
+  max_log_file_action: {{ rhel9stig_audit_conf_max_log_file_action }}
+  name_format: {{ rhel9stig_audit_conf_name_format }}
+  overflow_action: {{ rhel9stig_audit_conf_overflow_action }}
+  space_left: {{ rhel9stig_audit_conf_space_left }}
+  space_left_action: {{ rhel9stig_audit_conf_space_left_action }}
+  write_logs: {{ rhel9stig_audit_conf_write_logs }}

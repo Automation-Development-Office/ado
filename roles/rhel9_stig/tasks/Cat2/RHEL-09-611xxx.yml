@@ -1,0 +1,913 @@
+---
+
+- name: "MEDIUM | RHEL-09-611010 | PATCH | RHEL 9 must ensure the password complexity module in the system-auth file is configured for three retries or less."
+  when:
+    - rhel_09_611010
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611010
+    - CAT2
+    - CCI-000192
+    - SRG-OS-000069-GPOS-00037
+    - SV-258091r1045185_rule
+    - V-258091
+    - NIST800-53R4_IA-5
+  block:
+    - name: "MEDIUM | RHEL-09-611010 | PATCH | RHEL 9 must ensure the password complexity module in the system-auth
+             file is configured for three retries or less."
+      ansible.builtin.shell: grep "password.*pam_pwquality.so" /etc/pam.d/system-auth
+      changed_when: false
+      failed_when: rhel9_stig_discovered_pwquality_system_auth_status.rc not in [ 0, 1 ]
+      register: rhel9_stig_discovered_pwquality_system_auth_status
+
+    - name: "MEDIUM | RHEL-09-611010 | PATCH | RHEL 9 must ensure the password complexity module in the system-auth
+             file is configured for three retries or less. | Set if no pw required pam_pwquality"
+      when: rhel9_stig_discovered_pwquality_system_auth_status.stdout | length == 0
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/system-auth
+        regexp: '^(password\s+)(required|requisite)(\s+pam_pwquality.so.*)\sretry=\d(.*)'
+        line: '\1required\3 retry={{ rhel9_stig_pam_retry }}\4'
+        insertafter: '^password'
+        backrefs: true
+
+    - name: "MEDIUM | RHEL-09-611010 | PATCH | RHEL 9 must ensure the password complexity module in the system-auth
+             file is configured for three retries or less. | Replace if already exists"
+      when: rhel9_stig_discovered_pwquality_system_auth_status.stdout | length > 0
+      community.general.pamd:
+        name: system-auth
+        type: password
+        control: requisite
+        module_path: pam_pwquality.so
+        module_arguments: 'retry={{ rhel9_stig_pam_retry }}'
+        state: args_present
+
+- name: "MEDIUM | RHEL-09-611030 | PATCH | RHEL 9 must configure the use of the pam_faillock.so module in the /etc/pam.d/system-auth file."
+  when:
+    - rhel_09_611030
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611030
+    - CAT2
+    - CCI-000044
+    - SRG-OS-000021-GPOS-00005
+    - SV-258095r1045189_rule
+    - V-258095
+    - NIST800-53R4_AC-7
+  notify:
+    - Restart_sssd
+    - Authselect_enable_faillock
+  block:
+    - name: "MEDIUM | RHEL-09-611030 | PATCH | RHEL 9 must configure the use of the pam_faillock.so module in the /etc/pam.d/system-auth file. | Set preauth"
+      community.general.pamd:
+        name: system-auth
+        type: auth
+        control: required
+        module_path: pam_env.so
+        state: after
+        new_type: auth
+        new_control: required
+        new_module_path: pam_faillock.so
+        module_arguments: 'preauth'
+
+    - name: "MEDIUM | RHEL-09-611030 | PATCH | RHEL 9 must configure the use of the pam_faillock.so module in the /etc/pam.d/system-auth file. | Set authfail"
+      community.general.pamd:
+        name: system-auth
+        type: auth
+        control: required
+        module_path: pam_deny.so
+        state: before
+        new_type: auth
+        new_control: required
+        new_module_path: pam_faillock.so
+        module_arguments: 'authfail'
+
+    - name: "MEDIUM | RHEL-09-611030 | PATCH | RHEL 9 must configure the use of the pam_faillock.so module in the
+             /etc/pam.d/system-auth file. | Set account faillock"
+      community.general.pamd:
+        name: system-auth
+        type: account
+        control: required
+        module_path: pam_unix.so
+        state: before
+        new_type: account
+        new_control: required
+        new_module_path: pam_faillock.so
+
+- name: "MEDIUM | RHEL-09-611035 | PATCH | RHEL 9 must configure the use of the pam_faillock.so module in the /etc/pam.d/password-auth file."
+  when:
+    - rhel_09_611035
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611035
+    - CAT2
+    - CCI-000044
+    - SRG-OS-000021-GPOS-00005
+    - SV-258096r1045191_rule
+    - V-258096
+    - NIST800-53R4_AC-7
+  notify:
+    - Restart_sssd
+    - Authselect_enable_faillock
+  block:
+    - name: "MEDIUM | RHEL-09-611035 | PATCH | RHEL 9 must configure the use of the pam_faillock.so module in the /etc/pam.d/password-auth file. | Set preauth"
+      community.general.pamd:
+        name: password-auth
+        type: auth
+        control: required
+        module_path: pam_env.so
+        state: after
+        new_type: auth
+        new_control: required
+        new_module_path: pam_faillock.so
+        module_arguments: 'preauth'
+
+    - name: "MEDIUM | RHEL-09-611035 | PATCH | RHEL 9 must configure the use of the pam_faillock.so module in the /etc/pam.d/password-auth file. | Set authfail"
+      community.general.pamd:
+        name: password-auth
+        type: auth
+        control: required
+        module_path: pam_deny.so
+        state: before
+        new_type: auth
+        new_control: required
+        new_module_path: pam_faillock.so
+        module_arguments: 'authfail'
+
+    - name: "MEDIUM | RHEL-09-611035 | PATCH | RHEL 9 must configure the use of the pam_faillock.so module in the
+             /etc/pam.d/password-auth file. | Set account faillock"
+      community.general.pamd:
+        name: password-auth
+        type: account
+        control: required
+        module_path: pam_unix.so
+        state: before
+        new_type: account
+        new_control: required
+        new_module_path: pam_faillock.so
+
+- name: "MEDIUM | RHEL-09-611040 | PATCH | RHEL 9 must ensure the password complexity module is enabled in the password-auth file."
+  when:
+    - rhel_09_611040
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611040
+    - CAT2
+    - CCI-000192
+    - CCI-000193
+    - SRG-OS-000069-GPOS-00037
+    - SRG-OS-000070-GPOS-00038
+    - SRG-OS-000480-GPOS-00227
+    - SV-258097r1045193_rule
+    - V-258097
+    - NIST800-53R4_IA-5
+  block:
+    - name: "MEDIUM | RHEL-09-611040 | PATCH | RHEL 9 must ensure the password complexity module is enabled in the password-auth file."
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/password-auth
+        regexp: ^(password\s+)requisite(.*)
+        line: '\1required\2'
+        backrefs: true
+
+    - name: "MEDIUM | RHEL-09-611040 | PATCH | RHEL 9 must ensure the password complexity module is enabled in the password-auth file."
+      community.general.pamd:
+        name: password-auth
+        type: password
+        control: sufficient
+        module_path: pam_unix.so
+        state: before
+        new_type: password
+        new_control: required
+        new_module_path: pam_pwquality.so
+
+- name: "MEDIUM | RHEL-09-611045 | PATCH | RHEL 9 must ensure the password complexity module is enabled in the system-auth file."
+  when:
+    - rhel_09_611045
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611045
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-258098r1045195_rule
+    - V-258098
+    - NIST800-53R4_CM-6
+  block:
+    - name: "MEDIUM | RHEL-09-611045 | PATCH | RHEL 9 must ensure the password complexity module is enabled in the system-auth file."
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/system-auth
+        regexp: ^(password\s+)requisite(.*)
+        line: '\1required\2'
+        backrefs: true
+
+    - name: "MEDIUM | RHEL-09-611045 | PATCH | RHEL 9 must ensure the password complexity module is enabled in the system-auth file."
+      community.general.pamd:
+        name: system-auth
+        type: password
+        control: sufficient
+        module_path: pam_unix.so
+        state: before
+        new_type: password
+        new_control: required
+        new_module_path: pam_pwquality.so
+
+- name: "MEDIUM | RHEL-09-611050 | PATCH | RHEL 9 password-auth must be configured to use a sufficient number of hashing rounds."
+  when:
+    - rhel_09_611050
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611050
+    - CAT2
+    - CCI-000803
+    - CCI-000161
+    - SRG-OS-000073-GPOS-00041
+    - SRG-OS-000120-GPOS-00061
+    - SV-258099r1045198_rule
+    - V-258099
+    - NIST800-53R4_IA-7
+    - NIST800-53R4_IA-5
+  community.general.pamd:
+    name: password-auth
+    type: password
+    control: sufficient
+    module_path: pam_unix.so
+    module_arguments: 'sha512 rounds={{ rhel9_stig_pam_rounds }}'
+    state: args_present
+
+- name: "MEDIUM | RHEL-09-611055 | PATCH | RHEL 9 system-auth must be configured to use a sufficient number of hashing rounds."
+  when:
+    - rhel_09_611055
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611055
+    - CAT2
+    - CCI-000803
+    - CCI-000196
+    - SRG-OS-000073-GPOS-00041
+    - SRG-OS-000120-GPOS-00061
+    - SV-258100r1045201_rule
+    - V-258100
+    - NIST800-53R4_IA-7
+    - NIST800-53R4_IA-5
+  community.general.pamd:
+    name: system-auth
+    type: password
+    control: sufficient
+    module_path: pam_unix.so
+    module_arguments: 'sha512 rounds={{ rhel9_stig_pam_rounds }}'
+    state: args_present
+
+- name: "MEDIUM | RHEL-09-611060 | PATCH | RHEL 9 must enforce password complexity rules for the root account."
+  when:
+    - rhel_09_611060
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611060
+    - CAT2
+    - CCI-000192
+    - CCI-000193
+    - CCI-000194
+    - CCI-000195
+    - CCI-000205
+    - CCI-001619
+    - SRG-OS-000072-GPOS-00040
+    - SRG-OS-000071-GPOS-00039
+    - SRG-OS-000070-GPOS-00038
+    - SRG-OS-000266-GPOS-00101
+    - SRG-OS-000078-GPOS-00046
+    - SRG-OS-000480-GPOS-00225
+    - SRG-OS-000069-GPOS-00037
+    - SV-258101r1045204_rule
+    - V-258101
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    regexp: ^#\s*enforce_for_root
+    line: enforce_for_root
+    backrefs: true
+  loop: "{{ rhel9_stig_pwquality_conf_files.stdout_lines }}"
+
+- name: "MEDIUM | RHEL-09-611065 | PATCH | RHEL 9 must enforce password complexity by requiring that at least one lowercase character be used."
+  when:
+    - rhel_09_611065
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611065
+    - CAT2
+    - CCI-000193
+    - SRG-OS-000070-GPOS-00038
+    - SV-258102r1045207_rule
+    - V-258102
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    regexp: \s*lcredit =
+    line: "lcredit = {{ rhel9_stig_pwquality_lcredit }}"
+    backrefs: true
+  loop: "{{ rhel9_stig_pwquality_conf_files.stdout_lines }}"
+
+- name: "MEDIUM | RHEL-09-611070 | PATCH | RHEL 9 must enforce password complexity by requiring that at least one numeric character be used."
+  when:
+    - rhel_09_611070
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611070
+    - CAT2
+    - CCI-000194
+    - SRG-OS-000071-GPOS-00039
+    - SV-258103r1045210_rule
+    - V-258103
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    regexp: \s*dcredit =
+    line: "dcredit = {{ rhel9_stig_pwquality_dcredit }}"
+    backrefs: true
+  loop: "{{ rhel9_stig_pwquality_conf_files.stdout_lines }}"
+
+- name: "MEDIUM | RHEL-09-611075 | PATCH | RHEL 9 passwords for new users or password changes must have a 24 hours
+         minimum password lifetime restriction in /etc/login.defs."
+  when:
+    - rhel_09_611075
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611075
+    - CAT2
+    - CCI-000198
+    - SRG-OS-000075-GPOS-00043
+    - SV-258104r1015104_rule
+    - V-258104
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: \s*PASS_MIN_DAYS\s*
+    line: "PASS_MIN_DAYS {{ rhel9_stig_pass_min_days }}"
+    backrefs: true
+
+- name: "MEDIUM | RHEL-09-611080 | PATCH | RHEL 9 passwords must have a 24 hours minimum password lifetime restriction in /etc/shadow."
+  when: rhel_09_611080
+  tags:
+    - RHEL-09-611080
+    - CAT2
+    - CCI-000198
+    - SRG-OS-000075-GPOS-00043
+    - SV-258105r1015105_rule
+    - V-258105
+    - NIST800-53R4_IA-5
+  vars:
+    warn_control_id: "MEDIUM | RHEL-09-611080"
+  block:
+    - name: "MEDIUM | RHEL-09-611080 | AUDIT | RHEL 9 passwords must have a 24 hours minimum password lifetime restriction in /etc/shadow. | Capture accts"
+      ansible.builtin.command: "awk -F: '$4 < 1 {print $1}' /etc/shadow"
+      changed_when: false
+      failed_when: rhel9_stig_discovered_24hr_passwd_restrict.rc not in [ 0, 1 ]
+      register: rhel9_stig_discovered_24hr_passwd_restrict
+
+    - name: "MEDIUM | RHEL-09-611080 | WARN | RHEL 9 passwords must have a 24 hours minimum password lifetime restriction in /etc/shadow. | Warning"
+      when:
+        - rhel9_stig_discovered_24hr_passwd_restrict.stdout | length > 0
+        - not rhel9_stig_disruption_high
+      ansible.builtin.debug:
+        msg: "Warning!! Accounts have been found to have an incorrect password lifetime"
+
+    - name: "MEDIUM | RHEL-09-611080 | WARN | RHEL 9 passwords must have a 24 hours minimum password lifetime restriction in /etc/shadow. | Warning"
+      when:
+        - rhel9_stig_discovered_24hr_passwd_restrict.stdout | length > 0
+        - not rhel9_stig_disruption_high
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+
+    - name: "MEDIUM | RHEL-09-611080 | WARN | RHEL 9 passwords must have a 24 hours minimum password lifetime restriction in /etc/shadow. | Amend accounts"
+      when:
+        - rhel9_stig_discovered_24hr_passwd_restrict.stdout | length > 0
+        - rhel9_stig_disruption_high
+        - item in rhel9_stig_interactive_users
+      ansible.builtin.command: "passwd -n 1 {{ item }}"
+      changed_when: true
+      loop: "{{ rhel9_stig_discovered_24hr_passwd_restrict.stdout_lines }}"
+
+- name: "MEDIUM | RHEL-09-611085 | PATCH | RHEL 9 must require users to provide a password for privilege escalation"
+  when:
+    - rhel_09_611085
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611085
+    - CAT2
+    - CCI-002038
+    - SRG-OS-000373-GPOS-00156
+    - SRG-OS-000373-GPOS-00157
+    - SRG-OS-000373-GPOS-00158
+    - SV-258106r1050789_rule
+    - V-258106
+    - NIST800-53R4_IA-11
+  vars:
+    warn_control_id: "MEDIUM | RHEL-09-611085"
+  block:
+    - name: "MEDIUM | RHEL-09-611085 | AUDIT | RHEL 9 must require users to provide a password for privilege escalation"
+      ansible.builtin.shell:
+        cmd: >-
+          set -o pipefail && grep -Ei '(nopasswd)' /etc/sudoers /etc/sudoers.d/* | cut -d':' -f1
+        executable: /bin/bash
+      changed_when: false
+      failed_when: rhel9_stig_discovered_sudoers_nopasswd.rc not in [ 0, 1 ]
+      register: rhel9_stig_discovered_sudoers_nopasswd
+
+    - name: "MEDIUM | RHEL-09-611085 | PATCH | RHEL 9 must require users to provide a password for privilege escalation"
+      when:
+        - rhel9_stig_discovered_sudoers_nopasswd.stdout | length > 0
+        - not rhel9_stig_disruption_high
+      ansible.builtin.debug:
+        msg: "Warning!! You have sudo commands that require NO Password Please Investigate"
+
+    - name: "MEDIUM | RHEL-09-611085 | PATCH | RHEL 9 must require users to provide a password for privilege escalation"
+      when:
+        - rhel9_stig_discovered_sudoers_nopasswd.stdout | length > 0
+        - not rhel9_stig_disruption_high
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+
+    - name: "MEDIUM | RHEL-09-611085 | PATCH | RHEL 9 must require users to provide a password for privilege escalation"
+      when:
+        - rhel9_stig_discovered_sudoers_nopasswd.stdout | length > 0
+        - rhel9_stig_disruption_high
+      ansible.builtin.replace:
+        path: "{{ item }}"
+        regexp: '^((?!#|{% for name in rhel9_stig_sudoers_exclude_nopasswd_list %}{{ name }}{% if not loop.last -%}|{%- endif -%}{% endfor %}).*)NOPASSWD(.*)'
+        replace: '\1PASSWD\2'
+        validate: '/usr/sbin/visudo -cf %s'
+      loop: "{{ rhel9_stig_discovered_sudoers_nopasswd.stdout_lines }}"
+
+- name: "MEDIUM | RHEL-09-611090 | PATCH | RHEL 9 passwords must be created with a minimum of 15 characters."
+  when: rhel_09_611090
+  tags:
+    - RHEL-09-611090
+    - CAT2
+    - CCI-000205
+    - SRG-OS-000078-GPOS-00046
+    - SV-258107r1045218_rule
+    - V-258107
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: \s*minlen\s*=\s*
+    line: "minlen = {{ rhel9_stig_pass_minlen }}"
+    backrefs: true
+
+- name: "MEDIUM | RHEL-09-611100 | PATCH | RHEL 9 must enforce password complexity by requiring that at least one special character be used."
+  when:
+    - rhel_09_611100
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611100
+    - CAT2
+    - CCI-001619
+    - SRG-OS-000266-GPOS-00101
+    - SV-258109r1045220_rule
+    - V-258109
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    regexp: \s*ocredit =
+    line: "ocredit = {{ rhel9_stig_pwquality_ocredit }}"
+    backrefs: true
+  loop: "{{ rhel9_stig_pwquality_conf_files.stdout_lines }}"
+
+- name: "MEDIUM | RHEL-09-611105 | PATCH | RHEL 9 must prevent the use of dictionary words for passwords."
+  when:
+    - rhel_09_611105
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611105
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00225
+    - SV-258110r1045223_rule
+    - V-258110
+    - NIST800-53R4_CM-6
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    regexp: \s*dictcheck\s*=\s*
+    line: "dictcheck = {{ rhel9_stig_pwquality_dictcheck }}"
+    backrefs: true
+  loop: "{{ rhel9_stig_pwquality_conf_files.stdout_lines }}"
+
+- name: "MEDIUM | RHEL-09-611110 | PATCH | RHEL 9 must enforce password complexity by requiring that at least one uppercase character be used."
+  when:
+    - rhel_09_611110
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611110
+    - CAT2
+    - CCI-000192
+    - SRG-OS-000069-GPOS-00037
+    - SV-258111r1045226_rule
+    - V-258111
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    regexp: \s*ucredit\s*=\s*
+    line: "ucredit = {{ rhel9_stig_pwquality_ucredit }}"
+    backrefs: true
+  loop: "{{ rhel9_stig_pwquality_conf_files.stdout_lines }}"
+
+- name: "MEDIUM | RHEL-09-611115 | PATCH | RHEL 9 must require the change of at least eight characters when passwords are changed."
+  when:
+    - rhel_09_611115
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611115
+    - CAT2
+    - CCI-000195
+    - SRG-OS-000072-GPOS-00040
+    - SV-258112r1045229_rule
+    - V-258112
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    regexp: \s*difok\s*=\s*
+    line: "difok = {{ rhel9_stig_pwquality_difok }}"
+    backrefs: true
+  loop: "{{ rhel9_stig_pwquality_conf_files.stdout_lines }}"
+
+- name: "MEDIUM | RHEL-09-611120 | PATCH | RHEL 9 must require the maximum number of repeating characters of the same
+         character class be limited to four when passwords are changed."
+  when:
+    - rhel_09_611120
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611120
+    - CAT2
+    - CCI-000195
+    - SRG-OS-000072-GPOS-00040
+    - SV-258113r1045232_rule
+    - V-258113
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: \s*maxclassrepeat\s*=\s*
+    line: "maxclassrepeat = {{ rhel9_stig_pwquality_maxclassrepeat }}"
+    backrefs: true
+
+- name: "MEDIUM | RHEL-09-611125 | PATCH | RHEL 9 must require the maximum number of repeating characters be limited to three when passwords are changed."
+  when:
+    - rhel_09_611125
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611125
+    - CAT2
+    - CCI-000195
+    - SRG-OS-000072-GPOS-00040
+    - SV-258114r1045235_rule
+    - V-258114
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: \s*maxrepeat\s*=\s*
+    line: "maxrepeat = {{ rhel9_stig_pwquality_maxrepeat }}"
+    backrefs: true
+
+- name: "MEDIUM | RHEL-09-611130 | PATCH | RHEL 9 must require the change of at least four character classes when passwords are changed."
+  when:
+    - rhel_09_611130
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611130
+    - CAT2
+    - CCI-000195
+    - SRG-OS-000072-GPOS-00040
+    - SV-258115r1045238_rule
+    - V-258115
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: \s*minclass\s*=\s*
+    line: "minclass = {{ rhel9_stig_pwquality_minclass }}"
+    backrefs: true
+
+- name: "MEDIUM | RHEL-09-611135 | PATCH | RHEL 9 must be configured so that user and group account administration
+         utilities are configured to store only encrypted representations of passwords."
+  when:
+    - rhel_09_611135
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611135
+    - CAT2
+    - CCI-000196
+    - SRG-OS-000073-GPOS-00041
+    - SV-258116r1045240_rule
+    - V-258116
+    - NIST800-53R4_IA-5
+  community.general.ini_file:
+    path: /etc/libuser.conf
+    option: crypt_style
+    section: 'default'
+    value: 'sha512'
+    mode: 'u-x,go-wx'
+
+- name: "MEDIUM | RHEL-09-611140 | PATCH | RHEL 9 must be configured to use the shadow file to store only encrypted representations of passwords."
+  when:
+    - rhel_09_611140
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611140
+    - CAT2
+    - CCI-000196
+    - SRG-OS-000073-GPOS-00041
+    - SV-258117r1015116_rule
+    - V-258117
+    - NIST800-53R4_IA-5
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: \s*ENCRYPT_METHOD
+    line: ENCRYPT_METHOD SHA512
+    backrefs: true
+
+- name: "MEDIUM | RHEL-09-611145 | PATCH | RHEL 9 must not be configured to bypass password requirements for privilege escalation."
+  when:
+    - rhel_09_611145
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611145
+    - CAT2
+    - CCI-002038
+    - SRG-OS-000373-GPOS-00156
+    - SRG-OS-000373-GPOS-00157
+    - SRG-OS-000373-GPOS-00158
+    - SV-258118r1050789_rule
+    - V-258118
+    - NIST800-53R4_IA-11
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/sudo
+    regexp: ^(.*)pam_succeed_if(.)
+    line: '\1\2'
+    backrefs: true
+
+- name: "MEDIUM | RHEL-09-611155 | PATCH | RHEL 9 must not have accounts configured with blank or null passwords."
+  when:
+    - rhel_09_611155
+    - rhel9_stig_empty_password_accounts is defined
+    - rhel9_stig_empty_password_accounts.stdout | length > 0
+  tags:
+    - RHEL-09-611155
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-258120r991589_rule
+    - V-258120
+    - NIST800-53R4_CM-6
+  vars:
+    warn_control_id: "MEDIUM | RHEL-09-611155"
+  block:
+    - name: "MEDIUM | RHEL-09-611155 | WARN | RHEL 9 must not have accounts configured with blank or null passwords."
+      when: not rhel9_stig_disruption_high
+      ansible.builtin.debug:
+        msg: "Warning!! You have accounts with blank passwords"
+
+    - name: "MEDIUM | RHEL-09-611155 | WARN | RHEL 9 must not have accounts configured with blank or null passwords."
+      when: not rhel9_stig_disruption_high
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+
+    - name: "MEDIUM | RHEL-09-611155 | PATCH | RHEL 9 must not have accounts configured with blank or null passwords."
+      when: rhel9_stig_disruption_high
+      ansible.builtin.user:
+        name: "{{ item }}"
+        password_lock: true
+      loop: "{{ rhel9_stig_empty_password_accounts.stdout_lines }}"
+
+# Prerequistire for 611160-611160
+- name: "MEDIUM | RHEL-09-611185 | PATCH | RHEL 9 must have the opensc package installed."
+  when:
+    - rhel_09_611185
+    - rhel9_stig_smartcard_reader
+  tags:
+    - RHEL-09-611185
+    - CAT2
+    - CCI-001953
+    - CCI-001948
+    - SRG-OS-000375-GPOS-00160
+    - SRG-OS-000376-GPOS-00161
+    - SV-258126r1045255_rule
+    - V-258126
+    - NIST800-53R4_IA-2
+  ansible.builtin.package:
+    name: opensc
+    state: present
+
+- name: "MEDIUM | RHEL-09-611160 | PATCH | RHEL 9 must use the CAC smart card driver."
+  when:
+    - rhel_09_611160
+    - rhel9_stig_disruption_high
+    - rhel9_stig_smartcard_reader
+  tags:
+    - RHEL-09-611160
+    - CAT2
+    - CCI-000764
+    - CCI-000765
+    - CCI-000766
+    - CCI-000767
+    - CCI-000768
+    - CCI-000770
+    - CCI-001941
+    - CCI-001942
+    - SRG-OS-000104-GPOS-00051
+    - SRG-OS-000106-GPOS-00053
+    - SRG-OS-000107-GPOS-00054
+    - SRG-OS-000109-GPOS-00056
+    - SRG-OS-000108-GPOS-00055
+    - SRG-OS-000112-GPOS-00057
+    - SRG-OS-000113-GPOS-00058
+    - SV-258121r1045243_rule
+    - V-258121
+    - NIST800-53R4_IA-2
+  block:
+    - name: "MEDIUM | RHEL-09-611160 | AUDIT | RHEL 9 must use the CAC smart card driver. | get state"
+      ansible.builtin.command: opensc-tool --get-conf-entry app:default:card_driver cac
+      changed_when: false
+      register: rhel9_stig_discovered_opensc_loaded_card_driver
+
+    - name: "MEDIUM | RHEL-09-611160 | AUDIT | RHEL 9 must use the CAC smart card driver. | get state"
+      when: "'cac' not in rhel9_stig_discovered_opensc_loaded_card_driver.stdout"
+      ansible.builtin.command: opensc-tool --set-conf-entry app:default:card_driver cac
+      changed_when: true
+      notify: Restart_pcscd
+
+- name: "MEDIUM | RHEL-09-611165 | PATCH | RHEL 9 must enable certificate based smart card authentication."
+  when:
+    - rhel_09_611165
+    - rhel9_stig_disruption_high
+    - "'sssd' in ansible_facts.packages"
+    - rhel9_stig_smartcard_reader
+  tags:
+    - RHEL-09-611165
+    - CAT2
+    - CCI-000765
+    - CCI-001948
+    - SRG-OS-000105-GPOS-00052
+    - SRG-OS-000375-GPOS-00160
+    - SV-258122r1045246_rule
+    - V-258122
+    - NIST800-53R4_IA-2
+  ansible.builtin.lineinfile:
+    path: /etc/sssd/sssd.conf
+    regexp: '(?i)^(#|)pam_cert_auth\s*=\s*false'
+    line: 'pam_cert_auth = True'
+
+- name: "MEDIUM | RHEL-09-611170 | PATCH | RHEL 9 must implement certificate status checking for multifactor authentication."
+  when:
+    - rhel_09_611170
+    - rhel9_stig_disruption_high
+    - "'sssd' in ansible_facts.packages"
+  tags:
+    - RHEL-09-611170
+    - CAT2
+    - CCI-001954
+    - CCI-001948
+    - SRG-OS-000375-GPOS-00160
+    - SRG-OS-000377-GPOS-00162
+    - SV-258123r1045248_rule
+    - V-258123
+    - NIST800-53R4_IA-2
+  notify: Restart_sssd
+  block:
+    - name: "MEDIUM | RHEL-09-611170 | AUDIT | RHEL 9 must implement certificate status checking for multifactor
+             authentication. | Capture existence"
+      ansible.builtin.shell: |
+        set -o pipefail && grep certificate_verification /etc/sssd/sssd.conf /etc/sssd/conf.d/*.conf | grep -v "^#"
+      args:
+        executable: /bin/bash
+      changed_when: false
+      failed_when: rhel9_stig_discovered_sssd_cert_verification_files.rc not in [ 0, 1 ]
+      register: rhel9_stig_discovered_sssd_cert_verification_files
+
+    - name: "MEDIUM | RHEL-09-611170 | PATCH | RHEL 9 must implement certificate status checking for multifactor authentication. | Add if missing"
+      when: rhel9_stig_discovered_sssd_cert_verification_files.stdout | length == 0
+      community.general.ini_file:
+        path: /etc/sssd/conf.d/certificate_verification.conf
+        section: 'sssd'
+        value: 'ocsp_dgst=sha512'
+        option: certificate_verification
+        group: root
+        owner: root
+        mode: 'u-x,go-rwx'
+        create: true
+
+    - name: "MEDIUM | RHEL-09-611170 | PATCH | RHEL 9 must implement certificate status checking for multifactor authentication. | Add if missing"
+      when: rhel9_stig_discovered_sssd_cert_verification_files.stdout | length > 0
+      ansible.builtin.lineinfile:
+        path: "{{ item.split(':').0 }}"
+        regexp: ^((#|)certificate_verification =.*)
+        line: '#\1'
+        backrefs: true
+      loop: "{{ rhel9_stig_discovered_sssd_cert_verification_files.stdout_lines }}"
+
+- name: "MEDIUM | RHEL-09-611175 | PATCH | RHEL 9 must have the pcsc-lite package installed."
+  when:
+    - rhel_09_611175
+    - rhel9_stig_smartcard_reader
+  tags:
+    - RHEL-09-611175
+    - CAT2
+    - CCI-001948
+    - SRG-OS-000375-GPOS-00160
+    - SV-258124r1045250_rule
+    - V-258124
+    - NIST800-53R4_IA2
+  ansible.builtin.package:
+    name: pcsc-lite
+    state: present
+
+- name: "MEDIUM | RHEL-09-611180 | PATCH | RHEL 9 must have the pcsc-lite package installed."
+  when:
+    - rhel_09_611180
+    - rhel9_stig_smartcard_reader
+  tags:
+    - RHEL-09-611180
+    - CAT2
+    - CCI-001948
+    - SRG-OS-000375-GPOS-00160
+    - SV-258125r1045253_rule
+    - V-258125
+    - NIST800-53R4_IA-2
+  ansible.builtin.systemd:
+    name: pcscd
+    enabled: true
+    state: started
+
+- name: "MEDIUM | RHEL-09-611190 | PATCH | RHEL 9, for PKI-based authentication, must enforce authorized access to the corresponding private key."
+  when: rhel_09_611190
+  tags:
+    - RHEL-09-611190
+    - CAT2
+    - CCI-000186
+    - SRG-OS-000067-GPOS-00035
+    - SV-258127r958450_rule
+    - V-258127
+    - NIST800-53R4_IA-2
+  vars:
+    warn_control_id: "MEDIUM | RHEL-09-611190"
+  block:
+    - name: "MEDIUM | RHEL-09-611190 | WARN | RHEL 9, for PKI-based authentication, must enforce authorized access to the corresponding private key."
+      ansible.builtin.debug:
+        msg: "Warning!! MANUAL Checks required please find and ensure all private keys on the system have a password"
+
+    - name: "MEDIUM | RHEL-09-611190 | WARN | RHEL 9, for PKI-based authentication, must enforce authorized access to the corresponding private key."
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+
+- name: "MEDIUM | RHEL-09-611195 | PATCH | RHEL 9 must require authentication to access emergency mode."
+  when: rhel_09_611195
+  tags:
+    - RHEL-09-611195
+    - CAT2
+    - CCI-000213
+    - SRG-OS-000080-GPOS-00048
+    - SV-258128r958472_rule
+    - V-258128
+    - NIST800-53R4_AC-3
+  ansible.builtin.lineinfile:
+    path: /usr/lib/systemd/system/emergency.service
+    regexp: ^(#|)ExecStart=
+    line: ExecStart=-/usr/lib/systemd/systemd-sulogin-shell emergency
+    backrefs: true
+
+- name: "MEDIUM | RHEL-09-611200 | PATCH | RHEL 9 must require authentication to access single-user mode"
+  when: rhel_09_611200
+  tags:
+    - RHEL-09-611200
+    - CAT2
+    - CCI-000213
+    - SRG-OS-000080-GPOS-00048
+    - SV-258129r958472_rule
+    - V-258129
+    - NIST800-53R4_AC-3
+  ansible.builtin.lineinfile:
+    path: /usr/lib/systemd/system/rescue.service
+    regexp: ^(#|)ExecStart=
+    line: ExecStart=-/usr/lib/systemd/systemd-sulogin-shell rescue
+    backrefs: true
+
+- name: "MEDIUM | RHEL-09-611205 | PATCH | RHEL 9 must prevent system daemons from using Kerberos for authentication"
+  when:
+    - rhel_09_611205
+    - rhel9_stig_disruption_high
+  tags:
+    - RHEL-09-611205
+    - CAT2
+    - CCI-000803
+    - SRG-OS-000120-GPOS-00061
+    - SV-258130r1045258_rule
+    - V-258130
+    - NIST800-53R4_IA-7
+  block:
+    - name: "MEDIUM | RHEL-09-611205 | PATCH | RHEL 9 must require authentication to access single-user mode"
+      ansible.builtin.find:
+        paths: /etc
+        patterns: '*.keytab'
+      register: rhel9_stig_discovered_keytab_files
+
+    - name: "MEDIUM | RHEL-09-611205 | PATCH | RHEL 9 must require authentication to access single-user mode"
+      when: rhel9_stig_discovered_keytab_files.matched > 0
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ rhel9_stig_discovered_keytab_files.files }}"
