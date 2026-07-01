@@ -700,7 +700,7 @@
     src: "{{ item.device }}"
     fstype: "{{ item.fstype }}"
     opts: >-
-      {{ item.options }}{%- if rhel8_stig_discovered_var_log_audit_nodev.changed %},nodev{% endif %}
+      {{ item.options }}{%- if rhel8_stig_discovered_var_log_audit_nodev.changed %},nodev{% endif -%}
       {%- if rhel8_stig_discovered_var_log_audit_nosuid.changed %},nosuid{% endif %},noexec
     state: present
   loop: "{{ ansible_facts.mounts }}"
