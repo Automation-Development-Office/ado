@@ -6,33 +6,33 @@
     - name: "PRELIM | Check whether machine is UEFI-based"
       ansible.builtin.stat:
         path: /sys/firmware/efi
-      register: remediate_rhel8_stig_discovered_efi_boot
+      register: rhel8_stig_discovered_efi_boot
 
     - name: "PRELIM | Set fact if UEFI boot"
-      when: remediate_rhel8_stig_discovered_efi_boot.stat.exists
+      when: rhel8_stig_discovered_efi_boot.stat.exists
       ansible.builtin.set_fact:
-        remediate_rhel8_stig_prelim_bootloader_path: /boot/efi/EFI/{{ ansible_distribution | lower }}
-        remediate_rhel8_stig_prelim_legacy_boot: false
+        rhel8_stig_prelim_bootloader_path: /boot/efi/EFI/{{ ansible_distribution | lower }}
+        rhel8_stig_prelim_legacy_boot: false
 
     - name: "PRELIM | Set fact if UEFI boot | Oracle Linux"
       when:
-        - remediate_rhel8_stig_discovered_efi_boot.stat.exists
+        - rhel8_stig_discovered_efi_boot.stat.exists
         - ansible_distribution == 'OracleLinux'
       ansible.builtin.set_fact:
-        remediate_rhel8_stig_prelim_bootloader_path: /boot/efi/EFI/redhat
-        remediate_rhel8_stig_prelim_legacy_boot: false
+        rhel8_stig_prelim_bootloader_path: /boot/efi/EFI/redhat
+        rhel8_stig_prelim_legacy_boot: false
 
     - name: "PRELIM | Set if not UEFI boot"
-      when: not remediate_rhel8_stig_discovered_efi_boot.stat.exists
+      when: not rhel8_stig_discovered_efi_boot.stat.exists
       ansible.builtin.set_fact:
-        remediate_rhel8_stig_prelim_bootloader_path: /boot/grub2/
-        remediate_rhel8_stig_prelim_legacy_boot: true
+        rhel8_stig_prelim_bootloader_path: /boot/grub2/
+        rhel8_stig_prelim_legacy_boot: true
 
     - name: PRELIM | output bootloader and efi state
       ansible.builtin.debug:
         msg:
-          - "bootloader path set to {{ remediate_rhel8_stig_prelim_bootloader_path }}"
-          - "legacy boot equals {{ remediate_rhel8_stig_prelim_legacy_boot }}"
+          - "bootloader path set to {{ rhel8_stig_prelim_bootloader_path }}"
+          - "legacy boot equals {{ rhel8_stig_prelim_legacy_boot }}"
 
 - name: PRELIM | Discover Interactive UID MIN and MIN from logins.def
   when: discover_int_uid
@@ -42,50 +42,50 @@
       ansible.builtin.shell: set -o pipefail && grep -w "^UID_MIN" /etc/login.defs | awk '{print $NF}'
       changed_when: false
       check_mode: false
-      register: remediate_rhel8_stig_discovered_uid_min
+      register: rhel8_stig_discovered_uid_min
 
     - name: PRELIM | Capture UID_MAX information from logins.def
       ansible.builtin.shell: set -o pipefail && grep -w "^UID_MAX" /etc/login.defs | awk '{print $NF}'
       changed_when: false
       check_mode: false
-      register: remediate_rhel8_stig_discovered_uid_max
+      register: rhel8_stig_discovered_uid_max
 
     - name: PRELIM | Set_facts for interactive uid
       ansible.builtin.set_fact:
-        min_int_uid: "{{ remediate_rhel8_stig_discovered_uid_min.stdout }}"
-        max_int_uid: "{{ remediate_rhel8_stig_discovered_uid_max.stdout }}"
+        rhel8_stig_min_int_uid: "{{ rhel8_stig_discovered_uid_min.stdout }}"
+        rhel8_stig_max_int_uid: "{{ rhel8_stig_discovered_uid_max.stdout }}"
 
 - name: PRELIM | Set crypto policies and subpolicies fact
-  when: remediate_rhel8_stig_additional_fips_crypto_subpolicies
+  when: rhel8_stig_additional_fips_crypto_subpolicies
   tags: always
   ansible.builtin.set_fact:
-    remediate_rhel8_stig_combined_crypto_policy_config: "{{ combined_crypto_policy_config }}:{{ remediate_rhel8_stig_additional_fips_crypto_subpolicies_list | join(':') }}"
+    rhel8_stig_combined_crypto_policy_config: "{{ combined_crypto_policy_config }}:{{ rhel8_stig_additional_fips_crypto_subpolicies_list | join(':') }}"
 
 - name: "PRELIM | RHEL-08-010400 | RHEL-08-020250 | RHEL-08-020290 | Set sssd.conf location"
   when:
-    - remediate_rhel8_stig_010400 or
-      remediate_rhel8_stig_020090 or
-      remediate_rhel8_stig_020250 or
-      remediate_rhel8_stig_020290
+    - rhel8_stig_010400 or
+      rhel8_stig_020090 or
+      rhel8_stig_020250 or
+      rhel8_stig_020290
   tags: always
   block:
     - name: "PRELIM | RHEL-08-010400 | RHEL-08-020250 | RHEL-08-020290 | Get sssd.conf location"
       ansible.builtin.stat:
-        path: "{{ remediate_rhel8_stig_sssd_conf }}"
-      register: remediate_rhel8_stig_prelim_sssd_conf_present
+        path: "{{ rhel8_stig_sssd_conf }}"
+      register: rhel8_stig_prelim_sssd_conf_present
 
     - name: "PRELIM | RHEL-08-010400 | RHEL-08-020250 | RHEL-08-020290 | Get sssd.conf location | Warning if not found"
-      when: not remediate_rhel8_stig_prelim_sssd_conf_present.stat.exists
+      when: not rhel8_stig_prelim_sssd_conf_present.stat.exists
       ansible.builtin.debug:
-        msg: "Warning!! The configured sssd config file {{ remediate_rhel8_stig_sssd_conf }} has not been found, some items will skip"
+        msg: "Warning!! The configured sssd config file {{ rhel8_stig_sssd_conf }} has not been found, some items will skip"
       changed_when: false
 
     - name: "PRELIM | RHEL-08-010400 | RHEL-08-020250 | RHEL-08-020290 | Get sssd.conf location | Warning if not found"
-      when: not remediate_rhel8_stig_prelim_sssd_conf_present.stat.exists
+      when: not rhel8_stig_prelim_sssd_conf_present.stat.exists
       ansible.builtin.import_tasks:
         file: warning_facts.yml
       vars:
-        remediate_rhel8_stig_warn_control_id: "SSSD_checks_skipped"
+        rhel8_stig_warn_control_id: "SSSD_checks_skipped"
 
 - name: "PRELIM | Include audit specific variables"
   when:
@@ -106,7 +106,7 @@
     file: pre_remediation_audit.yml
 
 - name: "PRELIM | RHEL-08-010020 | Crypto-policies-scripts package for FIPS"
-  when: remediate_rhel8_stig_010020
+  when: rhel8_stig_010020
   tags:
     - RHEL-08-010020
     - CAT1
@@ -120,10 +120,10 @@
 
 - name: "PRELIM | RHEL-08-010020 | RHEL-08-010140 | RHEL-08-010150| Install grub2-tools."
   when:
-    - not remediate_rhel8_stig_system_is_container
-    - remediate_rhel8_stig_010020 or
-      remediate_rhel8_stig_010140 or
-      remediate_rhel8_stig_010150
+    - not rhel8_stig_system_is_container
+    - rhel8_stig_010020 or
+      rhel8_stig_010140 or
+      rhel8_stig_010150
   tags: always
   ansible.builtin.package:
     name: grub2-tools
@@ -132,149 +132,160 @@
   tags: always
   ansible.builtin.stat:
     path: /usr/share/gnome/gnome-version.xml
-  register: remediate_rhel8_stig_prelim_gnome_present
+  register: rhel8_stig_prelim_gnome_present
 
 - name: "PRELIM | Dconf"
   when:
-    - remediate_rhel8_stig_010050 or
-      remediate_rhel8_stig_020030 or
-      remediate_rhel8_stig_020050 or
-      remediate_rhel8_stig_020060 or
-      remediate_rhel8_stig_020080 or
-      remediate_rhel8_stig_020090 or
-      remediate_rhel8_stig_040180
+    - rhel8_stig_010050 or
+      rhel8_stig_020030 or
+      rhel8_stig_020050 or
+      rhel8_stig_020060 or
+      rhel8_stig_020080 or
+      rhel8_stig_020090 or
+      rhel8_stig_040180
   tags: always
   block:
     - name: "PRELIM | Install dconf"
-      when: remediate_rhel8_stig_gui
+      when: rhel8_stig_gui
       ansible.builtin.package:
         name: dconf
 
     - name: "PRELIM | Dconf directory structure setup"
-      when: remediate_rhel8_stig_always_configure_dconf
+      when: rhel8_stig_always_configure_dconf
       ansible.builtin.file:
         path: /etc/dconf/db/local.d/locks
         state: directory
         mode: 'u+x,go-w'
 
 - name: "PRELIM | Find all sudoers files."
-  when: remediate_rhel8_stig_010380 or remediate_rhel8_stig_010381
+  when: rhel8_stig_010380 or rhel8_stig_010381
   tags: always
   ansible.builtin.shell: "set -o pipefail; find /etc/sudoers /etc/sudoers.d/ -type f ! -name '*~' ! -name '*.*'"
   check_mode: false
   changed_when: false
   failed_when: false
-  register: remediate_rhel8_stig_prelim_sudoers_files
+  register: rhel8_stig_prelim_sudoers_files
 
 - name: "PRELIM | Gather chroot status"
-  when: remediate_rhel8_stig_ansible_is_chroot is not defined
+  when: rhel8_stig_ansible_is_chroot is not defined
   tags: always
   ansible.builtin.setup:
     gather_subset: chroot,!all,!min
-    filter: remediate_rhel8_stig_ansible_is_chroot
+    filter: rhel8_stig_ansible_is_chroot
 
 - name: "PRELIM | Ensure cronie is available"
   when:
-    - not remediate_rhel8_stig_system_is_container
-    - remediate_rhel8_stig_010360
+    - not rhel8_stig_system_is_container
+    - rhel8_stig_010360
   tags: always
   ansible.builtin.package:
     name: cronie
 
 - name: "PRELIM | RHEL-08-010740 | RHEL-08-010750 | RHEL-08-020320 | Parse /etc/passwd"
   when:
-    - remediate_rhel8_stig_010141 or
-      remediate_rhel8_stig_010149 or
-      remediate_rhel8_stig_010731 or
-      remediate_rhel8_stig_010740 or
-      remediate_rhel8_stig_010750 or
-      remediate_rhel8_stig_020320
+    - rhel8_stig_010141 or
+      rhel8_stig_010149 or
+      rhel8_stig_010731 or
+      rhel8_stig_010740 or
+      rhel8_stig_010750 or
+      rhel8_stig_020320
   tags: always
   ansible.builtin.import_tasks:
     file: parse_etc_passwd.yml
     # vars:
-    # remediate_rhel8_stig_passwd_tasks: "RHEL-08-010740 RHEL-08-010750 RHEL-08-020320" # pragma: allowlist secret
+    # rhel8_stig_passwd_tasks: "RHEL-08-010740 RHEL-08-010750 RHEL-08-020320" # pragma: allowlist secret
 
 - name: "PRELIM | AUDIT | Discover Interactive Users"
   tags: always
-  ansible.builtin.shell: >
-      set -o pipefail && grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd | awk -F: '(!index($7, "sbin/nologin") && $7 != "/bin/nologin" && $7 != "/bin/false") { print $1 }'
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      set -o pipefail && grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd |
+      awk -F: '(!index($7, "sbin/nologin") && $7 != "/bin/nologin" && $7 != "/bin/false") { print $1 }'
   changed_when: false
   check_mode: false
-  register: remediate_rhel8_stig_discovered_interactive_usernames
+  register: rhel8_stig_discovered_interactive_usernames
 
 - name: "PRELIM | AUDIT | Discover Interactive User accounts home directories"
   tags: always
-  ansible.builtin.shell: >
-      set -o pipefail && grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd | awk -F: '(!index($7, "sbin/nologin") && $7 != "/bin/nologin" && $7 != "/bin/false") { print $6 }'
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      set -o pipefail && grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd |
+      awk -F: '(!index($7, "sbin/nologin") && $7 != "/bin/nologin" && $7 != "/bin/false") { print $6 }'
   changed_when: false
   check_mode: false
-  register: remediate_rhel8_stig_discovered_interactive_users_home
+  register: rhel8_stig_discovered_interactive_users_home
 
 - name: "PRELIM | AUDIT | Discover Interactive user UIDs"
   tags: always
-  ansible.builtin.shell: >
-      set -o pipefail && grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd | awk -F: '(!index($7, "sbin/nologin") && $7 != "/bin/nologin" && $7 != "/bin/false") { print $3 }'
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      set -o pipefail && grep -E -v '^(root|halt|sync|shutdown)' /etc/passwd |
+      awk -F: '(!index($7, "sbin/nologin") && $7 != "/bin/nologin" && $7 != "/bin/false") { print $3 }'
   changed_when: false
   check_mode: false
-  register: remediate_rhel8_stig_discovered_interactive_uids
+  register: rhel8_stig_discovered_interactive_uids
 
 - name: "PRELIM | RHEL-08-010690 | Ensure user enumeration command is modified when autofs remote home directories are in use"
-  when: remediate_rhel8_stig_autofs_remote_home_dirs
+  when: rhel8_stig_autofs_remote_home_dirs
   tags: always
   block:
-    - name: PRELIM | RHEL-08-010690 | AUDIT | Ensure that remediate_rhel8_stig_auto_mount_home_dirs_local_mount_point is defined and not length zero
+    - name: PRELIM | RHEL-08-010690 | AUDIT | Ensure that rhel8_stig_auto_mount_home_dirs_local_mount_point is defined and not length zero
       ansible.builtin.assert:
         that:
-          - remediate_rhel8_stig_auto_mount_home_dirs_local_mount_point is defined
-          - remediate_rhel8_stig_auto_mount_home_dirs_local_mount_point | length > 0
+          - rhel8_stig_auto_mount_home_dirs_local_mount_point is defined
+          - rhel8_stig_auto_mount_home_dirs_local_mount_point | length > 0
 
     - name: PRELIM | RHEL-08-010690 | PATCH | Modify local_interactive_user_dir_command to exclude remote automounted home directories
       ansible.builtin.set_fact:
-        remediate_rhel8_stig_local_interactive_user_dir_command: "{{ remediate_rhel8_stig_local_interactive_user_dir_command }} | grep -v '{{ remediate_rhel8_stig_auto_mount_home_dirs_local_mount_point }}'"
+        rhel8_stig_local_interactive_user_dir_command: >-
+          {{ rhel8_stig_local_interactive_user_dir_command }}
+          | grep -v '{{ rhel8_stig_auto_mount_home_dirs_local_mount_point }}'
 
 - name: "PRELIM | RHEL-08-010690 | Gather local interactive user directories"
-  when: remediate_rhel8_stig_010690
+  when: rhel8_stig_010690
   tags: always
   block:
     - name: "PRELIM | RHEL-08-010690 | Gather local interactive user directories"
-      ansible.builtin.command: "{{ remediate_rhel8_stig_local_interactive_user_dir_command }}"
+      ansible.builtin.command: "{{ rhel8_stig_local_interactive_user_dir_command }}"
       changed_when: false
       check_mode: false
       failed_when: false
-      register: remediate_rhel8_stig_prelim_getent
+      register: rhel8_stig_prelim_getent
 
     - name: "PRELIM | RHEL-08-010690 | Gather local interactive user directories"
-      when: remediate_rhel8_stig_prelim_getent.stdout_lines is defined
+      when: rhel8_stig_prelim_getent.stdout_lines is defined
       ansible.builtin.set_fact:
-        remediate_rhel8_stig_interactive_homedir_results: "{{ remediate_rhel8_stig_prelim_getent.stdout_lines }}"
+        rhel8_stig_interactive_homedir_results: "{{ rhel8_stig_prelim_getent.stdout_lines }}"
 
 - name: "PRELIM | RHEL-08-010070 | RHEL-08-030010 | Ensure rsyslog is installed when required."
   when:
-    - not remediate_rhel8_stig_system_is_container
-    - remediate_rhel8_stig_010070 or
-      remediate_rhel8_stig_030010
+    - not rhel8_stig_system_is_container
+    - rhel8_stig_010070 or
+      rhel8_stig_030010
   tags: always
   ansible.builtin.package:
     name: rsyslog
 
 - name: "PRELIM | RHEL-08-030620 | RHEL-08-030630 | RHEL-08-030640 | RHEL-08-030650 | Install audit remote plugin."
   when:
-    - not remediate_rhel8_stig_system_is_container
-    - remediate_rhel8_stig_030620 or
-      remediate_rhel8_stig_030630 or
-      remediate_rhel8_stig_030640 or
-      remediate_rhel8_stig_030650
+    - not rhel8_stig_system_is_container
+    - rhel8_stig_030620 or
+      rhel8_stig_030630 or
+      rhel8_stig_030640 or
+      rhel8_stig_030650
   tags: always
   ansible.builtin.package:
     name: audispd-plugins
 
 - name: "PRELIM | RHEL-08-010360 | RHEL-08-010380 | RHEL-08-040310 | Install and initialize AIDE"
   when:
-    - not remediate_rhel8_stig_system_is_container
-    - remediate_rhel8_stig_010360 or
-      remediate_rhel8_stig_010380 or
-      remediate_rhel8_stig_040310
+    - not rhel8_stig_system_is_container
+    - rhel8_stig_010360 or
+      rhel8_stig_010380 or
+      rhel8_stig_040310
   tags: aide
   block:
     - name: "PRELIM | RHEL-08-010360 | RHEL-08-010380 | RHEL-08-040310 | Install AIDE"
@@ -285,8 +296,8 @@
 
     - name: "PRELIM | RHEL-08-010360 | RHEL-08-010380 | RHEL-08-040310 | Check for existing AIDE database"
       ansible.builtin.stat:
-        path: "{{ remediate_rhel8_stig_aide_db_file }}"
-      register: remediate_rhel8_stig_discovered_aide_db_status
+        path: "{{ rhel8_stig_aide_db_file }}"
+      register: rhel8_stig_discovered_aide_db_status
       check_mode: false
       changed_when: false
       notify: Build_aide_db
@@ -294,15 +305,15 @@
 - name: "PRELIM | RHEL-08-010170 | RHEL-08-010450 | Install SELinux related dependencies"
   when:
     - '"python3-libselinux" not in ansible_facts.packages'
-    - not remediate_rhel8_stig_system_is_container
-    - remediate_rhel8_stig_010170 or remediate_rhel8_stig_010450
+    - not rhel8_stig_system_is_container
+    - rhel8_stig_010170 or rhel8_stig_010450
   tags: always
   ansible.builtin.package:
     name: python3-libselinux
     state: present
 
 - name: "PRELIM | Bare bones SSH Server"
-  when: remediate_rhel8_stig_ssh_required
+  when: rhel8_stig_ssh_required
   tags: always
   block:
     - name: "PRELIM | Install SSH"
@@ -319,35 +330,38 @@
     - name: PRELIM | Check if ssh host key exists
       ansible.builtin.stat:
         path: /etc/ssh/ssh_host_rsa_key
-      register: remediate_rhel8_stig_prelim_ssh_host_rsa_key_stat
+      register: rhel8_stig_prelim_ssh_host_rsa_key_stat
 
     - name: PRELIM | Create ssh host key to allow 'sshd -t -f %s' to succeed
-      when: not remediate_rhel8_stig_prelim_ssh_host_rsa_key_stat.stat.exists
+      when: not rhel8_stig_prelim_ssh_host_rsa_key_stat.stat.exists
       ansible.builtin.command: set -o pipefail && ssh-keygen -N '' -f /etc/ssh/ssh_host_rsa_key -t rsa -b 4096
       changed_when: true
       notify: Clean up ssh host key
 
 - name: "PRELIM | RHEL-08-010770 | AUDIT | Find ini files for interactive users."
   when:
-    - remediate_rhel8_stig_prelim_interactive_homedir_results is defined
-    - remediate_rhel8_stig_disruption_high
-    - remediate_rhel8_stig_010770
+    - rhel8_stig_prelim_interactive_homedir_results is defined
+    - rhel8_stig_disruption_high
+    - rhel8_stig_010770
   tags: always
   ansible.builtin.shell: set -o pipefail && find "{{ item }}" -maxdepth 1 -type f | grep '/\.[^/]*'
-  loop: "{{ remediate_rhel8_stig_prelim_interactive_homedir_results }}"
+  loop: "{{ rhel8_stig_prelim_interactive_homedir_results }}"
   changed_when: false
   check_mode: false
   failed_when: false
-  register: remediate_rhel8_stig_prelim_interactive_user_ini_file_list
+  register: rhel8_stig_prelim_interactive_user_ini_file_list
 
-- name: "PRELIM | RHEL-08-010770 | Set fact for home directory paths for interactive users"
+- name: "PRELIM | RHEL-08-010770 | Set fact for home directory paths
+         for interactive users"
   when:
-    - remediate_rhel8_stig_prelim_interactive_homedir_results is defined
-    - remediate_rhel8_stig_disruption_high
-    - remediate_rhel8_stig_010770
+    - rhel8_stig_prelim_interactive_homedir_results is defined
+    - rhel8_stig_disruption_high
+    - rhel8_stig_010770
   tags: always
   ansible.builtin.set_fact:
-    remediate_rhel8_stig_prelim_interactive_homedir_ini_files: "{{ remediate_rhel8_stig_prelim_interactive_user_ini_file_list.results | map(attribute='stdout_lines') | list }}"
+    rhel8_stig_prelim_interactive_homedir_ini_files: >-
+      {{ rhel8_stig_prelim_interactive_user_ini_file_list.results
+      | map(attribute='stdout_lines') | list }}
 
 - name: "PRELIM | Gather the package facts"
   tags: always
@@ -361,22 +375,22 @@
         name: policycoreutils-python-utils
         state: present
 
-    - name: "PRELIM | RHEL-08-020027 | create faillock dir if remediate_rhel8_stig_020027"
+    - name: "PRELIM | RHEL-08-020027 | create faillock dir if rhel8_stig_020027"
       when:
-        - not remediate_rhel8_stig_system_is_container
-        - remediate_rhel8_stig_020017 or
-          remediate_rhel8_stig_020027 or
-          remediate_rhel8_stig_020028
+        - not rhel8_stig_system_is_container
+        - rhel8_stig_020017 or
+          rhel8_stig_020027 or
+          rhel8_stig_020028
       ansible.builtin.file:
-        path: "{{ remediate_rhel8_stig_pam_faillock_dir }}"
+        path: "{{ rhel8_stig_pam_faillock_dir }}"
         state: directory
         mode: 'u+x,go-w'
         owner: root
         group: root
         setype: faillog_t
-      register: remediate_rhel8_stig_discovered_faillock_dir
+      register: rhel8_stig_discovered_faillock_dir
 
 - name: "PRELIM | Section 1.1 | Create list of mount points"
   tags: always
   ansible.builtin.set_fact:
-    remediate_rhel8_stig_mount_names: "{{ ansible_mounts | map(attribute='mount') | list }}"
+    rhel8_stig_prelim_mount_names: "{{ ansible_mounts | map(attribute='mount') | list }}"
