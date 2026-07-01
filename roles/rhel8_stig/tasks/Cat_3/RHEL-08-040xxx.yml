@@ -1,7 +1,7 @@
 ---
 
 - name: "LOW | RHEL-08-040004 | PATCH | RHEL 8 must enable mitigations against processor-based vulnerabilities."
-  when: remediate_rhel8_stig_040004
+  when: rhel8_stig_040004
   tags:
     - RHEL-08-040004
     - CAT3
@@ -17,16 +17,16 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: remediate_rhel8_stig_discovered_pti_grub_cmdline_linux
+      register: rhel8_stig_discovered_pti_grub_cmdline_linux
 
     - name: "LOW | RHEL-08-040004 | PATCH | RHEL 8 must enable mitigations against processor-based vulnerabilities. | Set pti=on active"
-      when: remediate_rhel8_stig_discovered_pti_grub_cmdline_linux.stdout | length == 0
+      when: rhel8_stig_discovered_pti_grub_cmdline_linux.stdout | length == 0
       ansible.builtin.command: grubby --update-kernel=ALL --args="pti=on"
       changed_when: true
       notify: Rebuild grub
 
 - name: "LOW | RHEL-08-040021 | PATCH | RHEL 8 must disable the asynchronous transfer mode (ATM) protocol."
-  when: remediate_rhel8_stig_040021
+  when: rhel8_stig_040021
   tags:
     - RHEL-08-040021
     - CAT3
@@ -52,7 +52,7 @@
   notify: Change_requires_reboot
 
 - name: "LOW | RHEL-08-040022 | PATCH | RHEL 8 must disable the controller area network (CAN) protocol."
-  when: remediate_rhel8_stig_040022
+  when: rhel8_stig_040022
   tags:
     - RHEL-08-040022
     - CAT3
@@ -78,7 +78,7 @@
   notify: Change_requires_reboot
 
 - name: "LOW | RHEL-08-040023 | PATCH | RHEL 8 must disable the stream control transmission (SCTP) protocol."
-  when: remediate_rhel8_stig_040023
+  when: rhel8_stig_040023
   tags:
     - RHEL-08-040023
     - CAT3
@@ -104,7 +104,7 @@
   notify: Change_requires_reboot
 
 - name: "LOW | RHEL-08-040024 | PATCH | RHEL 8 must disable the transparent inter-process communication (TIPC) protocol."
-  when: remediate_rhel8_stig_040024
+  when: rhel8_stig_040024
   tags:
     - RHEL-08-040024
     - CAT3
@@ -130,7 +130,7 @@
   notify: Change_requires_reboot
 
 - name: "LOW | RHEL-08-040025 | PATCH | RHEL 8 must disable mounting of cramfs."
-  when: remediate_rhel8_stig_040025
+  when: rhel8_stig_040025
   tags:
     - RHEL-08-040025
     - CAT3

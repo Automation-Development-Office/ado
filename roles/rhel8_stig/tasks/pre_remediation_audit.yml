@@ -53,12 +53,12 @@
     - name: Pre Audit Setup | Check for goss file
       ansible.builtin.stat:
         path: "{{ audit_bin }}"
-      register: remediate_rhel8_stig_prelim_goss_available
+      register: rhel8_stig_prelim_goss_available
 
     - name: Pre Audit Setup | If audit ensure goss is available
-      when: not remediate_rhel8_stig_prelim_goss_available.stat.exists
+      when: not rhel8_stig_prelim_goss_available.stat.exists
       ansible.builtin.assert:
-        that: remediate_rhel8_stig_prelim_goss_available['stat']['exists'] == true
+        that: rhel8_stig_prelim_goss_available['stat']['exists'] == true
         msg: "Audit has been selected: unable to find goss binary at {{ audit_bin }}"
 
 - name: Pre Audit Setup | Copy ansible default vars values to test audit
@@ -95,11 +95,11 @@
         set -o pipefail
         grep -E 'summary-line.*Count:.*Failed' "{{ pre_audit_outfile }}" | cut -d'"' -f4
       changed_when: false
-      register: remediate_rhel8_stig_pre_audit_summary_json
+      register: rhel8_stig_pre_audit_summary_json
 
     - name: Pre Audit | Set Fact for audit summary
       ansible.builtin.set_fact:
-        remediate_rhel8_stig_pre_audit_results: "{{ remediate_rhel8_stig_pre_audit_summary_json.stdout }}"
+        rhel8_stig_pre_audit_results: "{{ rhel8_stig_pre_audit_summary_json.stdout }}"
 
 - name: Pre Audit | Capture audit data if documentation format
   when: audit_format == "documentation"
@@ -109,11 +109,11 @@
         set -o pipefail
         tail -2 "{{ pre_audit_outfile }}" | tac | tr '\n' ' '
       changed_when: false
-      register: remediate_rhel8_stig_pre_audit_summary_documentation
+      register: rhel8_stig_pre_audit_summary_documentation
 
     - name: Pre Audit | Set Fact for audit summary
       ansible.builtin.set_fact:
-        remediate_rhel8_stig_pre_audit_results: "{{ remediate_rhel8_stig_pre_audit_summary_documentation.stdout }}"
+        rhel8_stig_pre_audit_results: "{{ rhel8_stig_pre_audit_summary_documentation.stdout }}"
 
 - name: Audit_Only | Run Audit Only
   when: audit_only

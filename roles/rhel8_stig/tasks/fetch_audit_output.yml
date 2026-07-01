@@ -10,7 +10,7 @@
     flat: true
   changed_when: true
   failed_when: false
-  register: remediate_rhel8_stig_discovered_audit_fetch_state
+  register: rhel8_stig_discovered_audit_fetch_state
   loop:
     - "{{ pre_audit_outfile }}"
     - "{{ post_audit_outfile }}"
@@ -26,15 +26,15 @@
     mode: 'u-x,go-wx'
     flat: true
   failed_when: false
-  register: remediate_rhel8_stig_discovered_audit_copy_state
+  register: rhel8_stig_discovered_audit_copy_state
   loop:
     - "{{ pre_audit_outfile }}"
     - "{{ post_audit_outfile }}"
 
 - name: "POST | FETCH | Fetch files and copy to controller | Warning if issues with fetch_audit_files"
   when:
-    - (audit_output_collection_method == "fetch" and not remediate_rhel8_stig_discovered_audit_fetch_state.changed) or
-      (audit_output_collection_method == "copy" and not remediate_rhel8_stig_discovered_audit_copy_state.changed)
+    - (audit_output_collection_method == "fetch" and not rhel8_stig_discovered_audit_fetch_state.changed) or
+      (audit_output_collection_method == "copy" and not rhel8_stig_discovered_audit_copy_state.changed)
   block:
     - name: "POST | FETCH | Fetch files and copy to controller | Warning if issues with fetch_audit_files"
       ansible.builtin.debug:

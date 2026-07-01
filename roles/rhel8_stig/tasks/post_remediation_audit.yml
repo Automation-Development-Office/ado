@@ -24,11 +24,11 @@
         set -o pipefail
         grep -E 'summary-line.*Count:.*Failed' "{{ post_audit_outfile }}" | cut -d'"' -f4
       changed_when: false
-      register: remediate_rhel8_stig_post_audit_summary_json
+      register: rhel8_stig_post_audit_summary_json
 
     - name: Post Audit | Set Fact for audit summary
       ansible.builtin.set_fact:
-        remediate_rhel8_stig_post_audit_results: "{{ remediate_rhel8_stig_post_audit_summary_json.stdout }}"
+        rhel8_stig_post_audit_results: "{{ rhel8_stig_post_audit_summary_json.stdout }}"
 
 - name: Post Audit | Capture audit data if documentation format
   when: audit_format == "documentation"
@@ -38,8 +38,8 @@
         set -o pipefail
         tail -2 "{{ post_audit_outfile }}"  | tac | tr '\n' ' '
       changed_when: false
-      register: remediate_rhel8_stig_post_audit_summary_documentation
+      register: rhel8_stig_post_audit_summary_documentation
 
     - name: Post Audit | Set Fact for audit summary
       ansible.builtin.set_fact:
-        remediate_rhel8_stig_post_audit_results: "{{ remediate_rhel8_stig_post_audit_summary_documentation.stdout }}"
+        rhel8_stig_post_audit_results: "{{ rhel8_stig_post_audit_summary_documentation.stdout }}"

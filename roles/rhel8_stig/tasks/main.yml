@@ -29,7 +29,7 @@
   block:
     - name: Discover and set container variable if required
       ansible.builtin.set_fact:
-        remediate_rhel8_stig_system_is_container: true
+        rhel8_stig_system_is_container: true
 
     - name: Load variable for container
       ansible.builtin.include_vars:
@@ -38,13 +38,13 @@
     - name: Output if discovered is a container
       ansible.builtin.debug:
         msg: system has been discovered as a container
-      when: remediate_rhel8_stig_system_is_container
+      when: rhel8_stig_system_is_container
 
 - name: "Check password set for connecting user"
   when:
     - rhel8stig_010380
     - ansible_env.SUDO_USER is defined
-    - not remediate_rhel8_stig_system_is_ec2
+    - not rhel8_stig_system_is_ec2
   tags: always
   block:
     - name: Capture current password state of connecting user"
@@ -53,15 +53,15 @@
       failed_when: false
       check_mode: false
       no_log: true
-      register: remediate_rhel8_stig_discovered_user_password_set
+      register: rhel8_stig_discovered_user_password_set
 
     - name: "Assert that password set for {{ ansible_env.SUDO_USER }} and account not locked"  # noqa: name[template]
       ansible.builtin.assert:
-        that: remediate_rhel8_stig_discovered_user_password_set.stdout | length != 0 and remediate_rhel8_stig_discovered_user_password_set.stdout != "!!"
+        that: rhel8_stig_discovered_user_password_set.stdout | length != 0 and rhel8_stig_discovered_user_password_set.stdout != "!!"
         fail_msg: "You have {{ sudo_password_rule }} enabled but the user = {{ ansible_env.SUDO_USER }} has no password set - It can break access"
         success_msg: "You have a password set for the {{ ansible_env.SUDO_USER }}"
       vars:
-        remediate_rhel8_stig_sudo_password_rule: RHEL-08-010380  # pragma: allowlist secret
+        rhel8_stig_sudo_password_rule: RHEL-08-010380  # pragma: allowlist secret
 
 - name: "Ensure superuser for grub does not match existing user"
   when: rhel8stig_010141 or rhel8stig_010149
@@ -72,11 +72,11 @@
       changed_when: false
       failed_when: false
       check_mode: false
-      register: remediate_rhel8_stig_discovered_user_list
+      register: rhel8_stig_discovered_user_list
 
     - name: "Ensure superuser for grub does not match existing user"
       ansible.builtin.assert:
-        that: rhel8stig_boot_superuser not in remediate_rhel8_stig_discovered_user_list.stdout_lines
+        that: rhel8stig_boot_superuser not in rhel8_stig_discovered_user_list.stdout_lines
         fail_msg: |
           A unique name must be used for bootloader access user='{{ rhel8stig_boot_superuser }}'
           already exists. Refer to variable rhel8stig_boot_superuser
@@ -88,8 +88,8 @@
 
 - name: Check rhel8stig_bootloader_password_hash variable has been changed
   when:
-    - not remediate_rhel8_stig_system_is_ec2
-    - not remediate_rhel8_stig_system_is_container
+    - not rhel8_stig_system_is_ec2
+    - not rhel8_stig_system_is_container
     - rhel8stig_010140 or
       rhel8stig_010150
   tags: always
@@ -149,14 +149,14 @@
 - name: Reboot system
   when:
     - change_requires_reboot
-    - not remediate_rhel8_stig_system_is_container
+    - not rhel8_stig_system_is_container
   block:
     - name: Reboot system if not skipped
-      when: not remediate_rhel8_stig_skip_reboot
+      when: not rhel8_stig_skip_reboot
       ansible.builtin.reboot:
 
     - name: Warning a reboot required but skip option set
-      when: remediate_rhel8_stig_skip_reboot
+      when: rhel8_stig_skip_reboot
       ansible.builtin.debug:
         msg: "Warning!! changes have been made that require a reboot to be implemented but skip reboot was set - Can affect compliance check results"
       changed_when: true

@@ -4,7 +4,7 @@ galaxy_info:
   description: "Apply the DISA RHEL 8 STIG"
   company: "MindPoint Group - A Tyto Athene Company"
   license: MIT
-  role_name: remediate_rhel8_stig
+  role_name: rhel8_stig
   namespace: mindpointgroup
   min_ansible_version: '2.12.1'
   platforms:

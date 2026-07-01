@@ -1,6 +1,6 @@
 ---
 - name: "LOW | RHEL-08-020024 | PATCH | RHEL 8 must limit the number of concurrent sessions to ten for all accounts and/or account types."
-  when: remediate_rhel8_stig_020024
+  when: rhel8_stig_020024
   tags:
     - RHEL-08-020024
     - CAT3
@@ -12,7 +12,7 @@
   ansible.builtin.lineinfile:
     path: /etc/security/limits.conf
     regexp: ^\*\s+           hard\s+    maxlogins'
-    line: "*                hard    maxlogins       {{ remediate_rhel8_stig_maxlogins }}"
+    line: "*                hard    maxlogins       {{ rhel8_stig_maxlogins }}"
     insertbefore: "^# End of file"
     create: true
     owner: root

@@ -1,7 +1,7 @@
 ---
 
 - name: "LOW | RHEL-08-010171 | PATCH | RHEL 8 must have policycoreutils package installed."
-  when: remediate_rhel8_stig_010171
+  when: rhel8_stig_010171
   tags:
     - RHEL-08-010171
     - CAT3
@@ -16,8 +16,8 @@
 
 - name: "LOW | RHEL-08-010292 | PATCH | RHEL 8 must ensure the SSH server uses strong entropy."
   when:
-    - remediate_rhel8_stig_010292
-    - remediate_rhel8_stig_ssh_required
+    - rhel8_stig_010292
+    - rhel8_stig_ssh_required
   tags:
     - RHEL-08-010292
     - CAT3
@@ -34,7 +34,7 @@
   notify: Restart sshd
 
 - name: "LOW | RHEL-08-010375 | PATCH | RHEL 8 must restrict access to the kernel message buffer."
-  when: remediate_rhel8_stig_010375
+  when: rhel8_stig_010375
   tags:
     - RHEL-08-010375
     - CAT3
@@ -52,27 +52,27 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: remediate_rhel8_stig_discovered_kernel_dmesg_settings
+      register: rhel8_stig_discovered_kernel_dmesg_settings
 
     - name: "LOW | RHEL-08-010375 | PATCH | RHEL 8 must restrict access to the kernel message buffer. | Remove conflicting instances"
-      when: remediate_rhel8_stig_discovered_kernel_dmesg_settings.stdout | length > 0
+      when: rhel8_stig_discovered_kernel_dmesg_settings.stdout | length > 0
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: ^kernel.dmesg_restrict\s*=\s*0
         state: absent
-      loop: "{{ remediate_rhel8_stig_discovered_kernel_dmesg_settings.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_kernel_dmesg_settings.stdout_lines }}"
 
     - name: "LOW | RHEL-08-010375 | PATCH | RHEL 8 must restrict access to the kernel message buffer."
       ansible.posix.sysctl:
         name: kernel.dmesg_restrict
         value: 1
         state: present
-        reload: "{{ remediate_rhel8_stig_sysctl_reload }}"
+        reload: "{{ rhel8_stig_sysctl_reload }}"
         sysctl_set: true
-        sysctl_file: "{{ remediate_rhel8_stig_sysctl_file }}"
+        sysctl_file: "{{ rhel8_stig_sysctl_file }}"
 
 - name: "LOW | RHEL-08-010376 | PATCH | RHEL 8 must prevent kernel profiling by unprivileged users."
-  when: remediate_rhel8_stig_010376
+  when: rhel8_stig_010376
   tags:
     - RHEL-08-010376
     - CAT3
@@ -95,27 +95,27 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: remediate_rhel8_stig_discovered_kernel_paranoid_settings
+      register: rhel8_stig_discovered_kernel_paranoid_settings
 
     - name: "LOW | RHEL-08-010376 | PATCH | RHEL 8 must prevent kernel profiling by unprivileged users. | Remove conflicting instances"
-      when: remediate_rhel8_stig_discovered_kernel_paranoid_settings.stdout | length > 0
+      when: rhel8_stig_discovered_kernel_paranoid_settings.stdout | length > 0
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: '^kernel.perf_event_paranoid = [^2]'
         state: absent
-      loop: "{{ remediate_rhel8_stig_discovered_kernel_paranoid_settings.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_kernel_paranoid_settings.stdout_lines }}"
 
     - name: "LOW | RHEL-08-010376 | PATCH | RHEL 8 must prevent kernel profiling by unprivileged users."
       ansible.posix.sysctl:
         name: kernel.perf_event_paranoid
         value: 2
         state: present
-        reload: "{{ remediate_rhel8_stig_sysctl_reload }}"
+        reload: "{{ rhel8_stig_sysctl_reload }}"
         sysctl_set: true
-        sysctl_file: "{{ remediate_rhel8_stig_sysctl_file }}"
+        sysctl_file: "{{ rhel8_stig_sysctl_file }}"
 
 - name: "LOW | RHEL-08-010440 | PATCH | YUM must remove all software components after updated versions have been installed on RHEL 8."
-  when: remediate_rhel8_stig_010440
+  when: rhel8_stig_010440
   tags:
     - RHEL-08-010440
     - CAT3
@@ -134,14 +134,14 @@
         patterns:
           - yum.conf
           - dnf.conf
-      register: remediate_rhel8_stig_discovered_pkg_mgr_settings
+      register: rhel8_stig_discovered_pkg_mgr_settings
 
     - name: "LOW | RHEL-08-010440 | PATCH | YUM must remove all software components after updated versions have been installed on RHEL 8. | Set settings"
       ansible.builtin.lineinfile:
         path: "{{ item.path }}"
         regexp: '^.*clean_requirements_on_remove'
         line: 'clean_requirements_on_remove=True'
-      loop: "{{ remediate_rhel8_stig_discovered_pkg_mgr_settings.files }}"
+      loop: "{{ rhel8_stig_discovered_pkg_mgr_settings.files }}"
       loop_control:
         label: "{{ item.path }}"
 
@@ -149,9 +149,9 @@
     "LOW | RHEL-08-010471 | PATCH | RHEL 8 must enable the hardware random number generator entropy gatherer service.
      LOW | RHEL-08-010472 | PATCH | RHEL 8 must have the packages required to use the hardware random number generator entropy gatherer service"
   when:
-    - remediate_rhel8_stig_010471 or
-      remediate_rhel8_stig_010472
-    - (not remediate_rhel8_stig_010020)
+    - rhel8_stig_010471 or
+      rhel8_stig_010472
+    - (not rhel8_stig_010020)
       or ansible_fips  # Can't enable if FIPS
   tags:
     - RHEL-08-010471
@@ -178,7 +178,7 @@
 
 - name: "LOW | RHEL-08-010540 | AUDIT | The RHEL 8 must use a separate file system for /var."
   when:
-    - remediate_rhel8_stig_010540
+    - rhel8_stig_010540
     - ansible_mounts | selectattr('mount', 'match', '^/var$') | list | length == 0
   tags:
     - RHEL-08-010540
@@ -204,7 +204,7 @@
 
 - name: "LOW | RHEL-08-010541 | AUDIT | RHEL 8 must use a separate file system for /var/log."
   when:
-    - remediate_rhel8_stig_010541
+    - rhel8_stig_010541
     - ansible_mounts | selectattr('mount', 'match', '^/var/log$') | list | length == 0
   tags:
     - RHEL-08-010541
@@ -229,7 +229,7 @@
 
 - name: "LOW | RHEL-08-010542 | AUDIT | The RHEL 8 must use a separate file system for the system audit data path."
   when:
-    - remediate_rhel8_stig_010542
+    - rhel8_stig_010542
     - ansible_mounts | selectattr('mount', 'match', '^/var/log/audit$') | list | length == 0
   tags:
     - RHEL-08-010542

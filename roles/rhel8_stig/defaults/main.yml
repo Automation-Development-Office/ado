@@ -1,46 +1,46 @@
 ---
 
 ## metadata for Audit benchmark
-remediate_rhel8_stig_benchmark_version: "v2r6"
+rhel8_stig_benchmark_version: "v2r6"
 
 ## Benchmark name used by auditing control role
 # The audit variable found at the base
-remediate_rhel8_stig_benchmark: RHEL8-STIG
+rhel8_stig_benchmark: RHEL8-STIG
 
 # Whether to skip the OS check for supported OS's
-remediate_rhel8_stig_skip_os_check: false
+rhel8_stig_skip_os_check: false
 
-remediate_rhel8_stig_cat1: true
-remediate_rhel8_stig_cat2: true
-remediate_rhel8_stig_cat3: true
+rhel8_stig_cat1: true
+rhel8_stig_cat2: true
+rhel8_stig_cat3: true
 
 # We've defined disruption-high to indicate items that are likely to cause
 # disruption in a normal workflow. These items can be remediated automatically
 # but are disabled by default to avoid disruption.
-remediate_rhel8_stig_disruption_high: false
+rhel8_stig_disruption_high: false
 
 # tweak role to run in a chroot, such as in kickstart %post script
-remediate_rhel8_stig_system_is_chroot: "{{ ansible_is_chroot | default(False) }}"
+rhel8_stig_system_is_chroot: "{{ ansible_is_chroot | default(False) }}"
 
 # tweak role to run in a non-privileged container (default value)- dynamically discovered in tasks/main.yml
-remediate_rhel8_stig_system_is_container: false
+rhel8_stig_system_is_container: false
 
 # Place to find the container yml file for your environment - /vars/...
-remediate_rhel8_stig_container_vars_file: is_container.yml
+rhel8_stig_container_vars_file: is_container.yml
 
 # rhel8cis/stig is left off the front of this var for consistency in testing pipeline
 # system_is_ec2 toggle will disable tasks that fail on Amazon EC2 instances. Set true to skip and false to run tasks
-remediate_rhel8_stig_system_is_ec2: false
+rhel8_stig_system_is_ec2: false
 
 # Whether to skip the reboot
-remediate_rhel8_stig_skip_reboot: true
+rhel8_stig_skip_reboot: true
 
 # Defined will change if control requires
-remediate_rhel8_stig_change_requires_reboot: false
+rhel8_stig_change_requires_reboot: false
 
 # Create managed not custom local_facts files
-remediate_rhel8_stig_create_benchmark_facts: true
-remediate_rhel8_stig_ansible_facts_path: /etc/ansible/facts.d
+rhel8_stig_create_benchmark_facts: true
+rhel8_stig_ansible_facts_path: /etc/ansible/facts.d
 
 ###
 ### Settings for associated Audit role using Goss
@@ -51,60 +51,60 @@ remediate_rhel8_stig_ansible_facts_path: /etc/ansible/facts.d
 ### vars/auditd.yml for other settings  ###
 
 # Allow audit to setup the requirements including installing git (if option chosen and downloading and adding goss binary to system)
-remediate_rhel8_stig_setup_audit: false
+rhel8_stig_setup_audit: false
 
 # enable audits to run - this runs the audit and get the latest content
-remediate_rhel8_stig_run_audit: false
+rhel8_stig_run_audit: false
 # Run heavy tests - some tests can have more impact on a system enabling these can have greater impact on a system
-remediate_rhel8_stig_audit_run_heavy_tests: true
+rhel8_stig_audit_run_heavy_tests: true
 # Ability to limit the number of concurrent processes used by goss (default 50)
-remediate_rhel8_stig_audit_max_concurrent: 50
+rhel8_stig_audit_max_concurrent: 50
 
 ## Only run Audit do not remediate
-remediate_rhel8_stig_audit_only: false
+rhel8_stig_audit_only: false
 
 #############################
 
 # How to retrieve audit binary
 # Options are copy or download - detailed settings at the bottom of this file
 # you will need access to either github or the file already downloaded
-remediate_rhel8_stig_get_audit_binary_method: download
+rhel8_stig_get_audit_binary_method: download
 
 ## if get_audit_binary_method - copy the following needs to be updated for your environment
 ## it is expected that it will be copied from somewhere accessible to the control node
 ## e.g copy from ansible control node to remote host
-remediate_rhel8_stig_audit_bin_copy_location: /some/accessible/path
+rhel8_stig_audit_bin_copy_location: /some/accessible/path
 
 # how to get audit files onto host options
 # options are git/copy/archive/get_url other e.g. if you wish to run from already downloaded conf
-remediate_rhel8_stig_audit_content: git
+rhel8_stig_audit_content: git
 
 # If using either archive, copy, get_url:
 ## Note will work with .tar files - zip will require extra configuration
 ### If using get_url this is expecting github url in tar.gz format e.g.
 ### https://github.com/ansible-lockdown/{{ OS_TYPE }}-{{ BENCHMARK_TYPE }}-Audit/archive/refs/heads/benchmark-{{ benchmark_version }}.tar.gz
-remediate_rhel8_stig_audit_conf_source: "some path or url to copy from"
+rhel8_stig_audit_conf_source: "some path or url to copy from"
 
 # Destination for the audit content to be placed on managed node
 # note may not need full path e.g. /opt with the directory being the {{ benchmark }}-Audit directory
-remediate_rhel8_stig_audit_conf_dest: "/opt"
+rhel8_stig_audit_conf_dest: "/opt"
 
 # Where the audit logs are stored
-remediate_rhel8_stig_audit_log_dir: "/opt"
+rhel8_stig_audit_log_dir: "/opt"
 
 ## Ability to collect and take audit files moving to a centralized location
 # This enables the collection of the files from the host
-remediate_rhel8_stig_fetch_audit_output: false
+rhel8_stig_fetch_audit_output: false
 
 # Method of getting,uploading the summary files
 ## Ensure access and permissions are available for these to occur.
 ## options are
 # fetch - fetches from server and moves to location on the ansible controller (could be a mount point available to controller)
 # copy - copies file to a location available to the managed node
-remediate_rhel8_stig_audit_output_collection_method: fetch
+rhel8_stig_audit_output_collection_method: fetch
 
 # Location to put the audit files
-remediate_rhel8_stig_audit_output_destination: /opt/audit_summaries/
+rhel8_stig_audit_output_destination: /opt/audit_summaries/
 
 ### Goss Settings ##
 ####### END ########
@@ -113,405 +113,405 @@ remediate_rhel8_stig_audit_output_destination: /opt/audit_summaries/
 # PLEASE NOTE: These work in coordination with the cat1, cat2, cat3 group variables. You must enable an entire group
 # in order for the variables below to take effect.
 # CAT 1 rules
-remediate_rhel8_stig_010000: true
-remediate_rhel8_stig_010015: true
-remediate_rhel8_stig_010020: true
-remediate_rhel8_stig_010030: true
-remediate_rhel8_stig_010121: true
-remediate_rhel8_stig_010140: true
-remediate_rhel8_stig_010150: true
-remediate_rhel8_stig_010270: true
-remediate_rhel8_stig_010370: true
-remediate_rhel8_stig_010371: true
-remediate_rhel8_stig_010460: true
-remediate_rhel8_stig_010470: true
-remediate_rhel8_stig_010820: true
-remediate_rhel8_stig_020330: true
-remediate_rhel8_stig_020331: true
-remediate_rhel8_stig_020332: true
-remediate_rhel8_stig_040000: true
-remediate_rhel8_stig_040010: true
-remediate_rhel8_stig_040170: true
-remediate_rhel8_stig_040171: true
-remediate_rhel8_stig_040172: true
-remediate_rhel8_stig_040190: true
-remediate_rhel8_stig_040200: true
-remediate_rhel8_stig_040360: true
+rhel8_stig_010000: true
+rhel8_stig_010015: true
+rhel8_stig_010020: true
+rhel8_stig_010030: true
+rhel8_stig_010121: true
+rhel8_stig_010140: true
+rhel8_stig_010150: true
+rhel8_stig_010270: true
+rhel8_stig_010370: true
+rhel8_stig_010371: true
+rhel8_stig_010460: true
+rhel8_stig_010470: true
+rhel8_stig_010820: true
+rhel8_stig_020330: true
+rhel8_stig_020331: true
+rhel8_stig_020332: true
+rhel8_stig_040000: true
+rhel8_stig_040010: true
+rhel8_stig_040170: true
+rhel8_stig_040171: true
+rhel8_stig_040172: true
+rhel8_stig_040190: true
+rhel8_stig_040200: true
+rhel8_stig_040360: true
 
 # CAT 2 rules
-remediate_rhel8_stig_010010: true
-remediate_rhel8_stig_010019: true
-remediate_rhel8_stig_010040: true
-remediate_rhel8_stig_010049: true
-remediate_rhel8_stig_010050: true
-remediate_rhel8_stig_010060: true
-remediate_rhel8_stig_010070: true
-remediate_rhel8_stig_010090: true
-remediate_rhel8_stig_010100: true
-remediate_rhel8_stig_010110: true
-remediate_rhel8_stig_010120: true
-remediate_rhel8_stig_010130: true
-remediate_rhel8_stig_010141: true
-remediate_rhel8_stig_010149: true
-remediate_rhel8_stig_010151: true
-remediate_rhel8_stig_010152: true
-remediate_rhel8_stig_010159: true
-remediate_rhel8_stig_010160: true
-remediate_rhel8_stig_010161: true
-remediate_rhel8_stig_010162: true
-remediate_rhel8_stig_010163: true
-remediate_rhel8_stig_010170: true
-remediate_rhel8_stig_010190: true
-remediate_rhel8_stig_010200: true
-remediate_rhel8_stig_010201: true
-remediate_rhel8_stig_010210: true
-remediate_rhel8_stig_010220: true
-remediate_rhel8_stig_010230: true
-remediate_rhel8_stig_010240: true
-remediate_rhel8_stig_010250: true
-remediate_rhel8_stig_010260: true
-remediate_rhel8_stig_010275: true
-remediate_rhel8_stig_010280: true
-remediate_rhel8_stig_010290: true
-remediate_rhel8_stig_010291: true
-remediate_rhel8_stig_010296: true
-remediate_rhel8_stig_010297: true
-remediate_rhel8_stig_010300: true
-remediate_rhel8_stig_010310: true
-remediate_rhel8_stig_010320: true
-remediate_rhel8_stig_010330: true
-remediate_rhel8_stig_010331: true
-remediate_rhel8_stig_010340: true
-remediate_rhel8_stig_010341: true
-remediate_rhel8_stig_010350: true
-remediate_rhel8_stig_010351: true
-remediate_rhel8_stig_010358: true
-remediate_rhel8_stig_010359: true
-remediate_rhel8_stig_010360: true
-remediate_rhel8_stig_010372: true
-remediate_rhel8_stig_010373: true
-remediate_rhel8_stig_010374: true
-remediate_rhel8_stig_010379: true
-remediate_rhel8_stig_010380: true
-remediate_rhel8_stig_010381: true
-remediate_rhel8_stig_010382: true
-remediate_rhel8_stig_010383: true
-remediate_rhel8_stig_010384: true
-remediate_rhel8_stig_010385: true
-remediate_rhel8_stig_010390: true
-remediate_rhel8_stig_010400: true
-remediate_rhel8_stig_010410: true
-remediate_rhel8_stig_010420: true
-remediate_rhel8_stig_010421: true
-remediate_rhel8_stig_010422: true
-remediate_rhel8_stig_010423: true
-remediate_rhel8_stig_010430: true
-remediate_rhel8_stig_010450: true
-remediate_rhel8_stig_010455: true
-remediate_rhel8_stig_010480: true
-remediate_rhel8_stig_010490: true
-remediate_rhel8_stig_010500: true
-remediate_rhel8_stig_010520: true
-remediate_rhel8_stig_010521: true
-remediate_rhel8_stig_010522: true
-remediate_rhel8_stig_010543: true
-remediate_rhel8_stig_010544: true
-remediate_rhel8_stig_010550: true
-remediate_rhel8_stig_010561: true
-remediate_rhel8_stig_010570: true
-remediate_rhel8_stig_010571: true
-remediate_rhel8_stig_010572: true
-remediate_rhel8_stig_010580: true
-remediate_rhel8_stig_010590: true
+rhel8_stig_010010: true
+rhel8_stig_010019: true
+rhel8_stig_010040: true
+rhel8_stig_010049: true
+rhel8_stig_010050: true
+rhel8_stig_010060: true
+rhel8_stig_010070: true
+rhel8_stig_010090: true
+rhel8_stig_010100: true
+rhel8_stig_010110: true
+rhel8_stig_010120: true
+rhel8_stig_010130: true
+rhel8_stig_010141: true
+rhel8_stig_010149: true
+rhel8_stig_010151: true
+rhel8_stig_010152: true
+rhel8_stig_010159: true
+rhel8_stig_010160: true
+rhel8_stig_010161: true
+rhel8_stig_010162: true
+rhel8_stig_010163: true
+rhel8_stig_010170: true
+rhel8_stig_010190: true
+rhel8_stig_010200: true
+rhel8_stig_010201: true
+rhel8_stig_010210: true
+rhel8_stig_010220: true
+rhel8_stig_010230: true
+rhel8_stig_010240: true
+rhel8_stig_010250: true
+rhel8_stig_010260: true
+rhel8_stig_010275: true
+rhel8_stig_010280: true
+rhel8_stig_010290: true
+rhel8_stig_010291: true
+rhel8_stig_010296: true
+rhel8_stig_010297: true
+rhel8_stig_010300: true
+rhel8_stig_010310: true
+rhel8_stig_010320: true
+rhel8_stig_010330: true
+rhel8_stig_010331: true
+rhel8_stig_010340: true
+rhel8_stig_010341: true
+rhel8_stig_010350: true
+rhel8_stig_010351: true
+rhel8_stig_010358: true
+rhel8_stig_010359: true
+rhel8_stig_010360: true
+rhel8_stig_010372: true
+rhel8_stig_010373: true
+rhel8_stig_010374: true
+rhel8_stig_010379: true
+rhel8_stig_010380: true
+rhel8_stig_010381: true
+rhel8_stig_010382: true
+rhel8_stig_010383: true
+rhel8_stig_010384: true
+rhel8_stig_010385: true
+rhel8_stig_010390: true
+rhel8_stig_010400: true
+rhel8_stig_010410: true
+rhel8_stig_010420: true
+rhel8_stig_010421: true
+rhel8_stig_010422: true
+rhel8_stig_010423: true
+rhel8_stig_010430: true
+rhel8_stig_010450: true
+rhel8_stig_010455: true
+rhel8_stig_010480: true
+rhel8_stig_010490: true
+rhel8_stig_010500: true
+rhel8_stig_010520: true
+rhel8_stig_010521: true
+rhel8_stig_010522: true
+rhel8_stig_010543: true
+rhel8_stig_010544: true
+rhel8_stig_010550: true
+rhel8_stig_010561: true
+rhel8_stig_010570: true
+rhel8_stig_010571: true
+rhel8_stig_010572: true
+rhel8_stig_010580: true
+rhel8_stig_010590: true
 ## Note Azure is currently default mounting /mnt for cloud-init this will cause issues with these controls
 ## refer to https://github.com/Azure/WALinuxAgent/issues/1971
-remediate_rhel8_stig_010600: true
-remediate_rhel8_stig_010610: true
-remediate_rhel8_stig_010620: true
+rhel8_stig_010600: true
+rhel8_stig_010610: true
+rhel8_stig_010620: true
 ##
-remediate_rhel8_stig_010630: true
-remediate_rhel8_stig_010640: true
-remediate_rhel8_stig_010650: true
-remediate_rhel8_stig_010670: true
-remediate_rhel8_stig_010671: true
-remediate_rhel8_stig_010672: true
-remediate_rhel8_stig_010673: true
-remediate_rhel8_stig_010674: true
-remediate_rhel8_stig_010675: true
-remediate_rhel8_stig_010680: true
-remediate_rhel8_stig_010690: true
-remediate_rhel8_stig_010700: true
-remediate_rhel8_stig_010710: true
-remediate_rhel8_stig_010720: true
-remediate_rhel8_stig_010730: true
-remediate_rhel8_stig_010731: true
-remediate_rhel8_stig_010740: true
-remediate_rhel8_stig_010741: true
-remediate_rhel8_stig_010750: true
-remediate_rhel8_stig_010760: true
-remediate_rhel8_stig_010770: true
-remediate_rhel8_stig_010780: true
-remediate_rhel8_stig_010790: true
-remediate_rhel8_stig_010800: true
-remediate_rhel8_stig_010830: true
+rhel8_stig_010630: true
+rhel8_stig_010640: true
+rhel8_stig_010650: true
+rhel8_stig_010670: true
+rhel8_stig_010671: true
+rhel8_stig_010672: true
+rhel8_stig_010673: true
+rhel8_stig_010674: true
+rhel8_stig_010675: true
+rhel8_stig_010680: true
+rhel8_stig_010690: true
+rhel8_stig_010700: true
+rhel8_stig_010710: true
+rhel8_stig_010720: true
+rhel8_stig_010730: true
+rhel8_stig_010731: true
+rhel8_stig_010740: true
+rhel8_stig_010741: true
+rhel8_stig_010750: true
+rhel8_stig_010760: true
+rhel8_stig_010770: true
+rhel8_stig_010780: true
+rhel8_stig_010790: true
+rhel8_stig_010800: true
+rhel8_stig_010830: true
 
-remediate_rhel8_stig_020010: true
-remediate_rhel8_stig_020011: true
-remediate_rhel8_stig_020012: true
-remediate_rhel8_stig_020013: true
-remediate_rhel8_stig_020014: true
-remediate_rhel8_stig_020015: true
-remediate_rhel8_stig_020016: true
-remediate_rhel8_stig_020017: true
-remediate_rhel8_stig_020018: true
-remediate_rhel8_stig_020019: true
-remediate_rhel8_stig_020020: true
-remediate_rhel8_stig_020021: true
-remediate_rhel8_stig_020022: true
-remediate_rhel8_stig_020023: true
-remediate_rhel8_stig_020025: true
-remediate_rhel8_stig_020026: true
-remediate_rhel8_stig_020027: true
-remediate_rhel8_stig_020028: true
-remediate_rhel8_stig_020030: true
-remediate_rhel8_stig_020031: true
-remediate_rhel8_stig_020032: true
-remediate_rhel8_stig_020035: true
-remediate_rhel8_stig_020050: true
-remediate_rhel8_stig_020060: true
-remediate_rhel8_stig_020080: true
-remediate_rhel8_stig_020081: true
-remediate_rhel8_stig_020082: true
-remediate_rhel8_stig_020090: true
-remediate_rhel8_stig_020100: true
-remediate_rhel8_stig_020101: true
-remediate_rhel8_stig_020104: true
-remediate_rhel8_stig_020110: true
-remediate_rhel8_stig_020120: true
-remediate_rhel8_stig_020130: true
-remediate_rhel8_stig_020140: true
-remediate_rhel8_stig_020150: true
-remediate_rhel8_stig_020160: true
-remediate_rhel8_stig_020170: true
-remediate_rhel8_stig_020180: true
-remediate_rhel8_stig_020190: true
-remediate_rhel8_stig_020200: true
-remediate_rhel8_stig_020210: true
-remediate_rhel8_stig_020230: true
-remediate_rhel8_stig_020231: true
-remediate_rhel8_stig_020240: true
-remediate_rhel8_stig_020250: true
-remediate_rhel8_stig_020260: true
-remediate_rhel8_stig_020270: true
-remediate_rhel8_stig_020280: true
-remediate_rhel8_stig_020290: true
-remediate_rhel8_stig_020300: true
-remediate_rhel8_stig_020310: true
-remediate_rhel8_stig_020320: true
-remediate_rhel8_stig_020350: true
-remediate_rhel8_stig_020351: true
-remediate_rhel8_stig_020352: true
-remediate_rhel8_stig_020353: true
-remediate_rhel8_stig_020360: true
-remediate_rhel8_stig_030000: true
-remediate_rhel8_stig_030010: true
-remediate_rhel8_stig_030020: true
-remediate_rhel8_stig_030030: true
-remediate_rhel8_stig_030040: true
-remediate_rhel8_stig_030060: true
-remediate_rhel8_stig_030061: true
-remediate_rhel8_stig_030062: true
-remediate_rhel8_stig_030070: true
-remediate_rhel8_stig_030080: true
-remediate_rhel8_stig_030090: true
-remediate_rhel8_stig_030100: true
-remediate_rhel8_stig_030110: true
-remediate_rhel8_stig_030120: true
-remediate_rhel8_stig_030121: true
-remediate_rhel8_stig_030122: true
-remediate_rhel8_stig_030130: true
-remediate_rhel8_stig_030140: true
-remediate_rhel8_stig_030150: true
-remediate_rhel8_stig_030160: true
-remediate_rhel8_stig_030170: true
-remediate_rhel8_stig_030171: true
-remediate_rhel8_stig_030172: true
-remediate_rhel8_stig_030180: true
-remediate_rhel8_stig_030181: true
-remediate_rhel8_stig_030190: true
-remediate_rhel8_stig_030200: true
-remediate_rhel8_stig_030250: true
-remediate_rhel8_stig_030260: true
-remediate_rhel8_stig_030280: true
-remediate_rhel8_stig_030290: true
-remediate_rhel8_stig_030300: true
-remediate_rhel8_stig_030301: true
-remediate_rhel8_stig_030302: true
-remediate_rhel8_stig_030310: true
-remediate_rhel8_stig_030311: true
-remediate_rhel8_stig_030312: true
-remediate_rhel8_stig_030313: true
-remediate_rhel8_stig_030314: true
-remediate_rhel8_stig_030315: true
-remediate_rhel8_stig_030316: true
-remediate_rhel8_stig_030317: true
-remediate_rhel8_stig_030320: true
-remediate_rhel8_stig_030330: true
-remediate_rhel8_stig_030340: true
-remediate_rhel8_stig_030350: true
-remediate_rhel8_stig_030360: true
-remediate_rhel8_stig_030361: true
-remediate_rhel8_stig_030370: true
-remediate_rhel8_stig_030390: true
-remediate_rhel8_stig_030400: true
-remediate_rhel8_stig_030410: true
-remediate_rhel8_stig_030420: true
-remediate_rhel8_stig_030480: true
-remediate_rhel8_stig_030490: true
-remediate_rhel8_stig_030550: true
-remediate_rhel8_stig_030560: true
-remediate_rhel8_stig_030570: true
-remediate_rhel8_stig_030580: true
-remediate_rhel8_stig_030590: true
-remediate_rhel8_stig_030600: true
-remediate_rhel8_stig_030610: true
-remediate_rhel8_stig_030620: true
-remediate_rhel8_stig_030630: true
-remediate_rhel8_stig_030640: true
-remediate_rhel8_stig_030650: true
-remediate_rhel8_stig_030655: true
-remediate_rhel8_stig_030660: true
-remediate_rhel8_stig_030670: true
-remediate_rhel8_stig_030680: true
-remediate_rhel8_stig_030690: true
-remediate_rhel8_stig_030700: true
-remediate_rhel8_stig_030710: true
-remediate_rhel8_stig_030720: true
-remediate_rhel8_stig_030730: true
-remediate_rhel8_stig_030731: true
-remediate_rhel8_stig_030740: true
-remediate_rhel8_stig_040001: true
-remediate_rhel8_stig_040002: true
-remediate_rhel8_stig_040020: true
-remediate_rhel8_stig_040030: true
-remediate_rhel8_stig_040070: true
-remediate_rhel8_stig_040080: true
-remediate_rhel8_stig_040090: true
-remediate_rhel8_stig_040100: true
-remediate_rhel8_stig_040101: true
-remediate_rhel8_stig_040110: true
-remediate_rhel8_stig_040111: true
-remediate_rhel8_stig_040120: true
-remediate_rhel8_stig_040121: true
-remediate_rhel8_stig_040122: true
-remediate_rhel8_stig_040123: true
-remediate_rhel8_stig_040124: true
-remediate_rhel8_stig_040125: true
-remediate_rhel8_stig_040126: true
-remediate_rhel8_stig_040127: true
-remediate_rhel8_stig_040128: true
-remediate_rhel8_stig_040129: true
-remediate_rhel8_stig_040130: true
-remediate_rhel8_stig_040131: true
-remediate_rhel8_stig_040132: true
-remediate_rhel8_stig_040133: true
-remediate_rhel8_stig_040134: true
-remediate_rhel8_stig_040135: true
-remediate_rhel8_stig_040136: true
-remediate_rhel8_stig_040137: true
-remediate_rhel8_stig_040139: true
-remediate_rhel8_stig_040140: true
-remediate_rhel8_stig_040141: true
-remediate_rhel8_stig_040150: true
-remediate_rhel8_stig_040159: true
-remediate_rhel8_stig_040160: true
-remediate_rhel8_stig_040161: true
-remediate_rhel8_stig_040180: true
-remediate_rhel8_stig_040209: true
-remediate_rhel8_stig_040210: true
-remediate_rhel8_stig_040220: true
-remediate_rhel8_stig_040230: true
-remediate_rhel8_stig_040239: true
-remediate_rhel8_stig_040240: true
-remediate_rhel8_stig_040249: true
-remediate_rhel8_stig_040250: true
-remediate_rhel8_stig_040259: true
-remediate_rhel8_stig_040260: true
-remediate_rhel8_stig_040261: true
-remediate_rhel8_stig_040262: true
-remediate_rhel8_stig_040270: true
-remediate_rhel8_stig_040279: true
-remediate_rhel8_stig_040280: true
-remediate_rhel8_stig_040281: true
-remediate_rhel8_stig_040282: true
-remediate_rhel8_stig_040283: true
-remediate_rhel8_stig_040284: true
-remediate_rhel8_stig_040285: true
-remediate_rhel8_stig_040286: true
-remediate_rhel8_stig_040290: true
-remediate_rhel8_stig_040320: true
-remediate_rhel8_stig_040321: true
-remediate_rhel8_stig_040330: true
-remediate_rhel8_stig_040340: true
-remediate_rhel8_stig_040341: true
-remediate_rhel8_stig_040350: true
-remediate_rhel8_stig_040370: true
-remediate_rhel8_stig_040380: true
-remediate_rhel8_stig_040390: true
-remediate_rhel8_stig_040400: true
+rhel8_stig_020010: true
+rhel8_stig_020011: true
+rhel8_stig_020012: true
+rhel8_stig_020013: true
+rhel8_stig_020014: true
+rhel8_stig_020015: true
+rhel8_stig_020016: true
+rhel8_stig_020017: true
+rhel8_stig_020018: true
+rhel8_stig_020019: true
+rhel8_stig_020020: true
+rhel8_stig_020021: true
+rhel8_stig_020022: true
+rhel8_stig_020023: true
+rhel8_stig_020025: true
+rhel8_stig_020026: true
+rhel8_stig_020027: true
+rhel8_stig_020028: true
+rhel8_stig_020030: true
+rhel8_stig_020031: true
+rhel8_stig_020032: true
+rhel8_stig_020035: true
+rhel8_stig_020050: true
+rhel8_stig_020060: true
+rhel8_stig_020080: true
+rhel8_stig_020081: true
+rhel8_stig_020082: true
+rhel8_stig_020090: true
+rhel8_stig_020100: true
+rhel8_stig_020101: true
+rhel8_stig_020104: true
+rhel8_stig_020110: true
+rhel8_stig_020120: true
+rhel8_stig_020130: true
+rhel8_stig_020140: true
+rhel8_stig_020150: true
+rhel8_stig_020160: true
+rhel8_stig_020170: true
+rhel8_stig_020180: true
+rhel8_stig_020190: true
+rhel8_stig_020200: true
+rhel8_stig_020210: true
+rhel8_stig_020230: true
+rhel8_stig_020231: true
+rhel8_stig_020240: true
+rhel8_stig_020250: true
+rhel8_stig_020260: true
+rhel8_stig_020270: true
+rhel8_stig_020280: true
+rhel8_stig_020290: true
+rhel8_stig_020300: true
+rhel8_stig_020310: true
+rhel8_stig_020320: true
+rhel8_stig_020350: true
+rhel8_stig_020351: true
+rhel8_stig_020352: true
+rhel8_stig_020353: true
+rhel8_stig_020360: true
+rhel8_stig_030000: true
+rhel8_stig_030010: true
+rhel8_stig_030020: true
+rhel8_stig_030030: true
+rhel8_stig_030040: true
+rhel8_stig_030060: true
+rhel8_stig_030061: true
+rhel8_stig_030062: true
+rhel8_stig_030070: true
+rhel8_stig_030080: true
+rhel8_stig_030090: true
+rhel8_stig_030100: true
+rhel8_stig_030110: true
+rhel8_stig_030120: true
+rhel8_stig_030121: true
+rhel8_stig_030122: true
+rhel8_stig_030130: true
+rhel8_stig_030140: true
+rhel8_stig_030150: true
+rhel8_stig_030160: true
+rhel8_stig_030170: true
+rhel8_stig_030171: true
+rhel8_stig_030172: true
+rhel8_stig_030180: true
+rhel8_stig_030181: true
+rhel8_stig_030190: true
+rhel8_stig_030200: true
+rhel8_stig_030250: true
+rhel8_stig_030260: true
+rhel8_stig_030280: true
+rhel8_stig_030290: true
+rhel8_stig_030300: true
+rhel8_stig_030301: true
+rhel8_stig_030302: true
+rhel8_stig_030310: true
+rhel8_stig_030311: true
+rhel8_stig_030312: true
+rhel8_stig_030313: true
+rhel8_stig_030314: true
+rhel8_stig_030315: true
+rhel8_stig_030316: true
+rhel8_stig_030317: true
+rhel8_stig_030320: true
+rhel8_stig_030330: true
+rhel8_stig_030340: true
+rhel8_stig_030350: true
+rhel8_stig_030360: true
+rhel8_stig_030361: true
+rhel8_stig_030370: true
+rhel8_stig_030390: true
+rhel8_stig_030400: true
+rhel8_stig_030410: true
+rhel8_stig_030420: true
+rhel8_stig_030480: true
+rhel8_stig_030490: true
+rhel8_stig_030550: true
+rhel8_stig_030560: true
+rhel8_stig_030570: true
+rhel8_stig_030580: true
+rhel8_stig_030590: true
+rhel8_stig_030600: true
+rhel8_stig_030610: true
+rhel8_stig_030620: true
+rhel8_stig_030630: true
+rhel8_stig_030640: true
+rhel8_stig_030650: true
+rhel8_stig_030655: true
+rhel8_stig_030660: true
+rhel8_stig_030670: true
+rhel8_stig_030680: true
+rhel8_stig_030690: true
+rhel8_stig_030700: true
+rhel8_stig_030710: true
+rhel8_stig_030720: true
+rhel8_stig_030730: true
+rhel8_stig_030731: true
+rhel8_stig_030740: true
+rhel8_stig_040001: true
+rhel8_stig_040002: true
+rhel8_stig_040020: true
+rhel8_stig_040030: true
+rhel8_stig_040070: true
+rhel8_stig_040080: true
+rhel8_stig_040090: true
+rhel8_stig_040100: true
+rhel8_stig_040101: true
+rhel8_stig_040110: true
+rhel8_stig_040111: true
+rhel8_stig_040120: true
+rhel8_stig_040121: true
+rhel8_stig_040122: true
+rhel8_stig_040123: true
+rhel8_stig_040124: true
+rhel8_stig_040125: true
+rhel8_stig_040126: true
+rhel8_stig_040127: true
+rhel8_stig_040128: true
+rhel8_stig_040129: true
+rhel8_stig_040130: true
+rhel8_stig_040131: true
+rhel8_stig_040132: true
+rhel8_stig_040133: true
+rhel8_stig_040134: true
+rhel8_stig_040135: true
+rhel8_stig_040136: true
+rhel8_stig_040137: true
+rhel8_stig_040139: true
+rhel8_stig_040140: true
+rhel8_stig_040141: true
+rhel8_stig_040150: true
+rhel8_stig_040159: true
+rhel8_stig_040160: true
+rhel8_stig_040161: true
+rhel8_stig_040180: true
+rhel8_stig_040209: true
+rhel8_stig_040210: true
+rhel8_stig_040220: true
+rhel8_stig_040230: true
+rhel8_stig_040239: true
+rhel8_stig_040240: true
+rhel8_stig_040249: true
+rhel8_stig_040250: true
+rhel8_stig_040259: true
+rhel8_stig_040260: true
+rhel8_stig_040261: true
+rhel8_stig_040262: true
+rhel8_stig_040270: true
+rhel8_stig_040279: true
+rhel8_stig_040280: true
+rhel8_stig_040281: true
+rhel8_stig_040282: true
+rhel8_stig_040283: true
+rhel8_stig_040284: true
+rhel8_stig_040285: true
+rhel8_stig_040286: true
+rhel8_stig_040290: true
+rhel8_stig_040320: true
+rhel8_stig_040321: true
+rhel8_stig_040330: true
+rhel8_stig_040340: true
+rhel8_stig_040341: true
+rhel8_stig_040350: true
+rhel8_stig_040370: true
+rhel8_stig_040380: true
+rhel8_stig_040390: true
+rhel8_stig_040400: true
 
 # CAT 3 rules
-remediate_rhel8_stig_010171: true
-remediate_rhel8_stig_010292: true
-remediate_rhel8_stig_010375: true
-remediate_rhel8_stig_010376: true
-remediate_rhel8_stig_010440: true
-remediate_rhel8_stig_010471: true
-remediate_rhel8_stig_010472: true
-remediate_rhel8_stig_010540: true
-remediate_rhel8_stig_010541: true
-remediate_rhel8_stig_010542: true
-remediate_rhel8_stig_020024: true
+rhel8_stig_010171: true
+rhel8_stig_010292: true
+rhel8_stig_010375: true
+rhel8_stig_010376: true
+rhel8_stig_010440: true
+rhel8_stig_010471: true
+rhel8_stig_010472: true
+rhel8_stig_010540: true
+rhel8_stig_010541: true
+rhel8_stig_010542: true
+rhel8_stig_020024: true
 
-remediate_rhel8_stig_030063: true
-remediate_rhel8_stig_030601: true
-remediate_rhel8_stig_030602: true
-remediate_rhel8_stig_030603: true
-remediate_rhel8_stig_030741: true
-remediate_rhel8_stig_030742: true
-remediate_rhel8_stig_040004: true
-remediate_rhel8_stig_040021: true
-remediate_rhel8_stig_040022: true
-remediate_rhel8_stig_040023: true
-remediate_rhel8_stig_040024: true
-remediate_rhel8_stig_040025: true
-remediate_rhel8_stig_040026: true
-remediate_rhel8_stig_040300: true
-remediate_rhel8_stig_040310: true
+rhel8_stig_030063: true
+rhel8_stig_030601: true
+rhel8_stig_030602: true
+rhel8_stig_030603: true
+rhel8_stig_030741: true
+rhel8_stig_030742: true
+rhel8_stig_040004: true
+rhel8_stig_040021: true
+rhel8_stig_040022: true
+rhel8_stig_040023: true
+rhel8_stig_040024: true
+rhel8_stig_040025: true
+rhel8_stig_040026: true
+rhel8_stig_040300: true
+rhel8_stig_040310: true
 
 # Whether or not to run tasks related to auditing/patching the desktop environment
-remediate_rhel8_stig_gui: "{{ prelim_gnome_present.stat.exists | default(false) }}"
+rhel8_stig_gui: "{{ prelim_gnome_present.stat.exists | default(false) }}"
 
 # Whether or not you need kdump. False will disable service and true will leave service
-remediate_rhel8_stig_kdump_needed: false
+rhel8_stig_kdump_needed: false
 
 # Whether to configure dconf rules unconditionally (ignoring presence of dconf
 # or rhel8stig_gui)
-remediate_rhel8_stig_always_configure_dconf: false
+rhel8_stig_always_configure_dconf: false
 
 # Set the file that sysctl should write to
-remediate_rhel8_stig_sysctl_file: /etc/sysctl.d/99_stig_sysctl.conf
+rhel8_stig_sysctl_file: /etc/sysctl.d/99_stig_sysctl.conf
 
 # Whether or not system uses remote automounted home directories via autofs
-remediate_rhel8_stig_autofs_remote_home_dirs: false
+rhel8_stig_autofs_remote_home_dirs: false
 
 # The local mount point used by autofs to mount remote home directory to. This location will be excluded during getent user enumeration, if rhel8stig_autofs_remote_home_dirs is true
-remediate_rhel8_stig_auto_mount_home_dirs_local_mount_point: "/home/"
+rhel8_stig_auto_mount_home_dirs_local_mount_point: "/home/"
 
 # The default shell command to gather local interactive user directories
 ## NOTE: You will need to adjust the UID range in parenthesis below.
 ## ALSO NOTE: We weed out any user with a home dir not in standard locations because interactive users shouldn't have those paths as a home dir. Add or removed directory paths as needed below.
-remediate_rhel8_stig_local_interactive_user_dir_command: |
+rhel8_stig_local_interactive_user_dir_command: |
   getent passwd {{ '{' }}{{ min_int_uid }}..65535{{ '}' }} |
   grep -v '/sbin/nologin' |
   cut -d: -f6 |
@@ -519,12 +519,12 @@ remediate_rhel8_stig_local_interactive_user_dir_command: |
   grep -Ev '/var/|/nonexistent/|/run/*'
 
 # IPv6 required
-remediate_rhel8_stig_ipv6_required: true
+rhel8_stig_ipv6_required: true
 
 # RHEL-08-010380
-# remediate_rhel8_stig_sudoers_exclude_nopasswd_list is exception list for not having the NOPASSWD removed
+# rhel8_stig_sudoers_exclude_nopasswd_list is exception list for not having the NOPASSWD removed
 #
-remediate_rhel8_stig_sudoers_exclude_nopasswd_list:
+rhel8_stig_sudoers_exclude_nopasswd_list:
   - rocky
   - ec2-user
 #    - vagrant
@@ -533,7 +533,7 @@ remediate_rhel8_stig_sudoers_exclude_nopasswd_list:
 # This is a check for a "supported release"
 # These are the minimum supported releases.
 # (Red Hat has support for older versions if you pay extra for it.)
-remediate_rhel8_stig_min_supported_os_ver:
+rhel8_stig_min_supported_os_ver:
   RedHat: "8.10"
   CentOS: "8.10"
   Rocky: "8.10"
@@ -542,12 +542,12 @@ remediate_rhel8_stig_min_supported_os_ver:
 
 # RHEL-08-040260
 # If system is not router, run tasks that disable router functions.
-remediate_rhel8_stig_system_is_router: false
+rhel8_stig_system_is_router: false
 
-remediate_rhel8_stig_time_service: chronyd
+rhel8_stig_time_service: chronyd
 
-remediate_rhel8_stig_firewall_service: firewalld
-remediate_rhel8_stig_start_firewall_service: true
+rhel8_stig_firewall_service: firewalld
+rhel8_stig_start_firewall_service: true
 
 ### Aide
 # AIDE is a file integrity checking tool, similar in nature to Tripwire.
@@ -555,31 +555,31 @@ remediate_rhel8_stig_start_firewall_service: true
 # to configuration files by alerting when the files are changed. Review
 # the AIDE quick start guide and AIDE documentation before proceeding.
 # By setting this variable to `true`, all of the settings related to AIDE will be applied!
-remediate_rhel8_stig_use_aide: true
+rhel8_stig_use_aide: true
 
 # If DB file older than below will automatically rebuild DB
 # e.g. options:1w = 1 week, 1d = 1day 1h = 1 hour
-remediate_rhel8_stig_aide_db_file_age: 1w
+rhel8_stig_aide_db_file_age: 1w
 
 # If aide already setup this forces a new DB to be created despite age
-remediate_rhel8_stig_aide_db_recreate: false
+rhel8_stig_aide_db_recreate: false
 
 # New db file
-remediate_rhel8_stig_aide_db_new_file: /var/lib/aide/aide.db.new.gz
+rhel8_stig_aide_db_new_file: /var/lib/aide/aide.db.new.gz
 # Active db file
-remediate_rhel8_stig_aide_db_file: /var/lib/aide/aide.db.gz
+rhel8_stig_aide_db_file: /var/lib/aide/aide.db.gz
 
-remediate_rhel8_stig_workaround_for_disa_benchmark: true
+rhel8_stig_workaround_for_disa_benchmark: true
 
-remediate_rhel8_stig_cron_special_disable: "{{ remediate_rhel8_stig_workaround_for_disa_benchmark or remediate_rhel8_stig_workaround_for_ssg_benchmark or false }}"
+rhel8_stig_cron_special_disable: "{{ rhel8_stig_workaround_for_disa_benchmark or rhel8_stig_workaround_for_ssg_benchmark or false }}"
 
 # Set maximum number of simultaneous system logins (RHEL-08-040000)
-remediate_rhel8_stig_maxlogins: 10
-remediate_rhel8_stig_logon_banner: >-
-  {{ remediate_rhel8_stig_workaround_for_disa_benchmark | ternary(
-      remediate_rhel8_stig_logon_banner_nice | regex_replace('(?s)(?<!\\n)\\n(?!(\n|$))', ' '),
-      remediate_rhel8_stig_logon_banner_nice) }}
-remediate_rhel8_stig_logon_banner_nice: |
+rhel8_stig_maxlogins: 10
+rhel8_stig_logon_banner: >-
+  {{ rhel8_stig_workaround_for_disa_benchmark | ternary(
+      rhel8_stig_logon_banner_nice | regex_replace('(?s)(?<!\\n)\\n(?!(\n|$))', ' '),
+      rhel8_stig_logon_banner_nice) }}
+rhel8_stig_logon_banner_nice: |
   You are accessing a U.S. Government (USG) Information System (IS) that is
   provided for USG-authorized use only.
 
@@ -607,45 +607,45 @@ remediate_rhel8_stig_logon_banner_nice: |
   communications and work product are private and confidential. See User
   Agreement for details.
 
-remediate_rhel8_stig_sssd_conf: /etc/sssd/sssd.conf
-remediate_rhel8_stig_sssd_domain: testing.test
-remediate_rhel8_stig_sssd_certmap: "certmap/{{ remediate_rhel8_stig_sssd_domain }}/rule_name"
-remediate_rhel8_stig_sssd_matchrule: "=.*EDIPI@mil"
-remediate_rhel8_stig_sssd_maprule: (userCertificate;binary={cert!bin})
-remediate_rhel8_stig_sssd_domains: "{{ remediate_rhel8_stig_sssd_domain }}"
+rhel8_stig_sssd_conf: /etc/sssd/sssd.conf
+rhel8_stig_sssd_domain: testing.test
+rhel8_stig_sssd_certmap: "certmap/{{ rhel8_stig_sssd_domain }}/rule_name"
+rhel8_stig_sssd_matchrule: "=.*EDIPI@mil"
+rhel8_stig_sssd_maprule: (userCertificate;binary={cert!bin})
+rhel8_stig_sssd_domains: "{{ rhel8_stig_sssd_domain }}"
 
 # RHEL-08-010200 | All network connections associated with SSH traffic must
 # terminate at the end of the session or after 10 minutes of inactivity, except
 # to fulfill documented and validated mission requirements.
 # Timeout value is in seconds. (60 seconds * 10 = 600)
-remediate_rhel8_stig_ssh_session_timeout: 600
+rhel8_stig_ssh_session_timeout: 600
 
 # RHEL-08-020320
-# If vsftpd is required, remove 'ftp' from remediate_rhel8_stig_unnecessary_accounts.
+# If vsftpd is required, remove 'ftp' from rhel8_stig_unnecessary_accounts.
 #
 # By default, files owned by removed users will be retained, but this may
 # trigger RHEL-08-020320 (all files and directories must have a valid owner).
-# Set remediate_rhel8_stig_remove_unnecessary_user_files to yes to remove old files,
+# Set rhel8_stig_remove_unnecessary_user_files to yes to remove old files,
 # but this could remove files you intended to keep. And it's probably best to
 # avoid removing 'dbus', 'nobody', 'systemd-network', and 'polkitd', as they all
 # have home directories of '/' by default.
-remediate_rhel8_stig_unnecessary_accounts:
+rhel8_stig_unnecessary_accounts:
   - ftp
   - games
-remediate_rhel8_stig_remove_unnecessary_user_files: false
+rhel8_stig_remove_unnecessary_user_files: false
 
 # /etc/login.defs settings
 # RHEL-08-010110
 # RHEL-08-020190
 # RHEL-08-020200
 # RHEL-08-020310
-remediate_rhel8_stig_login_defaults_encrypt_method: SHA512
-remediate_rhel8_stig_login_defaults_pass_min_days: 1
-remediate_rhel8_stig_login_defaults_pass_max_days: 60
-remediate_rhel8_stig_login_defaults_fail_delay_secs: 4
-remediate_rhel8_stig_login_defaults_umask: "077"
+rhel8_stig_login_defaults_encrypt_method: SHA512
+rhel8_stig_login_defaults_pass_min_days: 1
+rhel8_stig_login_defaults_pass_max_days: 60
+rhel8_stig_login_defaults_fail_delay_secs: 4
+rhel8_stig_login_defaults_umask: "077"
 
-remediate_rhel8_stig_availability_override: false
+rhel8_stig_availability_override: false
 # auditd_failure_flag
 # 2 Tells your system to perform an immediate shutdown without
 # flushing any pending data to disk when the limits of your
@@ -653,98 +653,98 @@ remediate_rhel8_stig_availability_override: false
 # restrict the use of -f 2 to only the most security conscious environments
 # 1 System continues to run, issues a warning and audit stops.
 # Use this for any other setup to avoid loss of data or data corruption.
-remediate_rhel8_stig_auditd_failure_flag: "{{ remediate_rhel8_stig_availability_override | ternary(1, 2) }}"
+rhel8_stig_auditd_failure_flag: "{{ rhel8_stig_availability_override | ternary(1, 2) }}"
 
-remediate_rhel8_stig_dns_servers: # The order needs to be set as expected. If you have 3 you will need to amend playbook (not ideal)
+rhel8_stig_dns_servers: # The order needs to be set as expected. If you have 3 you will need to amend playbook (not ideal)
   - 8.8.8.8
   - 8.8.4.4
 
 # Add list of additional crypto subpolicies to be added to FIPS
 # 10020 - additional crypto subpolicies
 
-remediate_rhel8_stig_additional_fips_crypto_subpolicies: false
+rhel8_stig_additional_fips_crypto_subpolicies: false
 # !!!! add additional crypto subpolicies here
 # Examples can be seen below
-remediate_rhel8_stig_additional_fips_crypto_subpolicies_list:
+rhel8_stig_additional_fips_crypto_subpolicies_list:
 # - AD-SUPPORT
 # - NO-ENFORCE-EMS
 
 # RHEL-08-010100
-remediate_rhel8_stig_path_to_sshkey: "/root/.ssh/"
+rhel8_stig_path_to_sshkey: "/root/.ssh/"
 
 # RHEL-08-010130
 # The rounds parameter goes into the SHA_CRYPT_MIN_ROUNDS element of the /etc/login.defs file. The value shoudl be set no lower than 100000
-remediate_rhel8_stig_hashing_rounds: 100000
+rhel8_stig_hashing_rounds: 100000
 
 # RHEL-08-010140 and RHEL-08-020280
 # Password protect the boot loader
-remediate_rhel8_stig_bootloader_password_hash: grub.pbkdf2.sha512.changethispassword # pragma: allowlist secret
-remediate_rhel8_stig_boot_superuser: bootloader_admin
+rhel8_stig_bootloader_password_hash: grub.pbkdf2.sha512.changethispassword # pragma: allowlist secret
+rhel8_stig_boot_superuser: bootloader_admin
 
 # now in prelim
 # Enable UID discovery:
-remediate_rhel8_stig_discover_int_uid: true
+rhel8_stig_discover_int_uid: true
 # If discovery set to false use these values
-remediate_rhel8_stig_min_int_uid: 1000
-remediate_rhel8_stig_max_int_uid: 65534
+rhel8_stig_min_int_uid: 1000
+rhel8_stig_max_int_uid: 65534
 
 # RHEL-08-010290 and 010296
 # This will be the MACs setting. It is a string that will be the entirety of the MAC's setting in the openssh.config file
 # to conform to STIG standard control RHEL-08-010290 and 010296 this variable must include hmac-sha2-512,hmac-sha2-256
 
-remediate_rhel8_stig_ssh_macs: "hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256"
+rhel8_stig_ssh_macs: "hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256"
 
 # RHEL-08-010291 and 010297
 # to conform to STIG standard control RHEL-08-010291 and 010297 this variable must include aes256-ctr,aes192-ctr,aes128-ctr
-remediate_rhel8_stig_ssh_ciphers: "aes256-gcm@openssh.com,aes256-ctr,aes128-gcm@openssh.com,aes128-ctr"
+rhel8_stig_ssh_ciphers: "aes256-gcm@openssh.com,aes256-ctr,aes128-gcm@openssh.com,aes128-ctr"
 
 # RHEL-08-010360 | AIDE Cron Job
-remediate_rhel8_stig_aide_cron_user: root
-remediate_rhel8_stig_aide_cron_cron_file: aide
-remediate_rhel8_stig_aide_cron_job: '/usr/sbin/aide --check | /bin/mail -s "$HOSTNAME - Daily aide integrity check run" root@sysname.mil'
-remediate_rhel8_stig_aide_cron_special_time: daily
-remediate_rhel8_stig_aide_cron_notify_by_mail: true
-remediate_rhel8_stig_aide_cron_notify_cmd: ' | /bin/mail -s "$(hostname) - Daily aide integrity check run" root@localhost'
-remediate_rhel8_stig_aide_cron_file: /etc/cron.daily/aide  # NOTE the path may change if not running daily
-remediate_rhel8_stig_aide_cron_day: '*'
-remediate_rhel8_stig_aide_cron_hour: '4'
-remediate_rhel8_stig_aide_cron_minute: '30'
-remediate_rhel8_stig_aide_cron_name: 'Aide Job runs Daily at 0430'
+rhel8_stig_aide_cron_user: root
+rhel8_stig_aide_cron_cron_file: aide
+rhel8_stig_aide_cron_job: '/usr/sbin/aide --check | /bin/mail -s "$HOSTNAME - Daily aide integrity check run" root@sysname.mil'
+rhel8_stig_aide_cron_special_time: daily
+rhel8_stig_aide_cron_notify_by_mail: true
+rhel8_stig_aide_cron_notify_cmd: ' | /bin/mail -s "$(hostname) - Daily aide integrity check run" root@localhost'
+rhel8_stig_aide_cron_file: /etc/cron.daily/aide  # NOTE the path may change if not running daily
+rhel8_stig_aide_cron_day: '*'
+rhel8_stig_aide_cron_hour: '4'
+rhel8_stig_aide_cron_minute: '30'
+rhel8_stig_aide_cron_name: 'Aide Job runs Daily at 0430'
 
 # RHEL-08-010380
 # Setting to enable or disable fixes that depend on password-based authentication
 # i.e. if users authenticate with a means other than passwords (pubkey)
 # and will not know or use passwords then this should be 'no'
-remediate_rhel8_stig_using_password_auth: true
+rhel8_stig_using_password_auth: true
 
 # RHEL-08-010384
 # The value given to Defaults timestamp timeout= in the sudo file.
 # Value must be greater than 0 to conform to STIG standards
-remediate_rhel8_stig_sudo_timestamp_timeout: 1
+rhel8_stig_sudo_timestamp_timeout: 1
 
 # RHEL-08-010680
 # This can be managed using a template ensure settings are correct
-remediate_rhel8_stig_use_resolv_template: false
-remediate_rhel8_stig_resolv_domain: example.com
-remediate_rhel8_stig_resolv_search:
+rhel8_stig_use_resolv_template: false
+rhel8_stig_resolv_domain: example.com
+rhel8_stig_resolv_search:
 #    - 'example.com'
 #    - 'blah'
-remediate_rhel8_stig_resolv_options:
+rhel8_stig_resolv_options:
 #    - 'rotate 2'
 #    - 'timeout:1'
 
 # RHEL-08-010690
-remediate_rhel8_stig_change_user_path: false
+rhel8_stig_change_user_path: false
 
 # RHEL-08-010700
-# remediate_rhel8_stig_ww_dir_owner is the owner of all world-writable directories
+# rhel8_stig_ww_dir_owner is the owner of all world-writable directories
 # To conform to STIG standards this needs to be set to root, sys, bin, or an application group
-remediate_rhel8_stig_ww_dir_owner: root
+rhel8_stig_ww_dir_owner: root
 
 # RHEL-08-010710
-# remediate_rhel8_stig_ww_dir_grpowner is the owner of all world-writable directories
+# rhel8_stig_ww_dir_grpowner is the owner of all world-writable directories
 # To conform to STIG standards this needs to be set to root, sys, bin, or an application group
-remediate_rhel8_stig_ww_dir_grpowner: root
+rhel8_stig_ww_dir_grpowner: root
 
 # RHEL-08-020010
 # RHEL-08-020011
@@ -752,48 +752,48 @@ remediate_rhel8_stig_ww_dir_grpowner: root
 # RHEL-08-020013
 # pam_faillock settings - accounts must be locked for max time period after 3 unsuccessful attempts within 15 minutes.
 # dir: is set to /var/log/faillock which is the non-default folder. Control 020017 states to not use the standard directory which is /var/run/faillock:
-remediate_rhel8_stig_pam_faillock_attempts: 3
-remediate_rhel8_stig_pam_faillock_interval: 900
-remediate_rhel8_stig_pam_faillock_unlock_time: 0
-remediate_rhel8_stig_pam_faillock_fail_for_root: "{{ remediate_rhel8_stig_020023 }}"
-remediate_rhel8_stig_pam_faillock_dir: /var/log/faillock
+rhel8_stig_pam_faillock_attempts: 3
+rhel8_stig_pam_faillock_interval: 900
+rhel8_stig_pam_faillock_unlock_time: 0
+rhel8_stig_pam_faillock_fail_for_root: "{{ rhel8_stig_020023 }}"
+rhel8_stig_pam_faillock_dir: /var/log/faillock
 
 # RHEL-08-020035
-remediate_rhel8_stig_idlesessiontimeout: 600
+rhel8_stig_idlesessiontimeout: 600
 
 # RHEL-08-020102
 # RHEL-08-020103
-# remediate_rhel8_stig_pam_pwquality_retry is the number of retries set to the password required pam_pwquality.so in system and password auth files
+# rhel8_stig_pam_pwquality_retry is the number of retries set to the password required pam_pwquality.so in system and password auth files
 # To conform to STIG standards this value needs to be 3 or less
-remediate_rhel8_stig_pam_pwquality_retry: 3
+rhel8_stig_pam_pwquality_retry: 3
 
 # RHEL-08-020100 and RHEL-08-020101 Password complexity settings
 # Password complexity settings
-remediate_rhel8_stig_password_complexity_ucredit: -1
-remediate_rhel8_stig_password_complexity_lcredit: -1
-remediate_rhel8_stig_password_complexity_dcredit: -1
-remediate_rhel8_stig_password_complexity_ocredit: -1
-remediate_rhel8_stig_password_complexity_difok: 8
-remediate_rhel8_stig_password_complexity_minclass: 4
-remediate_rhel8_stig_password_complexity_maxrepeat: 3
-remediate_rhel8_stig_password_complexity_maxclassrepeat: 4
-remediate_rhel8_stig_password_complexity_minlen: 15
-remediate_rhel8_stig_password_complexity_dictcheck: 1
+rhel8_stig_password_complexity_ucredit: -1
+rhel8_stig_password_complexity_lcredit: -1
+rhel8_stig_password_complexity_dcredit: -1
+rhel8_stig_password_complexity_ocredit: -1
+rhel8_stig_password_complexity_difok: 8
+rhel8_stig_password_complexity_minclass: 4
+rhel8_stig_password_complexity_maxrepeat: 3
+rhel8_stig_password_complexity_maxclassrepeat: 4
+rhel8_stig_password_complexity_minlen: 15
+rhel8_stig_password_complexity_dictcheck: 1
 
 # RHEL-08-030020
-remediate_rhel8_stig_auditd_mail_acct: root
+rhel8_stig_auditd_mail_acct: root
 
 # RHEL-08-030040 - Options are SYSLOG, SINGLE, and HALT to fit STIG standards
-remediate_rhel8_stig_auditd_disk_error_action: HALT
+rhel8_stig_auditd_disk_error_action: HALT
 
 # RHEL-08-030050 - Options are SYSLOG or KEEP_LOGS to fit STIG standards
-remediate_rhel8_stig_auditd_max_log_file_action: SYSLOG
+rhel8_stig_auditd_max_log_file_action: SYSLOG
 
 # RHEL-08-030060
-# remediate_rhel8_stig_auditd_disk_full_action options are SYSLOG, HALT, and SINGLE to fit STIG standards
-remediate_rhel8_stig_auditd_disk_full_action: HALT
+# rhel8_stig_auditd_disk_full_action options are SYSLOG, HALT, and SINGLE to fit STIG standards
+rhel8_stig_auditd_disk_full_action: HALT
 
-remediate_rhel8_stig_audit_bins:
+rhel8_stig_audit_bins:
   - "/usr/sbin/auditctl"
   - "/usr/sbin/aureport"
   - "/usr/sbin/ausearch"
@@ -804,56 +804,56 @@ remediate_rhel8_stig_audit_bins:
 
 # RHEL-08-030690 uncomment and set the value to a remote IP address that can receive audit logs
 # NOTE different protocol configs '@''=UDP '@@''=TCP '':omrelp:'=RELP
-remediate_rhel8_stig_remotelog_server: 10.10.10.10
-remediate_rhel8_stig_remotelog_server_port: 9999
-remediate_rhel8_stig_remotelog_server_protocol: "@"
+rhel8_stig_remotelog_server: 10.10.10.10
+rhel8_stig_remotelog_server_port: 9999
+rhel8_stig_remotelog_server_protocol: "@"
 
 # RHEL-08-030700
-# remediate_rhel8_stig_audisp_overflow_action - Options are syslog, single, or halt to fit STIG standards
-remediate_rhel8_stig_audisp_overflow_action: syslog
+# rhel8_stig_audisp_overflow_action - Options are syslog, single, or halt to fit STIG standards
+rhel8_stig_audisp_overflow_action: syslog
 
 # RHEL-08-030740
-# remediate_rhel8_stig_ntp_server_name is the name of the NTP server
-remediate_rhel8_stig_ntp_server_name: 0.us.pool.ntp.mil
+# rhel8_stig_ntp_server_name is the name of the NTP server
+rhel8_stig_ntp_server_name: 0.us.pool.ntp.mil
 
 # RHEL-08-040010
-# remediate_rhel8_stig_epel_required is the flag to enable or disable the installation of the EPEL repository
-remediate_rhel8_stig_epel_required: false
+# rhel8_stig_epel_required is the flag to enable or disable the installation of the EPEL repository
+rhel8_stig_epel_required: false
 
 # RHEL-08-040090
-# remediate_rhel8_stig_custom_firewall_zone is the desired name for the new customer firewall zone
-remediate_rhel8_stig_custom_firewall_zone: "new_fw_zone"
+# rhel8_stig_custom_firewall_zone is the desired name for the new customer firewall zone
+rhel8_stig_custom_firewall_zone: "new_fw_zone"
 
-# remediate_rhel8_stig_copy_existing_zone - if you wish to copy an existing zones rules to the new zone
-remediate_rhel8_stig_copy_existing_zone: true
-# remediate_rhel8_stig_existing_zone_to_copy - name of the zone that you wish to copy from
-remediate_rhel8_stig_existing_zone_to_copy: public
+# rhel8_stig_copy_existing_zone - if you wish to copy an existing zones rules to the new zone
+rhel8_stig_copy_existing_zone: true
+# rhel8_stig_existing_zone_to_copy - name of the zone that you wish to copy from
+rhel8_stig_existing_zone_to_copy: public
 
 # RHEL-08-040090
-# This designed not work with remediate_rhel8_stig_existing_zone_to_copy and when deploy new rules
-# remediate_rhel8_stig_white_list_services is the services that you want to allow through initially for the new firewall zone
+# This designed not work with rhel8_stig_existing_zone_to_copy and when deploy new rules
+# rhel8_stig_white_list_services is the services that you want to allow through initially for the new firewall zone
 # This can also be a port number if no service exists
-remediate_rhel8_stig_white_list_services:
+rhel8_stig_white_list_services:
   - dns
   - ssh
   - http
   - https
 
 # RHEL-08-040137
-# remediate_rhel8_stig_fapolicy_white_list is the whitelist for fapolicyd, the last item in the list must be deny all
-remediate_rhel8_stig_fapolicy_white_list:
+# rhel8_stig_fapolicy_white_list is the whitelist for fapolicyd, the last item in the list must be deny all
+rhel8_stig_fapolicy_white_list:
   - "deny_audit perm=any pattern=ld_so : all"
   - "deny perm=any all : all"
 
 # RHEL-08-040160
 # RHEL-08-040310
 # Install and enable ssh on networked systems
-remediate_rhel8_stig_ssh_required: true
+rhel8_stig_ssh_required: true
 
 # RHEL-08-040330
 # Network interface promiscuous mode setting will be disabled unless set to true
-remediate_rhel8_stig_net_promisc_mode_required: false
+rhel8_stig_net_promisc_mode_required: false
 
 # RHEL-08-040500
 # If not required, remove tftp
-remediate_rhel8_stig_tftp_required: false
+rhel8_stig_tftp_required: false

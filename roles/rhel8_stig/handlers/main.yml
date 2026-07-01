@@ -40,7 +40,7 @@
 
 - name: Restart sshd
   when:
-    - not remediate_rhel8_stig_system_is_chroot
+    - not rhel8_stig_system_is_chroot
     - "'openssh-server' in ansible_facts.packages"
     - not change_requires_reboot
   ansible.builtin.service:
@@ -53,53 +53,53 @@
   listen: Reinstall_crypto_policies
 
 - name: Set crypto policies
-  ansible.builtin.command: "set -o pipefail && update-crypto-policies --set {{ remediate_rhel8_stig_combined_crypto_policy_config }}"
+  ansible.builtin.command: "set -o pipefail && update-crypto-policies --set {{ rhel8_stig_combined_crypto_policy_config }}"
   changed_when: true
   notify: Change_requires_reboot
   listen: Reinstall_crypto_policies
 
 - name: AIDE - Check for DB file
   ansible.builtin.stat:
-    path: "{{ remediate_rhel8_stig_aide_db_file }}"
-  register: remediate_rhel8_stig_discovered_aide_db_file
+    path: "{{ rhel8_stig_aide_db_file }}"
+  register: rhel8_stig_discovered_aide_db_file
   listen: Build_aide_db
 
 - name: AIDE - Discover age of DB
-  when: remediate_rhel8_stig_discovered_aide_db_file.stat.exists
+  when: rhel8_stig_discovered_aide_db_file.stat.exists
   ansible.builtin.find:
-    path: "{{ remediate_rhel8_stig_aide_db_file | dirname }}"
-    pattern: "{{ remediate_rhel8_stig_aide_db_file | basename }}"
-    age: "{{ remediate_rhel8_stig_aide_db_file_age }}"
-  register: remediate_rhel8_stig_discovered_aide_db_age
+    path: "{{ rhel8_stig_aide_db_file | dirname }}"
+    pattern: "{{ rhel8_stig_aide_db_file | basename }}"
+    age: "{{ rhel8_stig_aide_db_file_age }}"
+  register: rhel8_stig_discovered_aide_db_age
   listen: Build_aide_db
 
-- name: "AIDE - Create DB if absent, forced or older than {{ remediate_rhel8_stig_aide_db_file_age }}"
-  when: not remediate_rhel8_stig_discovered_aide_db_file.stat.exists or (remediate_rhel8_stig_discovered_aide_db_age.files | length > 0) or remediate_rhel8_stig_aide_db_recreate
+- name: "AIDE - Create DB if absent, forced or older than {{ rhel8_stig_aide_db_file_age }}"
+  when: not rhel8_stig_discovered_aide_db_file.stat.exists or (rhel8_stig_discovered_aide_db_age.files | length > 0) or rhel8_stig_aide_db_recreate
   ansible.builtin.command: set -o pipefail && /usr/sbin/aide --init
   changed_when: true
-  register: remediate_rhel8_stig_discovered_new_aide_db_created
+  register: rhel8_stig_discovered_new_aide_db_created
   listen: Build_aide_db
 
 - name: "AIDE - Rename DB file if DB created"
   when:
-    - not remediate_rhel8_stig_discovered_aide_db_file.stat.exists or (remediate_rhel8_stig_discovered_aide_db_age.files | length > 0) or remediate_rhel8_stig_aide_db_recreate
-    - remediate_rhel8_stig_discovered_new_aide_db_created.changed # noqa: no-changed-when
-  ansible.builtin.command: "mv -f {{ remediate_rhel8_stig_aide_db_new_file }} {{ remediate_rhel8_stig_aide_db_file }}"
+    - not rhel8_stig_discovered_aide_db_file.stat.exists or (rhel8_stig_discovered_aide_db_age.files | length > 0) or rhel8_stig_aide_db_recreate
+    - rhel8_stig_discovered_new_aide_db_created.changed # noqa: no-changed-when
+  ansible.builtin.command: "mv -f {{ rhel8_stig_aide_db_new_file }} {{ rhel8_stig_aide_db_file }}"
   changed_when: true
   listen: Build_aide_db
 
 - name: AIDE - If DB exists run check comparison
   when:
-    - remediate_rhel8_stig_discovered_aide_db_file.stat.exists
-    - not remediate_rhel8_stig_discovered_new_aide_db_created.changed # noqa: no-changed-when
+    - rhel8_stig_discovered_aide_db_file.stat.exists
+    - not rhel8_stig_discovered_new_aide_db_created.changed # noqa: no-changed-when
   ansible.builtin.command: set -o pipefail && /usr/sbin/aide --check
   changed_when: true
-  failed_when: remediate_rhel8_stig_discovered_aidedb_check.rc not in [ 0, 1, 4, 7 ]
-  register: remediate_rhel8_stig_discovered_aidedb_check
+  failed_when: rhel8_stig_discovered_aidedb_check.rc not in [ 0, 1, 4, 7 ]
+  register: rhel8_stig_discovered_aidedb_check
   listen: Build_aide_db
 
 - name: AIDE - Warning if checks fail
-  when: remediate_rhel8_stig_discovered_aidedb_check.rc != 0
+  when: rhel8_stig_discovered_aidedb_check.rc != 0
   vars:
     warn_control_id: "MEDIUM | RHEL-09-651010-Aide-Check"
   ansible.builtin.import_tasks:
@@ -114,14 +114,14 @@
 
 - name: Restart snmpd
   when:
-    - not remediate_rhel8_stig_system_is_chroot
-    - not remediate_rhel8_stig_change_requires_reboot
+    - not rhel8_stig_system_is_chroot
+    - not rhel8_stig_change_requires_reboot
   ansible.builtin.service:
     name: snmpd
     state: restarted
 
 - name: Restart rngd
-  when: remediate_rhel8_stig_010471
+  when: rhel8_stig_010471
   ansible.builtin.service:
     name: rngd.service
     state: restarted
@@ -154,34 +154,34 @@
   ansible.builtin.stat:
     path: "/etc/grub.d/01_users"
   changed_when: false
-  register: remediate_rhel8_stig_discovered_grub2_user_cfg
+  register: rhel8_stig_discovered_grub2_user_cfg
   listen: Make grub2 config
 
 - name: Rebuild grub
-  when: not remediate_rhel8_stig_system_is_container
-  ansible.builtin.command: "set -o pipefail && /usr/sbin/grub2-mkconfig -o {{ remediate_rhel8_stig_prelim_bootloader_path }}/grub.cfg"
+  when: not rhel8_stig_system_is_container
+  ansible.builtin.command: "set -o pipefail && /usr/sbin/grub2-mkconfig -o {{ rhel8_stig_prelim_bootloader_path }}/grub.cfg"
   changed_when: true
   listen: Make grub2 config
 
 - name: Copy grub2 config to BIOS/UEFI to satisfy benchmark
   when:
-    - remediate_rhel8_stig_discovered_grub2_user_cfg.stat.exists
-    - not remediate_rhel8_stig_system_is_chroot
+    - rhel8_stig_discovered_grub2_user_cfg.stat.exists
+    - not rhel8_stig_system_is_chroot
   ansible.builtin.copy:
-    src: "{{ remediate_rhel8_stig_prelim_bootloader_path }}/grub.cfg"
-    dest: "{{ remediate_rhel8_stig_prelim_bootloader_path }}/grub.cfg"
+    src: "{{ rhel8_stig_prelim_bootloader_path }}/grub.cfg"
+    dest: "{{ rhel8_stig_prelim_bootloader_path }}/grub.cfg"
     remote_src: true
     owner: root
     group: root
     mode: "u+x,go-w"
   listen: Make grub2 config
 
-- name: "Restart {{ remediate_rhel8_stig_time_service }}"
+- name: "Restart {{ rhel8_stig_time_service }}"
   when:
-    - not remediate_rhel8_stig_system_is_container
-    - not remediate_rhel8_stig_change_requires_reboot
+    - not rhel8_stig_system_is_container
+    - not rhel8_stig_change_requires_reboot
   ansible.builtin.service:
-    name: "{{ remediate_rhel8_stig_time_service }}"
+    name: "{{ rhel8_stig_time_service }}"
     state: restarted
 
 - name: Update auditd
@@ -195,14 +195,14 @@
 
 - name: Restart auditd # noqa: command-instead-of-module
   when:
-    - not remediate_rhel8_stig_system_is_chroot
-    - not remediate_rhel8_stig_system_is_container
-    - not remediate_rhel8_stig_change_requires_reboot
+    - not rhel8_stig_system_is_chroot
+    - not rhel8_stig_system_is_container
+    - not rhel8_stig_change_requires_reboot
   ansible.builtin.command: /usr/sbin/service auditd restart
   changed_when: true
 
 - name: Rebuild initramfs
-  when: not remediate_rhel8_stig_system_is_container
+  when: not rhel8_stig_system_is_container
   ansible.builtin.command: set -o pipefail && dracut -f
   changed_when: true
 
@@ -211,7 +211,7 @@
   changed_when: true
 
 - name: Update running audit failure mode
-  ansible.builtin.command: set -o pipefail && auditctl -f {{ remediate_rhel8_stig_auditd_failure_flag }}
+  ansible.builtin.command: set -o pipefail && auditctl -f {{ rhel8_stig_auditd_failure_flag }}
   failed_when: false
   changed_when: true
 
@@ -225,46 +225,46 @@
 
 - name: AIDE - Check for DB file
   ansible.builtin.stat:
-    path: "{{ remediate_rhel8_stig_aide_db_file }}"
-  register: remediate_rhel8_stig_discovered_aide_db_file
+    path: "{{ rhel8_stig_aide_db_file }}"
+  register: rhel8_stig_discovered_aide_db_file
   listen: Build_aide_db
 
 - name: AIDE - Discover age of DB
-  when: remediate_rhel8_stig_discovered_aide_db_file.stat.exists
+  when: rhel8_stig_discovered_aide_db_file.stat.exists
   ansible.builtin.find:
-    path: "{{ remediate_rhel8_stig_aide_db_file | dirname }}"
-    pattern: "{{ remediate_rhel8_stig_aide_db_file | basename }}"
-    age: "{{ remediate_rhel8_stig_aide_db_file_age }}"
-  register: remediate_rhel8_stig_discovered_aide_db_age
+    path: "{{ rhel8_stig_aide_db_file | dirname }}"
+    pattern: "{{ rhel8_stig_aide_db_file | basename }}"
+    age: "{{ rhel8_stig_aide_db_file_age }}"
+  register: rhel8_stig_discovered_aide_db_age
   listen: Build_aide_db
 
-- name: "AIDE - Create DB if absent, forced or older than {{ remediate_rhel8_stig_aide_db_file_age }}"
-  when: not remediate_rhel8_stig_discovered_aide_db_file.stat.exists or (remediate_rhel8_stig_discovered_aide_db_age.files | length > 0) or remediate_rhel8_stig_aide_db_recreate
+- name: "AIDE - Create DB if absent, forced or older than {{ rhel8_stig_aide_db_file_age }}"
+  when: not rhel8_stig_discovered_aide_db_file.stat.exists or (rhel8_stig_discovered_aide_db_age.files | length > 0) or rhel8_stig_aide_db_recreate
   ansible.builtin.command: set -o pipefail && /usr/sbin/aide --init
   changed_when: true
-  register: remediate_rhel8_stig_discovered_new_aide_db_created
+  register: rhel8_stig_discovered_new_aide_db_created
   listen: Build_aide_db
 
 - name: "AIDE - Rename DB file if DB created"
   when:
-    - not remediate_rhel8_stig_discovered_aide_db_file.stat.exists or (remediate_rhel8_stig_discovered_aide_db_age.files | length > 0) or remediate_rhel8_stig_aide_db_recreate
-    - remediate_rhel8_stig_discovered_new_aide_db_created.changed # noqa: no-changed-when
-  ansible.builtin.command: "mv -f {{ remediate_rhel8_stig_aide_db_new_file }} {{ remediate_rhel8_stig_aide_db_file }}"
+    - not rhel8_stig_discovered_aide_db_file.stat.exists or (rhel8_stig_discovered_aide_db_age.files | length > 0) or rhel8_stig_aide_db_recreate
+    - rhel8_stig_discovered_new_aide_db_created.changed # noqa: no-changed-when
+  ansible.builtin.command: "mv -f {{ rhel8_stig_aide_db_new_file }} {{ rhel8_stig_aide_db_file }}"
   changed_when: true
   listen: Build_aide_db
 
 - name: AIDE - If DB exists run check comparison
   when:
-    - remediate_rhel8_stig_discovered_aide_db_file.stat.exists
-    - not remediate_rhel8_stig_discovered_new_aide_db_created.changed # noqa: no-changed-when
+    - rhel8_stig_discovered_aide_db_file.stat.exists
+    - not rhel8_stig_discovered_new_aide_db_created.changed # noqa: no-changed-when
   ansible.builtin.command: set -o pipefail && /usr/sbin/aide --check
   changed_when: true
-  failed_when: remediate_rhel8_stig_discovered_aidedb_check.rc not in [ 0, 1, 4, 5, 7 ]
-  register: remediate_rhel8_stig_discovered_aidedb_check
+  failed_when: rhel8_stig_discovered_aidedb_check.rc not in [ 0, 1, 4, 5, 7 ]
+  register: rhel8_stig_discovered_aidedb_check
   listen: Build_aide_db
 
 - name: AIDE - Warning if checks fail
-  when: remediate_rhel8_stig_discovered_aidedb_check.rc != 0
+  when: rhel8_stig_discovered_aidedb_check.rc != 0
   ansible.builtin.import_tasks:
     file: warning_facts.yml
   vars:
@@ -274,6 +274,6 @@
 - name: Dconf update
   when:
     - "'dconf' in ansible_facts.packages"
-    - remediate_rhel8_stig_always_configure_dconf
+    - rhel8_stig_always_configure_dconf
   ansible.builtin.command: dconf update
   changed_when: true

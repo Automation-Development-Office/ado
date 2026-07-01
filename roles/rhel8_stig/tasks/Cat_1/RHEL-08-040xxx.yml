@@ -1,7 +1,7 @@
 ---
 
 - name: "HIGH | RHEL-08-040000 | PATCH | RHEL 8 must not have the telnet-server package installed."
-  when: remediate_rhel8_stig_040000
+  when: rhel8_stig_040000
   tags:
     - RHEL-08-040000
     - CAT1
@@ -15,7 +15,7 @@
     state: absent
 
 - name: "HIGH | RHEL-08-040010 | PATCH | RHEL 8 must not install packages from the Extra Packages for Enterprise Linux (EPEL) repository."
-  when: remediate_rhel8_stig_040010
+  when: rhel8_stig_040010
   tags:
     - RHEL-08-040010
     - CAT1
@@ -26,28 +26,28 @@
     - V-230492
   block:
     - name: "HIGH | RHEL-08-040010 | PATCH | RHEL 8 must not install packages from the Extra Packages for Enterprise Linux (EPEL) repository."
-      when: not remediate_rhel8_stig_epel_required
+      when: not rhel8_stig_epel_required
       ansible.builtin.package:
         name: epel-release
         state: absent
 
     - name: "HIGH | RHEL-08-040010 | AUDIT | RHEL 8 must not install packages from the Extra Packages for Enterprise Linux (EPEL) repository."
-      when: remediate_rhel8_stig_epel_required
+      when: rhel8_stig_epel_required
       ansible.builtin.command: dnf repolist | grep epel
       changed_when: false
       check_mode: false
-      failed_when: remediate_rhel8_stig_discovered_epel_repos.rc not in [0, 1]
-      register: remediate_rhel8_stig_discovered_epel_repos
+      failed_when: rhel8_stig_discovered_epel_repos.rc not in [0, 1]
+      register: rhel8_stig_discovered_epel_repos
 
     - name: "HIGH | RHEL-08-040010 | WARN | RHEL 8 must not install packages from the Extra Packages for Enterprise Linux (EPEL) repository."
       when:
-        - remediate_rhel8_stig_epel_required
-        - remediate_rhel8_stig_discovered_epel_repos.stdout is defined
+        - rhel8_stig_epel_required
+        - rhel8_stig_discovered_epel_repos.stdout is defined
       ansible.builtin.command: dnf config-manager --disable epel
       changed_when: true
 
 - name: "HIGH | RHEL-08-040170 | PATCH | The x86 Ctrl-Alt-Delete key sequence must be disabled on RHEL 8."
-  when: remediate_rhel8_stig_040170
+  when: rhel8_stig_040170
   tags:
     - RHEL-08-040170
     - CAT1
@@ -72,7 +72,7 @@
 
 - name: "HIGH | RHEL-08-040171 | PATCH | The x86 Ctrl-Alt-Delete key sequence in RHEL 8 must be disabled if a graphical user interface is installed."
   when:
-    - remediate_rhel8_stig_040171
+    - rhel8_stig_040171
     - "'gnome-desktop' in ansible_facts.packages or 'gnome-desktop3' in ansible_facts.packages"
   tags:
     - RHEL-08-040171
@@ -89,11 +89,11 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: remediate_rhel8_stig_discovered_gui_logout_settings_status
+      register: rhel8_stig_discovered_gui_logout_settings_status
 
     - name: "HIGH | RHEL-08-040171 | PATCH | The x86 Ctrl-Alt-Delete key sequence in RHEL 8 must be disabled
              if a graphical user interface is installed. | Add if missing"
-      when: remediate_rhel8_stig_discovered_gui_logout_settings_status.stdout | length == 0
+      when: rhel8_stig_discovered_gui_logout_settings_status.stdout | length == 0
       ansible.builtin.lineinfile:
         path: /etc/dconf/db/local.d/00-disable-CAD
         regexp: "{{ item.regexp }}"
@@ -118,7 +118,7 @@
         replace: "logout=''"
 
 - name: "HIGH | RHEL-08-040172 | PATCH | The systemd Ctrl-Alt-Delete burst key sequence in RHEL 8 must be disabled."
-  when: remediate_rhel8_stig_040172
+  when: rhel8_stig_040172
   tags:
     - RHEL-08-040172
     - CAT1
@@ -148,8 +148,8 @@
 - name: "HIGH | RHEL-08-040190 | PATCH | The Trivial File Transfer Protocol (TFTP) server package must not be installed
          if not required for RHEL 8 operational support."
   when:
-    - remediate_rhel8_stig_040190
-    - not remediate_rhel8_stig_tftp_required
+    - rhel8_stig_040190
+    - not rhel8_stig_tftp_required
   tags:
     - RHEL-08-040190
     - CAT1
@@ -164,7 +164,7 @@
     state: absent
 
 - name: "HIGH | RHEL-08-040200 | PATCH | The root account must be the only account having unrestricted access to the RHEL 8 system."
-  when: remediate_rhel8_stig_040200
+  when: rhel8_stig_040200
   tags:
     - RHEL-08-040200
     - CAT1
@@ -184,20 +184,20 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: remediate_rhel8_stig_discovered_nonroot_uid
+      register: rhel8_stig_discovered_nonroot_uid
 
     - name: "HIGH | HIGH | RHEL-08-040200 | PATCH | The root account must be the only account having unrestricted access
              to the RHEL 8 system. | Lock non-root account with UID of 0"
       when:
-        - remediate_rhel8_stig_discovered_nonroot_uid.stdout | length > 0
-        - remediate_rhel8_stig_disruption_high
+        - rhel8_stig_discovered_nonroot_uid.stdout | length > 0
+        - rhel8_stig_disruption_high
       ansible.builtin.command: "passwd -l {{ item }}"
       changed_when: true
-      loop: "{{ remediate_rhel8_stig_discovered_nonroot_uid.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_nonroot_uid.stdout_lines }}"
 
     - name: "HIGH | RHEL-08-040200 | PATCH | The root account must be the only account having unrestricted access
              to the RHEL 8 system. | Display accounts that were locked"
-      when: remediate_rhel8_stig_discovered_nonroot_uid.stdout | length > 0
+      when: rhel8_stig_discovered_nonroot_uid.stdout | length > 0
       ansible.builtin.debug:
         msg:
           - "WARNING!! The following accounts were locked since they had UID of 0 and were not the root user"
@@ -210,7 +210,7 @@
         file: warning_facts.yml
 
 - name: "HIGH | RHEL-08-040360 | PATCH | A File Transfer Protocol (FTP) server package must not be installed unless mission essential on RHEL 8."
-  when: remediate_rhel8_stig_040360
+  when: rhel8_stig_040360
   tags:
     - RHEL-08-040360
     - CAT1

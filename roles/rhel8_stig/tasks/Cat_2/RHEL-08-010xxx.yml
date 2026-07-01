@@ -1,6 +1,6 @@
 ---
 - name: "MEDIUM | RHEL-08-010010 | PATCH | RHEL 8 vendor packaged system security patches and updates must be installed and up to date."
-  when: remediate_rhel8_stig_010010
+  when: rhel8_stig_010010
   tags:
     - RHEL-08-010010
     - CAT2
@@ -16,7 +16,7 @@
 - name: "MEDIUM | RHEL-08-010019 | PATCH | RHEL 8 must ensure cryptographic verification of vendor software packages."
   when:
     - not system_is_ec2
-    - remediate_rhel8_stig_010019
+    - rhel8_stig_010019
   tags:
     - RHEL-08-010019
     - CAT2
@@ -61,8 +61,8 @@
 - name: MEDIUM | RHEL-08-010040 | PATCH | RHEL 8 must display the Standard Mandatory DoD Notice and Consent Banner before granting local or remote access to the
     system via a ssh logon.
   when:
-    - remediate_rhel8_stig_ssh_required
-    - remediate_rhel8_stig_010040
+    - rhel8_stig_ssh_required
+    - rhel8_stig_010040
   tags:
     - CAT2
     - RHEL-08-010040
@@ -79,7 +79,7 @@
     validate: "/usr/sbin/sshd -T -f %s"
 
 - name: "MEDIUM | RHEL-08-010049 | PATCH | RHEL 8 must display a banner before granting local or remote access to the system via a graphical user logon"
-  when: remediate_rhel8_stig_010049
+  when: rhel8_stig_010049
   tags:
     - RHEL-08-010049
     - CAT2
@@ -103,9 +103,9 @@
 - name: "MEDIUM | RHEL-08-010050 | PATCH | RHEL 8 must display the Standard Mandatory DoD Notice and Consent Banner before granting local or remote access to the
     system via a graphical user logon."
   when:
-    - remediate_rhel8_stig_010050
+    - rhel8_stig_010050
     - "'dconf' in ansible_facts.packages"
-    - remediate_rhel8_stig_always_configure_dconf
+    - rhel8_stig_always_configure_dconf
   tags:
     - RHEL-08-010050
     - CAT2
@@ -119,7 +119,7 @@
     dest: /etc/dconf/db/local.d/01-banner-message
     content: |
       [org/gnome/login-screen]
-      banner-message-text='{{ remediate_rhel8_stig_logon_banner | replace(newline, "\n") }}'
+      banner-message-text='{{ rhel8_stig_logon_banner | replace(newline, "\n") }}'
       banner-message-enable=true
     mode: "u-x,go-wx"
     owner: root
@@ -130,7 +130,7 @@
 
 - name: "MEDIUM | RHEL-08-010060 | PATCH | RHEL 8 must display the Standard Mandatory DoD Notice and Consent Banner before granting local or remote access to the
     system via a command line user logon"
-  when: remediate_rhel8_stig_010040 or remediate_rhel8_stig_010060
+  when: rhel8_stig_010040 or rhel8_stig_010060
   tags:
     - CAT2
     - RHEL-08-010060
@@ -142,7 +142,7 @@
     - V-230227
   ansible.builtin.copy: # noqa: template-instead-of-copy
     dest: "{{ item }}"
-    content: "{{ remediate_rhel8_stig_logon_banner }}"
+    content: "{{ rhel8_stig_logon_banner }}"
     owner: root
     group: root
     mode: "u-x,go-wx"
@@ -152,7 +152,7 @@
   notify: Restart sshd
 
 - name: "MEDIUM | RHEL-08-010070 | PATCH | All RHEL 8 remote access methods must be monitored."
-  when: remediate_rhel8_stig_010070
+  when: rhel8_stig_010070
   tags:
     - RHEL-08-010070
     - CAT2
@@ -176,7 +176,7 @@
 - name: >
     MEDIUM | RHEL-08-010090 | AUDIT | RHEL 8, for PKI-based authentication, must validate certificates by constructing
     a certification path (which includes status information) to an accepted trust anchor.
-  when: remediate_rhel8_stig_010090
+  when: rhel8_stig_010090
   tags:
     - RHEL-08-010090
     - CAT2
@@ -213,8 +213,8 @@
 
 - name: "MEDIUM | RHEL-08-010100 | PATCH | RHEL 8, for certificate-based authentication, must enforce authorized access to the corresponding private key."
   when:
-    - remediate_rhel8_stig_010100
-    - remediate_rhel8_stig_ssh_required
+    - rhel8_stig_010100
+    - rhel8_stig_ssh_required
   tags:
     - RHEL-08-010100
     - CAT2
@@ -228,17 +228,17 @@
     - name: "MEDIUM | RHEL-08-010100 | PATCH | RHEL 8, for certificate-based authentication, must enforce authorized access to the corresponding private key. | Create
         .ssh folder"
       ansible.builtin.file:
-        path: "{{ remediate_rhel8_stig_path_to_sshkey }}"
+        path: "{{ rhel8_stig_path_to_sshkey }}"
         state: directory
         mode: "u+x,go-rwx"
 
     - name: "MEDIUM | RHEL-08-010100 | PATCH | RHEL 8, for certificate-based authentication, must enforce authorized access to the corresponding private key. | Create
         key pair"
       community.crypto.openssh_keypair:
-        path: "{{ remediate_rhel8_stig_path_to_sshkey }}/id_rsa"
+        path: "{{ rhel8_stig_path_to_sshkey }}/id_rsa"
 
 - name: "MEDIUM | RHEL-08-010110 | PATCH | RHEL 8 must encrypt all stored passwords with a FIPS 140-2 approved cryptographic hashing algorithm."
-  when: remediate_rhel8_stig_010110
+  when: rhel8_stig_010110
   tags:
     - RHEL-08-010110
     - CAT2
@@ -251,13 +251,13 @@
   ansible.builtin.lineinfile:
     path: /etc/login.defs
     regexp: "^ENCRYPT_METHOD.*"
-    line: "ENCRYPT_METHOD {{ remediate_rhel8_stig_login_defaults_encrypt_method | default('SHA512') }}"
+    line: "ENCRYPT_METHOD {{ rhel8_stig_login_defaults_encrypt_method | default('SHA512') }}"
     owner: root
     group: root
     mode: "u-x,go-wx"
 
 - name: "MEDIUM | RHEL-08-010120 | PATCH | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms for all stored passwords."
-  when: remediate_rhel8_stig_010120
+  when: rhel8_stig_010120
   tags:
     - RHEL-08-010120
     - CAT2
@@ -283,7 +283,7 @@
         FIPS 140-2 hashing"
       when:
         - discovered_non_fips_hashed_accounts.stdout | length > 0
-        - remediate_rhel8_stig_disruption_high
+        - rhel8_stig_disruption_high
       ansible.builtin.command: "passwd -l {{ item }}"
       changed_when: true
       loop: "{{ discovered_non_fips_hashed_accounts.stdout_lines }}"
@@ -291,7 +291,7 @@
     - name: "MEDIUM | RHEL-08-010120 | AUDIT | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms for all stored passwords. | Message out user
         accounts"
       when:
-        - not remediate_rhel8_stig_disruption_high
+        - not rhel8_stig_disruption_high
         - discovered_non_fips_hashed_accounts.stdout | length > 0
       ansible.builtin.debug:
         msg:
@@ -301,13 +301,13 @@
     - name: "MEDIUM | RHEL-08-010120 | AUDIT | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms for all stored passwords. | Message out user
         accounts"
       when:
-        - not remediate_rhel8_stig_disruption_high
+        - not rhel8_stig_disruption_high
         - discovered_non_fips_hashed_accounts.stdout | length > 0
       ansible.builtin.import_tasks:
         file: warning_facts.yml
 
 - name: "MEDIUM | RHEL-08-010130 | PATCH | The RHEL 8 shadow password suite must be configured to use a sufficient number of hashing rounds."
-  when: remediate_rhel8_stig_010130
+  when: rhel8_stig_010130
   tags:
     - RHEL-08-010130
     - CAT2
@@ -320,7 +320,7 @@
   ansible.builtin.lineinfile:
     path: /etc/login.defs
     regexp: ^.*SHA_CRYPT_(MIN|MAX)_ROUNDS\s
-    line: "SHA_CRYPT_MIN_ROUNDS {{ remediate_rhel8_stig_hashing_rounds }}"
+    line: "SHA_CRYPT_MIN_ROUNDS {{ rhel8_stig_hashing_rounds }}"
     owner: root
     group: root
     mode: "u-x,go-wx"
@@ -330,7 +330,7 @@
      must require a unique superusers name upon booting into single-user mode and maintenance."
     "MEDIUM | RHEL-08-010149 | PATCH | RHEL 8 operating systems booted with a BIOS must require a unique superusers
      name upon booting into single-user and maintenance modes."
-  when: remediate_rhel8_stig_010141 or remediate_rhel8_stig_010149
+  when: rhel8_stig_010141 or rhel8_stig_010149
   tags:
     - RHEL-08-010141
     - RHEL-08-010149
@@ -352,7 +352,7 @@
   notify: Make grub2 config
 
 - name: "MEDIUM | RHEL-08-010151 | PATCH | RHEL 8 operating systems must require authentication upon booting into emergency or rescue modes."
-  when: remediate_rhel8_stig_010151
+  when: rhel8_stig_010151
   tags:
     - RHEL-08-010151
     - CAT2
@@ -372,7 +372,7 @@
     mode: "u-x,go-wx"
 
 - name: "MEDIUM | RHEL-08-010152 | PATCH | RHEL 8 operating systems must require authentication upon booting into emergency mode."
-  when: remediate_rhel8_stig_010152
+  when: rhel8_stig_010152
   tags:
     - RHEL-08-010152
     - CAT2
@@ -393,7 +393,7 @@
 
 - name: "MEDIUM | RHEL-08-010159 | PATCH | The RHEL 8 pam_unix.so module must be configured in the system-auth file to use a FIPS 140-2 approved cryptographic hashing
     algorithm for system authentication."
-  when: remediate_rhel8_stig_010159
+  when: rhel8_stig_010159
   tags:
     - RHEL-08-010159
     - CAT2
@@ -413,7 +413,7 @@
 
 - name: "MEDIUM | RHEL-08-010160 | PATCH | The RHEL 8 pam_unix.so module must be configured in the password-auth file to use a FIPS 140-2 approved cryptographic hashing
     algorithm for system authentication."
-  when: remediate_rhel8_stig_010160
+  when: rhel8_stig_010160
   tags:
     - RHEL-08-010160
     - CAT2
@@ -432,7 +432,7 @@
     state: args_present
 
 - name: "MEDIUM | RHEL-08-010161 | PATCH | RHEL 8 must prevent system daemons from using Kerberos for authentication."
-  when: remediate_rhel8_stig_010161
+  when: rhel8_stig_010161
   tags:
     - RHEL-08-010161
     - CAT2
@@ -458,7 +458,7 @@
       loop: "{{ discovered_keytab_files.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010162 | PATCH | The krb5-workstation package must not be installed on RHEL 8."
-  when: remediate_rhel8_stig_010162
+  when: rhel8_stig_010162
   tags:
     - RHEL-08-010162
     - CAT2
@@ -476,7 +476,7 @@
   ansible.builtin.package:
     name: krb5-server
     state: absent
-  when: remediate_rhel8_stig_010163
+  when: rhel8_stig_010163
   tags:
     - RHEL-08-010163
     - CAT2
@@ -489,8 +489,8 @@
 
 - name: "MEDIUM | RHEL-08-010170 | PATCH | RHEL8 must use a Linux Security Module configured to enforce limits on system services."
   when:
-    - remediate_rhel8_stig_010170
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010170
+    - rhel8_stig_disruption_high
   tags:
     - CAT2
     - RHEL-08-010170
@@ -509,7 +509,7 @@
 
 - name: "MEDIUM | RHEL-08-010190 | PATCH | A sticky bit must be set on all RHEL 8 public directories to prevent unauthorized and unintended information transferred
     via shared system resources."
-  when: remediate_rhel8_stig_010190
+  when: rhel8_stig_010190
   tags:
     - RHEL-08-010190
     - CAT2
@@ -538,8 +538,8 @@
 - name: "MEDIUM | RHEL-08-010200 | PATCH | RHEL 8 must be configured so that all network connections associated with SSH traffic are terminated at the end of the
     session or after 10 minutes of inactivity, except to fulfill documented and validated mission requirements."
   when:
-    - remediate_rhel8_stig_010200
-    - remediate_rhel8_stig_ssh_required
+    - rhel8_stig_010200
+    - rhel8_stig_ssh_required
   tags:
     - RHEL-08-010200
     - CAT2
@@ -560,8 +560,8 @@
 
 - name: "MEDIUM | RHEL-08-010201 | PATCH | The RHEL 8 SSH daemon must be configured with a timeout interval"
   when:
-    - remediate_rhel8_stig_010201
-    - remediate_rhel8_stig_ssh_required
+    - rhel8_stig_010201
+    - rhel8_stig_ssh_required
   tags:
     - RHEL-08-010201
     - CAT2
@@ -576,12 +576,12 @@
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: (?i)^#?\s*ClientAliveInterval.*'
-    line: "ClientAliveInterval {{ remediate_rhel8_stig_ssh_session_timeout }}"
+    line: "ClientAliveInterval {{ rhel8_stig_ssh_session_timeout }}"
     validate: "/usr/sbin/sshd -T -f %s"
   notify: Restart sshd
 
 - name: "MEDIUM | RHEL-08-010210 | PATCH | The RHEL 8 /var/log/messages file must have mode 0640 or less permissive."
-  when: remediate_rhel8_stig_010210
+  when: rhel8_stig_010210
   tags:
     - CAT2
     - RHEL-08-010210
@@ -596,7 +596,7 @@
     mode: "u-x,g-wx,o-rwx"
 
 - name: "MEDIUM | RHEL-08-010220 | PATCH | The RHEL 8 /var/log/messages file must be owned by root."
-  when: remediate_rhel8_stig_010220
+  when: rhel8_stig_010220
   tags:
     - CAT2
     - RHEL-08-010220
@@ -611,7 +611,7 @@
     owner: root
 
 - name: "MEDIUM | RHEL-08-010230 | PATCH | The RHEL 8 /var/log/messages file must be group-owned by root."
-  when: remediate_rhel8_stig_010230
+  when: rhel8_stig_010230
   tags:
     - CAT2
     - RHEL-08-010230
@@ -626,7 +626,7 @@
     group: root
 
 - name: "MEDIUM | RHEL-08-010240 | PATCH | The RHEL 8 /var/log directory must have mode 0755 or less permissive."
-  when: remediate_rhel8_stig_010240
+  when: rhel8_stig_010240
   tags:
     - CAT2
     - RHEL-08-010240
@@ -641,7 +641,7 @@
     mode: "g-w,o-w"
 
 - name: "MEDIUM | RHEL-08-010250 | PATCH | The RHEL 8 /var/log directory must be owned by root."
-  when: remediate_rhel8_stig_010250
+  when: rhel8_stig_010250
   tags:
     - CAT2
     - RHEL-08-010250
@@ -656,7 +656,7 @@
     owner: root
 
 - name: "MEDIUM | RHEL-08-010260 | PATCH | The RHEL 8 /var/log directory must be group-owned by root."
-  when: remediate_rhel8_stig_010260
+  when: rhel8_stig_010260
   tags:
     - CAT2
     - RHEL-08-010260
@@ -672,8 +672,8 @@
 
 - name: "MEDIUM | RHEL-08-010275 | PATCH | RHEL 8 must implement DOD-approved encryption in the bind package."
   when:
-    - remediate_rhel8_stig_010275
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010275
+    - rhel8_stig_disruption_high
     - "'bind' in ansible_facts.packages"
   tags:
     - RHEL-08-010275
@@ -698,8 +698,8 @@
 
 - name: "MEDIUM | RHEL-08-010280 | PATCH | RHEL 8 IP tunnels must use FIPS 140-3-approved cryptographic algorithms."
   when:
-    - remediate_rhel8_stig_010280
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010280
+    - rhel8_stig_disruption_high
     - "'libreswan' in ansible_facts.packages"
   tags:
     - RHEL-08-010280
@@ -718,7 +718,7 @@
 
 - name: "MEDIUM | RHEL-08-010290 | PATCH | The RHEL 8 SSH daemon must be configured to use only Message Authentication Codes (MACs) employing FIPS 140-2 validated
     cryptographic hash algorithms. | Add MACs"
-  when: remediate_rhel8_stig_010290
+  when: rhel8_stig_010290
   tags:
     - CAT2
     - RHEL-08-010290
@@ -752,13 +752,13 @@
       ansible.builtin.lineinfile:
         path: /etc/crypto-policies/back-ends/opensshserver.config
         regexp: "(^CRYPTO_POLICY=.*)-oMACS={{ discovered_current_macs.stdout }}(.*$)"
-        line: "\\g<1>-oMACS={{ remediate_rhel8_stig_ssh_macs }}\\g<2>"
+        line: "\\g<1>-oMACS={{ rhel8_stig_ssh_macs }}\\g<2>"
         backrefs: true
       notify: Reinstall_crypto_policies
 
 - name: "MEDIUM | RHEL-08-010291 | PATCH | The RHEL 8 operating system must implement DoD-approved encryption to protect the confidentiality of SSH server connections.
     | Add Ciphers"
-  when: remediate_rhel8_stig_010291
+  when: rhel8_stig_010291
   tags:
     - CAT2
     - RHEL-08-010291
@@ -790,13 +790,13 @@
       ansible.builtin.lineinfile:
         path: /etc/crypto-policies/back-ends/opensshserver.config
         regexp: "(^CRYPTO_POLICY=.*)-oCiphers={{ discovered_current_ciphers.stdout }}(.*$)"
-        line: "\\g<1>-oCiphers={{ remediate_rhel8_stig_ssh_ciphers }}\\g<2>"
+        line: "\\g<1>-oCiphers={{ rhel8_stig_ssh_ciphers }}\\g<2>"
         backrefs: true
       notify: Change_requires_reboot
 
 - name: "MEDIUM | RHEL-08-010296 | PATCH | The RHEL 8 SSH client must be configured to use only Message Authentication Codes (MACs) employing FIPS 140-3 validated
     cryptographic hash algorithms. | Add MACs"
-  when: remediate_rhel8_stig_010296
+  when: rhel8_stig_010296
   tags:
     - CAT2
     - RHEL-08-010296
@@ -810,12 +810,12 @@
   ansible.builtin.lineinfile:
     path: /etc/crypto-policies/back-ends/openssh.config
     regexp: ^MACs.*
-    line: "MACs {{ remediate_rhel8_stig_ssh_macs }}"
+    line: "MACs {{ rhel8_stig_ssh_macs }}"
   notify: Change_requires_reboot
 
 - name: "MEDIUM | RHEL-08-010297 | PATCH | RHEL 8 SSH client must be configured to use only ciphers employing FIPS 140-3 validated cryptographic hash algorithms.
     | Add Ciphers"
-  when: remediate_rhel8_stig_010297
+  when: rhel8_stig_010297
   tags:
     - CAT2
     - RHEL-08-010297
@@ -829,13 +829,13 @@
   ansible.builtin.lineinfile:
     path: /etc/crypto-policies/back-ends/openssh.config
     regexp: ^Ciphers
-    line: "Ciphers {{ remediate_rhel8_stig_ssh_ciphers }}"
+    line: "Ciphers {{ rhel8_stig_ssh_ciphers }}"
   notify: Change_requires_reboot
 
 - name: "MEDIUM | RHEL-08-010300 | PATCH | RHEL 8 system commands must have mode 755 or less permissive."
   when:
-    - remediate_rhel8_stig_010300
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010300
+    - rhel8_stig_disruption_high
   tags:
     - RHEL-08-010300
     - CAT2
@@ -862,7 +862,7 @@
       loop: "{{ discovered_system_command_permissions.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010310 | PATCH | RHEL 8 system commands must be owned by root."
-  when: remediate_rhel8_stig_010310
+  when: rhel8_stig_010310
   tags:
     - RHEL-08-010310
     - CAT2
@@ -889,7 +889,7 @@
         label: "{{ item }}"
 
 - name: "MEDIUM | RHEL-08-010320 | PATCH | RHEL 8 system commands must be group-owned by root or a system account."
-  when: remediate_rhel8_stig_010320
+  when: rhel8_stig_010320
   tags:
     - RHEL-08-010320
     - CAT2
@@ -922,8 +922,8 @@
 
 - name: "MEDIUM | RHEL-08-010330 | PATCH | RHEL 8 library files must have mode 755 or less permissive."
   when:
-    - remediate_rhel8_stig_010330
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010330
+    - rhel8_stig_disruption_high
   tags:
     - RHEL-08-010330
     - CAT2
@@ -949,8 +949,8 @@
 
 - name: "MEDIUM | RHEL-08-010331 | PATCH | RHEL 8 library directories must have mode 755 or less permissive."
   when:
-    - remediate_rhel8_stig_010331
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010331
+    - rhel8_stig_disruption_high
   tags:
     - RHEL-08-010331
     - CAT2
@@ -974,7 +974,7 @@
       loop: "{{ discovered_library_directory_perms.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010340 | PATCH | RHEL 8 library files must be owned by root."
-  when: remediate_rhel8_stig_010340
+  when: rhel8_stig_010340
   tags:
     - RHEL-08-010340
     - CAT2
@@ -999,7 +999,7 @@
       loop: "{{ discovered_lib_files_owner.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010341 | PATCH | RHEL 8 library directories must be owned by root."
-  when: remediate_rhel8_stig_010341
+  when: rhel8_stig_010341
   tags:
     - RHEL-08-010341
     - CAT2
@@ -1018,7 +1018,7 @@
     - "/usr/lib64"
 
 - name: "MEDIUM | RHEL-08-010350 | PATCH | RHEL 8 library files must be group-owned by root."
-  when: remediate_rhel8_stig_010350
+  when: rhel8_stig_010350
   tags:
     - RHEL-08-010350
     - CAT2
@@ -1040,7 +1040,7 @@
     - name: "MEDIUM | RHEL-08-010350 | PATCH | RHEL 8 library files must be group-owned by root."
       when:
         - discovered_lib_files_group.stdout | length > 0
-        - remediate_rhel8_stig_disruption_high
+        - rhel8_stig_disruption_high
       ansible.builtin.file:
         path: "{{ item }}"
         group: root
@@ -1049,7 +1049,7 @@
     - name: "MEDIUM | RHEL-08-010350 | WARN | RHEL 8 library files must be group-owned by root."
       when:
         - discovered_lib_files_group.stdout | length > 0
-        - not remediate_rhel8_stig_disruption_high
+        - not rhel8_stig_disruption_high
       ansible.builtin.debug:
         msg: |
           "Warning!! Please validate group ownership of the following library files or symlinks
@@ -1058,12 +1058,12 @@
     - name: "MEDIUM | RHEL-08-010350 | WARN | RHEL 8 library files must be group-owned by root."
       when:
         - discovered_lib_files_group.stdout | length > 0
-        - not remediate_rhel8_stig_disruption_high
+        - not rhel8_stig_disruption_high
       ansible.builtin.import_tasks:
         file: warning_facts.yml
 
 - name: "MEDIUM | RHEL-08-010351 | PATCH | RHEL 8 library directories must be group-owned by root or a system account."
-  when: remediate_rhel8_stig_010351
+  when: rhel8_stig_010351
   tags:
     - RHEL-08-010351
     - CAT2
@@ -1096,7 +1096,7 @@
 
 - name: "MEDIUM | RHEL-08-010358 | PATCH | RHEL 8 must be configured to allow sending email notifications of unauthorized configuration changes to designated personnel.
     | pkg install"
-  when: remediate_rhel8_stig_010358
+  when: rhel8_stig_010358
   tags:
     - RHEL-08-010358
     - CAT2
@@ -1113,8 +1113,8 @@
 - name: "MEDIUM | RHEL-08-010359 | PATCH | The RHEL 8 operating system must use a file integrity tool to verify correct operation of all security functions. | pkg
     install"
   when:
-    - remediate_rhel8_stig_use_aide
-    - remediate_rhel8_stig_010359
+    - rhel8_stig_use_aide
+    - rhel8_stig_010359
   tags:
     - RHEL-08-010359
     - CAT2
@@ -1140,9 +1140,9 @@
 - name: "MEDIUM | RHEL-08-010360 | PATCH | The RHEL 8 file integrity tool must notify the system administrator when changes to the baseline configuration or anomalies
     in the operation of any security functions are discovered within an organizationally defined frequency."
   when:
-    - remediate_rhel8_stig_010360
-    - remediate_rhel8_stig_use_aide
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010360
+    - rhel8_stig_use_aide
+    - rhel8_stig_disruption_high
     - "'crontabs' in ansible_facts.packages"
   tags:
     - RHEL-08-010360
@@ -1157,29 +1157,29 @@
     - aide
     - cron
   ansible.builtin.cron: # noqa: jinja[spacing]
-    name: "Run AIDE integrity check {{ remediate_rhel8_stig_aide_cron_special_time }}"
-    user: "{{ remediate_rhel8_stig_aide_cron_user }}"
-    cron_file: "{{ remediate_rhel8_stig_aide_cron_cron_file }}"
-    job: "{{ remediate_rhel8_stig_aide_cron_job + (( remediate_rhel8_stig_aide_cron_notify_by_mail ) | ternary( remediate_rhel8_stig_aide_cron_notify_cmd,'' )) }}"
+    name: "Run AIDE integrity check {{ rhel8_stig_aide_cron_special_time }}"
+    user: "{{ rhel8_stig_aide_cron_user }}"
+    cron_file: "{{ rhel8_stig_aide_cron_cron_file }}"
+    job: "{{ rhel8_stig_aide_cron_job + (( rhel8_stig_aide_cron_notify_by_mail ) | ternary( rhel8_stig_aide_cron_notify_cmd,'' )) }}"
     minute: >-
-      {{ remediate_rhel8_stig_aide_cron_minute | default(
-        ( remediate_rhel8_stig_cron_special_disable and
-          remediate_rhel8_stig_aide_cron_special_time in ['hourly', 'daily', 'weekly', 'monthly']
+      {{ rhel8_stig_aide_cron_minute | default(
+        ( rhel8_stig_cron_special_disable and
+          rhel8_stig_aide_cron_special_time in ['hourly', 'daily', 'weekly', 'monthly']
         ) | ternary('0', omit)
       ) | default(omit) }}
     hour: >-
-      {{ remediate_rhel8_stig_aide_cron_hour | default(( remediate_rhel8_stig_cron_special_disable and
-      remediate_rhel8_stig_aide_cron_special_time in ['daily', 'weekly', 'monthly'] ) | ternary('0', omit)) | default(omit) }}
+      {{ rhel8_stig_aide_cron_hour | default(( rhel8_stig_cron_special_disable and
+      rhel8_stig_aide_cron_special_time in ['daily', 'weekly', 'monthly'] ) | ternary('0', omit)) | default(omit) }}
     day: >-
-      {{ remediate_rhel8_stig_aide_cron_day | default(( remediate_rhel8_stig_cron_special_disable and
-      remediate_rhel8_stig_aide_cron_special_time in ['monthly'] ) | ternary('1', omit)) | default(omit) }}
+      {{ rhel8_stig_aide_cron_day | default(( rhel8_stig_cron_special_disable and
+      rhel8_stig_aide_cron_special_time in ['monthly'] ) | ternary('1', omit)) | default(omit) }}
     special_time: >-
-      {{ ( remediate_rhel8_stig_cron_special_disable and
-      remediate_rhel8_stig_aide_cron_special_time in ['hourly', 'daily', 'weekly', 'monthly'] )
-      | ternary(omit, remediate_rhel8_stig_aide_cron_special_time) }}
+      {{ ( rhel8_stig_cron_special_disable and
+      rhel8_stig_aide_cron_special_time in ['hourly', 'daily', 'weekly', 'monthly'] )
+      | ternary(omit, rhel8_stig_aide_cron_special_time) }}
 
 - name: "MEDIUM | RHEL-08-010372 | PATCH | RHEL 8 must prevent the loading of a new kernel for later execution."
-  when: remediate_rhel8_stig_010372
+  when: rhel8_stig_010372
   tags:
     - RHEL-08-010372
     - CAT2
@@ -1195,9 +1195,9 @@
         name: kernel.kexec_load_disabled
         value: 1
         state: present
-        reload: "{{ remediate_rhel8_stig_sysctl_reload }}"
+        reload: "{{ rhel8_stig_sysctl_reload }}"
         sysctl_set: true
-        sysctl_file: "{{ remediate_rhel8_stig_sysctl_file }}"
+        sysctl_file: "{{ rhel8_stig_sysctl_file }}"
 
     - name: "MEDIUM | RHEL-08-010372 | AUDIT | RHEL 8 must prevent the loading of a new kernel for later execution. | Find conflicting instances"
       ansible.builtin.shell: >
@@ -1212,7 +1212,7 @@
     - name: "MEDIUM | RHEL-08-010372 | PATCH | RHEL 8 must prevent the loading of a new kernel for later execution. | Remove conflicting instances"
       when:
         - discovered_conflicting_kernel_settings.stdout | length > 0
-        - item != remediate_rhel8_stig_sysctl_file
+        - item != rhel8_stig_sysctl_file
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "^kernel.kexec_load_disabled = 0"
@@ -1220,7 +1220,7 @@
       loop: "{{ discovered_conflicting_kernel_settings.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010373 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary access control on symlinks."
-  when: remediate_rhel8_stig_010373
+  when: rhel8_stig_010373
   tags:
     - RHEL-08-010373
     - CAT2
@@ -1247,7 +1247,7 @@
     - name: "MEDIUM | RHEL-08-010373 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary access control on symlinks. | Remove conflicting instances"
       when:
         - discovered_conflicting_symlink_settings.stdout | length > 0
-        - item != remediate_rhel8_stig_sysctl_file
+        - item != rhel8_stig_sysctl_file
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "^fs.protected_symlinks = 0"
@@ -1259,12 +1259,12 @@
         name: fs.protected_symlinks
         value: 1
         state: present
-        reload: "{{ remediate_rhel8_stig_sysctl_reload }}"
+        reload: "{{ rhel8_stig_sysctl_reload }}"
         sysctl_set: true
-        sysctl_file: "{{ remediate_rhel8_stig_sysctl_file }}"
+        sysctl_file: "{{ rhel8_stig_sysctl_file }}"
 
 - name: "MEDIUM | RHEL-08-010374 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary access control on hardlinks."
-  when: remediate_rhel8_stig_010374
+  when: rhel8_stig_010374
   tags:
     - RHEL-08-010374
     - CAT2
@@ -1292,7 +1292,7 @@
     - name: "MEDIUM | RHEL-08-010374 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary access control on hardlinks. | Remove conflicting instances"
       when:
         - discovered_hardlink_conflicting_settings.stdout | length > 0
-        - item != remediate_rhel8_stig_sysctl_file
+        - item != rhel8_stig_sysctl_file
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "^fs.protected_hardlinks = 0"
@@ -1304,12 +1304,12 @@
         name: fs.protected_hardlinks
         value: 1
         state: present
-        reload: "{{ remediate_rhel8_stig_sysctl_reload }}"
+        reload: "{{ rhel8_stig_sysctl_reload }}"
         sysctl_set: true
-        sysctl_file: "{{ remediate_rhel8_stig_sysctl_file }}"
+        sysctl_file: "{{ rhel8_stig_sysctl_file }}"
 
 - name: "MEDIUM | RHEL-08-010379 | PATCH | RHEL 8 must specify the default 'include' directory for the /etc/sudoers file."
-  when: remediate_rhel8_stig_010379
+  when: rhel8_stig_010379
   tags:
     - RHEL-08-010379
     - CAT2
@@ -1327,8 +1327,8 @@
 
 - name: "MEDIUM | RHEL-08-010380 | PATCH | RHEL 8 must require users to provide a password for privilege escalation."
   when:
-    - remediate_rhel8_stig_010380
-    - remediate_rhel8_stig_using_password_auth
+    - rhel8_stig_010380
+    - rhel8_stig_using_password_auth
   tags:
     - RHEL-08-010380
     - CAT2
@@ -1340,14 +1340,14 @@
     - sudo
   ansible.builtin.replace:
     path: "{{ item }}"
-    regexp: "^((?!#|{% for name in remediate_rhel8_stig_sudoers_exclude_nopasswd_list %}{{ name }}{% if not loop.last -%}|{%- endif -%}{% endfor %}).*)NOPASSWD(.*)"
+    regexp: "^((?!#|{% for name in rhel8_stig_sudoers_exclude_nopasswd_list %}{{ name }}{% if not loop.last -%}|{%- endif -%}{% endfor %}).*)NOPASSWD(.*)"
     replace: "\\1PASSWD\\2"
   loop: "{{ prelim_sudoers_files.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010381 | PATCH | RHEL 8 must require users to reauthenticate for privilege escalation."
   when:
-    - remediate_rhel8_stig_010381
-    - remediate_rhel8_stig_using_password_auth
+    - rhel8_stig_010381
+    - rhel8_stig_using_password_auth
   tags:
     - RHEL-08-010381
     - CAT2
@@ -1367,8 +1367,8 @@
 
 - name: "MEDIUM | RHEL-08-010382 | PATCH | RHEL 8 must restrict privilege elevation to authorized personnel."
   when:
-    - remediate_rhel8_stig_010382
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010382
+    - rhel8_stig_disruption_high
   tags:
     - RHEL-08-010382
     - CAT2
@@ -1406,8 +1406,8 @@
 
 - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege escalation when using sudo."
   when:
-    - remediate_rhel8_stig_010383
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010383
+    - rhel8_stig_disruption_high
   tags:
     - RHEL-08-010383
     - CAT2
@@ -1472,8 +1472,8 @@
 
 - name: "MEDIUM | RHEL-08-010384 | PATCH | RHEL 8 must require re-authentication when using the sudo command."
   when:
-    - remediate_rhel8_stig_010384
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010384
+    - rhel8_stig_disruption_high
   tags:
     - RHEL-08-010384
     - CAT2
@@ -1496,7 +1496,7 @@
       ansible.builtin.lineinfile:
         path: /etc/sudoers
         regexp: "Defaults timestamp_timeout="
-        line: "Defaults timestamp_timeout={{ remediate_rhel8_stig_sudo_timestamp_timeout }}"
+        line: "Defaults timestamp_timeout={{ rhel8_stig_sudo_timestamp_timeout }}"
         validate: "/usr/sbin/visudo -cf %s"
 
     - name: "MEDIUM | RHEL-08-010384 | PATCH | RHEL 8 must require re-authentication when using the sudo command. | Set value if has results"
@@ -1504,12 +1504,12 @@
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "Defaults timestamp_timeout="
-        line: "Defaults timestamp_timeout={{ remediate_rhel8_stig_sudo_timestamp_timeout }}"
+        line: "Defaults timestamp_timeout={{ rhel8_stig_sudo_timestamp_timeout }}"
         validate: "/usr/sbin/visudo -cf %s"
       loop: "{{ discovered_sudo_timeout_files.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010385 | PATCH | The RHEL 8 operating system must not be configured to bypass password requirements for privilege escalation."
-  when: remediate_rhel8_stig_010385
+  when: rhel8_stig_010385
   tags:
     - RHEL-08-010385
     - CAT2
@@ -1526,7 +1526,7 @@
     state: absent
 
 - name: "MEDIUM | RHEL-08-010390 | PATCH | RHEL 8 must have the packages required for multifactor authentication installed."
-  when: remediate_rhel8_stig_010390
+  when: rhel8_stig_010390
   tags:
     - RHEL-08-010390
     - CAT2
@@ -1542,7 +1542,7 @@
 
 - name: "MEDIUM | RHEL-08-010400 | PATCH | RHEL 8 must implement certificate status checking for multifactor authentication." # noqa: risky-file-permissions
   when:
-    - remediate_rhel8_stig_010400
+    - rhel8_stig_010400
     - prelim_sssd_conf_present.stat.exists
   tags:
     - RHEL-08-010400
@@ -1555,7 +1555,7 @@
     - V-230274
     - multifactor
   community.general.ini_file:
-    path: "{{ remediate_rhel8_stig_sssd_conf }}"
+    path: "{{ rhel8_stig_sssd_conf }}"
     state: "{{ item.state }}"
     section: "{{ item.section | default(omit) }}"
     option: "certificate_verification"
@@ -1568,7 +1568,7 @@
   notify: Restart sssd
 
 - name: "MEDIUM | RHEL-08-010410 | PATCH | RHEL 8 must accept Personal Identity Verification (PIV) credentials."
-  when: remediate_rhel8_stig_010410
+  when: rhel8_stig_010410
   tags:
     - RHEL-08-010410
     - CAT2
@@ -1584,7 +1584,7 @@
     state: present
 
 - name: "MEDIUM | RHEL-08-010420 | AUDIT | RHEL 8 must implement non-executable data to protect its memory from unauthorized code execution."
-  when: remediate_rhel8_stig_010420
+  when: rhel8_stig_010420
   tags:
     - RHEL-08-010420
     - CAT2
@@ -1617,7 +1617,7 @@
         file: warning_facts.yml
 
 - name: "MEDIUM | RHEL-08-010421 | PATCH | RHEL 8 must clear the page allocator to prevent use-after-free attacks."
-  when: remediate_rhel8_stig_010421
+  when: rhel8_stig_010421
   tags:
     - RHEL-08-010421
     - CAT2
@@ -1645,7 +1645,7 @@
         - Change_requires_reboot
 
 - name: "MEDIUM | RHEL-08-010422 | PATCH | RHEL 8 must disable virtual syscalls."
-  when: remediate_rhel8_stig_010422
+  when: rhel8_stig_010422
   tags:
     - RHEL-08-010422
     - CAT2
@@ -1673,7 +1673,7 @@
         - Change_requires_reboot
 
 - name: "MEDIUM | RHEL-08-010423 | PATCH | RHEL 8 must clear memory when it is freed to prevent use-after-free attacks."
-  when: remediate_rhel8_stig_010423
+  when: rhel8_stig_010423
   tags:
     - RHEL-08-010423
     - CAT2
@@ -1701,7 +1701,7 @@
         - Change_requires_reboot
 
 - name: " MEDIUM | RHEL-08-010430 | PATCH | RHEL 8 must implement address space layout randomization (ASLR) to protect its memory from unauthorized code execution."
-  when: remediate_rhel8_stig_010430
+  when: rhel8_stig_010430
   tags:
     - RHEL-08-010430
     - CAT2
@@ -1727,7 +1727,7 @@
         | Remove conflicting instances"
       when:
         - discovered_aslr_conflicting_settings.stdout | length > 0
-        - "item != remediate_rhel8_stig_sysctl_file"
+        - "item != rhel8_stig_sysctl_file"
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "kernel.randomize_va_space = [^2]"
@@ -1740,14 +1740,14 @@
         name: kernel.randomize_va_space
         value: 2
         state: present
-        reload: "{{ remediate_rhel8_stig_sysctl_reload }}"
+        reload: "{{ rhel8_stig_sysctl_reload }}"
         sysctl_set: true
-        sysctl_file: "{{ remediate_rhel8_stig_sysctl_file }}"
+        sysctl_file: "{{ rhel8_stig_sysctl_file }}"
 
 - name: "MEDIUM | RHEL-08-010450 | PATCH | RHEL 8 must enable the SELinux targeted policy."
   when:
-    - remediate_rhel8_stig_010450
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010450
+    - rhel8_stig_disruption_high
   tags:
     - CAT2
     - RHEL-08-010450
@@ -1759,15 +1759,15 @@
     - selinux
     - disruption_high
   ansible.posix.selinux: # noqa: jinja[invalid]
-    state: "{% if remediate_rhel8_stig_010170 %}enforcing{% else %}{{ ansible_selinux.config_mode }}{% endif %}"
+    state: "{% if rhel8_stig_010170 %}enforcing{% else %}{{ ansible_selinux.config_mode }}{% endif %}"
     policy: targeted
-  check_mode: "{{ ansible_check_mode or remediate_rhel8_stig_system_is_chroot }}"
+  check_mode: "{{ ansible_check_mode or rhel8_stig_system_is_chroot }}"
   notify: Change_requires_reboot
 
 - name: "MEDIUM | RHEL-08-010455 | RHEL 8 must elevate the SELinux context when an administrator calls the sudo command."
   when:
-    - remediate_rhel8_stig_010455
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010455
+    - rhel8_stig_disruption_high
   tags:
     - CAT2
     - RHEL-08-010455
@@ -1787,8 +1787,8 @@
 
 - name: "MEDIUM | RHEL-08-010480 | PATCH | The RHEL 8 SSH public host key files must have mode 0644 or less permissive."
   when:
-    - remediate_rhel8_stig_010480
-    - remediate_rhel8_stig_ssh_required
+    - rhel8_stig_010480
+    - rhel8_stig_ssh_required
   tags:
     - RHEL-08-010480
     - CAT2
@@ -1816,8 +1816,8 @@
 
 - name: "MEDIUM | RHEL-08-010490 | PATCH | The RHEL 8 SSH private host key files must have mode 0640 or less permissive."
   when:
-    - remediate_rhel8_stig_010490
-    - remediate_rhel8_stig_ssh_required
+    - rhel8_stig_010490
+    - rhel8_stig_ssh_required
   tags:
     - RHEL-08-010490
     - CAT2
@@ -1845,8 +1845,8 @@
 
 - name: "MEDIUM | RHEL-08-010500 | PATCH | The RHEL 8 SSH daemon must perform strict mode checking of home directory configuration files."
   when:
-    - remediate_rhel8_stig_010500
-    - remediate_rhel8_stig_ssh_required
+    - rhel8_stig_010500
+    - rhel8_stig_ssh_required
   tags:
     - RHEL-08-010500
     - CAT2
@@ -1865,8 +1865,8 @@
 
 - name: "MEDIUM | RHEL-08-010520 | PATCH | The RHEL 8 SSH daemon must not allow authentication using known host’s authentication."
   when:
-    - remediate_rhel8_stig_010520
-    - remediate_rhel8_stig_ssh_required
+    - rhel8_stig_010520
+    - rhel8_stig_ssh_required
   tags:
     - RHEL-08-010520
     - CAT2
@@ -1885,8 +1885,8 @@
 
 - name: "MEDIUM | RHEL-08-010521 | PATCH | The RHEL 8 SSH daemon must not allow Kerberos authentication, except to fulfill documented and validated mission requirements." # noqa: yaml[line-length]
   when:
-    - remediate_rhel8_stig_010521
-    - remediate_rhel8_stig_ssh_required
+    - rhel8_stig_010521
+    - rhel8_stig_ssh_required
   tags:
     - RHEL-08-010521
     - CAT2
@@ -1905,8 +1905,8 @@
 
 - name: "MEDIUM | RHEL-08-010522 | PATCH | The RHEL 8 SSH daemon must not allow GSSAPI authentication, except to fulfill documented and validated mission requirements." # noqa: yaml[line-length]
   when:
-    - remediate_rhel8_stig_010522
-    - remediate_rhel8_stig_ssh_required
+    - rhel8_stig_010522
+    - rhel8_stig_ssh_required
   tags:
     - RHEL-08-010522
     - CAT2
@@ -1925,7 +1925,7 @@
 
 - name: "MEDIUM | RHEL-08-010543 | AUDIT | A separate RHEL 8 filesystem must be used for the /tmp directory."
   when:
-    - remediate_rhel8_stig_010543
+    - rhel8_stig_010543
     - ansible_mounts | selectattr('mount', 'match', '^/tmp$') | list | length == 0
   tags:
     - RHEL-08-010543
@@ -1951,7 +1951,7 @@
 
 - name: "MEDIUM | RHEL-08-010544 | AUDIT | RHEL 8 must use a separate file system for /var/tmp."
   when:
-    - remediate_rhel8_stig_010544
+    - rhel8_stig_010544
     - ansible_mounts | selectattr('mount', 'match', '^/var/tmp$') | list | length == 0
   tags:
     - RHEL-08-010544
@@ -1975,8 +1975,8 @@
 
 - name: "MEDIUM | RHEL-08-010550 | PATCH | The RHEL 8 must not permit direct logons to the root account using remote access via SSH."
   when:
-    - remediate_rhel8_stig_010550
-    - remediate_rhel8_stig_ssh_required
+    - rhel8_stig_010550
+    - rhel8_stig_ssh_required
   tags:
     - RHEL-08-010550
     - CAT2
@@ -1994,7 +1994,7 @@
   notify: Restart sshd
 
 - name: "MEDIUM | RHEL-08-010561 | PATCH | The rsyslog service must be running in RHEL 8."
-  when: remediate_rhel8_stig_010561
+  when: rhel8_stig_010561
   tags:
     - RHEL-08-010561
     - CAT2
@@ -2012,7 +2012,7 @@
     directories." # noqa: yaml[line-length]
   when:
     - item.mount == '/home'
-    - remediate_rhel8_stig_010570
+    - rhel8_stig_010570
   tags:
     - RHEL-08-010570
     - CAT2
@@ -2028,13 +2028,13 @@
     state: mounted
     src: "{{ item.device }}"
     fstype: "{{ item.fstype }}"
-    opts: "defaults{{ remediate_rhel8_stig_010570 | ternary(',nosuid', '') }}"
+    opts: "defaults{{ rhel8_stig_010570 | ternary(',nosuid', '') }}"
   loop: "{{ ansible_facts.mounts }}"
 
 - name: "MEDIUM | RHEL-08-010571 | PATCH | RHEL 8 must prevent files with the setuid and setgid bit set from being executed on the /boot directory."
   when:
     - item.mount == '/boot'
-    - remediate_rhel8_stig_010571
+    - rhel8_stig_010571
   tags:
     - RHEL-08-010571
     - CAT2
@@ -2050,14 +2050,14 @@
     state: mounted
     src: "{{ item.device }}"
     fstype: "{{ item.fstype }}"
-    opts: "defaults{{ remediate_rhel8_stig_010571 | ternary(',nosuid', '') }}"
+    opts: "defaults{{ rhel8_stig_010571 | ternary(',nosuid', '') }}"
   loop: "{{ ansible_facts.mounts }}"
 
 - name: "MEDIUM | RHEL-08-010572 | PATCH | RHEL 8 must prevent files with the setuid and setgid bit set from being executed on the /boot/efi directory."
   when:
     - item.mount == '/boot/efi'
     - item.fstype != 'vfat'
-    - remediate_rhel8_stig_010572
+    - rhel8_stig_010572
   tags:
     - RHEL-08-010572
     - CAT2
@@ -2073,11 +2073,11 @@
     state: mounted
     src: "{{ item.device }}"
     fstype: "{{ item.fstype }}"
-    opts: "defaults{{ remediate_rhel8_stig_010572 | ternary(',nosuid', '') }}"
+    opts: "defaults{{ rhel8_stig_010572 | ternary(',nosuid', '') }}"
   loop: "{{ ansible_facts.mounts }}"
 
 - name: "MEDIUM | RHEL-08-010580 | PATCH | RHEL 8 must prevent special devices on non-root local partitions."
-  when: remediate_rhel8_stig_010580
+  when: rhel8_stig_010580
   tags:
     - RHEL-08-010580
     - CAT2
@@ -2134,7 +2134,7 @@
 
 - name: "MEDIUM | RHEL-08-010590 | PATCH | RHEL 8 must prevent code from being executed on file systems that contain user home directories."
   when:
-    - remediate_rhel8_stig_010590
+    - rhel8_stig_010590
     - item.mount == '/home'
     - "'noexec' not in item.options"
   tags:
@@ -2152,7 +2152,7 @@
     state: mounted
     src: "{{ item.device }}"
     fstype: "{{ item.fstype }}"
-    opts: "{{ item.options }},{% if remediate_rhel8_stig_010570 is sameas true %}nosuid,{% endif %}noexec"
+    opts: "{{ item.options }},{% if rhel8_stig_010570 is sameas true %}nosuid,{% endif %}noexec"
   loop: "{{ ansible_facts.mounts }}"
 
 ## Note Azure is currently default mounting /mnt for cloud-init this will cause issues
@@ -2160,8 +2160,8 @@
 
 - name: "MEDIUM | RHEL-08-010600 | PATCH | RHEL 8 must prevent special devices on file systems that are used with removable media."
   when:
-    - remediate_rhel8_stig_010600
-    - not remediate_rhel8_stig_system_is_chroot
+    - rhel8_stig_010600
+    - not rhel8_stig_system_is_chroot
   tags:
     - RHEL-08-010600
     - CAT2
@@ -2176,7 +2176,7 @@
     - name: "MEDIUM | RHEL-08-010600 | PATCH | RHEL 8 must prevent special devices on file systems that are used with removable media. | Set nodev to /media"
       when:
         - item.mount == '/media'
-        - remediate_rhel8_stig_010600
+        - rhel8_stig_010600
         - "'nodev' not in item.options"
       ansible.posix.mount:
         path: "{{ item.mount }}"
@@ -2188,7 +2188,7 @@
 
     - name: "MEDIUM | RHEL-08-010600 | PATCH | RHEL 8 must prevent special devices on file systems that are used with removable media. | Set nodev to /mnt"
       when:
-        - remediate_rhel8_stig_010600
+        - rhel8_stig_010600
         - item.mount == '/mnt'
         - "'nodev' not in item.options"
       ansible.posix.mount:
@@ -2201,8 +2201,8 @@
 
 - name: "MEDIUM | RHEL-08-010610 | PATCH | RHEL 8 must prevent code from being executed on file systems that are used with removable media."
   when:
-    - remediate_rhel8_stig_010610
-    - not remediate_rhel8_stig_system_is_chroot
+    - rhel8_stig_010610
+    - not rhel8_stig_system_is_chroot
   tags:
     - RHEL-08-010610
     - CAT2
@@ -2216,7 +2216,7 @@
   block:
     - name: "MEDIUM | RHEL-08-010610 | PATCH | RHEL 8 must prevent code from being executed on file systems that are used with removable media. | Set noexec to /media"
       when:
-        - remediate_rhel8_stig_010610
+        - rhel8_stig_010610
         - item.mount == '/media'
         - "'noexec' not in item.options"
       ansible.posix.mount:
@@ -2229,7 +2229,7 @@
 
     - name: "MEDIUM | RHEL-08-010610 | PATCH | RHEL 8 must prevent code from being executed on file systems that are used with removable media. | Set noexec to /mnt"
       when:
-        - remediate_rhel8_stig_010610
+        - rhel8_stig_010610
         - item.mount == '/mnt'
         - "'noexec' not in item.options"
       ansible.posix.mount:
@@ -2243,8 +2243,8 @@
 - name: "MEDIUM | RHEL-08-010620 | PATCH | RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that are used with removable
     media."
   when:
-    - remediate_rhel8_stig_010620
-    - not remediate_rhel8_stig_system_is_chroot
+    - rhel8_stig_010620
+    - not rhel8_stig_system_is_chroot
   tags:
     - RHEL-08-010620
     - CAT2
@@ -2259,7 +2259,7 @@
     - name: "MEDIUM | RHEL-08-010620 | PATCH | RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that are used with
         removable media. | Set nosuid to /media"
       when:
-        - remediate_rhel8_stig_010620
+        - rhel8_stig_010620
         - item.mount == '/media'
         - "'nosuid' not in item.options"
       ansible.posix.mount:
@@ -2273,7 +2273,7 @@
     - name: "MEDIUM | RHEL-08-010620 | PATCH | RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that are used with
         removable media. | Set nosuid to /mnt"
       when:
-        - remediate_rhel8_stig_010620
+        - rhel8_stig_010620
         - item.mount == '/mnt'
         - "'nosuid' not in item.options"
       ansible.posix.mount:
@@ -2286,7 +2286,7 @@
 
 - name: "MEDIUM | RHEL-08-010630 | PATCH | RHEL 8 must prevent code from being executed on file systems that are imported via Network File System (NFS)."
   when:
-    - remediate_rhel8_stig_010630
+    - rhel8_stig_010630
     - "'nfs' in item.fstype"
     - "'noexec' not in item.options"
   tags:
@@ -2309,7 +2309,7 @@
 
 - name: "MEDIUM | RHEL-08-010640 | PATCH | RHEL 8 must prevent special devices on file systems that are imported via Network File System (NFS)."
   when:
-    - remediate_rhel8_stig_010640
+    - rhel8_stig_010640
     - "'nfs' in item.fstype"
     - "'nodev' not in item.options"
   tags:
@@ -2326,14 +2326,14 @@
     path: "{{ item.mount }}"
     fstype: "{{ item.fstype }}"
     src: "{{ item.device }}"
-    opts: "{{ item.options }},{% if remediate_rhel8_stig_010630 is sameas true %}noexec,{% endif %}nodev"
+    opts: "{{ item.options }},{% if rhel8_stig_010630 is sameas true %}noexec,{% endif %}nodev"
     state: mounted
   loop: "{{ ansible_facts.mounts }}"
 
 - name: "MEDIUM | RHEL-08-010650 | PATCH | RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that are imported via
     Network File System (NFS)" # noqa: yaml[line-length]
   when:
-    - remediate_rhel8_stig_010650
+    - rhel8_stig_010650
     - "'nfs' in item.fstype"
     - "'nosuid' not in item.options"
   tags:
@@ -2350,14 +2350,14 @@
     path: "{{ item.mount }}"
     fstype: "{{ item.fstype }}"
     src: "{{ item.device }}"
-    opts: "{{ item.options }},{% if remediate_rhel8_stig_010630 is sameas true %}noexec,{% endif %}{% if remediate_rhel8_stig_010640 is sameas true %}nodev,{% endif %}nosuid"
+    opts: "{{ item.options }},{% if rhel8_stig_010630 is sameas true %}noexec,{% endif %}{% if rhel8_stig_010640 is sameas true %}nodev,{% endif %}nosuid"
     state: mounted
   loop: "{{ ansible_facts.mounts }}"
 
 - name: "MEDIUM | RHEL-08-010670 | PATCH | RHEL 8 must disable kernel dumps unless needed."
   when:
-    - remediate_rhel8_stig_010670
-    - not remediate_rhel8_stig_kdump_needed
+    - rhel8_stig_010670
+    - not rhel8_stig_kdump_needed
   tags:
     - RHEL-08-010670
     - CAT2
@@ -2373,7 +2373,7 @@
     state: stopped
 
 - name: "MEDIUM | RHEL-08-010671 | PATCH | RHEL 8 must disable the kernel.core_pattern."
-  when: remediate_rhel8_stig_010671
+  when: rhel8_stig_010671
   tags:
     - RHEL-08-010671
     - CAT2
@@ -2407,13 +2407,13 @@
         name: kernel.core_pattern
         value: "|/bin/false"
         state: present
-        reload: "{{ remediate_rhel8_stig_sysctl_reload }}"
+        reload: "{{ rhel8_stig_sysctl_reload }}"
         sysctl_set: true
         sysctl_file: /etc/sysctl.d/99-disable-coredump.conf
 
 - name: "MEDIUM | RHEL-08-010672 | PATCH | RHEL 8 must disable acquiring, saving, and processing core dumps."
   when:
-    - remediate_rhel8_stig_010672
+    - rhel8_stig_010672
     - ansible_service_mgr == 'systemd'
   tags:
     - RHEL-08-010672
@@ -2431,7 +2431,7 @@
   notify: Systemctl daemon-reload
 
 - name: "MEDIUM | RHEL-08-010673 | PATCH | RHEL 8 must disable core dumps for all users."
-  when: remediate_rhel8_stig_010673
+  when: rhel8_stig_010673
   tags:
     - RHEL-08-010673
     - CAT2
@@ -2450,7 +2450,7 @@
 
 - name: "MEDIUM | RHEL-08-010674 | PATCH | RHEL 8 must disable storing core dumps."
   when:
-    - remediate_rhel8_stig_010674
+    - rhel8_stig_010674
     - "'systemd' in ansible_facts.packages"
   tags:
     - RHEL-08-010674
@@ -2468,7 +2468,7 @@
 
 - name: "MEDIUM | RHEL-08-010675 | PATCH | RHEL 8 must disable core dump backtraces."
   when:
-    - remediate_rhel8_stig_010675
+    - rhel8_stig_010675
     - "'systemd' in ansible_facts.packages"
   tags:
     - RHEL-08-010675
@@ -2488,8 +2488,8 @@
 # and thus having two DNS servers may be a config setting not on the hosts, but on the DHCP service.
 - name: "MEDIUM | RHEL-08-010680 | PATCH | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured."
   when:
-    - remediate_rhel8_stig_010680
-    - not remediate_rhel8_stig_system_is_chroot
+    - rhel8_stig_010680
+    - not rhel8_stig_system_is_chroot
     - not system_is_ec2
   tags:
     - RHEL-08-010680
@@ -2531,7 +2531,7 @@
 
     - name: MEDIUM | RHEL-08-010680 | PATCH | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured
       when:
-        - not remediate_rhel8_stig_use_resolv_template
+        - not rhel8_stig_use_resolv_template
         - discovered_networkmanager_status.stdout == '0'
         - discovered_nameserver_count.stdout | int >= 2
       ansible.builtin.lineinfile:
@@ -2540,15 +2540,15 @@
         line: "nameserver {{ item.line }}"
         insertafter: "{{ item.after }}"
       loop: # Written as lineinfile replaces last found so reverse logic to keep order of servers
-        - { regexp: ^nameserver, line: "{{ remediate_rhel8_stig_dns_servers.1 }}", after: ^search }
-        - regexp: "^nameserver (?!{{ remediate_rhel8_stig_dns_servers.1 }})"
-          line: "{{ remediate_rhel8_stig_dns_servers.0 }}"
-          after: "^nameserver {{ remediate_rhel8_stig_dns_servers.1 }}"
+        - { regexp: ^nameserver, line: "{{ rhel8_stig_dns_servers.1 }}", after: ^search }
+        - regexp: "^nameserver (?!{{ rhel8_stig_dns_servers.1 }})"
+          line: "{{ rhel8_stig_dns_servers.0 }}"
+          after: "^nameserver {{ rhel8_stig_dns_servers.1 }}"
 
     - name: MEDIUM | RHEL-08-010680 | PATCH | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured
       when:
         - discovered_networkmanager_status.stdout == '0'
-        - remediate_rhel8_stig_use_resolv_template
+        - rhel8_stig_use_resolv_template
       ansible.builtin.template:
         src: resolv.conf.j2
         dest: /etc/resolv.conf
@@ -2559,23 +2559,23 @@
     - name: MEDIUM | RHEL-08-010680 | PATCH | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured
       when:
         - discovered_networkmanager_status.stdout != '0' or discovered_nameserver_count.stdout| int < 2
-        - not remediate_rhel8_stig_use_resolv_template
+        - not rhel8_stig_use_resolv_template
       ansible.builtin.debug:
         msg: "WARNING!! /etc/resolv.conf is managed by network manager and/or shows less than two DNS servers configured. Please correct this"
 
     - name: MEDIUM | RHEL-08-010680 | PATCH | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured
       when:
         - discovered_networkmanager_status.stdout != '0' or discovered_nameserver_count.stdout| int < 2
-        - not remediate_rhel8_stig_use_resolv_template
+        - not rhel8_stig_use_resolv_template
       ansible.builtin.import_tasks:
         file: warning_facts.yml
 
 - name: MEDIUM | RHEL-08-010690 | PATCH | Executable search paths within the initialization files of all local interactive RHEL 8 users must only contain paths
     that resolve to the system default or the users home directory # noqa: yaml[line-length]
   when:
-    - remediate_rhel8_stig_010690
-    - remediate_rhel8_stig_disruption_high
-    - remediate_rhel8_stig_change_user_path
+    - rhel8_stig_010690
+    - rhel8_stig_disruption_high
+    - rhel8_stig_change_user_path
   tags:
     - RHEL-08-010690
     - CAT2
@@ -2610,7 +2610,7 @@
         warn_control_id: "MEDIUM | RHEL-08-010690"
 
 - name: "MEDIUM | RHEL-08-010700 | AUDIT | All RHEL 8 world-writable directories must be owned by root, sys, bin, or an application group."
-  when: remediate_rhel8_stig_010700
+  when: rhel8_stig_010700
   tags:
     - RHEL-08-010700
     - CAT2
@@ -2634,11 +2634,11 @@
         - discovered_worldwide_dir_owners.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
-        owner: "{{ remediate_rhel8_stig_ww_dir_owner }}"
+        owner: "{{ rhel8_stig_ww_dir_owner }}"
       loop: "{{ discovered_worldwide_dir_owners.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010710 | PATCH | All RHEL 8 world-writable directories must be group-owned by root, sys, bin, or an application group."
-  when: remediate_rhel8_stig_010710
+  when: rhel8_stig_010710
   tags:
     - RHEL-08-010710
     - CAT2
@@ -2662,11 +2662,11 @@
         - discovered_world_writable_dir_group_owners.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
-        group: "{{ remediate_rhel8_stig_ww_dir_grpowner }}"
+        group: "{{ rhel8_stig_ww_dir_grpowner }}"
       loop: "{{ discovered_world_writable_dir_group_owners.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010720 | PATCH | All RHEL 8 local interactive users must have a home directory assigned in the /etc/passwd file."
-  when: remediate_rhel8_stig_010720
+  when: rhel8_stig_010720
   tags:
     - RHEL-08-010720
     - CAT2
@@ -2707,7 +2707,7 @@
 
 # Required for RHEL-08-010730
 - name: "MEDIUM | RHEL-08-010750 | PATCH | All RHEL 8 local interactive user home directories defined in the /etc/passwd file must exist."
-  when: remediate_rhel8_stig_010750
+  when: rhel8_stig_010750
   tags:
     - RHEL-08-010750
     - CAT2
@@ -2729,7 +2729,7 @@
     label: "{{ item.id }}"
 
 - name: "MEDIUM | RHEL-08-010730 | PATCH | All RHEL 8 local interactive user home directories must have mode 0750 or less permissive."
-  when: remediate_rhel8_stig_010730
+  when: rhel8_stig_010730
   tags:
     - RHEL-08-010730
     - CAT2
@@ -2745,7 +2745,7 @@
   loop: "{{ discovered_interactive_users_home.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010731 | PATCH | All RHEL 8 local interactive user home directory files must have mode 0750 or less permissive."
-  when: remediate_rhel8_stig_010731
+  when: rhel8_stig_010731
   tags:
     - RHEL-08-010731
     - CAT2
@@ -2759,7 +2759,7 @@
     warn_control_id: "MEDIUM | RHEL-08-010731"
   block:
     - name: MEDIUM | RHEL-08-010731 | PATCH | All RHEL 8 local interactive user home directory files must have mode 0750 or less permissive. | Align
-      when: remediate_rhel8_stig_disruption_high
+      when: rhel8_stig_disruption_high
       ansible.builtin.file:
         path: "{{ item }}"
         recurse: true
@@ -2767,7 +2767,7 @@
       loop: "{{ discovered_interactive_users_home.stdout_lines }}"
 
     - name: MEDIUM | RHEL-08-010731 | AUDIT | All RHEL 8 local interactive user home directory files must have mode 0750 or less permissive. | Alert
-      when: not remediate_rhel8_stig_disruption_high
+      when: not rhel8_stig_disruption_high
       ansible.builtin.debug:
         msg:
           - "Alert! Below are the files that are in interactive user folders but permissiosn less restrictive than 0750|0640."
@@ -2775,13 +2775,13 @@
           - "{{ discovered_interactive_users_home.stdout_lines }}"
 
     - name: MEDIUM | RHEL-08-010731 | AUDIT | All RHEL 8 local interactive user home directory files must have mode 0750 or less permissive. | Alert
-      when: not remediate_rhel8_stig_disruption_high
+      when: not rhel8_stig_disruption_high
       ansible.builtin.import_tasks:
         file: warning_facts.yml
 
 - name: "MEDIUM | RHEL-08-010740 | PATCH | All RHEL 8 local interactive user home directories must be group-owned by the home directory owner’s primary group."
   when:
-    - remediate_rhel8_stig_010740
+    - rhel8_stig_010740
     - item.uid is search(discovered_interactive_uids.stdout)
   tags:
     - RHEL-08-010740
@@ -2804,7 +2804,7 @@
 - name: MEDIUM | RHEL-08-010741 | PATCH | RHEL 8 must be configured so that all files and directories contained in local interactive user home directories are
     group-owned by a group of which the home directory owner is a member. # noqa: yaml[line-length]
   when:
-    - remediate_rhel8_stig_010741
+    - rhel8_stig_010741
     - item.uid is search(discovered_interactive_uids.stdout)
   tags:
     - RHEL-08-010741
@@ -2825,7 +2825,7 @@
     label: "{{ item.id }}"
 
 - name: "MEDIUM | RHEL-08-010760 | PATCH | All RHEL 8 local interactive user accounts must be assigned a home directory upon creation."
-  when: remediate_rhel8_stig_010760
+  when: rhel8_stig_010760
   tags:
     - RHEL-08-010760
     - CAT2
@@ -2845,8 +2845,8 @@
 
 - name: "MEDIUM | RHEL-08-010770 | PATCH | All RHEL 8 local initialization files must have mode 0740 or less permissive."
   when:
-    - remediate_rhel8_stig_010770
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010770
+    - rhel8_stig_disruption_high
     - prelim_interactive_homedir_ini_files is defined
   tags:
     - RHEL-08-010770
@@ -2863,7 +2863,7 @@
   loop: "{{ prelim_interactive_homedir_ini_files }}"
 
 - name: "MEDIUM | RHEL-08-010780 | AUDIT | All RHEL 8 files and directories must have a valid owner."
-  when: remediate_rhel8_stig_010780
+  when: rhel8_stig_010780
   tags:
     - RHEL-08-010780
     - CAT2
@@ -2895,7 +2895,7 @@
         file: warning_facts.yml
 
 - name: "MEDIUM | RHEL-08-010790 | AUDIT | All RHEL 8 files and directories must have a valid group owner."
-  when: remediate_rhel8_stig_010790
+  when: rhel8_stig_010790
   tags:
     - RHEL-08-010790
     - CAT2
@@ -2928,7 +2928,7 @@
 
 - name: "MEDIUM | RHEL-08-010800 | AUDIT | A separate RHEL 8 filesystem must be used for user home directories (such as /home or an equivalent)."
   when:
-    - remediate_rhel8_stig_010800
+    - rhel8_stig_010800
     - ansible_mounts | selectattr('mount', 'match', '^/home$') | list | length == 0
   tags:
     - RHEL-08-010800
@@ -2954,9 +2954,9 @@
 
 - name: "MEDIUM | RHEL-08-010830 | PATCH | RHEL 8 must not allow users to override SSH environment variables."
   when:
-    - remediate_rhel8_stig_010830
-    - remediate_rhel8_stig_ssh_required
-    - remediate_rhel8_stig_disruption_high
+    - rhel8_stig_010830
+    - rhel8_stig_ssh_required
+    - rhel8_stig_disruption_high
   tags:
     - RHEL-08-010830
     - CAT2
