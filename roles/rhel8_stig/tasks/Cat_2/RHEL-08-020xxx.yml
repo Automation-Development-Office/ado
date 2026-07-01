@@ -20,7 +20,10 @@
       ansible.builtin.lineinfile:
         path: "/etc/pam.d/{{ item }}"
         regexp: ^auth\s+required\s+pam_faillock.so preauth
-        line: "auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ (rhel8_stig_pam_faillock_fail_for_root) | ternary(' even_deny_root ',' ') }} fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}"
+        line: >
+          auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }}
+          silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ (rhel8_stig_pam_faillock_fail_for_root) | ternary(' even_deny_root ',' ') }}
+          fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}
         insertafter: '^auth'
       notify: Restart sssd
       loop:
@@ -89,7 +92,11 @@
       ansible.builtin.lineinfile:
         path: "/etc/pam.d/{{ item }}"
         regexp: '^auth\s+required\s+pam_faillock.so preauth'
-        line: "auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}"
+        line: >-
+          auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit
+          deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) |
+          ternary(' even_deny_root ',' ') }}fail_interval={{ rhel8_stig_pam_faillock_interval }}
+          unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}
         insertafter: '^auth'
       notify: Restart sssd
       with_items:
@@ -161,7 +168,10 @@
       ansible.builtin.lineinfile:
         path: "/etc/pam.d/{{ item }}"
         regexp: '^auth\s+required\s+pam_faillock.so preauth'
-        line: "auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}"
+        line: >-
+          auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }}
+          silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}
+          fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}
         insertafter: '^auth       required pam_env.so'
       notify: Restart sssd
       loop:
@@ -231,7 +241,10 @@
       ansible.builtin.lineinfile:
         path: "/etc/pam.d/{{ item }}"
         regexp: '^auth       required pam_faillock.so preauth'
-        line: "auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}"
+        line: >
+          auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }}
+          silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}
+          fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}
         insertafter: '^auth'
       notify: Restart sssd
       loop:
@@ -299,12 +312,10 @@
       ansible.builtin.lineinfile:
         path: "/etc/pam.d/{{ item }}"
         regexp: '^auth\s+required\s+pam_faillock.so preauth'
-        line: "auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}"
-        insertafter: '^auth       required pam_env.so'
-      notify: Restart sssd
-      loop:
-        - system-auth
-        - password-auth
+        line: >
+          auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }}
+          silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}
+          fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}
 
     - name: "MEDIUM | RHEL-08-020018 | PATCH | RHEL 8 must prevent system messages from being presented when
              three unsuccessful logon attempts occur. | Set authfail"
@@ -369,7 +380,10 @@
       ansible.builtin.lineinfile:
         path: "/etc/pam.d/{{ item }}"
         regexp: '^auth\s+required\s+pam_faillock.so preauth'
-        line: "auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}"
+        line: >
+          auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }}
+          silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}
+          fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}
         insertafter: '^auth       required pam_env.so'
       notify: Restart sssd
       loop:
@@ -438,7 +452,8 @@
       ansible.builtin.lineinfile:
         path: "/etc/pam.d/{{ item }}"
         regexp: '^auth\s+required\s+pam_faillock.so preauth'
-        line: "auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}"
+        line: >
+          auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}
         insertafter: '^auth       required pam_env.so'
       notify: Restart sssd
       loop:
@@ -509,7 +524,9 @@
       ansible.builtin.lineinfile:
         path: /etc/pam.d/system-auth
         regexp: '^auth\s+required\s+pam_faillock.so preauth'
-        line: "auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}"
+        line: >
+          auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ ( rhel8_stig_pam_faillock_fail_for_root ) | ternary(' even_deny_root ',' ') }}
+          fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}
         insertafter: '^auth\s+required\s+pam_env.so'
       notify: Restart sssd
 
@@ -550,7 +567,10 @@
       ansible.builtin.lineinfile:
         path: /etc/pam.d/password-auth
         regexp: '^auth\s+required\s+pam_faillock.so preauth'
-        line: "auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit deny={{ rhel8_stig_pam_faillock_attempts }}{{ (rhel8_stig_pam_faillock_fail_for_root) | ternary(' even_deny_root ',' ') }}fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}"
+        line: >-
+          auth required pam_faillock.so preauth dir={{ rhel8_stig_pam_faillock_dir }} silent audit
+          deny={{ rhel8_stig_pam_faillock_attempts }}{{ (rhel8_stig_pam_faillock_fail_for_root) | ternary(' even_deny_root ',' ') }}
+          fail_interval={{ rhel8_stig_pam_faillock_interval }} unlock_time={{ rhel8_stig_pam_faillock_unlock_time }}
         insertafter: '^auth\s+required\s+pam_env.so'
       notify: Restart sssd
 

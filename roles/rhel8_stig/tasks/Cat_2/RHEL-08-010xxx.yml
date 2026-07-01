@@ -28,14 +28,16 @@
   vars:
     warn_control_id: "MEDIUM | RHEL-08-010019"
   block:
-    - name: "MEDIUM | RHEL-08-010019 | PATCH | RHEL 8 must ensure cryptographic verification of vendor software packages. | find keys"
-      ansible.builtin.shell: "rpm -qa | grep {{ os_gpg_key_pubkey_name }}" # noqa: command-instead-of-module
+    - name: "MEDIUM | RHEL-08-010019 | PATCH | RHEL 8 must ensure cryptographic verification of vendor software
+             packages. | find keys"
+      ansible.builtin.shell: "set -o pipefail && rpm -qa | grep {{ os_gpg_key_pubkey_name }}" # noqa: command-instead-of-module
       changed_when: false
       check_mode: false
       failed_when: false
       register: discovered_os_installed_pub_keys
 
-    - name: "MEDIUM | RHEL-08-010019 | PATCH | RHEL 8 must ensure cryptographic verification of vendor software packages. | query keys"
+    - name: "MEDIUM | RHEL-08-010019 | PATCH | RHEL 8 must ensure cryptographic verification
+             of vendor software packages. | query keys"
       when: discovered_os_installed_pub_keys.rc == 0
       ansible.builtin.shell: >-
         set -o pipefail &&
@@ -100,8 +102,8 @@
     insertafter: "[org/gnome/login-screen]"
   notify: Dconf update
 
-- name: "MEDIUM | RHEL-08-010050 | PATCH | RHEL 8 must display the Standard Mandatory DoD Notice and Consent Banner before granting local or remote access to the
-    system via a graphical user logon."
+- name: "MEDIUM | RHEL-08-010050 | PATCH | RHEL 8 must display the Standard Mandatory DoD Notice
+         and Consent Banner before granting local or remote access to the system via a graphical user logon."
   when:
     - rhel8_stig_010050
     - "'dconf' in ansible_facts.packages"
@@ -128,8 +130,8 @@
     newline: "\n"
   notify: Dconf update
 
-- name: "MEDIUM | RHEL-08-010060 | PATCH | RHEL 8 must display the Standard Mandatory DoD Notice and Consent Banner before granting local or remote access to the
-    system via a command line user logon"
+- name: "MEDIUM | RHEL-08-010060 | PATCH | RHEL 8 must display the Standard Mandatory DoD Notice
+         and Consent Banner before granting local or remote access to the system via a command line user logon"
   when: rhel8_stig_010040 or rhel8_stig_010060
   tags:
     - CAT2
@@ -190,24 +192,25 @@
   vars:
     warn_control_id: "MEDIUM | RHEL-08-010090"
   block:
-    - name: "MEDIUM | RHEL-08-010090 | AUDIT | RHEL 8, for PKI-based authentication, must validate certificates by constructing a certification path (which includes
-        status information) to an accepted trust anchor. | Get current certs"
+    - name: "MEDIUM | RHEL-08-010090 | AUDIT | RHEL 8, for PKI-based authentication, must validate certificates by constructing a certification
+             path (which includes status information) to an accepted trust anchor. | Get current certs"
       ansible.builtin.command: openssl x509 -text -in /etc/sssd/pki/sssd_auth_ca_db.pem
       changed_when: false
       check_mode: false
       failed_when: false
       register: discovered_certs_list
 
-    - name: "MEDIUM | RHEL-08-010090 | AUDIT | RHEL 8, for PKI-based authentication, must validate certificates by constructing a certification path (which includes
-        status information) to an accepted trust anchor. | Message out certs"
+    - name: "MEDIUM | RHEL-08-010090 | AUDIT | RHEL 8, for PKI-based authentication, must validate certificates by constructing a certification
+             path (which includes status information) to an accepted trust anchor. | Message out certs"
       ansible.builtin.debug:
         msg:
           - "WARNING!! The certs below are the ones applied to this system. Please review and confirm they are the latest issued from the DoD"
-          - "If they are not please apply the latest PKI CA certificate bundle from cyber.mil and copy the DoD_PKE_CA_chain.pem into /etc/sssd/pki/sssd_auth_ca_db.pem"
+          - "If they are not please apply the latest PKI CA certificate bundle from cyber.mil and copy the DoD_PKE_CA_chain.pem into
+             /etc/sssd/pki/sssd_auth_ca_db.pem"
           - "{{ discovered_certs_list.stdout_lines | default('None-found') }}"
 
-    - name: "MEDIUM | RHEL-08-010090 | AUDIT | RHEL 8, for PKI-based authentication, must validate certificates by constructing a certification path (which includes
-        status information) to an accepted trust anchor. | Message out certs"
+    - name: "MEDIUM | RHEL-08-010090 | AUDIT | RHEL 8, for PKI-based authentication, must validate certificates by constructing a certification path
+             (which includes status information) to an accepted trust anchor. | Message out certs"
       ansible.builtin.import_tasks:
         file: warning_facts.yml
 
@@ -225,15 +228,15 @@
     - V-230230
     - sshd
   block:
-    - name: "MEDIUM | RHEL-08-010100 | PATCH | RHEL 8, for certificate-based authentication, must enforce authorized access to the corresponding private key. | Create
-        .ssh folder"
+    - name: "MEDIUM | RHEL-08-010100 | PATCH | RHEL 8, for certificate-based authentication, must enforce authorized
+             access to the corresponding private key. | Create .ssh folder"
       ansible.builtin.file:
         path: "{{ rhel8_stig_path_to_sshkey }}"
         state: directory
         mode: "u+x,go-rwx"
 
-    - name: "MEDIUM | RHEL-08-010100 | PATCH | RHEL 8, for certificate-based authentication, must enforce authorized access to the corresponding private key. | Create
-        key pair"
+    - name: "MEDIUM | RHEL-08-010100 | PATCH | RHEL 8, for certificate-based authentication, must enforce authorized
+             access to the corresponding private key. | Create key pair"
       community.crypto.openssh_keypair:
         path: "{{ rhel8_stig_path_to_sshkey }}/id_rsa"
 
@@ -270,16 +273,17 @@
   vars:
     warn_control_id: "MEDIUM | RHEL-08-010120"
   block:
-    - name: "MEDIUM | RHEL-08-010120 | AUDIT | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms for all stored passwords. | Get user accounts
-        not using FIPS 140-2 hashing"
-      ansible.builtin.shell: 'cat /etc/shadow | grep -v "*" | grep -v "!" | grep -v ":$6$" | cut -f1 -d:'
+    - name: "MEDIUM | RHEL-08-010120 | AUDIT | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms
+            for all stored passwords. | Get user accounts not using FIPS 140-2 hashing"
+      ansible.builtin.shell: 'set -o pipefail && cat /etc/shadow | grep -v "*" | grep -v "!" | grep -v ":$6$" | cut -f1 -d:'
       changed_when: false
       check_mode: false
       failed_when: false
       no_log: true
       register: discovered_non_fips_hashed_accounts
 
-    - name: "MEDIUM | RHEL-08-010120 | PATCH | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms for all stored passwords. | Lock user not using
+    - name: "MEDIUM | RHEL-08-010120 | PATCH | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms
+             for all stored passwords. | Lock user not using
         FIPS 140-2 hashing"
       when:
         - discovered_non_fips_hashed_accounts.stdout | length > 0
@@ -288,17 +292,20 @@
       changed_when: true
       loop: "{{ discovered_non_fips_hashed_accounts.stdout_lines }}"
 
-    - name: "MEDIUM | RHEL-08-010120 | AUDIT | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms for all stored passwords. | Message out user
+    - name: "MEDIUM | RHEL-08-010120 | AUDIT | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms
+             for all stored passwords. | Message out user
         accounts"
       when:
         - not rhel8_stig_disruption_high
         - discovered_non_fips_hashed_accounts.stdout | length > 0
       ansible.builtin.debug:
         msg:
-          - "WARNING!! The following accounts do not have FIPS 140-2 hashing. Please review the accounts and correct to conform to control 010120 of the RHEL8 STIG"
+          - "WARNING!! The following accounts do not have FIPS 140-2 hashing. Please review the accounts and correct
+             to conform to control 010120 of the RHEL8 STIG"
           - "{{ discovered_non_fips_hashed_accounts.stdout_lines }}"
 
-    - name: "MEDIUM | RHEL-08-010120 | AUDIT | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms for all stored passwords. | Message out user
+    - name: "MEDIUM | RHEL-08-010120 | AUDIT | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms
+             for all stored passwords. | Message out user
         accounts"
       when:
         - not rhel8_stig_disruption_high
@@ -391,8 +398,8 @@
     group: root
     mode: "u-x,go-wx"
 
-- name: "MEDIUM | RHEL-08-010159 | PATCH | The RHEL 8 pam_unix.so module must be configured in the system-auth file to use a FIPS 140-2 approved cryptographic hashing
-    algorithm for system authentication."
+- name: "MEDIUM | RHEL-08-010159 | PATCH | The RHEL 8 pam_unix.so module must be configured in the system-auth
+         file to use a FIPS 140-2 approved cryptographic hashing algorithm for system authentication."
   when: rhel8_stig_010159
   tags:
     - RHEL-08-010159
@@ -411,8 +418,8 @@
     module_arguments: sha512
     state: args_present
 
-- name: "MEDIUM | RHEL-08-010160 | PATCH | The RHEL 8 pam_unix.so module must be configured in the password-auth file to use a FIPS 140-2 approved cryptographic hashing
-    algorithm for system authentication."
+- name: "MEDIUM | RHEL-08-010160 | PATCH | The RHEL 8 pam_unix.so module must be configured in the password-auth
+         file to use a FIPS 140-2 approved cryptographic hashing algorithm for system authentication."
   when: rhel8_stig_010160
   tags:
     - RHEL-08-010160
@@ -520,23 +527,24 @@
     - V-230243
     - permissions
   block:
-    - name: "MEDIUM | RHEL-08-010190 | AUDIT | A sticky bit must be set on all RHEL 8 public directories to prevent unauthorized and unintended information transferred
-        via shared system resources. | Find world-writable directories"
+    - name: "MEDIUM | RHEL-08-010190 | AUDIT | A sticky bit must be set on all RHEL 8 public directories to prevent
+             unauthorized and unintended information transferred via shared system resources. | Find world-writable directories"
       ansible.builtin.shell: set -o pipefail && "find / -xdev -type d \\( -perm -0002 -a ! -perm -1000 \\) -print 2>/dev/null | sed 's/.* //'"
       changed_when: false
       check_mode: false
       failed_when: false
       register: discovered_world_writable_files
 
-    - name: "MEDIUM | RHEL-08-010190 | PATCH | A sticky bit must be set on all RHEL 8 public directories to prevent unauthorized and unintended information transferred
-        via shared system resources. | Set sticky bit to world-writable files"
+    - name: "MEDIUM | RHEL-08-010190 | PATCH | A sticky bit must be set on all RHEL 8 public directories to prevent
+             unauthorized and unintended information transferred via shared system resources. | Set sticky bit to world-writable files"
       ansible.builtin.file:
         path: "{{ item }}"
         mode: "+t"
       loop: "{{ discovered_world_writable_files.stdout_lines }}"
 
-- name: "MEDIUM | RHEL-08-010200 | PATCH | RHEL 8 must be configured so that all network connections associated with SSH traffic are terminated at the end of the
-    session or after 10 minutes of inactivity, except to fulfill documented and validated mission requirements."
+- name: "MEDIUM | RHEL-08-010200 | PATCH | RHEL 8 must be configured so that all network connections associated
+         with SSH traffic are terminated at the end of the session or after 10 minutes of inactivity, except to
+         fulfill documented and validated mission requirements."
   when:
     - rhel8_stig_010200
     - rhel8_stig_ssh_required
@@ -716,8 +724,8 @@
     regexp: ^(#|)\s*include /etc/crypto-policies/back-ends
     line: include /etc/crypto-policies/back-ends/libreswan.config
 
-- name: "MEDIUM | RHEL-08-010290 | PATCH | The RHEL 8 SSH daemon must be configured to use only Message Authentication Codes (MACs) employing FIPS 140-2 validated
-    cryptographic hash algorithms. | Add MACs"
+- name: "MEDIUM | RHEL-08-010290 | PATCH | The RHEL 8 SSH daemon must be configured to use only Message Authentication Codes (MACs)
+         employing FIPS 140-2 validated cryptographic hash algorithms. | Add MACs"
   when: rhel8_stig_010290
   tags:
     - CAT2
@@ -733,8 +741,8 @@
     - fips
     - sshd
   block:
-    - name: "MEDIUM | RHEL-08-010290 | AUDIT | The RHEL 8 SSH daemon must be configured to use only Message Authentication Codes (MACs) employing FIPS 140-2 validated
-        cryptographic hash algorithms. | get MACs"
+    - name: "MEDIUM | RHEL-08-010290 | AUDIT | The RHEL 8 SSH daemon must be configured to use only Message Authentication Codes (MACs)
+             employing FIPS 140-2 validated cryptographic hash algorithms. | get MACs"
       ansible.builtin.shell: >
         set -o pipefail &&
         grep "^CRYPTO_POLICY" /etc/crypto-policies/back-ends/opensshserver.config |
@@ -747,8 +755,8 @@
       failed_when: discovered_current_macs.rc not in [ 0, 1 ]
       register: discovered_current_macs
 
-    - name: "MEDIUM | RHEL-08-010290 | PATCH | The RHEL 8 SSH daemon must be configured to use only Message Authentication Codes (MACs) employing FIPS 140-2 validated
-        cryptographic hash algorithms. | get MACs"
+    - name: "MEDIUM | RHEL-08-010290 | PATCH | The RHEL 8 SSH daemon must be configured to use only Message Authentication Codes (MACs)
+             employing FIPS 140-2 validated cryptographic hash algorithms. | get MACs"
       ansible.builtin.lineinfile:
         path: /etc/crypto-policies/back-ends/opensshserver.config
         regexp: "(^CRYPTO_POLICY=.*)-oMACS={{ discovered_current_macs.stdout }}(.*$)"
@@ -756,8 +764,8 @@
         backrefs: true
       notify: Reinstall_crypto_policies
 
-- name: "MEDIUM | RHEL-08-010291 | PATCH | The RHEL 8 operating system must implement DoD-approved encryption to protect the confidentiality of SSH server connections.
-    | Add Ciphers"
+- name: "MEDIUM | RHEL-08-010291 | PATCH | The RHEL 8 operating system must implement DoD-approved encryption
+         to protect the confidentiality of SSH server connections. | Add Ciphers"
   when: rhel8_stig_010291
   tags:
     - CAT2
@@ -785,8 +793,8 @@
       check_mode: false
       register: discovered_current_ciphers
 
-    - name: "MEDIUM | RHEL-08-010291 | PATCH | The RHEL 8 operating system must implement DoD-approved encryption to protect the confidentiality of SSH server connections.
-        | Apply Ciphers"
+    - name: "MEDIUM | RHEL-08-010291 | PATCH | The RHEL 8 operating system must implement DoD-approved encryption to protect the
+             confidentiality of SSH server connections. | Apply Ciphers"
       ansible.builtin.lineinfile:
         path: /etc/crypto-policies/back-ends/opensshserver.config
         regexp: "(^CRYPTO_POLICY=.*)-oCiphers={{ discovered_current_ciphers.stdout }}(.*$)"
@@ -794,8 +802,8 @@
         backrefs: true
       notify: Change_requires_reboot
 
-- name: "MEDIUM | RHEL-08-010296 | PATCH | The RHEL 8 SSH client must be configured to use only Message Authentication Codes (MACs) employing FIPS 140-3 validated
-    cryptographic hash algorithms. | Add MACs"
+- name: "MEDIUM | RHEL-08-010296 | PATCH | The RHEL 8 SSH client must be configured to use only Message Authentication Codes (MACs)
+         employing FIPS 140-3 validated cryptographic hash algorithms. | Add MACs"
   when: rhel8_stig_010296
   tags:
     - CAT2
@@ -813,8 +821,8 @@
     line: "MACs {{ rhel8_stig_ssh_macs }}"
   notify: Change_requires_reboot
 
-- name: "MEDIUM | RHEL-08-010297 | PATCH | RHEL 8 SSH client must be configured to use only ciphers employing FIPS 140-3 validated cryptographic hash algorithms.
-    | Add Ciphers"
+- name: "MEDIUM | RHEL-08-010297 | PATCH | RHEL 8 SSH client must be configured to use only ciphers employing
+         FIPS 140-3 validated cryptographic hash algorithms. | Add Ciphers"
   when: rhel8_stig_010297
   tags:
     - CAT2
@@ -934,18 +942,18 @@
     - NIST800-53R4_CM-5
   block:
     - name: "MEDIUM | RHEL-08-010330 | AUDIT | RHEL 8 library files must have mode 755 or less permissive."
-      ansible.builtin.shell: find -L /lib /lib64 /usr/lib /usr/lib64 -perm /022 -type f -exec ls -l {} \; | awk '{ print $NF}'
+      ansible.builtin.shell: set -o pipefail && find -L /lib /lib64 /usr/lib /usr/lib64 -perm /022 -type f -exec ls -l {} \; | awk '{ print $NF}'
       changed_when: false
       check_mode: false
-      failed_when: discovered_library_file_perms.rc not in [ 0, 1 ]
-      register: discovered_library_file_perms
+      failed_when: rhel8_stig_discovered_library_file_perms.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_library_file_perms
 
     - name: "MEDIUM | RHEL-08-010330 | PATCH | RHEL 8 library files must have mode 755 or less permissive."
-      when: discovered_library_file_perms.stdout | length > 0
+      when: rhel8_stig_discovered_library_file_perms.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
         mode: "u+x,go-w"
-      loop: "{{ discovered_library_file_perms.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_library_file_perms.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010331 | PATCH | RHEL 8 library directories must have mode 755 or less permissive."
   when:
@@ -961,17 +969,17 @@
     - NIST800-53R4_CM-5
   block:
     - name: "MEDIUM | RHEL-08-010331 | AUDIT | RHEL 8 library directories must have mode 755 or less permissive."
-      ansible.builtin.shell: find -L /lib /lib64 /usr/lib /usr/lib64 -perm /022 -type d -exec ls -l {} \; | awk '{ print $NF}'
+      ansible.builtin.shell: set -o pipefail && find -L /lib /lib64 /usr/lib /usr/lib64 -perm /022 -type d -exec ls -l {} \; | awk '{ print $NF}'
       changed_when: false
       check_mode: false
-      failed_when: discovered_library_directory_perms.rc not in [ 0, 1 ]
-      register: discovered_library_directory_perms
+      failed_when: rhel8_stig_discovered_library_directory_perms.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_library_directory_perms
 
     - name: "MEDIUM | RHEL-08-010331 | PATCH | RHEL 8 library directories must have mode 755 or less permissive."
-      when: discovered_library_directory_perms.stdout | length > 0
+      when: rhel8_stig_discovered_library_directory_perms.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
-      loop: "{{ discovered_library_directory_perms.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_library_directory_perms.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010340 | PATCH | RHEL 8 library files must be owned by root."
   when: rhel8_stig_010340
@@ -1094,8 +1102,8 @@
       ansible.builtin.import_tasks:
         file: warning_facts.yml
 
-- name: "MEDIUM | RHEL-08-010358 | PATCH | RHEL 8 must be configured to allow sending email notifications of unauthorized configuration changes to designated personnel.
-    | pkg install"
+- name: "MEDIUM | RHEL-08-010358 | PATCH | RHEL 8 must be configured to allow sending email notifications
+         of unauthorized configuration changes to designated personnel. | pkg install"
   when: rhel8_stig_010358
   tags:
     - RHEL-08-010358
@@ -1110,8 +1118,8 @@
     name: mailx
     state: present
 
-- name: "MEDIUM | RHEL-08-010359 | PATCH | The RHEL 8 operating system must use a file integrity tool to verify correct operation of all security functions. | pkg
-    install"
+- name: "MEDIUM | RHEL-08-010359 | PATCH | The RHEL 8 operating system must use a file integrity tool
+         to verify correct operation of all security functions. | pkg install"
   when:
     - rhel8_stig_use_aide
     - rhel8_stig_010359
@@ -1125,20 +1133,21 @@
     - V-251710
     - aide
   block:
-    - name: "MEDIUM | RHEL-08-010359 | PATCH | The RHEL 8 operating system must use a file integrity tool to verify correct operation of all security functions. |
-        install"
+    - name: "MEDIUM | RHEL-08-010359 | PATCH | The RHEL 8 operating system must use a file integrity tool to
+             verify correct operation of all security functions. | pkg install"
       ansible.builtin.package:
         name: aide
         state: present
 
-    - name: "MEDIUM | RHEL-08-010359 | PATCH | The RHEL 8 operating system must use a file integrity tool to verify correct operation of all security functions. |
-        Check DB"
-      ansible.builtin.command: echo "Set Aide DB setup for handler"
+    - name: "MEDIUM | RHEL-08-010359 | PATCH | The RHEL 8 operating system must use a file integrity tool to
+             verify correct operation of all security functions. | Check DB"
+      ansible.builtin.command: set -o pipefail && echo "Set Aide DB setup for handler"
       changed_when: false
       notify: Build_aide_db
 
-- name: "MEDIUM | RHEL-08-010360 | PATCH | The RHEL 8 file integrity tool must notify the system administrator when changes to the baseline configuration or anomalies
-    in the operation of any security functions are discovered within an organizationally defined frequency."
+- name: "MEDIUM | RHEL-08-010360 | PATCH | The RHEL 8 file integrity tool must notify the system administrator
+         when changes to the baseline configuration or anomalies in the operation of any security functions
+         are discovered within an organizationally defined frequency."
   when:
     - rhel8_stig_010360
     - rhel8_stig_use_aide
@@ -1234,7 +1243,8 @@
     - V-230267
     - sysctl
   block:
-    - name: "MEDIUM | RHEL-08-010373 | AUDIT | RHEL 8 must enable kernel parameters to enforce discretionary access control on symlinks. | Find conflicting instances"
+    - name: "MEDIUM | RHEL-08-010373 | AUDIT | RHEL 8 must enable kernel parameters to enforce discretionary
+             access control on symlinks. | Find conflicting instances"
       ansible.builtin.shell: |
         set -o pipefail && \
         grep -rs "fs.protected_symlinks = 0" /run/sysctl.d/*.conf /usr/local/lib/sysctl.d/*.conf \
@@ -1244,7 +1254,8 @@
       failed_when: false
       register: discovered_conflicting_symlink_settings
 
-    - name: "MEDIUM | RHEL-08-010373 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary access control on symlinks. | Remove conflicting instances"
+    - name: "MEDIUM | RHEL-08-010373 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary
+             access control on symlinks. | Remove conflicting instances"
       when:
         - discovered_conflicting_symlink_settings.stdout | length > 0
         - item != rhel8_stig_sysctl_file
@@ -1254,7 +1265,8 @@
         state: absent
       loop: "{{ discovered_conflicting_symlink_settings.stdout_lines }}"
 
-    - name: "MEDIUM | RHEL-08-010373 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary access control on symlinks. | Set sysctl"
+    - name: "MEDIUM | RHEL-08-010373 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary
+             access control on symlinks. | Set sysctl"
       ansible.posix.sysctl:
         name: fs.protected_symlinks
         value: 1
@@ -1278,7 +1290,8 @@
     - V-230268
     - sysctl
   block:
-    - name: "MEDIUM | RHEL-08-010374 | AUDIT | RHEL 8 must enable kernel parameters to enforce discretionary access control on hardlinks. | Find conflicting instances"
+    - name: "MEDIUM | RHEL-08-010374 | AUDIT | RHEL 8 must enable kernel parameters to enforce discretionary
+             access control on hardlinks. | Find conflicting instances"
       ansible.builtin.shell: |
         set -o pipefail && \
         grep -rs "fs.protected_hardlinks = 0" /run/sysctl.d/*.conf \
@@ -1289,7 +1302,8 @@
       failed_when: false
       register: discovered_hardlink_conflicting_settings
 
-    - name: "MEDIUM | RHEL-08-010374 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary access control on hardlinks. | Remove conflicting instances"
+    - name: "MEDIUM | RHEL-08-010374 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary
+             access control on hardlinks. | Remove conflicting instances"
       when:
         - discovered_hardlink_conflicting_settings.stdout | length > 0
         - item != rhel8_stig_sysctl_file
@@ -1299,7 +1313,8 @@
         state: absent
       loop: "{{ discovered_hardlink_conflicting_settings.stdout_lines }}"
 
-    - name: "MEDIUM | RHEL-08-010374 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary access control on hardlinks."
+    - name: "MEDIUM | RHEL-08-010374 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary
+             access control on hardlinks."
       ansible.posix.sysctl:
         name: fs.protected_hardlinks
         value: 1
@@ -1418,7 +1433,8 @@
     - V-237642
     - sudo
   block:
-    - name: "MEDIUM | RHEL-08-010383 | AUDIT | RHEL 8 must use the invoking user's password for privilege escalation when using sudo. | Get privilege escalation"
+    - name: "MEDIUM | RHEL-08-010383 | AUDIT | RHEL 8 must use the invoking user's password for privilege
+             escalation when using sudo. | Get privilege escalation"
       ansible.builtin.shell: |
         set -o pipefail && \
         egrep -is '(!rootpw|!targetpw|!runaspw)' /etc/sudoers /etc/sudoers.d/* | \
@@ -1428,8 +1444,8 @@
       failed_when: false
       register: discovered_sudo_priv_escalation
 
-    - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege escalation when using sudo. | Set privilege escalation for
-        no findings"
+    - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege
+             escalation when using sudo. | Set privilege escalation for no findings"
       when: discovered_sudo_priv_escalation.stdout | length == 0
       ansible.builtin.lineinfile:
         path: /etc/sudoers
@@ -1440,8 +1456,8 @@
         - Defaults !rootpw
         - Defaults !runaspw
 
-    - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege escalation when using sudo. | Set privilege escalation for
-        targetpw with findings"
+    - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege
+             escalation when using sudo. | Set privilege escalation for targetpw with findings"
       when: discovered_sudo_priv_escalation.stdout | length > 0
       ansible.builtin.lineinfile:
         path: "{{ item }}"
@@ -1450,8 +1466,8 @@
         validate: "/usr/sbin/visudo -cf %s"
       loop: "{{ discovered_sudo_priv_escalation.stdout_lines }}"
 
-    - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege escalation when using sudo. | Set privilege escalation for
-        rootpw with findings"
+    - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege
+             escalation when using sudo. | Set privilege escalation for rootpw with findings"
       when: discovered_sudo_priv_escalation.stdout | length > 0
       ansible.builtin.lineinfile:
         path: "{{ item }}"
@@ -1460,8 +1476,8 @@
         validate: "/usr/sbin/visudo -cf %s"
       loop: "{{ discovered_sudo_priv_escalation.stdout_lines }}"
 
-    - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege escalation when using sudo. | Set privilege escalation for
-        runaspw with findings"
+    - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege
+             escalation when using sudo. | Set privilege escalation for runaspw with findings"
       when: discovered_sudo_priv_escalation.stdout | length > 0
       ansible.builtin.lineinfile:
         path: "{{ item }}"
@@ -1596,22 +1612,23 @@
   vars:
     warn_control_id: "MEDIUM | RHEL-08-010420"
   block:
-    - name: "MEDIUM | RHEL-08-010420 | AUDIT | RHEL 8 must implement non-executable data to protect its memory from unauthorized code execution. | Get NX bit state"
+    - name: "MEDIUM | RHEL-08-010420 | AUDIT | RHEL 8 must implement non-executable data to protect its memory
+             from unauthorized code execution. | Get NX bit state" 
       ansible.builtin.shell: set -o pipefail && dmesg |grep "NX ("
       changed_when: false
       check_mode: false
       failed_when: false
       register: discovered_nx_bit_state
 
-    - name: "MEDIUM | RHEL-08-010420 | AUDIT | RHEL 8 must implement non-executable data to protect its memory from unauthorized code execution. | Message on NX no
-        being set"
+    - name: "MEDIUM | RHEL-08-010420 | AUDIT | RHEL 8 must implement non-executable data to protect its memory
+             from unauthorized code execution. | Message on NX no being set"
       when: '"(Execute Disable) protection: active" not in discovered_nx_bit_state.stdout'
       ansible.builtin.debug:
         msg:
           - "WARNING!! You do not have execute disable active. Please change the setting in your BIOS settings"
 
-    - name: "MEDIUM | RHEL-08-010420 | AUDIT | RHEL 8 must implement non-executable data to protect its memory from unauthorized code execution. | Message on NX no
-        being set"
+    - name: "MEDIUM | RHEL-08-010420 | AUDIT | RHEL 8 must implement non-executable data to protect its memory
+             from unauthorized code execution. | Message on NX no being set"
       when: '"(Execute Disable) protection: active" not in discovered_nx_bit_state.stdout'
       ansible.builtin.import_tasks:
         file: warning_facts.yml
@@ -1700,7 +1717,8 @@
         - Make grub2 config
         - Change_requires_reboot
 
-- name: " MEDIUM | RHEL-08-010430 | PATCH | RHEL 8 must implement address space layout randomization (ASLR) to protect its memory from unauthorized code execution."
+- name: " MEDIUM | RHEL-08-010430 | PATCH | RHEL 8 must implement address space layout randomization (ASLR)
+          to protect its memory from unauthorized code execution."
   when: rhel8_stig_010430
   tags:
     - RHEL-08-010430
@@ -1712,8 +1730,8 @@
     - V-230280
     - sysctl
   block:
-    - name: " MEDIUM | RHEL-08-010430 | AUDIT | RHEL 8 must implement address space layout randomization (ASLR) to protect its memory from unauthorized code execution.
-        | Find conflicting instances"
+    - name: " MEDIUM | RHEL-08-010430 | AUDIT | RHEL 8 must implement address space layout randomization (ASLR)
+              to protect its memory from unauthorized code execution. | Find conflicting instances"
       ansible.builtin.shell: >
         set -o pipefail && grep -rs "kernel.randomize_va_space = [^2]" \
           /run/sysctl.d/*.conf /usr/local/lib/sysctl.d/*.conf /usr/lib/sysctl.d/*.conf \
@@ -1723,8 +1741,8 @@
       failed_when: false
       register: discovered_aslr_conflicting_settings
 
-    - name: " MEDIUM | RHEL-08-010430 | PATCH | RHEL 8 must implement address space layout randomization (ASLR) to protect its memory from unauthorized code execution.
-        | Remove conflicting instances"
+    - name: " MEDIUM | RHEL-08-010430 | PATCH | RHEL 8 must implement address space layout randomization (ASLR)
+              to protect its memory from unauthorized code execution. | Remove conflicting instances"
       when:
         - discovered_aslr_conflicting_settings.stdout | length > 0
         - "item != rhel8_stig_sysctl_file"
@@ -1734,8 +1752,8 @@
         state: absent
       loop: "{{ discovered_aslr_conflicting_settings.stdout_lines }}"
 
-    - name: " MEDIUM | RHEL-08-010430 | PATCH | RHEL 8 must implement address space layout randomization (ASLR) to protect its memory from unauthorized code execution.
-        | Use template to create file"
+    - name: " MEDIUM | RHEL-08-010430 | PATCH | RHEL 8 must implement address space layout randomization (ASLR)
+              to protect its memory from unauthorized code execution.| Use template to create file"
       ansible.posix.sysctl:
         name: kernel.randomize_va_space
         value: 2
@@ -2008,8 +2026,8 @@
     name: rsyslog.service
     enabled: true
 
-- name: "MEDIUM | RHEL-08-010570 | PATCH | RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that contain user home
-    directories." # noqa: yaml[line-length]
+- name: "MEDIUM | RHEL-08-010570 | PATCH | RHEL 8 must prevent files with the setuid and setgid
+         bit set from being executed on file systems that contain user home directories."
   when:
     - item.mount == '/home'
     - rhel8_stig_010570
@@ -2214,7 +2232,8 @@
     - mounts
     - media
   block:
-    - name: "MEDIUM | RHEL-08-010610 | PATCH | RHEL 8 must prevent code from being executed on file systems that are used with removable media. | Set noexec to /media"
+    - name: "MEDIUM | RHEL-08-010610 | PATCH | RHEL 8 must prevent code from being executed on file
+             systems that are used with removable media. | Set noexec to /media"
       when:
         - rhel8_stig_010610
         - item.mount == '/media'
@@ -2227,7 +2246,8 @@
         opts: "{{ item.options }},noexec"
       loop: "{{ ansible_facts.mounts }}"
 
-    - name: "MEDIUM | RHEL-08-010610 | PATCH | RHEL 8 must prevent code from being executed on file systems that are used with removable media. | Set noexec to /mnt"
+    - name: "MEDIUM | RHEL-08-010610 | PATCH | RHEL 8 must prevent code from being executed on file systems
+             that are used with removable media. | Set noexec to /mnt"
       when:
         - rhel8_stig_010610
         - item.mount == '/mnt'
@@ -2240,8 +2260,8 @@
         opts: "{{ item.options }},noexec"
       loop: "{{ ansible_facts.mounts }}"
 
-- name: "MEDIUM | RHEL-08-010620 | PATCH | RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that are used with removable
-    media."
+- name: "MEDIUM | RHEL-08-010620 | PATCH | RHEL 8 must prevent files with the setuid and setgid
+         bit set from being executed on file systems that are used with removable media."
   when:
     - rhel8_stig_010620
     - not rhel8_stig_system_is_chroot
@@ -2256,8 +2276,9 @@
     - mounts
     - media
   block:
-    - name: "MEDIUM | RHEL-08-010620 | PATCH | RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that are used with
-        removable media. | Set nosuid to /media"
+    - name: "MEDIUM | RHEL-08-010620 | PATCH | RHEL 8 must prevent files with the setuid and setgid
+             bit set from being executed on file systems that are used with removable media.
+             Set nosuid to /media"
       when:
         - rhel8_stig_010620
         - item.mount == '/media'
@@ -2270,8 +2291,9 @@
         opts: "{{ item.options }},nosuid"
       loop: "{{ ansible_facts.mounts }}"
 
-    - name: "MEDIUM | RHEL-08-010620 | PATCH | RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that are used with
-        removable media. | Set nosuid to /mnt"
+    - name: "MEDIUM | RHEL-08-010620 | PATCH | RHEL 8 must prevent files with the setuid and setgid
+             bit set from being executed on file systems that are used with removable media.
+             Set nosuid to /mnt"
       when:
         - rhel8_stig_010620
         - item.mount == '/mnt'
@@ -2284,7 +2306,8 @@
         opts: "{{ item.options }},nosuid"
       loop: "{{ ansible_facts.mounts }}"
 
-- name: "MEDIUM | RHEL-08-010630 | PATCH | RHEL 8 must prevent code from being executed on file systems that are imported via Network File System (NFS)."
+- name: "MEDIUM | RHEL-08-010630 | PATCH | RHEL 8 must prevent code from being executed on file systems
+         that are imported via Network File System (NFS)."
   when:
     - rhel8_stig_010630
     - "'nfs' in item.fstype"
@@ -2330,8 +2353,9 @@
     state: mounted
   loop: "{{ ansible_facts.mounts }}"
 
-- name: "MEDIUM | RHEL-08-010650 | PATCH | RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that are imported via
-    Network File System (NFS)" # noqa: yaml[line-length]
+- name: "MEDIUM | RHEL-08-010650 | PATCH | RHEL 8 must prevent files with the setuid and setgid
+         bit set from being executed on file systems that are imported viaNetwork
+         File System (NFS)" # noqa: yaml[line-length]
   when:
     - rhel8_stig_010650
     - "'nfs' in item.fstype"

@@ -259,7 +259,8 @@
 
     - name: "HIGH | RHEL-08-010370 | PATCH | RHEL 8 must prevent the installation of software, patches, service packs,
              device drivers, or operating system components from a repository without verification they have been
-             digitally signed using a certificate that is issued by a Certificate Authority (CA) that is recognized and approved by the organization. | Set gpgcheck"
+             digitally signed using a certificate that is issued by a Certificate Authority (CA) that is recognized
+             and approved by the organization. | Set gpgcheck"
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: '^gpgcheck'

@@ -86,15 +86,18 @@
         - rhel8_stig_firewall_service == "firewalld"
         - rhel8_stig_start_firewall_service
       block:
-        - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services, as defined in the Ports, Protocols, and Services Management (PPSM)
+        - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services,
+                 as defined in the Ports, Protocols, and Services Management (PPSM)
                  Category Assignments List (CAL) and vulnerability assessments. | Get services using firewalld"
-          ansible.builtin.shell: set -o pipefail && firewall-cmd --list-all | grep -e "active" -e "services" | cut -d ':' -f 2 | tr " " "\n" | sed '/^$/d' | sort -u
+          ansible.builtin.shell: |
+            set -o pipefail && firewall-cmd --list-all | grep -e "active" -e "services" | cut -d ':' -f 2 | tr " " "\n" | sed '/^$/d' | sort -u
           changed_when: false
           failed_when: false
           check_mode: false
           register: rhel8_stig_discovered_ppsm_clsa_check_firewalld
 
-        - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services, as defined in the Ports, Protocols, and Services Management (PPSM)
+        - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services,
+                 as defined in the Ports, Protocols, and Services Management (PPSM)
                  Category Assignments List (CAL) and vulnerability assessments. | Message out findings"
           when: rhel8_stig_discovered_ppsm_clsa_check_firewalld.stdout_lines is defined
           ansible.builtin.debug:
@@ -103,13 +106,15 @@
               - "{{ rhel8_stig_discovered_ppsm_clsa_check_firewalld.stdout_lines }}"
           changed_when: true
 
-    - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services, as defined in the Ports, Protocols, and Services Management (PPSM)
+    - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services, as
+             defined in the Ports, Protocols, and Services Management (PPSM)
              Category Assignments List (CAL) and vulnerability assessments. | IPTables block"
       when:
         - rhel8_stig_firewall_service == "iptables"
         - rhel8_stig_start_firewall_service
       block:
-        - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services, as defined in the Ports, Protocols, and Services Management (PPSM)
+        - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services,
+                 as defined in the Ports, Protocols, and Services Management (PPSM)
                  Category Assignments List (CAL) and vulnerability assessments. | Get services using iptables"
           ansible.builtin.shell: set -o pipefail && iptables-save | grep -i accept | grep -i input
           register: rhel8_stig_discovered_ppsm_clsa_check_iptables
@@ -117,7 +122,8 @@
           failed_when: false
           check_mode: false
 
-        - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services, as defined in the Ports, Protocols, and Services Management (PPSM)
+        - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services,
+                 as defined in the Ports, Protocols, and Services Management (PPSM)
                  Category Assignments List (CAL) and vulnerability assessments. | Message out findings"
           when: rhel8_stig_discovered_ppsm_clsa_check_iptables.stdout_lines is defined
           ansible.builtin.debug:
@@ -126,12 +132,14 @@
               - "{{ rhel8_stig_discovered_ppsm_clsa_check_iptables.stdout_lines }}"
           changed_when: true
 
-    - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services, as defined in the Ports, Protocols, and Services Management (PPSM)
+    - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services, as
+             defined in the Ports, Protocols, and Services Management (PPSM)
              Category Assignments List (CAL) and vulnerability assessments. | Warn no firewall is in use"
       when: not rhel8_stig_start_firewall_service
       ansible.builtin.debug:
         msg: "Your configured firewall service is {{ rhel8_stig_firewall_service }}, but you have set the variable rhel8_stig_start_firewall_service to false.
-              We cannot audit control RHEL-08-040030 - RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services, as defined in the Ports, Protocols, and Services Management (PPSM) Category Assignments List (CAL) and vulnerability assessments."
+              We cannot audit control RHEL-08-040030 - RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services,
+              as defined in the Ports, Protocols, and Services Management (PPSM) Category Assignments List (CAL) and vulnerability assessments."
       changed_when: true
 
     - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services,
@@ -439,7 +447,9 @@
     state: mounted
     src: tmpfs
     fstype: tmpfs
-    opts: "defaults{{ rhel8_stig_040120 | ternary(',nodev', '') }}{{ rhel8_stig_040121 | ternary(',nosuid', '') }}{{ rhel8_stig_040122 | ternary(',noexec', '') }}"
+    opts: >-
+      defaults{{ rhel8_stig_040120 | ternary(',nodev', '') }}{{ rhel8_stig_040121
+      | ternary(',nosuid', '') }}{{ rhel8_stig_040122 | ternary(',noexec', '') }}
   notify: Systemctl daemon-reload
 
 - name: MEDIUM | RHEL-08-040123 | PATCH | RHEL 8 must mount /tmp with the nodev option
@@ -519,7 +529,9 @@
     path: /tmp
     src: "{{ item.device }}"
     fstype: "{{ item.fstype }}"
-    opts: "{{ item.options }}{% if rhel8_stig_discovered_tmp_nodev.changed %},nodev{% endif %}{% if rhel8_stig_discovered_tmp_nosuid.changed %},nosuid{% endif %},noexec"
+    opts: >-
+      "{{ item.options }}{% if rhel8_stig_discovered_tmp_nodev.changed %},nodev{% endif %}"
+      "{% if rhel8_stig_discovered_tmp_nosuid.changed %},nosuid{% endif %},noexec"
     state: present
   loop: "{{ ansible_facts.mounts }}"
   loop_control:
@@ -602,7 +614,9 @@
     path: /var/log
     src: "{{ item.device }}"
     fstype: "{{ item.fstype }}"
-    opts: "{{ item.options }}{% if rhel8_stig_discovered_var_log_nodev.changed %},nodev{% endif %}{% if rhel8_stig_discovered_var_log_nosuid.changed %},nosuid{% endif %},noexec"
+    opts: >-
+      {{ item.options }}{% if rhel8_stig_discovered_var_log_nodev.changed %},nodev{% endif %}
+      {% if rhel8_stig_discovered_var_log_nosuid.changed %},nosuid{% endif %},noexec
     state: present
   loop: "{{ ansible_facts.mounts }}"
   loop_control:
@@ -770,7 +784,9 @@
     path: /var/tmp
     src: "{{ item.device }}"
     fstype: "{{ item.fstype }}"
-    opts: "{{ item.options }}{% if rhel8_stig_discovered_var_tmp_nodev.changed %},nodev{% endif %}{% if rhel8_stig_discovered_var_tmp_nosuid.changed %},nosuid{% endif %},noexec"
+    opts: >-
+      {{ item.options }}{% if rhel8_stig_discovered_var_tmp_nodev.changed %},nodev{% endif %}{% if
+      rhel8_stig_discovered_var_tmp_nosuid.changed %},nosuid{% endif %},noexec
     state: present
   loop: "{{ ansible_facts.mounts }}"
   loop_control:
