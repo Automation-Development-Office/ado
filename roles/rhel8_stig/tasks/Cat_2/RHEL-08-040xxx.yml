@@ -137,9 +137,12 @@
              Category Assignments List (CAL) and vulnerability assessments. | Warn no firewall is in use"
       when: not rhel8_stig_start_firewall_service
       ansible.builtin.debug:
-        msg: "Your configured firewall service is {{ rhel8_stig_firewall_service }}, but you have set the variable rhel8_stig_start_firewall_service to false.
-              We cannot audit control RHEL-08-040030 - RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services,
-              as defined in the Ports, Protocols, and Services Management (PPSM) Category Assignments List (CAL) and vulnerability assessments."
+        msg: >-
+          Your configured firewall service is {{ rhel8_stig_firewall_service }}, but you have set the variable
+          rhel8_stig_start_firewall_service to false. We cannot audit control RHEL-08-040030 - RHEL 8 must be
+          configured to prohibit or restrict the use of functions, ports, protocols, and/or services, as defined
+          in the Ports, Protocols, and Services Management (PPSM) Category Assignments List (CAL) and
+          vulnerability assessments.
       changed_when: true
 
     - name: "MEDIUM | RHEL-08-040030 | AUDIT | RHEL 8 must be configured to prohibit or restrict the use of functions, ports, protocols, and/or services,

@@ -11,7 +11,7 @@
     - V-230222
   ansible.builtin.package:
     name: "*"
-    state: latest
+    state: present
 
 - name: "MEDIUM | RHEL-08-010019 | PATCH | RHEL 8 must ensure cryptographic verification of vendor software packages."
   when:
@@ -34,11 +34,11 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_os_installed_pub_keys
+      register: rhel8_stig_discovered_os_installed_pub_keys
 
     - name: "MEDIUM | RHEL-08-010019 | PATCH | RHEL 8 must ensure cryptographic verification
              of vendor software packages. | query keys"
-      when: discovered_os_installed_pub_keys.rc == 0
+      when: rhel8_stig_discovered_os_installed_pub_keys.rc == 0
       ansible.builtin.shell: >-
         set -o pipefail &&
         'rpm -q --queryformat "%{PACKAGER} %{VERSION}\\n" {{ os_gpg_key_pubkey_name }}' |
@@ -46,17 +46,17 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_os_gpg_key_check
+      register: rhel8_stig_discovered_os_gpg_key_check
 
     - name: "MEDIUM | RHEL-08-010019 | PATCH | RHEL 8 must ensure cryptographic verification of vendor software packages. | Warning"
       when:
-        - discovered_os_installed_pub_keys.rc == 1 or discovered_os_gpg_key_check.rc == 1
+        - rhel8_stig_discovered_os_installed_pub_keys.rc == 1 or rhel8_stig_discovered_os_gpg_key_check.rc == 1
       ansible.builtin.debug:
         msg: "Warning!! Installed GPG Keys do not meet expected values or expected keys are not installed"
 
     - name: "MEDIUM | RHEL-08-010019 | PATCH | RHEL 8 must ensure cryptographic verification of vendor software packages. | Warning"
       when:
-        - discovered_os_installed_pub_keys.rc == 1 or discovered_os_gpg_key_check.rc == 1
+        - rhel8_stig_discovered_os_installed_pub_keys.rc == 1 or rhel8_stig_discovered_os_gpg_key_check.rc == 1
       ansible.builtin.import_tasks:
         file: warning_facts.yml
 
@@ -198,7 +198,7 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_certs_list
+      register: rhel8_stig_discovered_certs_list
 
     - name: "MEDIUM | RHEL-08-010090 | AUDIT | RHEL 8, for PKI-based authentication, must validate certificates by constructing a certification
              path (which includes status information) to an accepted trust anchor. | Message out certs"
@@ -207,7 +207,7 @@
           - "WARNING!! The certs below are the ones applied to this system. Please review and confirm they are the latest issued from the DoD"
           - "If they are not please apply the latest PKI CA certificate bundle from cyber.mil and copy the DoD_PKE_CA_chain.pem into
              /etc/sssd/pki/sssd_auth_ca_db.pem"
-          - "{{ discovered_certs_list.stdout_lines | default('None-found') }}"
+          - "{{ rhel8_stig_discovered_certs_list.stdout_lines | default('None-found') }}"
 
     - name: "MEDIUM | RHEL-08-010090 | AUDIT | RHEL 8, for PKI-based authentication, must validate certificates by constructing a certification path
              (which includes status information) to an accepted trust anchor. | Message out certs"
@@ -280,36 +280,36 @@
       check_mode: false
       failed_when: false
       no_log: true
-      register: discovered_non_fips_hashed_accounts
+      register: rhel8_stig_discovered_non_fips_hashed_accounts
 
     - name: "MEDIUM | RHEL-08-010120 | PATCH | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms
              for all stored passwords. | Lock user not using
         FIPS 140-2 hashing"
       when:
-        - discovered_non_fips_hashed_accounts.stdout | length > 0
+        - rhel8_stig_discovered_non_fips_hashed_accounts.stdout | length > 0
         - rhel8_stig_disruption_high
       ansible.builtin.command: "passwd -l {{ item }}"
       changed_when: true
-      loop: "{{ discovered_non_fips_hashed_accounts.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_non_fips_hashed_accounts.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010120 | AUDIT | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms
              for all stored passwords. | Message out user
         accounts"
       when:
         - not rhel8_stig_disruption_high
-        - discovered_non_fips_hashed_accounts.stdout | length > 0
+        - rhel8_stig_discovered_non_fips_hashed_accounts.stdout | length > 0
       ansible.builtin.debug:
         msg:
           - "WARNING!! The following accounts do not have FIPS 140-2 hashing. Please review the accounts and correct
              to conform to control 010120 of the RHEL8 STIG"
-          - "{{ discovered_non_fips_hashed_accounts.stdout_lines }}"
+          - "{{ rhel8_stig_discovered_non_fips_hashed_accounts.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010120 | AUDIT | RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms
              for all stored passwords. | Message out user
         accounts"
       when:
         - not rhel8_stig_disruption_high
-        - discovered_non_fips_hashed_accounts.stdout | length > 0
+        - rhel8_stig_discovered_non_fips_hashed_accounts.stdout | length > 0
       ansible.builtin.import_tasks:
         file: warning_facts.yml
 
@@ -454,15 +454,15 @@
       ansible.builtin.command: find / -name *.keytab
       changed_when: false
       check_mode: false
-      failed_when: discovered_keytab_files.rc not in [ 0, 1 ]
-      register: discovered_keytab_files
+      failed_when: rhel8_stig_discovered_keytab_files.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_keytab_files
 
     - name: "MEDIUM | RHEL-08-010161 | PATCH | RHEL 8 must prevent system daemons from using Kerberos for authentication. | Remove .keytab files"
-      when: discovered_keytab_files.stdout | length > 0
+      when: rhel8_stig_discovered_keytab_files.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
-      loop: "{{ discovered_keytab_files.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_keytab_files.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010162 | PATCH | The krb5-workstation package must not be installed on RHEL 8."
   when: rhel8_stig_010162
@@ -514,8 +514,8 @@
     regexp: (?i)^selinux=
     line: SELINUX=enforcing
 
-- name: "MEDIUM | RHEL-08-010190 | PATCH | A sticky bit must be set on all RHEL 8 public directories to prevent unauthorized and unintended information transferred
-    via shared system resources."
+- name: "MEDIUM | RHEL-08-010190 | PATCH | A sticky bit must be set on all RHEL 8 public directories to prevent
+         unauthorized and unintended information transferred via shared system resources."
   when: rhel8_stig_010190
   tags:
     - RHEL-08-010190
@@ -527,20 +527,18 @@
     - V-230243
     - permissions
   block:
-    - name: "MEDIUM | RHEL-08-010190 | AUDIT | A sticky bit must be set on all RHEL 8 public directories to prevent
-             unauthorized and unintended information transferred via shared system resources. | Find world-writable directories"
+    - name: "MEDIUM | RHEL-08-010190 | AUDIT | Find world-writable public directories"
       ansible.builtin.shell: set -o pipefail && "find / -xdev -type d \\( -perm -0002 -a ! -perm -1000 \\) -print 2>/dev/null | sed 's/.* //'"
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_world_writable_files
+      register: rhel8_stig_discovered_world_writable_files
 
-    - name: "MEDIUM | RHEL-08-010190 | PATCH | A sticky bit must be set on all RHEL 8 public directories to prevent
-             unauthorized and unintended information transferred via shared system resources. | Set sticky bit to world-writable files"
+    - name: "MEDIUM | RHEL-08-010190 | PATCH | Set sticky bit on world-writable directories"
       ansible.builtin.file:
         path: "{{ item }}"
         mode: "+t"
-      loop: "{{ discovered_world_writable_files.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_world_writable_files.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010200 | PATCH | RHEL 8 must be configured so that all network connections associated
          with SSH traffic are terminated at the end of the session or after 10 minutes of inactivity, except to
@@ -752,14 +750,14 @@
         sed s'/-o//g'
       changed_when: false
       check_mode: false
-      failed_when: discovered_current_macs.rc not in [ 0, 1 ]
-      register: discovered_current_macs
+      failed_when: rhel8_stig_discovered_current_macs.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_current_macs
 
     - name: "MEDIUM | RHEL-08-010290 | PATCH | The RHEL 8 SSH daemon must be configured to use only Message Authentication Codes (MACs)
              employing FIPS 140-2 validated cryptographic hash algorithms. | get MACs"
       ansible.builtin.lineinfile:
         path: /etc/crypto-policies/back-ends/opensshserver.config
-        regexp: "(^CRYPTO_POLICY=.*)-oMACS={{ discovered_current_macs.stdout }}(.*$)"
+        regexp: "(^CRYPTO_POLICY=.*)-oMACS={{ rhel8_stig_discovered_current_macs.stdout }}(.*$)"
         line: "\\g<1>-oMACS={{ rhel8_stig_ssh_macs }}\\g<2>"
         backrefs: true
       notify: Reinstall_crypto_policies
@@ -781,7 +779,8 @@
     - fips
     - sshd
   block:
-    - name: "MEDIUM | RHEL-08-010291 | AUDIT | The RHEL 8 operating system must implement DoD-approved encryption to protect the confidentiality of SSH server connections.
+    - name: "MEDIUM | RHEL-08-010291 | AUDIT | The RHEL 8 operating system must implement
+        DoD-approved encryption to protect the confidentiality of SSH server connections.
         | get Ciphers"
       ansible.builtin.shell: |
         set -o pipefail && grep "^CRYPTO_POLICY" /etc/crypto-policies/back-ends/opensshserver.config \
@@ -791,13 +790,14 @@
         | sed s'/-o//g'
       changed_when: false
       check_mode: false
-      register: discovered_current_ciphers
+      register: rhel8_stig_discovered_current_ciphers
 
-    - name: "MEDIUM | RHEL-08-010291 | PATCH | The RHEL 8 operating system must implement DoD-approved encryption to protect the
-             confidentiality of SSH server connections. | Apply Ciphers"
+    - name: "MEDIUM | RHEL-08-010291 | PATCH | The RHEL 8 operating system must implement
+        DoD-approved encryption to protect the confidentiality of SSH server connections.
+        | Apply Ciphers"
       ansible.builtin.lineinfile:
         path: /etc/crypto-policies/back-ends/opensshserver.config
-        regexp: "(^CRYPTO_POLICY=.*)-oCiphers={{ discovered_current_ciphers.stdout }}(.*$)"
+        regexp: "(^CRYPTO_POLICY=.*)-oCiphers={{ rhel8_stig_discovered_current_ciphers.stdout }}(.*$)"
         line: "\\g<1>-oCiphers={{ rhel8_stig_ssh_ciphers }}\\g<2>"
         backrefs: true
       notify: Change_requires_reboot
@@ -859,15 +859,15 @@
         awk '{ print $NF}'
       changed_when: false
       check_mode: false
-      failed_when: discovered_system_command_permissions.rc not in [ 0, 1 ]
-      register: discovered_system_command_permissions
+      failed_when: rhel8_stig_discovered_system_command_permissions.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_system_command_permissions
 
     - name: "MEDIUM | RHEL-08-010300 | PATCH | RHEL 8 system commands must have mode 755 or less permissive."
-      when: discovered_system_command_permissions.stdout | length > 0
+      when: rhel8_stig_discovered_system_command_permissions.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
         mode: "u+x,go-w"
-      loop: "{{ discovered_system_command_permissions.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_system_command_permissions.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010310 | PATCH | RHEL 8 system commands must be owned by root."
   when: rhel8_stig_010310
@@ -884,15 +884,15 @@
       ansible.builtin.shell: find -L /bin /sbin /usr/bin /usr/sbin /usr/libexec /usr/local/bin /usr/local/sbin ! -user root -exec ls {} \;
       changed_when: false
       check_mode: false
-      failed_when: discovered_sys_commands_owner.rc not in [ 0, 1 ]
-      register: discovered_sys_commands_owner
+      failed_when: rhel8_stig_discovered_sys_commands_owner.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_sys_commands_owner
 
     - name: "MEDIUM | RHEL-08-010310 | PATCH | RHEL 8 system commands must be owned by root."
-      when: discovered_sys_commands_owner.stdout | length > 0
+      when: rhel8_stig_discovered_sys_commands_owner.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
         owner: root
-      loop: "{{ discovered_sys_commands_owner.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_sys_commands_owner.stdout_lines }}"
       loop_control:
         label: "{{ item }}"
 
@@ -913,18 +913,18 @@
       ansible.builtin.shell: find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin ! \( -group root -o -group tty \) -exec ls -l {} \;
       changed_when: false
       check_mode: false
-      failed_when: discovered_sys_commands_group.rc not in [ 0, 1 ]
-      register: discovered_sys_commands_group
+      failed_when: rhel8_stig_discovered_sys_commands_group.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_sys_commands_group
 
     - name: "MEDIUM | RHEL-08-010320 | WARN | RHEL 8 system commands must be group-owned by root or a system account."
-      when: discovered_sys_commands_group.stdout | length > 0
+      when: rhel8_stig_discovered_sys_commands_group.stdout | length > 0
       ansible.builtin.debug:
         msg: |
           "Warning!! Please validate group ownership of the following system commands
-           {{ discovered_sys_commands_group.stdout_lines }}"
+           {{ rhel8_stig_discovered_sys_commands_group.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010320 | WARN | RHEL 8 system commands must be group-owned by root or a system account."
-      when: discovered_sys_commands_group.stdout | length > 0
+      when: rhel8_stig_discovered_sys_commands_group.stdout | length > 0
       ansible.builtin.import_tasks:
         file: warning_facts.yml
 
@@ -996,15 +996,15 @@
       ansible.builtin.command: find -L /lib /lib64 /usr/lib /usr/lib64 -type f -name "*.so*" ! -user root
       changed_when: false
       check_mode: false
-      failed_when: discovered_lib_files_owner.rc not in [ 0, 1 ]
-      register: discovered_lib_files_owner
+      failed_when: rhel8_stig_discovered_lib_files_owner.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_lib_files_owner
 
     - name: "MEDIUM | RHEL-08-010340 | PATCH | RHEL 8 library files must be owned by root."
-      when: discovered_lib_files_owner.stdout | length > 0
+      when: rhel8_stig_discovered_lib_files_owner.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
         owner: root
-      loop: "{{ discovered_lib_files_owner.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_lib_files_owner.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010341 | PATCH | RHEL 8 library directories must be owned by root."
   when: rhel8_stig_010341
@@ -1042,26 +1042,26 @@
       ansible.builtin.shell: find -L /lib /lib64 /usr/lib /usr/lib64 -type f -name "*.so*" ! -group root
       changed_when: false
       check_mode: false
-      failed_when: discovered_lib_files_group.rc not in [ 0, 1 ]
-      register: discovered_lib_files_group
+      failed_when: rhel8_stig_discovered_lib_files_group.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_lib_files_group
 
     - name: "MEDIUM | RHEL-08-010350 | PATCH | RHEL 8 library files must be group-owned by root."
       when:
-        - discovered_lib_files_group.stdout | length > 0
+        - rhel8_stig_discovered_lib_files_group.stdout | length > 0
         - rhel8_stig_disruption_high
       ansible.builtin.file:
         path: "{{ item }}"
         group: root
-      loop: "{{ discovered_lib_files_group.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_lib_files_group.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010350 | WARN | RHEL 8 library files must be group-owned by root."
       when:
-        - discovered_lib_files_group.stdout | length > 0
+        - rhel8_stig_discovered_lib_files_group.stdout | length > 0
         - not rhel8_stig_disruption_high
       ansible.builtin.debug:
         msg: |
           "Warning!! Please validate group ownership of the following library files or symlinks
-           {{ discovered_lib_files_group.stdout_lines }}"
+           {{ rhel8_stig_discovered_lib_files_group.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010350 | WARN | RHEL 8 library files must be group-owned by root."
       when:
@@ -1087,18 +1087,18 @@
       ansible.builtin.shell: find -L /lib /lib64 /usr/lib /usr/lib64 -uid +1000 -type d -exec ls {} \;
       changed_when: false
       check_mode: false
-      failed_when: discovered_lib_dirs_group.rc not in [ 0, 1 ]
-      register: discovered_lib_dirs_group
+      failed_when: rhel8_stig_discovered_lib_dirs_group.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_lib_dirs_group
 
     - name: "MEDIUM | RHEL-08-010351 | WARN | RHEL 8 library directories must be group-owned by root or a system account."
-      when: discovered_lib_dirs_group.stdout | length > 0
+      when: rhel8_stig_discovered_lib_dirs_group.stdout | length > 0
       ansible.builtin.debug:
         msg: |
           "Warning!! Please validate group ownership of the following library directories
-           {{ discovered_lib_dirs_group.stdout_lines }}"
+           {{ rhel8_stig_discovered_lib_dirs_group.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010351 | WARN | RHEL 8 library directories must be group-owned by root or a system account."
-      when: discovered_lib_dirs_group.stdout | length > 0
+      when: rhel8_stig_discovered_lib_dirs_group.stdout | length > 0
       ansible.builtin.import_tasks:
         file: warning_facts.yml
 
@@ -1216,17 +1216,17 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_conflicting_kernel_settings
+      register: rhel8_stig_discovered_conflicting_kernel_settings
 
     - name: "MEDIUM | RHEL-08-010372 | PATCH | RHEL 8 must prevent the loading of a new kernel for later execution. | Remove conflicting instances"
       when:
-        - discovered_conflicting_kernel_settings.stdout | length > 0
+        - rhel8_stig_discovered_conflicting_kernel_settings.stdout | length > 0
         - item != rhel8_stig_sysctl_file
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "^kernel.kexec_load_disabled = 0"
         state: absent
-      loop: "{{ discovered_conflicting_kernel_settings.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_conflicting_kernel_settings.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010373 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary access control on symlinks."
   when: rhel8_stig_010373
@@ -1252,18 +1252,18 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_conflicting_symlink_settings
+      register: rhel8_stig_discovered_conflicting_symlink_settings
 
     - name: "MEDIUM | RHEL-08-010373 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary
              access control on symlinks. | Remove conflicting instances"
       when:
-        - discovered_conflicting_symlink_settings.stdout | length > 0
+        - rhel8_stig_discovered_conflicting_symlink_settings.stdout | length > 0
         - item != rhel8_stig_sysctl_file
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "^fs.protected_symlinks = 0"
         state: absent
-      loop: "{{ discovered_conflicting_symlink_settings.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_conflicting_symlink_settings.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010373 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary
              access control on symlinks. | Set sysctl"
@@ -1300,12 +1300,12 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_hardlink_conflicting_settings
+      register: rhel8_stig_discovered_hardlink_conflicting_settings
 
     - name: "MEDIUM | RHEL-08-010374 | PATCH | RHEL 8 must enable kernel parameters to enforce discretionary
              access control on hardlinks. | Remove conflicting instances"
       when:
-        - discovered_hardlink_conflicting_settings.stdout | length > 0
+        - rhel8_stig_discovered_hardlink_conflicting_settings.stdout | length > 0
         - item != rhel8_stig_sysctl_file
       ansible.builtin.lineinfile:
         path: "{{ item }}"
@@ -1399,25 +1399,25 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_sudoers_all
+      register: rhel8_stig_discovered_sudoers_all
 
     - name: "MEDIUM | RHEL-08-010382 | PATCH | RHEL 8 must restrict privilege elevation to authorized personnel. | Remove format 1"
-      when: discovered_sudoers_all.stdout | length > 0
+      when: rhel8_stig_discovered_sudoers_all.stdout | length > 0
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "ALL ALL=(ALL) ALL"
         state: absent
         validate: "/usr/sbin/visudo -cf %s"
-      loop: "{{ discovered_sudoers_all.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_sudoers_all.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010382 | PATCH | RHEL 8 must restrict privilege elevation to authorized personnel. | Remove format 2"
-      when: discovered_sudoers_all.stdout | length > 0
+      when: rhel8_stig_discovered_sudoers_all.stdout | length > 0
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "ALL ALL=(ALL:ALL) ALL"
         state: absent
         validate: "/usr/sbin/visudo -cf %s"
-      loop: "{{ discovered_sudoers_all.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_sudoers_all.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege escalation when using sudo."
   when:
@@ -1442,11 +1442,11 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_sudo_priv_escalation
+      register: rhel8_stig_discovered_sudo_priv_escalation
 
     - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege
              escalation when using sudo. | Set privilege escalation for no findings"
-      when: discovered_sudo_priv_escalation.stdout | length == 0
+      when: rhel8_stig_discovered_sudo_priv_escalation.stdout | length == 0
       ansible.builtin.lineinfile:
         path: /etc/sudoers
         line: "{{ item }}"
@@ -1458,27 +1458,27 @@
 
     - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege
              escalation when using sudo. | Set privilege escalation for targetpw with findings"
-      when: discovered_sudo_priv_escalation.stdout | length > 0
+      when: rhel8_stig_discovered_sudo_priv_escalation.stdout | length > 0
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "Defaults !targetpw"
         line: "Defaults !targetpw"
         validate: "/usr/sbin/visudo -cf %s"
-      loop: "{{ discovered_sudo_priv_escalation.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_sudo_priv_escalation.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege
              escalation when using sudo. | Set privilege escalation for rootpw with findings"
-      when: discovered_sudo_priv_escalation.stdout | length > 0
+      when: rhel8_stig_discovered_sudo_priv_escalation.stdout | length > 0
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "Defaults !rootpw"
         line: "Defaults !rootpw"
         validate: "/usr/sbin/visudo -cf %s"
-      loop: "{{ discovered_sudo_priv_escalation.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_sudo_priv_escalation.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010383 | PATCH | RHEL 8 must use the invoking user's password for privilege
              escalation when using sudo. | Set privilege escalation for runaspw with findings"
-      when: discovered_sudo_priv_escalation.stdout | length > 0
+      when: rhel8_stig_discovered_sudo_priv_escalation.stdout | length > 0
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "Defaults !runaspw"
@@ -1505,10 +1505,10 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_sudo_timeout_files
+      register: rhel8_stig_discovered_sudo_timeout_files
 
     - name: "MEDIUM | RHEL-08-010384 | PATCH | RHEL 8 must require re-authentication when using the sudo command. | Set value if no results"
-      when: discovered_sudo_timeout_files.stdout | length == 0
+      when: rhel8_stig_discovered_sudo_timeout_files.stdout | length == 0
       ansible.builtin.lineinfile:
         path: /etc/sudoers
         regexp: "Defaults timestamp_timeout="
@@ -1516,13 +1516,13 @@
         validate: "/usr/sbin/visudo -cf %s"
 
     - name: "MEDIUM | RHEL-08-010384 | PATCH | RHEL 8 must require re-authentication when using the sudo command. | Set value if has results"
-      when: discovered_sudo_timeout_files.stdout | length > 0
+      when: rhel8_stig_discovered_sudo_timeout_files.stdout | length > 0
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "Defaults timestamp_timeout="
         line: "Defaults timestamp_timeout={{ rhel8_stig_sudo_timestamp_timeout }}"
         validate: "/usr/sbin/visudo -cf %s"
-      loop: "{{ discovered_sudo_timeout_files.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_sudo_timeout_files.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010385 | PATCH | The RHEL 8 operating system must not be configured to bypass password requirements for privilege escalation."
   when: rhel8_stig_010385
@@ -1613,23 +1613,23 @@
     warn_control_id: "MEDIUM | RHEL-08-010420"
   block:
     - name: "MEDIUM | RHEL-08-010420 | AUDIT | RHEL 8 must implement non-executable data to protect its memory
-             from unauthorized code execution. | Get NX bit state" 
+             from unauthorized code execution. | Get NX bit state"
       ansible.builtin.shell: set -o pipefail && dmesg |grep "NX ("
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_nx_bit_state
+      register: rhel8_stig_discovered_nx_bit_state
 
     - name: "MEDIUM | RHEL-08-010420 | AUDIT | RHEL 8 must implement non-executable data to protect its memory
              from unauthorized code execution. | Message on NX no being set"
-      when: '"(Execute Disable) protection: active" not in discovered_nx_bit_state.stdout'
+      when: '"(Execute Disable) protection: active" not in rhel8_stig_discovered_nx_bit_state.stdout'
       ansible.builtin.debug:
         msg:
           - "WARNING!! You do not have execute disable active. Please change the setting in your BIOS settings"
 
     - name: "MEDIUM | RHEL-08-010420 | AUDIT | RHEL 8 must implement non-executable data to protect its memory
              from unauthorized code execution. | Message on NX no being set"
-      when: '"(Execute Disable) protection: active" not in discovered_nx_bit_state.stdout'
+      when: '"(Execute Disable) protection: active" not in rhel8_stig_discovered_nx_bit_state.stdout'
       ansible.builtin.import_tasks:
         file: warning_facts.yml
 
@@ -1651,10 +1651,10 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_page_poison_grub_cmdline_linux
+      register: rhel8_stig_discovered_page_poison_grub_cmdline_linux
 
     - name: "MEDIUM | RHEL-08-010421 | PATCH | RHEL 8 must clear the page allocator to prevent use-after-free attacks. | Set page poison 1 as active"
-      when: discovered_page_poison_grub_cmdline_linux.stdout | length == 0
+      when: rhel8_stig_discovered_page_poison_grub_cmdline_linux.stdout | length == 0
       ansible.builtin.command: grubby --update-kernel=ALL --args="page_poison=1"
       changed_when: true
       notify:
@@ -1679,10 +1679,10 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_vsyscall_grub_cmdline_linux
+      register: rhel8_stig_discovered_vsyscall_grub_cmdline_linux
 
     - name: "MEDIUM | RHEL-08-010422 | PATCH | RHEL 8 must disable virtual syscalls. | Set vsyscall none as active"
-      when: discovered_vsyscall_grub_cmdline_linux.stdout | length == 0
+      when: rhel8_stig_discovered_vsyscall_grub_cmdline_linux.stdout | length == 0
       ansible.builtin.command: grubby --update-kernel=ALL --args="vsyscall=none"
       changed_when: true
       notify:
@@ -1707,10 +1707,10 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_init_grub_cmdline_linux
+      register: rhel8_stig_discovered_init_grub_cmdline_linux
 
     - name: "MEDIUM | RHEL-08-010423 | PATCH | RHEL 8 must clear memory when it is freed to prevent use-after-free attacks. | Set slub_debug to P as active"
-      when: discovered_init_grub_cmdline_linux.stdout | length == 0
+      when: rhel8_stig_discovered_init_grub_cmdline_linux.stdout | length == 0
       ansible.builtin.command: grubby --update-kernel=ALL --args="init_on_free=1"
       changed_when: true
       notify:
@@ -1739,18 +1739,18 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_aslr_conflicting_settings
+      register: rhel8_stig_discovered_aslr_conflicting_settings
 
     - name: " MEDIUM | RHEL-08-010430 | PATCH | RHEL 8 must implement address space layout randomization (ASLR)
               to protect its memory from unauthorized code execution. | Remove conflicting instances"
       when:
-        - discovered_aslr_conflicting_settings.stdout | length > 0
+        - rhel8_stig_discovered_aslr_conflicting_settings.stdout | length > 0
         - "item != rhel8_stig_sysctl_file"
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: "kernel.randomize_va_space = [^2]"
         state: absent
-      loop: "{{ discovered_aslr_conflicting_settings.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_aslr_conflicting_settings.stdout_lines }}"
 
     - name: " MEDIUM | RHEL-08-010430 | PATCH | RHEL 8 must implement address space layout randomization (ASLR)
               to protect its memory from unauthorized code execution.| Use template to create file"
@@ -1821,15 +1821,15 @@
       ansible.builtin.shell: find /etc/ssh -name ssh_host*_key.pub
       changed_when: false
       check_mode: false
-      failed_when: discovered_public_ssh_keys.rc not in [ 0, 1 ]
-      register: discovered_public_ssh_keys
+      failed_when: rhel8_stig_discovered_public_ssh_keys.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_public_ssh_keys
 
     - name: "MEDIUM | RHEL-08-010480 | PATCH | The RHEL 8 SSH public host key files must have mode 0644 or less permissive. | Set permissions"
-      when: discovered_public_ssh_keys.stdout | length > 0
+      when: rhel8_stig_discovered_public_ssh_keys.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
         mode: "u-x,go-wx"
-      loop: "{{ discovered_public_ssh_keys.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_public_ssh_keys.stdout_lines }}"
       notify: Restart sshd
 
 - name: "MEDIUM | RHEL-08-010490 | PATCH | The RHEL 8 SSH private host key files must have mode 0640 or less permissive."
@@ -1850,15 +1850,15 @@
       ansible.builtin.shell: find /etc/ssh -name ssh_host*_key
       changed_when: false
       check_mode: false
-      failed_when: discovered_private_ssh_keys.rc not in [ 0, 1 ]
-      register: discovered_private_ssh_keys
+      failed_when: rhel8_stig_discovered_private_ssh_keys.rc not in [ 0, 1 ]
+      register: rhel8_stig_discovered_private_ssh_keys
 
     - name: "MEDIUM | RHEL-08-010490 | PATCH | The RHEL 8 SSH private host key files must have mode 0640 or less permissive. | Set permissions"
-      when: discovered_private_ssh_keys.stdout | length > 0
+      when: rhel8_stig_discovered_private_ssh_keys.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
         mode: "u-x,g-wx,o-rwx"
-      loop: "{{ discovered_private_ssh_keys.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_private_ssh_keys.stdout_lines }}"
       notify: Restart sshd
 
 - name: "MEDIUM | RHEL-08-010500 | PATCH | The RHEL 8 SSH daemon must perform strict mode checking of home directory configuration files."
@@ -2111,10 +2111,10 @@
         's/[()]//g' # noqa: command-instead-of-module yaml[line-length]
       changed_when: false
       check_mode: false
-      register: discovered_nonroot_mounts_nodev_missing
+      register: rhel8_stig_010580_nonroot_mounts_nodev_missing
 
     - name: "MEDIUM | RHEL-08-010580 | PATCH | RHEL 8 must prevent special devices on non-root local partitions. | Split results"
-      when: discovered_nonroot_mounts_nodev_missing.stdout | length > 0
+      when: rhel8_stig_010580_nonroot_mounts_nodev_missing.stdout | length > 0
       vars:
         ld_mount_regex: >-
           ^(?P<device>[^'']*)\s(?P<mpoint>[^'']*)\s(?P<fs>[^'']*)\s(?P<opts>[^'']*)
@@ -2128,18 +2128,18 @@
           opts: >-4
               \g<opts>
       ansible.builtin.set_fact:
-        discovered_nodev_mounts: >-
-          {{ discovered_nonroot_mounts_nodev_missing.stdout_lines
+        rhel8_stig_010580_nodev_mounts: >-
+          {{ rhel8_stig_010580_nonroot_mounts_nodev_missing.stdout_lines
              | map('regex_replace', ld_mount_regex, ld_mount_yaml)
              | map('from_yaml')
              | list }}
-      loop: "{{ discovered_nonroot_mounts_nodev_missing.stdout_lines }}"
+      loop: "{{ rhel8_stig_010580_nonroot_mounts_nodev_missing.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010580 | PATCH | RHEL 8 must prevent special devices on non-root local partitions. | Set value"
       when:
         - item.device != "/"
         - "'nodev' not in item.opts"
-        - discovered_nonroot_mounts_nodev_missing.stdout | length > 0
+        - rhel8_stig_010580_nonroot_mounts_nodev_missing.stdout | length > 0
       ansible.posix.mount:
         path: "{{ item.mpoint }}"
         state: mounted
@@ -2414,17 +2414,17 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_kernel_core_settings
+      register: rhel8_stig_discovered_kernel_core_settings
 
     - name: "MEDIUM | RHEL-08-010671 | PATCH | RHEL 8 must disable the kernel.core_pattern."
       when:
-        - discovered_kernel_core_settings.stdout | length > 0
+        - rhel8_stig_discovered_kernel_core_settings.stdout | length > 0
         - item != '/etc/sysctl.d/99-disable-coredump.conf'
       ansible.builtin.lineinfile:
         path: "{{ item }}"
         regexp: kernel.core_pattern\s*=\s*.*(?<!\|\/bin\/false)$
         state: absent
-      loop: "{{ discovered_kernel_core_settings.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_kernel_core_settings.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010671 | PATCH | RHEL 8 must disable the kernel.core_pattern."
       ansible.posix.sysctl:
@@ -2532,32 +2532,32 @@
       changed_when: false
       failed_when: false
       check_mode: false
-      register: discovered_nsswitch_settings
+      register: rhel8_stig_discovered_nsswitch_settings
 
     - name: MEDIUM | RHEL-08-010680 | AUDIT | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured.
       ansible.builtin.command: grep -c "# Generated by NetworkManager" /etc/resolv.conf
       changed_when: false
       failed_when: false
       check_mode: false
-      register: discovered_networkmanager_status
+      register: rhel8_stig_discovered_networkmanager_status
 
     - name: MEDIUM | RHEL-08-010680 | AUDIT | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured.
       ansible.builtin.shell: set -o pipefail && grep -i "nameserver" /etc/resolv.conf | grep -v "#" | wc -l
       changed_when: false
       failed_when: false
       check_mode: false
-      register: discovered_nameserver_count
+      register: rhel8_stig_discovered_nameserver_count
 
     - name: MEDIUM | RHEL-08-010680 | PATCH | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured
-      when: "'dns' not in discovered_nsswitch_settings.stdout"
+      when: "'dns' not in rhel8_stig_discovered_nsswitch_settings.stdout"
       ansible.builtin.command: echo -n > /etc/resolv.conf && chattr +i /etc/resolv.conf
       changed_when: true
 
     - name: MEDIUM | RHEL-08-010680 | PATCH | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured
       when:
         - not rhel8_stig_use_resolv_template
-        - discovered_networkmanager_status.stdout == '0'
-        - discovered_nameserver_count.stdout | int >= 2
+        - rhel8_stig_discovered_networkmanager_status.stdout == '0'
+        - rhel8_stig_discovered_nameserver_count.stdout | int >= 2
       ansible.builtin.lineinfile:
         dest: /etc/resolv.conf
         regexp: "{{ item.regexp }}"
@@ -2571,7 +2571,7 @@
 
     - name: MEDIUM | RHEL-08-010680 | PATCH | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured
       when:
-        - discovered_networkmanager_status.stdout == '0'
+        - rhel8_stig_discovered_networkmanager_status.stdout == '0'
         - rhel8_stig_use_resolv_template
       ansible.builtin.template:
         src: resolv.conf.j2
@@ -2582,14 +2582,14 @@
 
     - name: MEDIUM | RHEL-08-010680 | PATCH | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured
       when:
-        - discovered_networkmanager_status.stdout != '0' or discovered_nameserver_count.stdout| int < 2
+        - rhel8_stig_discovered_networkmanager_status.stdout != '0' or rhel8_stig_discovered_nameserver_count.stdout| int < 2
         - not rhel8_stig_use_resolv_template
       ansible.builtin.debug:
         msg: "WARNING!! /etc/resolv.conf is managed by network manager and/or shows less than two DNS servers configured. Please correct this"
 
     - name: MEDIUM | RHEL-08-010680 | PATCH | For RHEL 8 systems using Domain Name Servers (DNS) resolution, at least two name servers must be configured
       when:
-        - discovered_networkmanager_status.stdout != '0' or discovered_nameserver_count.stdout| int < 2
+        - rhel8_stig_discovered_networkmanager_status.stdout != '0' or rhel8_stig_discovered_nameserver_count.stdout| int < 2
         - not rhel8_stig_use_resolv_template
       ansible.builtin.import_tasks:
         file: warning_facts.yml
@@ -2615,19 +2615,19 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_ini_path_grep_list
+      register: rhel8_stig_discovered_ini_path_grep_list
       loop: "{{ discovered_interactive_users_home.stdout_list }}"
 
     - name: MEDIUM | RHEL-08-010690 | PATCH | Executable search paths within the initialization files of all local interactive RHEL 8 users must only contain
         paths that resolve to the system default or the users home directory. # noqa: yaml[line-length]
-      when: discovered_ini_path_grep_list.results | map(attribute='stdout_lines') | list | length > 0
+      when: rhel8_stig_discovered_ini_path_grep_list.results | map(attribute='stdout_lines') | list | length > 0
       ansible.builtin.debug:
         msg: You will need to audit and correct executable paths set in "{{ item }}" to contain only paths that resolve to the user's home directory.
-      loop: "{{ discovered_ini_path_grep_list.results | map(attribute='stdout_lines') | list }}"
+      loop: "{{ rhel8_stig_discovered_ini_path_grep_list.results | map(attribute='stdout_lines') | list }}"
 
     - name: MEDIUM | RHEL-08-010690 | PATCH | Executable search paths within the initialization files of all local interactive RHEL 8 users must only contain
         paths that resolve to the system default or the users home directory. # noqa: yaml[line-length]
-      when: discovered_ini_path_grep_list.results | map(attribute='stdout_lines') | list | length > 0
+      when: rhel8_stig_discovered_ini_path_grep_list.results | map(attribute='stdout_lines') | list | length > 0
       ansible.builtin.import_tasks:
         file: warning_facts.yml
       vars:
@@ -2650,16 +2650,16 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_worldwide_dir_owners
+      register: rhel8_stig_discovered_worldwide_dir_owners
 
     - name: MEDIUM | RHEL-08-010700 | AUDIT | All RHEL 8 world-writable directories must be owned by root, sys, bin, or an application group. | Set permissions
       when:
-        - discovered_worldwide_dir_owners.stdout is defined
-        - discovered_worldwide_dir_owners.stdout | length > 0
+        - rhel8_stig_discovered_worldwide_dir_owners.stdout is defined
+        - rhel8_stig_discovered_worldwide_dir_owners.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
         owner: "{{ rhel8_stig_ww_dir_owner }}"
-      loop: "{{ discovered_worldwide_dir_owners.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_worldwide_dir_owners.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010710 | PATCH | All RHEL 8 world-writable directories must be group-owned by root, sys, bin, or an application group."
   when: rhel8_stig_010710
@@ -2678,16 +2678,16 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_world_writable_dir_group_owners
+      register: rhel8_stig_discovered_world_writable_dir_group_owners
 
     - name: MEDIUM | RHEL-08-010710 | PATCH | All RHEL 8 world-writable directories must be group-owned by root, sys, bin, or an application group.
       when:
-        - discovered_world_writable_dir_group_owners.stdout is defined
-        - discovered_world_writable_dir_group_owners.stdout | length > 0
+        - rhel8_stig_discovered_world_writable_dir_group_owners.stdout is defined
+        - rhel8_stig_discovered_world_writable_dir_group_owners.stdout | length > 0
       ansible.builtin.file:
         path: "{{ item }}"
         group: "{{ rhel8_stig_ww_dir_grpowner }}"
-      loop: "{{ discovered_world_writable_dir_group_owners.stdout_lines }}"
+      loop: "{{ rhel8_stig_discovered_world_writable_dir_group_owners.stdout_lines }}"
 
 - name: "MEDIUM | RHEL-08-010720 | PATCH | All RHEL 8 local interactive users must have a home directory assigned in the /etc/passwd file."
   when: rhel8_stig_010720
@@ -2707,23 +2707,23 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_users_no_home_dir
+      register: rhel8_stig_discovered_users_no_home_dir
 
     - name: MEDIUM | RHEL-08-010720 | AUDIT | All RHEL 8 local interactive users must have a home directory assigned in the /etc/passwd file.
       ansible.builtin.shell: set -o pipefail && grep vboxadd /etc/passwd | awk -F ":" '$3>{{ min_int_uid }} {print $1}'
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_user_list
+      register: rhel8_stig_discovered_user_list
 
     - name: MEDIUM | RHEL-08-010720 | PATCH | All RHEL 8 local interactive users must have a home directory assigned in the /etc/passwd file.
       when:
-        - discovered_user_list.stdout is defined
-        - discovered_user_list.stdout | length > 0
+        - rhel8_stig_discovered_user_list.stdout is defined
+        - rhel8_stig_discovered_user_list.stdout | length > 0
       ansible.builtin.debug:
         msg:
           - "WARNING!! The users listed below are interactive users with no home directories. Please create home directories to confirm with STIG standards"
-          - "{{ discovered_user_list.stdout_lines }}"
+          - "{{ rhel8_stig_discovered_user_list.stdout_lines }}"
 
     - name: MEDIUM | RHEL-08-010720 | PATCH | All RHEL 8 local interactive users must have a home directory assigned in the /etc/passwd file.
       ansible.builtin.import_tasks:
@@ -2747,7 +2747,7 @@
     owner: "{{ item.id }}"
     group: "{{ item.gid }}"
     mode: "o-rwx"
-  register: discovered_home_dir
+  register: rhel8_stig_discovered_home_dir
   loop: "{{ prelim_captured_passwd_data | selectattr('uid', '>=', min_int_uid | int) | selectattr('uid', '<=', max_int_uid | int) | list }}"
   loop_control:
     label: "{{ item.id }}"
@@ -2905,14 +2905,14 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_nouser_files
+      register: rhel8_stig_discovered_nouser_files
 
     - name: "MEDIUM | RHEL-08-010780 | AUDIT | All RHEL 8 files and directories must have a valid owner. | Alert nouser files"
-      when: discovered_nouser_files.stdout | length > 0
+      when: rhel8_stig_discovered_nouser_files.stdout | length > 0
       ansible.builtin.debug:
         msg:
           - "WARNING!! There are files with no user assigned. Please review files listed below and assign owner"
-          - "{{ discovered_nouser_files.stdout_lines }}"
+          - "{{ rhel8_stig_discovered_nouser_files.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010780 | AUDIT | All RHEL 8 files and directories must have a valid owner. | Alert nouser files"
       ansible.builtin.import_tasks:
@@ -2937,14 +2937,14 @@
       changed_when: false
       check_mode: false
       failed_when: false
-      register: discovered_nogroup_owned_files
+      register: rhel8_stig_discovered_nogroup_owned_files
 
     - name: "MEDIUM | RHEL-08-010790 | AUDIT | All RHEL 8 files and directories must have a valid group owner. | Alert nogroup files"
-      when: discovered_nogroup_owned_files.stdout | length > 0
+      when: rhel8_stig_discovered_nogroup_owned_files.stdout | length > 0
       ansible.builtin.debug:
         msg:
           - "WARNING!! There are files with no group assigned. Please review files listed below and assign group"
-          - "{{ discovered_nogroup_owned_files.stdout_lines }}"
+          - "{{ rhel8_stig_discovered_nogroup_owned_files.stdout_lines }}"
 
     - name: "MEDIUM | RHEL-08-010790 | AUDIT | All RHEL 8 files and directories must have a valid group owner. | Alert nogroup files"
       ansible.builtin.import_tasks:
