@@ -1,0 +1,53 @@
+---
+
+{{ if .Vars.RHEL_08_030420 }}
+command:
+  audit_rules_truncate:
+    title: RHEL-08-030420 | Successful/unsuccessful uses of the truncate, ftruncate, creat, open, openat, and open_by_handle_at system calls in RHEL 8 must generate an audit record. | config check
+    exec: grep truncate /etc/audit/audit.rules
+    exit-status: 0
+    stdout:
+    - '-a always,exit -F arch=b32 -S truncate,ftruncate,creat,open,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=unset -k perm_access'
+    - '-a always,exit -F arch=b64 -S truncate,ftruncate,creat,open,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=unset -k perm_access'
+    - '-a always,exit -F arch=b32 -S truncate,ftruncate,creat,open,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=unset -k perm_access'
+    - '-a always,exit -F arch=b64 -S truncate,ftruncate,creat,open,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=unset -k perm_access'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      - SRG-OS-000064-GPOS-00033
+      Rule_ID: SV-230449r1017249_rule
+      STIG_ID: RHEL-08-030420
+      Vul_ID: V-230449
+  auditd_truncate_live:
+    title: RHEL-08-030420 | Successful/unsuccessful uses of the truncate, ftruncate, creat, open, openat, and open_by_handle_at system calls in RHEL 8 must generate an audit record. | live check
+    exec: auditctl -l | grep -w truncate
+    exit-status: 0
+    stdout:
+    - '-a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=-1 -F key=perm_access'
+    - '-a always,exit -F arch=b64 -S open,truncate,ftruncate,creat,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=-1 -F key=perm_access'
+    - '-a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=-1 -F key=perm_access'
+    - '-a always,exit -F arch=b64 -S open,truncate,ftruncate,creat,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=-1 -F key=perm_access'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      - SRG-OS-000064-GPOS-00033
+      Rule_ID: SV-230449r1017249_rule
+      STIG_ID: RHEL-08-030420
+      Vul_ID: V-230449
+{{ end }}

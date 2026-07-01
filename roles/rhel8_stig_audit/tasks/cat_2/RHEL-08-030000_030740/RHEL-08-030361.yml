@@ -1,0 +1,47 @@
+---
+
+{{ if .Vars.RHEL_08_030361 }}
+command:
+  audit_rules_rename:
+    title: RHEL-08-030361 | Successful/unsuccessful uses of the rename, unlink, rmdir, renameat, and unlinkat system calls in RHEL 8 must generate an audit record. | config check
+    exec: grep rename /etc/audit/audit.rules
+    exit-status: 0
+    stdout:
+    - '-a always,exit -F arch=b32 -S rename,unlink,rmdir,renameat,unlinkat -F auid>=1000 -F auid!=unset -k delete'
+    - '-a always,exit -F arch=b64 -S rename,unlink,rmdir,renameat,unlinkat -F auid>=1000 -F auid!=unset -k delete'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      Rule_ID: SV-230439r1017243_rule
+      STIG_ID: RHEL-08-030361
+      Vul_ID: V-230439
+  auditd_rename_live:
+    title: RHEL-08-030361 | Successful/unsuccessful uses of the rename, unlink, rmdir, renameat, and unlinkat system calls in RHEL 8 must generate an audit record. | live check
+    exec: auditctl -l | grep -w rename
+    exit-status: 0
+    stdout:
+    - '-a always,exit -F arch=b32 -S unlink,rename,rmdir,unlinkat,renameat -F auid>=1000 -F auid!=-1 -F key=delete'
+    - '-a always,exit -F arch=b64 -S rename,rmdir,unlink,unlinkat,renameat -F auid>=1000 -F auid!=-1 -F key=delete'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      Rule_ID: SV-230439r1017243_rule
+      STIG_ID: RHEL-08-030361
+      Vul_ID: V-230439
+{{ end }}

@@ -1,0 +1,17 @@
+---
+
+{{ if .Vars.RHEL_08_030670 }}
+package:
+  rsyslog_030670:
+    title: RHEL-08-030670 | RHEL 8 must have the packages required for offloading audit logs installed.
+    name: rsyslog
+    installed: true
+    meta:
+      Cat: 2
+      CCI: CCI-000366
+      NIST800-53R4: CM-6
+      Group_Title: SRG-OS-000480-GPOS-00227
+      Rule_ID: SV-230477r1017267_rule
+      STIG_ID: RHEL-08-030670
+      Vul_ID: V-230477
+{{ end }}

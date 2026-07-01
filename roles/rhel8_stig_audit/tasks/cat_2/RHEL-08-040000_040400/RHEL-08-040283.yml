@@ -1,0 +1,35 @@
+---
+
+{{ if .Vars.RHEL_08_040283 }}
+kernel-param:
+  kernel.kptr_restrict:
+    title: RHEL-08-040283 | RHEL 8 must restrict exposed kernel pointer addresses access. | Live_check
+    value: '1'
+    meta:
+      Cat: 2
+      CCI: CCI-000366
+      NIST800-53R4: CM-6
+      Group_Title: SRG-OS-000480-GPOS-00227
+      Rule_ID: SV-230547r1184283_rule
+      STIG_ID: RHEL-08-040283
+      Vul_ID: V-230547
+command:
+  kptr_restrict_check:
+    title: RHEL-08-040283 | RHEL 8 must restrict exposed kernel pointer addresses access. | file_check
+    exec: grep -iR kernel.kptr_restrict /run/sysctl.d/*.conf /usr/local/lib/sysctl.d/*.conf /usr/lib/sysctl.d/*.conf /lib/sysctl.d/*.conf /etc/sysctl.conf /etc/sysctl.d/*.conf
+    exit-status:
+      or:
+      - 0
+      - 2
+    stdout:
+    - '/.*:(\s|)kernel.kptr_restrict( |)=( |)1/'
+    - '!/.*:(\s|)kernel.kptr_restrict( |)=( |)0/'
+    meta:
+      Cat: 2
+      CCI: CCI-000366
+      NIST800-53R4: CM-6
+      Group_Title: SRG-OS-000480-GPOS-00227
+      Rule_ID: SV-230547r1184283_rule
+      STIG_ID: RHEL-08-040283
+      Vul_ID: V-230547
+{{ end }}

@@ -1,0 +1,22 @@
+---
+
+{{ if .Vars.RHEL_08_020331 }}
+command:
+  system_auth_nullok:
+    title: RHEL-08-020331 | RHEL 8 must not allow blank or null passwords in the system-auth file.
+    exec: grep -i nullok /etc/pam.d/system-auth
+    exit-status:
+      or:
+      - 0
+      - 1
+    stdout:
+    - '!/.*/'
+    meta:
+      Cat: 1
+      CCI: CCI-000366
+      NIST800-53R4: CM-6
+      Group_Title: SRG-OS-000480-GPOS-00227
+      Rule_ID: SV-268322r1017568_rule
+      STIG_ID: RHEL-08-020331
+      Vul_ID: V-268322
+{{ end }}

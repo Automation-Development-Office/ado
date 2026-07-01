@@ -1,0 +1,45 @@
+---
+
+{{ if .Vars.RHEL_08_030310 }}
+command:
+  audit_rules_unix_update:
+    title: RHEL-08-030310 | Successful/unsuccessful uses of the unix_update in RHEL 8 must generate an audit record. | config check
+    exec: grep -w unix_update /etc/audit/audit.rules
+    exit-status: 0
+    stdout:
+    - '-a always,exit -F path=/usr/sbin/unix_update -F perm=x -F auid>=1000 -F auid!=unset -k privileged-unix-update'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      Rule_ID: SV-230426r1017227_rule
+      STIG_ID: RHEL-08-030310
+      Vul_ID: V-230426
+  auditd_unix_update_live:
+    title: RHEL-08-030310 | Successful/unsuccessful uses of the unix_update in RHEL 8 must generate an audit record. | live check
+    exec: auditctl -l | grep -w unix_update
+    exit-status: 0
+    stdout:
+    - '-a always,exit -S all -F path=/usr/sbin/unix_update -F perm=x -F auid>=1000 -F auid!=-1 -F key=privileged-unix-update'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      Rule_ID: SV-230426r1017227_rule
+      STIG_ID: RHEL-08-030310
+      Vul_ID: V-230426
+{{ end }}

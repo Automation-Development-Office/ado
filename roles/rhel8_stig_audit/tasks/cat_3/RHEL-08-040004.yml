@@ -1,0 +1,35 @@
+---
+
+{{ if .Vars.RHEL_08_040004 }}
+command:
+  default_grub_pti:
+    title: RHEL-08-040004 | RHEL 8 must enable mitigations against processor-based vulnerabilities. | config
+    exec: grep pti /etc/default/grub
+    exit-status: 0
+    stdout:
+    - '/^GRUB_CMDLINE_LINUX=.*pti=on.*/'
+    - '!/^GRUB_CMDLINE_LINUX=.*pti=off.*/'
+    meta:
+      Cat: 3
+      CCI: CCI-000381
+      NIST800-53R4: CM-7
+      Group_Title: SRG-OS-000095-GPOS-00049
+      Rule_ID: SV-230491r1017274_rule
+      STIG_ID: RHEL-08-040004
+      Vul_ID: V-230491
+  grub_pti_check:
+    title: RHEL-08-040004 | RHEL 8 must enable mitigations against processor-based vulnerabilities. | running grub
+    exec: grub2-editenv list | grep pti
+    exit-status: 0
+    stdout:
+    - '/^kernelopts.*\spti=on.*/'
+    - '!/^kernelopts=.*\spti=off.*/'
+    meta:
+      Cat: 3
+      CCI: CCI-000381
+      NIST800-53R4: CM-7
+      Group_Title: SRG-OS-000095-GPOS-00049
+      Rule_ID: SV-230491r1017274_rule
+      STIG_ID: RHEL-08-040004
+      Vul_ID: V-230491
+{{ end }}

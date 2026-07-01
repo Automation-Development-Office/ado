@@ -1,0 +1,17 @@
+---
+
+{{ if .Vars.RHEL_08_040160 }}
+service:
+  sshd:
+    title: RHEL-08-040160 | All RHEL 8 networked systems must have and implement SSH to protect the confidentiality and integrity of transmitted and received information, as well as information during preparation for transmission.
+    running: true
+    enabled: true
+    meta:
+      Cat: 2
+      CCI: CCI-002418
+      NIST800-53R4: SC-8
+      Group_Title: SRG-OS-000423-GPOS-00187
+      Rule_ID: SV-230526r958908_rule
+      STIG_ID: RHEL-08-040160
+      Vul_ID: V-230526
+{{ end }}

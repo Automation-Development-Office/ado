@@ -1,0 +1,45 @@
+---
+
+{{ if .Vars.RHEL_08_030301 }}
+command:
+  audit_rules_umount:
+    title: RHEL-08-030301 | Successful/unsuccessful uses of the umount command in RHEL 8 must generate an audit record. | config check
+    exec: grep -w umount /etc/audit/audit.rules
+    exit-status: 0
+    stdout:
+    - '-a always,exit -F path=/usr/bin/umount -F perm=x -F auid>=1000 -F auid!=unset -k privileged-mount'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      Rule_ID: SV-230424r1017225_rule
+      STIG_ID: RHEL-08-030301
+      Vul_ID: V-230424
+  auditd_umount_live:
+    title: RHEL-08-030301 | Successful/unsuccessful uses of the umount command in RHEL 8 must generate an audit record. | live check
+    exec: auditctl -l | grep -w umount
+    exit-status: 0
+    stdout:
+    - '-a always,exit -S all -F path=/usr/bin/umount -F perm=x -F auid>=1000 -F auid!=-1 -F key=privileged-mount'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      Rule_ID: SV-230424r1017225_rule
+      STIG_ID: RHEL-08-030301
+      Vul_ID: V-230424
+{{ end }}

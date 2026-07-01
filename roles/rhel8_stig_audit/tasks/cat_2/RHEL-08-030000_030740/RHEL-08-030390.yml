@@ -1,0 +1,47 @@
+---
+
+{{ if .Vars.RHEL_08_030390 }}
+command:
+  audit_rules_del_module:
+    title: RHEL-08-030390 | Successful/unsuccessful uses of the delete_module command in RHEL 8 must generate an audit record. | config check
+    exec: grep delete_module /etc/audit/audit.rules
+    exit-status: 0
+    stdout:
+    - '-a always,exit -F arch=b32 -S delete_module -F auid>=1000 -F auid!=unset -k module_chng'
+    - '-a always,exit -F arch=b64 -S delete_module -F auid>=1000 -F auid!=unset -k module_chng'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      Rule_ID: SV-230446r1017245_rule
+      STIG_ID: RHEL-08-030390
+      Vul_ID: V-230446
+  auditd_delete_module_live:
+    title: RHEL-08-030390 | Successful/unsuccessful uses of the delete_module command in RHEL 8 must generate an audit record. | live check
+    exec: auditctl -l | grep -w delete_module
+    exit-status: 0
+    stdout:
+    - '-a always,exit -F arch=b32 -S delete_module -F auid>=1000 -F auid!=-1 -F key=module_chng'
+    - '-a always,exit -F arch=b64 -S delete_module -F auid>=1000 -F auid!=-1 -F key=module_chng'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      Rule_ID: SV-230446r1017245_rule
+      STIG_ID: RHEL-08-030390
+      Vul_ID: V-230446
+{{ end }}

@@ -1,0 +1,17 @@
+---
+
+{{ if .Vars.RHEL_08_010544 }}
+mount:
+  var_tmp_exists:
+    title: RHEL-08-010544 | RHEL 8 must use a separate file system for /var/tmp.
+    exists: true
+    mountpoint: /var/tmp
+    meta:
+      Cat: 2
+      CCI: CCI-000366
+      NIST800-53R4: CM-6
+      Group_Title: SRG-OS-000480-GPOS-00227
+      Rule_ID: SV-244529r1017336_rule
+      STIG_ID: RHEL-08-010544
+      Vul_ID: V-244529
+{{ end }}

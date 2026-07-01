@@ -1,0 +1,25 @@
+---
+
+{{ if .Vars.run_heavy_tests }}
+{{ if .Vars.RHEL_08_010460 }}
+command:
+  shosts_equiv_check:
+    title: RHEL-08-010460 | There must be no shosts.equiv files on the RHEL 8 operating system.
+    exec: find / -name shosts.equiv
+    timeout: {{ .Vars.timeout_ms }}
+    exit-status:
+        or:
+        - 0
+        - 1
+    stdout:
+    - '!/.*/'
+    meta:
+      Cat: 1
+      CCI: CCI-000366
+      NIST800-53R4: CM-6
+      Group_Title: SRG-OS-000480-GPOS-00227
+      Rule_ID: SV-230283r1017094_rule
+      STIG_ID: RHEL-08-010460
+      Vul_ID: V-230283
+  {{ end }}
+{{ end }}

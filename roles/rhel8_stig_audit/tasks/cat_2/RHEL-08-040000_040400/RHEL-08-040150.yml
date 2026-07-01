@@ -1,0 +1,19 @@
+---
+
+{{ if .Vars.RHEL_08_040150 }}
+file:
+  /etc/firewalld/firewalld.conf:
+    title: RHEL-08-040150 | A firewall must be able to protect against or limit the effects of Denial of Service (DoS) attacks by ensuring RHEL 8 can implement rate-limiting measures on impacted network interfaces. | firewall backend check
+    exists: true
+    contents:
+    - '/^FirewallBackend=nftables/'
+    - '!/^FirewallBackend=iptables/'
+    meta:
+      Cat: 2
+      CCI: CCI-002385
+      NIST800-53R4: SC-5
+      Group_Title: SRG-OS-000420-GPOS-00186
+      Rule_ID: SV-230525r958902_rule
+      STIG_ID: RHEL-08-040150
+      Vul_ID: V-230525
+{{ end }}

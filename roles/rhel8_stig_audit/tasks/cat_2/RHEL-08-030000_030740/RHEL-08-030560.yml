@@ -1,0 +1,49 @@
+---
+
+{{ if .Vars.RHEL_08_030560 }}
+command:
+  audit_rules_usermod:
+    title: RHEL-08-030560 | Successful/unsuccessful uses of the usermod command in RHEL 8 must generate an audit record. | config check
+    exec: grep usermod /etc/audit/audit.rules
+    exit-status: 0
+    stdout:
+    - '-a always,exit -F path=/usr/sbin/usermod -F perm=x -F auid>=1000 -F auid!=unset -k privileged-usermod'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      - SRG-OS-000064-GPOS-00033
+      - SRG-OS-000466-GPOS-00210
+      Rule_ID: SV-230463r1017255_rule
+      STIG_ID: RHEL-08-030560
+      Vul_ID: V-230463
+  auditd_usermod_live:
+    title: RHEL-08-030560 | Successful/unsuccessful uses of the usermod command in RHEL 8 must generate an audit record. | live check
+    exec: auditctl -l | grep -w usermod
+    exit-status: 0
+    stdout:
+    - '-a always,exit -S all -F path=/usr/sbin/usermod -F perm=x -F auid>=1000 -F auid!=-1 -F key=privileged-usermod'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      - SRG-OS-000064-GPOS-00033
+      - SRG-OS-000466-GPOS-00210
+      Rule_ID: SV-230463r1017255_rule
+      STIG_ID: RHEL-08-030560
+      Vul_ID: V-230463
+{{ end }}

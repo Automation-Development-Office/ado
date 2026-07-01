@@ -1,7 +1,7 @@
 ---
 - name: Change_requires_reboot
   ansible.builtin.set_fact:
-    change_requires_reboot: true
+    rhel8_stig_change_requires_reboot: true
 
 - name: Systemctl daemon-reload
   when: not system_is_container
@@ -42,7 +42,7 @@
   when:
     - not rhel8_stig_system_is_chroot
     - "'openssh-server' in ansible_facts.packages"
-    - not change_requires_reboot
+    - not rhel8_stig_change_requires_reboot
   ansible.builtin.service:
     name: sshd
     state: restarted

@@ -1,0 +1,19 @@
+---
+
+{{ if .Vars.RHEL_08_010292 }}
+command:
+  sysconfig_sshd_strong_entropy:
+    title: RHEL-08-010292 | RHEL 8 must ensure the SSH server uses strong entropy.
+    exec: grep -i ssh_use_strong_rng /etc/sysconfig/sshd
+    exit-status: 0
+    stdout:
+    - '/^SSH_USE_STRONG_RNG\s*=\s*32/'
+    meta:
+      Cat: 3
+      CCI: CCI-000366
+      NIST800-53R4: CM-6
+      Group_Title: SRG-OS-000480-GPOS-00227
+      Rule_ID: SV-230253r1044799_rule
+      STIG_ID: RHEL-08-010292
+      Vul_ID: V-230253
+{{ end }}

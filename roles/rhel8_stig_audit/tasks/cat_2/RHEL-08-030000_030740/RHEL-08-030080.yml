@@ -1,0 +1,23 @@
+---
+
+{{ if .Vars.RHEL_08_030080 }}
+command:
+  audit_log_owner:
+    title: RHEL-08-030080 | RHEL 8 audit logs must be owned by root to prevent unauthorized read access.
+    exec: stat -c "%U" /var/log/audit/audit.log
+    exit-status: 0
+    stdout:
+    - root
+    meta:
+      Cat: 2
+      CCI: CCI-000162
+      NIST800-53R4: AU-9
+      Group_Title:
+      - SRG-OS-000057-GPOS-00027
+      - SRG-OS-000058-GPOS-00028
+      - SRG-OS-000059-GPOS-00029
+      - SRG-OS-000206-GPOS-00084
+      Rule_ID: SV-230397r1017203_rule
+      STIG_ID: RHEL-08-030080
+      Vul_ID: V-230397
+{{ end }}

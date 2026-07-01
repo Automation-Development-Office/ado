@@ -505,12 +505,16 @@ rhel8_stig_sysctl_file: /etc/sysctl.d/99_stig_sysctl.conf
 # Whether or not system uses remote automounted home directories via autofs
 rhel8_stig_autofs_remote_home_dirs: false
 
-# The local mount point used by autofs to mount remote home directory to. This location will be excluded during getent user enumeration, if rhel8stig_autofs_remote_home_dirs is true
+# The local mount point used by autofs to mount remote home directory to.
+# This location will be excluded during getent user enumeration, if
+# rhel8_stig_autofs_remote_home_dirs is true
 rhel8_stig_auto_mount_home_dirs_local_mount_point: "/home/"
 
 # The default shell command to gather local interactive user directories
 ## NOTE: You will need to adjust the UID range in parenthesis below.
-## ALSO NOTE: We weed out any user with a home dir not in standard locations because interactive users shouldn't have those paths as a home dir. Add or removed directory paths as needed below.
+## ALSO NOTE: We weed out any user with a home dir not in standard locations
+## because interactive users shouldn't have those paths as a home dir. Add or
+## removed directory paths as needed below.
 rhel8_stig_local_interactive_user_dir_command: |
   getent passwd {{ '{' }}{{ min_int_uid }}..65535{{ '}' }} |
   grep -v '/sbin/nologin' |

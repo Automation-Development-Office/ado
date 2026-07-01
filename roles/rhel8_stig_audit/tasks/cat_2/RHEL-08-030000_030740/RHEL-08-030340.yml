@@ -1,0 +1,45 @@
+---
+
+{{ if .Vars.RHEL_08_030340 }}
+command:
+  audit_rules_timestamp:
+    title: RHEL-08-030340 | Successful/unsuccessful uses of the pam_timestamp_check command in RHEL 8 must generate an audit record. | config check
+    exec: grep pam_timestamp_check /etc/audit/audit.rules
+    exit-status: 0
+    stdout:
+    - '-a always,exit -F path=/usr/sbin/pam_timestamp_check -F perm=x -F auid>=1000 -F auid!=unset -k privileged-pam_timestamp_check'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      Rule_ID: SV-230436r1017237_rule
+      STIG_ID: RHEL-08-030340
+      Vul_ID: V-230436
+  auditd_pam_timestamp_check_live:
+    title: RHEL-08-030340 | Successful/unsuccessful uses of the pam_timestamp_check command in RHEL 8 must generate an audit record. | live check
+    exec: auditctl -l | grep -w pam_timestamp_check
+    exit-status: 0
+    stdout:
+    - '-a always,exit -S all -F path=/usr/sbin/pam_timestamp_check -F perm=x -F auid>=1000 -F auid!=-1 -F key=privileged-pam_timestamp_check'
+    meta:
+      Cat: 2
+      CCI: CCI-000169
+      NIST800-53R4: AU-12
+      Group_Title:
+      - SRG-OS-000062-GPOS-00031
+      - SRG-OS-000037-GPOS-00015
+      - SRG-OS-000042-GPOS-00020
+      - SRG-OS-000392-GPOS-00172
+      - SRG-OS-000462-GPOS-00206
+      - SRG-OS-000471-GPOS-00215
+      Rule_ID: SV-230436r1017237_rule
+      STIG_ID: RHEL-08-030340
+      Vul_ID: V-230436
+{{ end }}

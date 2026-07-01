@@ -1,0 +1,21 @@
+---
+
+{{ if .Vars.RHEL_08_040022 }}
+command:
+  CAN_modprobe:
+    title: RHEL-08-040022 | RHEL 8 must disable the controller area network (CAN) protocol.
+    exec: grep -ri can /etc/modprobe.d/* | grep -v '#'
+    exit-status: 0
+    stdout:
+    - '/(?i)^.*:install can \/bin\/false/'
+    - '/(?i)^.*:blacklist can/'
+    - '!/(?i)^.*:install can \/bin\/true/'
+    meta:
+      Cat: 3
+      CCI: CCI-000381
+      NIST800-53R4: CM-7
+      Group_Title: SRG-OS-000095-GPOS-00049
+      Rule_ID: SV-230495r1069311_rule
+      STIG_ID: RHEL-08-040022
+      Vul_ID: V-230495
+{{ end }}

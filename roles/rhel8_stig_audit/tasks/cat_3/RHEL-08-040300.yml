@@ -1,0 +1,21 @@
+---
+
+{{ if .Vars.RHEL_08_040300 }}
+command:
+  /etc/aide_conf_extended_attrib:
+    title: RHEL-08-040300 | The RHEL 8 file integrity tool must be configured to verify extended attributes.
+    exec: grep -Ei 'xattrs|FIPSR' /etc/aide.conf
+    exit-status: 0
+    stdout:
+    - '/^(ALL|FIPSR)( |)=.*\+xattr.*/'
+    - '/^(\/bin All|EVERYTHING = FIPSR)/'
+    - '/^(\/sbin All|EVERYTHING = FIPSR)/'
+    meta:
+      Cat: 3
+      CCI: CCI-000366
+      NIST800-53R4: CM-6
+      Group_Title: SRG-OS-000480-GPOS-00227
+      Rule_ID: SV-230551r1017313_rule
+      STIG_ID: RHEL-08-040300
+      Vul_ID: V-230551
+{{ end }}

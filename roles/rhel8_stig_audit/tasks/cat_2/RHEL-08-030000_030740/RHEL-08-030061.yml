@@ -1,0 +1,20 @@
+---
+
+{{ if .Vars.RHEL_08_030061 }}
+command:
+  auditd_conf_local_events:
+    title: RHEL-08-030061 | The RHEL 8 audit system must audit local events.
+    exec: grep -i local_events /etc/audit/auditd.conf
+    exit-status: 0
+    stdout:
+    - '/(?i)^local_events = yes/'
+    - '!/(?i)^local_events = no/'
+    meta:
+      Cat: 2
+      CCI: CCI-000366
+      NIST800-53R4: CM-6
+      Group_Title: SRG-OS-000480-GPOS-00227
+      Rule_ID: SV-230393r1017200_rule
+      STIG_ID: RHEL-08-030061
+      Vul_ID: V-230393
+{{ end }}
