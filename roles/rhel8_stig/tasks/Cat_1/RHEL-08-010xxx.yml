@@ -1,0 +1,344 @@
+---
+
+- name: "HIGH | RHEL-08-010000 | AUDIT | The RHEL 8 must be a vendor-supported release."
+  when: remediate_rhel8_stig_010000
+  tags:
+    - RHEL-08-010000
+    - CAT1
+    - CCI-000366
+    - NIST800-53R4_CM-6
+    - SRG-OS-000480-GPOS-00227
+    - SV-230221r1017040_rule
+    - V-230221
+  ansible.builtin.debug:
+    msg: Minimum supported version of {{ ansible_distribution }} is {{ remediate_rhel8_stig_min_supported_os_ver[ansible_distribution] }}
+  changed_when: ansible_distribution_version is not version_compare(remediate_rhel8_stig_min_supported_os_ver[ansible_distribution], '>=')
+
+- name: "HIGH | RHEL-08-010015 | RHEL 8 must have the crypto-policies package installed."
+  when: remediate_rhel8_stig_010015
+  tags:
+    - RHEL-08-010015
+    - CAT1
+    - CCI-002450
+    - NIST800-53R4_SC-13
+    - SRG-OS-000396-GPOS-00176
+    - SRG-OS-000393-GPOS-00173
+    - SRG-OS-000394-GPOS-00174
+    - SV-279933r1156352_rule
+    - V-279933
+  ansible.builtin.package:
+    name: crypto-policies
+    state: present
+
+- name: "HIGH | RHEL-08-010020 | PATCH | RHEL 8 must implement a FIPS 140-3-compliant systemwide cryptographic policy."
+  when: remediate_rhel8_stig_010020
+  tags:
+    - RHEL-08-010020
+    - CAT1
+    - CCI-000068
+    - NIST800-53R4_AC-17
+    - SRG-OS-000033-GPOS-00014
+    - SRG-OS-000125-GPOS-00065
+    - SRG-OS-000396-GPOS-00176
+    - SRG-OS-000423-GPOS-00187
+    - SRG-OS-000478-GPOS-00223
+    - SRG-OS-000393-GPOS-00173
+    - SRG-OS-000394-GPOS-00174
+    - SV-230223r1155356_rule
+    - V-230223
+  block:
+    - name: "HIGH | RHEL-08-010020 | AUDIT | RHEL 8 must implement a FIPS 140-3-compliant systemwide cryptographic policy. | Check FIPS"
+      ansible.builtin.command: update-crypto-policies --show
+      changed_when: false
+      check_mode: false
+      failed_when: remediate_rhel8_stig_discovered_crypto_policies_status_show.rc not in [0, 1]
+      register: remediate_rhel8_stig_discovered_crypto_policies_status_show
+
+    - name: "HIGH | RHEL-08-010020 | AUDIT | RHEL 8 must implement a FIPS 140-3-compliant systemwide cryptographic policy. | Check FIPS mode on kernel"
+      ansible.builtin.command: set -o pipefail; grep -Ew 'min_rsa_size|hash ' /etc/crypto-policies/state/CURRENT.pol
+      changed_when: false
+      check_mode: false
+      failed_when: remediate_rhel8_stig_discovered_fips_current_policy_status.rc not in [0, 1]
+      register: remediate_rhel8_stig_discovered_fips_current_policy_status
+
+    - name: "HIGH | RHEL-08-010020 | PATCH | RHEL 8 must implement a FIPS 140-3-compliant systemwide cryptographic policy. | Add STIG pmod files"
+      ansible.builtin.template:
+        src: "etc/crypto-policies/policies/modules/STIG.pmod.j2"
+        dest: "/etc/crypto-policies/policies/modules/STIG.pmod"
+        owner: root
+        group: root
+        mode: 'u-x,go-rwx'
+
+    - name: "HIGH | RHEL-08-010020 | PATCH | RHEL 8 must implement a FIPS 140-3-compliant systemwide cryptographic policy. | Enable FIPS mode on kernel"
+      when: "'FIPS' not in remediate_rhel8_stig_discovered_crypto_policies_status_show.stdout"
+      ansible.builtin.command: update-crypto-policies --set FIPS:STIG
+      changed_when: false
+      check_mode: false
+      register: remediate_rhel8_stig_discovered_fips_status
+      notify: Change_requires_reboot
+
+- name: "HIGH | RHEL-08-010030 | AUDIT | All RHEL 8 local disk partitions must implement cryptographic mechanisms to prevent unauthorized disclosure or
+         modification of all information that requires at rest protection."
+  when: remediate_rhel8_stig_010030
+  tags:
+    - RHEL-08-010030
+    - CAT1
+    - CCI-001199
+    - NIST800-53R4_SC-28
+    - SRG-OS-000185-GPOS-00079
+    - SRG-OS-000404-GPOS-00183
+    - SRG-OS-000405-GPOS-00184
+    - SV-230224r1044787_rule
+    - V-230224
+  vars:
+    warn_control_id: "HIGH | RHEL-08-010030"
+  block:
+    - name: "HIGH | RHEL-08-010030 | AUDIT | All RHEL 8 local disk partitions must implement cryptographic mechanisms to prevent unauthorized disclosure or
+             modification of all information that requires at rest protection. | Get partition layout"
+      ansible.builtin.shell: set -o pipefail; lsblk  | grep -Ev "boot|crypto_LUKS"
+      changed_when: false
+      check_mode: false
+      failed_when: false
+      register: remediate_rhel8_stig_discovered_partition_layout
+
+    - name: "HIGH | RHEL-08-010030 | AUDIT | All RHEL 8 local disk partitions must implement cryptographic mechanisms to prevent unauthorized disclosure or
+             modification of all information that requires at rest protection. | Message out warning"
+      when: remediate_rhel8_stig_discovered_partition_layout.stdout | length > 0
+      ansible.builtin.debug:
+        msg:
+          - 'WARNING!! Below is the partition layout. Please run the "sudo more /etc/crypttab" command to confirm every persistent disk partition has an entry.'
+          - "If partitions other than pseudo file systems (such as /var or /sys) this is a finding"
+          - "{{ remediate_rhel8_stig_discovered_partition_layout.stdout_lines }}"
+
+    - name: "HIGH | RHEL-08-010030 | AUDIT | All RHEL 8 local disk partitions must implement cryptographic mechanisms to prevent unauthorized disclosure or
+             modification of all information that requires at rest protection. | Message out warning"
+      when: remediate_rhel8_stig_discovered_partition_layout.stdout | length > 0
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+
+- name: "HIGH | RHEL-08-010121 | PATCH | The RHEL 8 operating system must not have accounts configured with blank or null passwords."
+  when: remediate_rhel8_stig_010121
+  tags:
+    - RHEL-08-010121
+    - CAT1
+    - CCI-000366
+    - NIST800-53R4_CM-6
+    - SRG-OS-000480-GPOS-00227
+    - SV-251706r1017359_rule
+    - V-251706
+  vars:
+    warn_control_id: "HIGH | RHEL-08-010121"
+  block:
+    - name: "HIGH | RHEL-08-010121 | AUDIT | The RHEL 8 operating system must not have accounts configured with blank or null passwords.
+             Get users with no pw set"
+      ansible.builtin.shell: "set -o pipefail; awk -F: '!$2 {print $1}' /etc/shadow"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      no_log: true
+      register: remediate_rhel8_stig_discovered_no_pw_users
+
+    - name: "HIGH | RHEL-08-010121 | PATCH | The RHEL 8 operating system must not have accounts configured with blank or null passwords.
+             Warn on accounts with no passwords"
+      when:
+        - remediate_rhel8_stig_discovered_no_pw_users.stdout | length > 0
+        - not remediate_rhel8_stig_disruption_high
+      ansible.builtin.debug:
+        msg:
+          - "WARNING!! You have users that are not using passwords. Please either set a password, lock, or remove the accounts below:"
+          - "{{ remediate_rhel8_stig_discovered_no_pw_users.stdout_lines }}"
+
+    - name: "HIGH | RHEL-08-010121 | PATCH | The RHEL 8 operating system must not have accounts configured with blank or null passwords.
+             Warn on accounts with no passwords"
+      when:
+        - remediate_rhel8_stig_discovered_no_pw_users.stdout | length > 0
+        - not remediate_rhel8_stig_disruption_high
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+
+    - name: "HIGH | RHEL-08-010121 | PATCH | The RHEL 8 operating system must not have accounts configured with blank or null passwords.
+             Lock accounts with no passwords, disruptive"
+      when:
+        - remediate_rhel8_stig_discovered_no_pw_users.stdout | length > 0
+        - remediate_rhel8_stig_disruption_high
+      ansible.builtin.user:
+        name: "{{ item }}"
+        password_lock: true
+      loop: "{{ remediate_rhel8_stig_discovered_no_pw_users.stdout_lines }}"
+
+- name: |
+        "HIGH | RHEL-08-010140 | PATCH | RHEL 8 operating systems booted with United Extensible Firmware Interface (UEFI) implemented
+         must require authentication upon booting into single-user mode and maintenance."
+        "HIGH | RHEL-08-010150 | PATCH | RHEL 8 operating systems booted with a BIOS must require authentication upon booting into
+        single-user and maintenance modes."
+  when:
+    - not system_is_ec2
+    - remediate_rhel8_stig_010140 or
+      remediate_rhel8_stig_010150
+  tags:
+    - RHEL-08-010140
+    - RHEL-08-010150
+    - CAT1
+    - CCI-000213
+    - NIST800-53R4_AC-3
+    - SRG-OS-000080-GPOS-00048
+    - SV-230234r1137691_rule
+    - SV-230235r1137691_rule
+    - V-230234
+    - V-230235
+    - grub
+    - bootloader
+  ansible.builtin.lineinfile:
+    path: "{{ prelim_bootloader_path }}/user.cfg"
+    create: true
+    regexp: ^GRUB2_PASSWORD=
+    line: "GRUB2_PASSWORD={{ remediate_rhel8_stig_bootloader_password_hash }}"
+    owner: root
+    group: root
+    mode: 'u-x,g-wx,o-rwx'
+  notify: Make grub2 config
+
+- name: "HIGH | RHEL-08-010270 | PATCH | RHEL 8 cryptographic policy must not be overridden."
+  when:
+    - remediate_rhel8_stig_010270
+    - remediate_rhel8_stig_disruption_high
+  tags:
+    - RHEL-08-010270
+    - CAT1
+    - CCI-002450
+    - NIST800-53R4_SC-13
+    - SRG-OS-000396-GPOS-00176
+    - SRG-OS-000393-GPOS-00173
+    - SRG-OS-000394-GPOS-00174
+    - SV-279932r1156349_rule
+    - V-279932
+  block:
+    - name: "HIGH | RHEL-08-010270 | AUDIT | RHEL 8 cryptographic policy must not be overridden. | Check FIPS"
+      ansible.builtin.command: update-crypto-policies --is-applied
+      changed_when: false
+      check_mode: false
+      failed_when: remediate_rhel8_stig_discovered_crypto_policies_status_applied.rc not in [0, 1]
+      register: remediate_rhel8_stig_discovered_crypto_policies_status_applied
+
+    - name: "HIGH | RHEL-08-010270 | AUDIT | RHEL 8 cryptographic policy must not be overridden. | Add to reinstall"
+      when: "'policy is applied' not in remediate_rhel8_stig_discovered_crypto_policies_status_applied.stdout"
+      ansible.builtin.debug:
+        msg: 'WARNING!! FIPS policy is not applied - running as handler to reinstall crypto-policies'
+      changed_when: true
+      notify: Reinstall_crypto_policies
+
+- name: "HIGH | RHEL-08-010370 | PATCH | RHEL 8 must prevent the installation of software, patches, service packs,
+         device drivers, or operating system components from a repository without verification they have been digitally
+         signed using a certificate that is issued by a Certificate Authority (CA) that is recognized and approved by the organization."
+  when: remediate_rhel8_stig_010370
+  tags:
+    - RHEL-08-010370
+    - CAT1
+    - CCI-001749
+    - NIST800-53R4_CM-5
+    - SRG-OS-000366-GPOS-00153
+    - SV-230264r1017377_rule
+    - V-230264
+    - yum
+  block:
+    - name: "HIGH | RHEL-08-010370 | AUDIT | RHEL 8 must prevent the installation of software, patches, service packs,
+             device drivers, or operating system components from a repository without verification they have been digitally
+             signed using a certificate that is issued by a Certificate Authority (CA) that is recognized and approved by the organization. | Dnf Default"
+      ansible.builtin.lineinfile:
+        path: /etc/dnf/dnf.conf
+        regexp: '^gpgcheck='
+        line: gpgcheck=1
+
+    - name: "HIGH | RHEL-08-010370 | AUDIT | RHEL 8 must prevent the installation of software, patches, service packs,
+             device drivers, or operating system components from a repository without verification they have been digitally
+             signed using a certificate that is issued by a Certificate Authority (CA) that is recognized and approved by the organization. | Gather Repos"
+      ansible.builtin.find:
+        paths: /etc/yum.repos.d
+        pattern: '*.repo'
+      register: remediate_rhel8_stig_discovered_repos_list
+
+    - name: "HIGH | RHEL-08-010370 | PATCH | RHEL 8 must prevent the installation of software, patches, service packs,
+             device drivers, or operating system components from a repository without verification they have been
+             digitally signed using a certificate that is issued by a Certificate Authority (CA) that is recognized and approved by the organization. | Set gpgcheck"
+      ansible.builtin.lineinfile:
+        path: "{{ item }}"
+        regexp: '^gpgcheck'
+        line: gpgcheck=1
+      loop: "{{ remediate_rhel8_stig_discovered_repos_list.files | map(attribute='path') | flatten }}"
+
+- name: "HIGH | RHEL-08-010371 | PATCH | RHEL 8 must prevent the installation of software, patches, service packs,
+         device drivers, or operating system components of local packages without verification they have been
+         digitally signed using a certificate that is issued by a Certificate Authority (CA) that is recognized and approved by the organization."
+  when: remediate_rhel8_stig_010371
+  tags:
+    - RHEL-08-010371
+    - CAT1
+    - CCI-001749
+    - NIST800-53R4_CM-5
+    - SRG-OS-000366-GPOS-00153
+    - SV-230265r1017378_rule
+    - V-230265
+    - dnf
+  ansible.builtin.lineinfile:
+    path: /etc/dnf/dnf.conf
+    regexp: '^localpkg_gpgcheck='
+    line: localpkg_gpgcheck=True
+
+- name: "HIGH | RHEL-08-010460 | PATCH | There must be no shosts.equiv files on the RHEL 8 operating system."
+  when: remediate_rhel8_stig_010460
+  tags:
+    - RHEL-08-010460
+    - CAT1
+    - CCI-000366
+    - NIST800-53R4_CM-6
+    - SRG-OS-000480-GPOS-00227
+    - SV-230283r1017094_rule
+    - V-230283
+    - shosts
+  ansible.builtin.file:
+    path: /etc/ssh/shosts.equiv
+    state: absent
+
+- name: "HIGH | RHEL-08-010470 | PATCH | There must be no .shosts files on the RHEL 8 operating system."
+  when: remediate_rhel8_stig_010470
+  tags:
+    - RHEL-08-010470
+    - CAT1
+    - CCI-000366
+    - NIST800-53R4_CM-6
+    - SRG-OS-000480-GPOS-00227
+    - SV-230284r1017095_rule
+    - V-230284
+    - shosts
+  block:
+    - name: "HIGH | RHEL-08-010470 | AUDIT | There must be no .shosts files on the RHEL 8 operating system. | Find .shosts files"
+      ansible.builtin.command: find / -name "*.shosts"
+      changed_when: false
+      check_mode: false
+      failed_when: remediate_rhel8_stig_discovered_shost_file_list.rc not in [ 0, 1 ]
+      register: remediate_rhel8_stig_discovered_shost_file_list
+
+    - name: "HIGH | RHEL-08-010470 | PATCH | There must be no .shosts files on the RHEL 8 operating system. | Remove .shosts files"
+      when: remediate_rhel8_stig_discovered_shost_file_list.stdout | length > 0
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ remediate_rhel8_stig_discovered_shost_file_list.stdout_lines }}"
+
+- name: "HIGH | RHEL-08-010820 | PATCH | Unattended or automatic logon via the RHEL 8 graphical user interface must not be allowed."
+  when:
+    - remediate_rhel8_stig_gui
+    - remediate_rhel8_stig_010820
+  tags:
+    - RHEL-08-010820
+    - CAT1
+    - CCI-000366
+    - NIST800-53R4_CM-6
+    - SRG-OS-000480-GPOS-00229
+    - SV-230329r1017140_rule
+    - V-230329
+  ansible.builtin.lineinfile:
+    path: /etc/gdm/custom.conf
+    regexp: (?i)automaticloginenable
+    line: AutomaticLoginEnable=false
+    insertafter: '\[daemon\]'

@@ -1,207 +1,175 @@
 ---
-# tasks file for RHEL8-CIS
 
 - name: Check OS version and family
-  when: os_check
+  when: not skip_os_check
   tags: always
   ansible.builtin.assert:
-    that: (ansible_distribution != 'CentOS' and ansible_os_family == 'RedHat' or ansible_os_family == "Rocky") and ansible_distribution_major_version is
-      version_compare('8', '==')
-    fail_msg: "This role can only be run against Supported OSs. {{ ansible_facts.distribution }} {{ ansible_facts.distribution_major_version }} is not supported."
-    success_msg: "This role is running against a supported OS {{ ansible_facts.distribution }} {{ ansible_distribution_major_version }}"
+    that: >
+      (ansible_facts.distribution != 'CentOS' and
+      (ansible_facts.os_family == 'RedHat' or
+       ansible_facts.os_family == "Rocky")) and
+      ansible_facts.distribution_major_version is version_compare('8', '==')
+    fail_msg: >
+      This role can only be run against RHEL/Rocky 8.
+      {{ ansible_facts.distribution }} {{ ansible_facts.distribution_major_version }} is not supported.
+    success_msg: "This role is running against a supported OS {{ ansible_facts.distribution }} {{ ansible_facts.distribution_major_version }}"
 
 - name: Check ansible version
   tags: always
   ansible.builtin.assert:
-    that: ansible_version.full is version_compare(min_ansible_version, '>=')
-    fail_msg: "You must use Ansible {{ min_ansible_version }} or greater"
-    success_msg: "This role is running a supported version of ansible {{ ansible_version.full }} >= {{ min_ansible_version }}"
-
-- name: Check crypto-policy input
-  when: rhel8cis_rule_1_6_1
-  tags: rule_1.6.1
-  ansible.builtin.assert:
-    that: rhel8cis_crypto_policy in rhel8cis_allowed_crypto_policies
-
-- name: Check crypto-policy module input
-  when:
-    - rhel8cis_rule_1_6_1
-    - rhel8cis_crypto_policy_module | length > 0
-  tags: rule_1.6.1
-  ansible.builtin.assert:
-    that: rhel8cis_crypto_policy_module in rhel8cis_allowed_crypto_policies_modules
-
-- name: Check rhel8cis_bootloader_password_hash variable has been changed
-  when:
-    - rhel8cis_set_boot_pass
-    - rhel8cis_rule_1_4_1
-  tags: always
-  ansible.builtin.assert:
-    that: rhel8cis_bootloader_password_hash != 'grub.pbkdf2.sha512.changethispassword' or (rhel8cis_bootloader_salt != '' and rhel8cis_bootloader_password !=
-      'password') # pragma: allowlist secret
-    msg: "This role will not be able to run single user password commands as rhel8cis_bootloader_password or rhel8cis_bootloader_password_hash variable has not been
-      set correctly"
-
-- name: "Check crypto-policy module input"
-  when:
-    - rhel8cis_rule_1_6_1
-    - rhel8cis_crypto_policy_module | length > 0
-  tags:
-    - rule_1.6.1
-    - crypto
-    - NIST800-53R5_SC-6
-  ansible.builtin.assert:
-    that: rhel8cis_additional_crypto_policy_module in rhel8cis_allowed_crypto_policies_modules
-    fail_msg: "Crypto policy module is not a permitted version"
-    success_msg: "Crypto policy module is a permitted version"
-
-- name: Gather the package facts in prelim
-  tags: always
-  ansible.builtin.package_facts:
-    manager: auto
+    that: ansible_version.full is version_compare(rhel8stig_min_ansible_version, '>=')
+    fail_msg: "You must use Ansible {{ rhel8stig_min_ansible_version }} or greater"
+    success_msg: "This role is running a supported version of ansible {{ ansible_version.full }} >= {{ rhel8stig_min_ansible_version }}"
 
 - name: Setup rules if container
-  when: ansible_connection == 'docker' or ansible_facts.virtualization_type in ["docker", "lxc", "openvz", "podman", "container"]
-  tags:
-    - container_discovery
-    - always
+  when:
+    - ansible_connection == 'docker' or
+      ansible_facts.virtualization_type in ["docker", "lxc", "openvz", "podman", "container"]
+  tags: always
   block:
     - name: Discover and set container variable if required
       ansible.builtin.set_fact:
-        system_is_container: true
+        remediate_rhel8_stig_system_is_container: true
 
     - name: Load variable for container
       ansible.builtin.include_vars:
         file: "{{ container_vars_file }}"
 
     - name: Output if discovered is a container
-      when: system_is_container
       ansible.builtin.debug:
         msg: system has been discovered as a container
+      when: remediate_rhel8_stig_system_is_container
 
-- name: "Check password set for {{ ansible_user }}"
+- name: "Check password set for connecting user"
   when:
+    - rhel8stig_010380
     - ansible_env.SUDO_USER is defined
-    - not system_is_ec2
-    - not audit_only
-    - rhel8cis_rule_5_2_4
+    - not remediate_rhel8_stig_system_is_ec2
+  tags: always
   block:
     - name: Capture current password state of connecting user"
-      ansible.builtin.shell: "grep {{ ansible_env.SUDO_USER }} /etc/shadow | awk -F: '{print $2}'"
+      ansible.builtin.shell: "set -o pipefail && grep {{ ansible_env.SUDO_USER }} /etc/shadow | awk -F: '{print $2}'"
       changed_when: false
       failed_when: false
       check_mode: false
-      register: discovered_ansible_user_password_set
+      no_log: true
+      register: remediate_rhel8_stig_discovered_user_password_set
 
-    - name: "Assert that password set for {{ ansible_env.SUDO_USER }} and account not locked" # noqa name[template]
+    - name: "Assert that password set for {{ ansible_env.SUDO_USER }} and account not locked"  # noqa: name[template]
       ansible.builtin.assert:
-        that: discovered_ansible_user_password_set.stdout | length != 0 and discovered_ansible_user_password_set.stdout != "!!"
+        that: remediate_rhel8_stig_discovered_user_password_set.stdout | length != 0 and remediate_rhel8_stig_discovered_user_password_set.stdout != "!!"
         fail_msg: "You have {{ sudo_password_rule }} enabled but the user = {{ ansible_env.SUDO_USER }} has no password set - It can break access"
-        success_msg: "You have a password set for the {{ ansible_env.SUDO_USER }} user"
+        success_msg: "You have a password set for the {{ ansible_env.SUDO_USER }}"
       vars:
-        sudo_password_rule: rhel8cis_rule_5_2_4 # pragma: allowlist secret
+        remediate_rhel8_stig_sudo_password_rule: RHEL-08-010380  # pragma: allowlist secret
 
-- name: "PRELIM | AUDIT | Check authselect profile is selected"
-  when: rhel8cis_allow_authselect_updates
+- name: "Ensure superuser for grub does not match existing user"
+  when: rhel8stig_010141 or rhel8stig_010149
   tags: always
   block:
-    - name: "PRELIM | AUDIT | Check authselect profile name has been updated"
-      ansible.builtin.assert:
-        that: rhel8cis_authselect_custom_profile_name != 'cis_example_profile'
-        fail_msg: "You still have the default name for your authselect profile"
-
-    - name: "PRELIM | AUDIT | Check authselect profile is selected"
-      ansible.builtin.shell: authselect current | head -1 | awk '{print $NF}'
+    - name: "Ensure superuser for grub does not match existing user | capture users"
+      ansible.builtin.shell: set -o pipefail && cat /etc/passwd | cut -d':' -f1
       changed_when: false
-      failed_when: prelim_authselect_current_profile.rc not in [ 0, 1 ]
-      register: prelim_authselect_current_profile
+      failed_when: false
+      check_mode: false
+      register: remediate_rhel8_stig_discovered_user_list
 
-    - name: "PRELIM | AUDIT | Check authselect profile is selected"
+    - name: "Ensure superuser for grub does not match existing user"
       ansible.builtin.assert:
-        that: prelim_authselect_current_profile is defined
-        success_msg: "Authselect is running and profile is selected"
-        fail_msg: Authselect updates have been selected there are issues with profile selection"
-
-- name: Include prelim tasks
-  ansible.builtin.import_tasks:
-    file: prelim.yml
-
-- name: Gather the package facts after prelim
-  tags: always
-  ansible.builtin.package_facts:
-    manager: auto
+        that: rhel8stig_boot_superuser not in remediate_rhel8_stig_discovered_user_list.stdout_lines
+        fail_msg: |
+          A unique name must be used for bootloader access user='{{ rhel8stig_boot_superuser }}'
+          already exists. Refer to variable rhel8stig_boot_superuser
 
 - name: Include OS specific variables
   tags: always
   ansible.builtin.include_vars:
-    file: "{{ ansible_distribution }}.yml"
+    file: "{{ ansible_facts.distribution }}.yml"
 
-- name: Capture /etc/password variables
-  when: rhel8cis_section5 or rhel8cis_section6
+- name: Check rhel8stig_bootloader_password_hash variable has been changed
+  when:
+    - not remediate_rhel8_stig_system_is_ec2
+    - not remediate_rhel8_stig_system_is_container
+    - rhel8stig_010140 or
+      rhel8stig_010150
+  tags: always
+  ansible.builtin.assert:
+    that: rhel8stig_bootloader_password_hash != 'grub.pbkdf2.sha512.changethispassword'  # pragma: allowlist secret
+    msg: "This role will not be able to run single user password commands because rhel8stig_bootloader_password_hash
+          has not been set"  # pragma: allowlist secret
+
+- name: Check if using resolv.conf template settings are changed
+  when:
+    - rhel8stig_use_resolv_template
+    - rhel8stig_010680
+  tags: always
+  ansible.builtin.assert:
+    that:
+      - rhel8stig_resolv_domain != 'example.com'
+      - rhel8stig_resolv_search | length > 0
+    msg: "WARNING!! You are set to change your resolv.conf file this can be very disruptive if not configured correctly"
+
+- name: Gather the package facts
+  tags: always
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Include prelim tasks
   tags: always
   ansible.builtin.import_tasks:
-    file: parse_etc_password.yml
+    file: prelim.yml
 
-- name: Run Section 1 tasks
-  when: rhel8cis_section1
+- name: Include CAT I patches
+  when: rhel8stig_cat1
+  tags:
+    - rhel8stig_cat1
+    - high
   ansible.builtin.import_tasks:
-    file: section_1/main.yml
+    file: Cat_1/main.yml
 
-- name: Run Section 2 tasks
-  when: rhel8cis_section2
+- name: Include CAT II patches
+  when: rhel8stig_cat2
+  tags:
+    - rhel8stig_cat2
+    - medium
   ansible.builtin.import_tasks:
-    file: section_2/main.yml
+    file: Cat_2/main.yml
 
-- name: Run Section 3 tasks
-  when: rhel8cis_section3
+- name: Include CAT III patches
+  when: rhel8stig_cat3
+  tags:
+    - rhel8stig_cat3
+    - low
   ansible.builtin.import_tasks:
-    file: section_3/main.yml
+    file: Cat_3/main.yml
 
-- name: Run Section 4 tasks
-  when: rhel8cis_section4
-  ansible.builtin.import_tasks:
-    file: section_4/main.yml
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
 
-- name: Run Section 5 tasks
-  when: rhel8cis_section5
-  ansible.builtin.import_tasks:
-    file: section_5/main.yml
+- name: Reboot system
+  when:
+    - change_requires_reboot
+    - not remediate_rhel8_stig_system_is_container
+  block:
+    - name: Reboot system if not skipped
+      when: not remediate_rhel8_stig_skip_reboot
+      ansible.builtin.reboot:
 
-- name: Run Section 6 tasks
-  when: rhel8cis_section6
-  ansible.builtin.import_tasks:
-    file: section_6/main.yml
+    - name: Warning a reboot required but skip option set
+      when: remediate_rhel8_stig_skip_reboot
+      ansible.builtin.debug:
+        msg: "Warning!! changes have been made that require a reboot to be implemented but skip reboot was set - Can affect compliance check results"
+      changed_when: true
 
-- name: Run Section 7 tasks
-  when: rhel8cis_section7
-  ansible.builtin.import_tasks:
-    file: section_7/main.yml
-
-- name: Run auditd logic
-  when: rhel8cis_update_audit_template
-  tags: always
-  ansible.builtin.import_tasks:
-    file: auditd.yml
-
-- name: Run post remediation tasks
-  tags: always
-  ansible.builtin.import_tasks:
-    file: post.yml
-
-- name: Run post_remediation audit
+- name: Run post remediation audit
   when: run_audit
   tags: always
   ansible.builtin.import_tasks:
     file: post_remediation_audit.yml
 
 - name: Add ansible file showing Benchmark and levels applied
-  when:
-    - create_benchmark_facts
-    - (post_audit_summary is defined) or (ansible_local['compliance_facts']['lockdown_audit_details']['audit_summary'] is undefined and post_audit_summary is
-      undefined)
-  tags:
-    - always
-    - benchmark
+  when: create_benchmark_facts
+  tags: always
   block:
     - name: Create ansible facts directory
       ansible.builtin.file:
@@ -209,7 +177,7 @@
         state: directory
         owner: root
         group: root
-        mode: "u=rwx,go=rx"
+        mode: 'u=rwx,go=rx'
 
     - name: Create ansible facts file
       ansible.builtin.template:
@@ -217,7 +185,7 @@
         dest: "{{ ansible_facts_path }}/compliance_facts.fact"
         owner: root
         group: root
-        mode: "u-x,go-wx"
+        mode: 'u-x,go-wx'
 
 - name: Fetch audit files
   when:
@@ -229,11 +197,12 @@
 
 - name: Show Audit Summary
   when: run_audit
-  tags: always
+  tags: run_audit
   ansible.builtin.debug:
     msg: "{{ audit_results.split('\n') }}"
 
-- name: Output Warning count and control IDs affected
+- name: If Warnings found Output count and control IDs affected
+  when: warn_count != 0
   tags: always
   ansible.builtin.debug:
-    msg: "You have {{ warn_count }} warning(s) that require investigating that are related to the following benchmark ID(s) {{ warn_control_list }}"
+    msg: You have {{ warn_count }} Warning(s) that require investigating that are related to the following benchmark ID(s) {{ warn_control_list }}
