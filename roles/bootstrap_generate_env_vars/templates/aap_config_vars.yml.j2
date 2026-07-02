@@ -71,8 +71,9 @@ controller_bootstrap_controller_execution_environments:
     pull: missing
 
 controller_bootstrap_controller_labels:
-  - name: bootstrap
+  - name: ado
     organization: "{{ bootstrap_generate_env_vars_aap_org }}"
+
 
 generate_playbook_repo_git_mode: "{{ 'push' if bootstrap_generate_env_vars_git_auto_push else 'manual' }}"
 generate_playbook_repo_git_push: "{{ bootstrap_generate_env_vars_git_auto_push }}"

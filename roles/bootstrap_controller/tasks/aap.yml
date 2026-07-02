@@ -1,15 +1,15 @@
 - name: AAP | Normalize AAP version facts
   ansible.builtin.set_fact:
-    controller_bootstrap_aap_version_number: "{{ aap_version | default(controller_bootstrap_aap_version | default(26)) | int }}"
-    controller_bootstrap_is_aap_24: "{{ (aap_version | default(controller_bootstrap_aap_version | default(26)) | int) == 24 }}"
-    controller_bootstrap_is_aap_25_plus: "{{ (aap_version | default(controller_bootstrap_aap_version | default(26)) | int) >= 25 }}"
+    bootstrap_controller_aap_version_number: "{{ aap_version | default(bootstrap_controller_aap_version | default(26)) | int }}"
+    bootstrap_controller_is_aap_24: "{{ (aap_version | default(bootstrap_controller_aap_version | default(26)) | int) == 24 }}"
+    bootstrap_controller_is_aap_25_plus: "{{ (aap_version | default(bootstrap_controller_aap_version | default(26)) | int) >= 25 }}"
 
 - name: AAP | Resolve effective environment
   ansible.builtin.set_fact:
     bootstrap_controller_effective_env: >-
       {{
         env
-        | default(generate_env_vars_env, true)
+        | default(bootstrap_generate_env_vars_env, true)
       }}
 
 - name: AAP | Validate effective environment is present
@@ -46,8 +46,8 @@
 
 - name: AAP | Apply AAP 2.4 controller objects
   ansible.builtin.include_tasks: apply_aap_24.yml
-  when: controller_bootstrap_is_aap_24 | bool
+  when: bootstrap_controller_is_aap_24 | bool
 
 - name: AAP | Apply AAP 2.5/2.6 controller objects
   ansible.builtin.include_tasks: apply_aap_25_plus.yml
-  when: not controller_bootstrap_is_aap_24 | bool
+  when: not bootstrap_controller_is_aap_24 | bool

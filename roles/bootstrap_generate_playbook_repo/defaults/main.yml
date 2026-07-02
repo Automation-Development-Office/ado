@@ -1,19 +1,19 @@
 ---
-generate_playbook_repo_dest: "{{ playbook_dir }}"
-generate_playbook_repo_seed_src: "{{ role_path }}/files/playbook_repo_seed"
-generate_playbook_repo_force: true
+bootstrap_generate_playbook_repo_dest: "{{ playbook_dir }}"
+bootstrap_generate_playbook_repo_seed_src: "{{ role_path }}/files/playbook_repo_seed"
+bootstrap_generate_playbook_repo_force: true
 
-generate_playbook_repo_git_mode: manual
-generate_playbook_repo_git_remote: origin
-generate_playbook_repo_git_branch: main
-generate_playbook_repo_git_message: "Generate bootstrap playbook repo"
-generate_playbook_repo_git_username: oauth2
-generate_playbook_repo_git_token: ""
-generate_playbook_repo_pause_after_generate: false
+bootstrap_generate_playbook_repo_git_mode: manual
+bootstrap_generate_playbook_repo_git_remote: origin
+bootstrap_generate_playbook_repo_git_branch: main
+bootstrap_generate_playbook_repo_git_message: "Generate bootstrap playbook repo"
+bootstrap_generate_playbook_repo_git_username: oauth2
+bootstrap_generate_playbook_repo_git_token: ""
+bootstrap_generate_playbook_repo_pause_after_generate: false
 
-generate_playbook_repo_component: all
+bootstrap_generate_playbook_repo_component: all
 
-generate_playbook_repo_component_map:
+bootstrap_generate_playbook_repo_component_map:
   all:
     - all
 
@@ -83,7 +83,7 @@ generate_playbook_repo_component_map:
   elastic:
     - eck
 
-generate_playbook_repo_generated_playbooks:
+bootstrap_generate_playbook_repo_generated_playbooks:
 
   - src: aap/ado-aap24-deploy-and-configure-bootstrap.yml
     dest: playbooks/aap/ado-aap24-deploy-and-configure-bootstrap.yml
@@ -343,28 +343,8 @@ generate_playbook_repo_generated_playbooks:
     category: patching
     app: rhel
 
-  - src: satellite/reg_to_sat.yml
-    dest: playbooks/satellite/reg_to_sat.yml
+  - src: satellite/ado-register-to-satellite-bootstrap.yml
+    dest: playbooks/satellite/ado-register-to-satellite-bootstrap.yml
     target_platform: linux
     category: patching
     app: satellite
-
-# Internal role-prefixed aliases used by tasks.
-bootstrap_generate_playbook_repo_dest: "{{ generate_playbook_repo_dest }}"
-bootstrap_generate_playbook_repo_seed_src: "{{ generate_playbook_repo_seed_src }}"
-bootstrap_generate_playbook_repo_force: "{{ generate_playbook_repo_force | bool }}"
-
-bootstrap_generate_playbook_repo_git_mode: "{{ generate_playbook_repo_git_mode }}"
-bootstrap_generate_playbook_repo_git_remote: "{{ generate_playbook_repo_git_remote }}"
-bootstrap_generate_playbook_repo_git_branch: "{{ generate_playbook_repo_git_branch }}"
-bootstrap_generate_playbook_repo_git_message: "{{ generate_playbook_repo_git_message }}"
-bootstrap_generate_playbook_repo_git_username: "{{ generate_playbook_repo_git_username }}"
-bootstrap_generate_playbook_repo_git_token: "{{ generate_playbook_repo_git_token }}"
-bootstrap_generate_playbook_repo_git_url: "{{ generate_playbook_repo_git_url | default('') }}"
-
-bootstrap_generate_playbook_repo_pause_after_generate: "{{ generate_playbook_repo_pause_after_generate | bool }}"
-bootstrap_generate_playbook_repo_pause_prompt: "{{ generate_playbook_repo_pause_prompt | default('Playbooks were generated. Push them to Git now, then press ENTER to continue.') }}"
-
-bootstrap_generate_playbook_repo_component: "{{ generate_playbook_repo_component }}"
-bootstrap_generate_playbook_repo_component_map: "{{ generate_playbook_repo_component_map }}"
-bootstrap_generate_playbook_repo_generated_playbooks: "{{ generate_playbook_repo_generated_playbooks }}"

@@ -3,12 +3,12 @@
   no_log: true
   ansible.builtin.set_fact:
     # Existing controller_* vars (fine to keep)
-    controller_bootstrap_controller_hostname: "{{ vault_controller_hostname }}"
-    controller_bootstrap_controller_host: "{{ vault_controller_hostname }}"
-    controller_bootstrap_controller_oauthtoken: "{{ vault_controller_oauthtoken }}"
-    controller_bootstrap_controller_username: "{{ vault_controller_username }}"
-    controller_bootstrap_controller_password: "{{ vault_controller_password }}"
-    controller_bootstrap_controller_validate_certs: "{{ controller_validate_certs | default(false) }}"
+    bootstrap_controller_controller_hostname: "{{ vault_controller_hostname }}"
+    bootstrap_controller_controller_host: "{{ vault_controller_hostname }}"
+    bootstrap_controller_controller_oauthtoken: "{{ vault_controller_oauthtoken }}"
+    bootstrap_controller_controller_username: "{{ vault_controller_username }}"
+    bootstrap_controller_controller_password: "{{ vault_controller_password }}"
+    bootstrap_controller_controller_validate_certs: "{{ controller_validate_certs | default(false) }}"
     # **CRITICAL**: vars expected by infra.aap_configuration roles
     aap_hostname: "{{ vault_controller_hostname }}"
     aap_host: "{{ vault_controller_hostname }}"

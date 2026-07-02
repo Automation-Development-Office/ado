@@ -1,0 +1,6 @@
+---
+- name: ADO | Manage Satellite content views
+  hosts: all
+  gather_facts: true
+  roles:
+  - role: infra.ado.satellite_content_view

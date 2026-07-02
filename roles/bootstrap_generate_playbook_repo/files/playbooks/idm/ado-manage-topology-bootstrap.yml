@@ -1,25 +1,17 @@
 ---
-- name: Playbook to configure Intial IPA server
+- name: ADO | Playbook to configure Intial IPA server
   hosts: ipaserver
-  # become: true
   vars:
     ipaadmin_password: ''
-    ipatopology_segments:
-    # - {suffix: domain+ca, left: chadidm.server.lab , right: chadidmrepl3.server.lab, state: present }
-
-  vars_files:
-  # - secret.yml
-
+    ipatopology_segments: null
+  vars_files: null
   tasks:
-    - name: Add topology segment
-      freeipa.ansible_freeipa.ipatopologysegment:
-        ipaadmin_password: "{{ ipaadmin_password }}"
-        suffix: "{{ item.suffix }}"
-        name: "{{ item.name | default(omit) }}"
-        left: "{{ item.left }}"
-        right: "{{ item.right }}"
-        state: "{{ item.state }}"
-        # state: absent
-        # state: checked
-        # state: reinitialized
-      loop: "{{ ipatopology_segments | default([]) }}"
+  - name: ADO | Add topology segment
+    freeipa.ansible_freeipa.ipatopologysegment:
+      ipaadmin_password: '{{ ipaadmin_password }}'
+      suffix: '{{ item.suffix }}'
+      name: ADO | {{ item.name | default(omit) }}
+      left: '{{ item.left }}'
+      right: '{{ item.right }}'
+      state: '{{ item.state }}'
+    loop: '{{ ipatopology_segments | default([]) }}'

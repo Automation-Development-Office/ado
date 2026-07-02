@@ -7,9 +7,9 @@ components_defaults:
   aap:
     name_space: aap
     operator_namespace: aap
-    openshift_tools_operator_groups: aap-operators
+    infra.ado.ocp_operatorgroups: aap-operators
 
-    # normalized (flattened) subscription vars expected by ado.openshift.subscription_operator
+    # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
     operator_name: ansible-automation-platform-operator
     operator_channel: stable-2.6
     operator_source: redhat-operators
@@ -26,9 +26,9 @@ components_defaults:
   aap25:
     name_space: aap25
     operator_namespace: aap25
-    openshift_tools_operator_groups: aap25-operators
+    infra.ado.ocp_operatorgroups: aap25-operators
 
-    # normalized (flattened) subscription vars expected by ado.openshift.subscription_operator
+    # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
     operator_name: ansible-automation-platform-operator
     operator_channel: stable-2.5
     operator_source: redhat-operators
@@ -44,9 +44,9 @@ components_defaults:
   aap24:
     name_space: aap24
     operator_namespace: aap24
-    openshift_tools_operator_groups: aap24-operators
+    infra.ado.ocp_operatorgroups: aap24-operators
 
-    # normalized (flattened) subscription vars expected by ado.openshift.subscription_operator
+    # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
     operator_name: ansible-automation-platform-operator
     operator_channel: stable-2.4
     operator_source: redhat-operators
@@ -85,7 +85,7 @@ components_defaults:
 
     # standard operator vars (what your OLM roles expect)
     name_space: openshift-operators          # <-- set as a literal, not a Jinja ref
-    openshift_tools_operator_groups: rhacs-openshift_tools_operator_groups       # ignored/skip when all_namespaces_install=true
+    infra.ado.ocp_operatorgroups: rhacs-infra.ado.ocp_operatorgroups       # ignored/skip when all_namespaces_install=true
     operator_name: rhacs-operator
     operator_channel: stable
     operator_source: redhat-operators
@@ -95,12 +95,12 @@ components_defaults:
   cert_manager:
     name_space: cert-manager
     operator_namespace: cert-manager
-    openshift_tools_operator_groups: cert-manager
+    infra.ado.ocp_operatorgroups: cert-manager
     acs_namespace: stackrox
     acs_central_name: central
     acs_admin_secret_name: central-admin-htpasswd
 
-    # normalized (flattened) subscription vars expected by ado.openshift.subscription_operator
+    # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
     operator_name: openshift-cert-manager-operator
     operator_channel: openshift-cert-manager-operator
     operator_source: redhat-operators
@@ -242,9 +242,9 @@ components_defaults:
 
     name_space: gitlab-system
     operator_namespace: gitlab
-    openshift_tools_operator_groups: gitlab-operators
+    infra.ado.ocp_operatorgroups: gitlab-operators
 
-    # normalized (flattened) subscription vars expected by ado.openshift.subscription_operator
+    # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
     operator_name: gitlab-operator-kubernetes
     operator_channel: stable
     operator_source: certified-operators
@@ -264,7 +264,7 @@ components_defaults:
     # Operator install namespace (because subscription_operator uses name_space today)
     name_space: openshift-operators
     operator_namespace: openshift-operators
-    openshift_tools_operator_groups: global-operators
+    infra.ado.ocp_operatorgroups: global-operators
     all_namespaces_install: true
 
     operator_name: openshift-gitops-operator
@@ -292,7 +292,7 @@ components_defaults:
 
   grafana:
     name_space: grafana
-    openshift_tools_operator_groups: grafana-operator-group
+    infra.ado.ocp_operatorgroups: grafana-operator-group
 
     operator_name: grafana-operator
     operator_channel: v5
@@ -351,8 +351,8 @@ components_defaults:
     # operator_subscription_namespace: openshift-operators
     operator_subscription_namespace: cfk-operator
 
-    # openshift_tools_operator_groups settings (optional; only if you want one)
-    openshift_tools_operator_groups: cfk-openshift_tools_operator_groups
+    # infra.ado.ocp_operatorgroups settings (optional; only if you want one)
+    infra.ado.ocp_operatorgroups: cfk-infra.ado.ocp_operatorgroups
     all_namespaces_install: true
 
     # Subscription settings
@@ -372,8 +372,8 @@ components_defaults:
     # Operator namespace (Subscription + CSV live here)
     operator_subscription_namespace: eck-operator
 
-    # openshift_tools_operator_groups (created inside eck-operator)
-    openshift_tools_operator_groups: eck-openshift_tools_operator_groups
+    # infra.ado.ocp_operatorgroups (created inside eck-operator)
+    infra.ado.ocp_operatorgroups: eck-infra.ado.ocp_operatorgroups
     all_namespaces_install: true
 
     # OLM package + subscription settings (from your cluster)
@@ -394,7 +394,7 @@ components_defaults:
 
   oadp:
     name_space: redhat-oadp
-    openshift_tools_operator_groups: redhat-oadp-operator
+    infra.ado.ocp_operatorgroups: redhat-oadp-operator
 
     operator_name: redhat-oadp-operator
     operator_channel: stable-1.4
@@ -405,7 +405,7 @@ components_defaults:
 
   quay:
     name_space: quay-enterprise
-    openshift_tools_operator_groups: quay-operator-group
+    infra.ado.ocp_operatorgroups: quay-operator-group
 
     # subscript_operator
     operator_name: quay-operator
@@ -421,7 +421,7 @@ components_defaults:
 
   rhbk:
     name_space: keycloak
-    openshift_tools_operator_groups: rhbk-operator
+    infra.ado.ocp_operatorgroups: rhbk-operator
 
     operator_name: rhbk-operator
     operator_channel: stable-v26.0
@@ -448,7 +448,7 @@ components_defaults:
     rhbk_db_user: keycloak
     rhbk_db_password: changeme-db
 
-    openshift_oidc_auth:
+    infra.ado.ocp_oidc_auth:
       enabled: true
       openshift_oidc_idp_name: "Keycloak"
       openshift_oidc_mapping_method: claim

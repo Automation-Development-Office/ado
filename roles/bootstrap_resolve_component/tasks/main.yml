@@ -1,5 +1,5 @@
 ---
-# roles/resolve_component/tasks/main.yml
+# roles/bootstrap_resolve_component/tasks/main.yml
 
 - name: Resolve_component | Snapshot components_env (safe default)
   ansible.builtin.set_fact:

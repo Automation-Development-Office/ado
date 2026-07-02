@@ -33,28 +33,28 @@
     dest: "{{ playbook_dir }}/configs/{{ item.dest }}"
     mode: "0644"
   loop:
-    - var_name: controller_bootstrap_controller_organizations
+    - var_name: bootstrap_controller_controller_organizations
       dest: controller/organizations.yml
 
-    - var_name: controller_bootstrap_controller_credentials
+    - var_name: bootstrap_controller_controller_credentials
       dest: controller/credentials.yml
 
     - var_name: controller_bootstrap_controller_projects
       dest: controller/projects.yml
 
-    - var_name: controller_bootstrap_controller_inventories
+    - var_name: bootstrap_controller_controller_inventories
       dest: controller/inventories.yml
 
-    - var_name: controller_bootstrap_controller_execution_environments
+    - var_name: bootstrap_controller_controller_execution_environments
       dest: controller/execution_environments.yml
 
-    - var_name: controller_bootstrap_controller_hosts
+    - var_name: bootstrap_controller_controller_hosts
       dest: controller/hosts.yml
 
-    - var_name: controller_bootstrap_controller_labels
+    - var_name: bootstrap_controller_controller_labels
       dest: controller/labels.yml
 
-    - var_name: controller_bootstrap_workflow_job_templates
+    - var_name: bootstrap_controller_workflow_job_templates
       dest: workflows/bootstrap_workflows.yml
 
 - name: AAP configs | Define job template component map
@@ -126,53 +126,96 @@
 - name: AAP configs | Copy job templates for generated playbooks only
   ansible.builtin.shell: |
     set -euo pipefail
-
-    dest_dir="{{ playbook_dir }}/configs/job_templates"
-    mkdir -p "${dest_dir}"
-    rm -f "${dest_dir}"/*.jt.yml
-
-    python3 - <<'PY2'
+    python3 <<'PYCODE'
     from pathlib import Path
-    import re
-    import shutil
 
     src_dir = Path("{{ role_path }}/files/job_templates")
     dest_dir = Path("{{ playbook_dir }}/configs/job_templates")
-    repo_root = Path("{{ playbook_dir }}")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    organization = "{{ bootstrap_controller_organization | default(controller_bootstrap_organization, true) }}"
+    inventory = "{{ bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true) }}"
+    project = "{{ bootstrap_controller_project_name | default(controller_bootstrap_project_name, true) }}"
+    execution_environment = "{{ bootstrap_controller_execution_environment_name | default(controller_bootstrap_execution_environment_name, true) }}"
+    credential = "{{ bootstrap_controller_creds | default(controller_bootstrap_creds, true) }}"
+    state_choices_yaml = "present\nabsent"
+    default_state = "{{ bootstrap_controller_default_state | default('present', true) }}"
+    environment_choices_yaml = "{{ env | default('prod') }}"
+    default_environment = "{{ bootstrap_controller_default_environment | default(env | default('prod'), true) }}"
+
+    selected = {{ bootstrap_controller_selected_job_template_files | default([]) | to_json }}
+    if not selected:
+        selected = [p.name for p in sorted(src_dir.glob("*.jt.yml"))]
+
+    lb = "{" * 2
+    rb = "}" * 2
+
+    replacements = {
+        f"{lb} bootstrap_controller_organization {rb}": organization,
+        f"{lb} controller_bootstrap_organization {rb}": organization,
+        f"{lb} bootstrap_controller_inventory_name {rb}": inventory,
+        f"{lb} controller_bootstrap_inventory_name {rb}": inventory,
+        f"{lb} bootstrap_controller_project_name {rb}": project,
+        f"{lb} controller_bootstrap_project_name {rb}": project,
+        f"{lb} bootstrap_controller_execution_environment_name {rb}": execution_environment,
+        f"{lb} controller_bootstrap_execution_environment_name {rb}": execution_environment,
+        f"{lb} bootstrap_controller_creds {rb}": credential,
+        f"{lb} controller_bootstrap_creds {rb}": credential,
+        f"{lb} bootstrap_controller_state_choices {rb}": state_choices_yaml,
+        f"{lb} controller_bootstrap_state_choices {rb}": state_choices_yaml,
+        f"{lb} bootstrap_controller_default_state {rb}": default_state,
+        f"{lb} controller_bootstrap_default_state {rb}": default_state,
+        f"{lb} bootstrap_controller_environment_choices {rb}": environment_choices_yaml,
+        f"{lb} controller_bootstrap_environment_choices {rb}": environment_choices_yaml,
+        f"{lb} bootstrap_controller_default_environment {rb}": default_environment,
+        f"{lb} controller_bootstrap_default_environment {rb}": default_environment,
+    }
+
+    quoted_replacements = {}
+    for old, new in replacements.items():
+        quoted_replacements["'" + old + "'"] = new
+        quoted_replacements['"' + old + '"'] = new
+    replacements.update(quoted_replacements)
+
+    replacements[f"{lb} bootstrap_controller_state_choices {rb}"] = state_choices_yaml
+    replacements[f"{lb} controller_bootstrap_state_choices {rb}"] = state_choices_yaml
+    replacements[f"'{lb} bootstrap_controller_state_choices {rb}'"] = f'"{state_choices_yaml}"'
+    replacements[f"'{lb} controller_bootstrap_state_choices {rb}'"] = f'"{state_choices_yaml}"'
+
+    replacements[f"{lb} bootstrap_controller_default_state {rb}"] = default_state
+    replacements[f"{lb} controller_bootstrap_default_state {rb}"] = default_state
+    replacements[f"'{lb} bootstrap_controller_default_state {rb}'"] = default_state
+    replacements[f"'{lb} controller_bootstrap_default_state {rb}'"] = default_state
+
+    replacements[f"{lb} bootstrap_controller_environment_choices {rb}"] = environment_choices_yaml
+    replacements[f"{lb} controller_bootstrap_environment_choices {rb}"] = environment_choices_yaml
+    replacements[f"'{lb} bootstrap_controller_environment_choices {rb}'"] = f'"{environment_choices_yaml}"'
+    replacements[f"'{lb} controller_bootstrap_environment_choices {rb}'"] = f'"{environment_choices_yaml}"'
+
+    replacements[f"{lb} bootstrap_controller_default_environment {rb}"] = default_environment
+    replacements[f"{lb} controller_bootstrap_default_environment {rb}"] = default_environment
+    replacements[f"'{lb} bootstrap_controller_default_environment {rb}'"] = default_environment
+    replacements[f"'{lb} controller_bootstrap_default_environment {rb}'"] = default_environment
 
     copied = []
-
-    for jt in sorted(src_dir.glob("*.jt.yml")):
-        text = jt.read_text()
-        m = re.search(r"""(?m)^\s*playbook:\s*['"]?([^'"\n]+)['"]?\s*$""", text)
-        if not m:
+    for name in selected:
+        src = src_dir / name
+        if not src.exists():
             continue
 
-        playbook = m.group(1).strip()
-        playbook_path = repo_root / playbook
+        text = src.read_text()
 
-        if playbook_path.exists():
-            component = playbook.split("/", 2)[1] if playbook.startswith("playbooks/") and "/" in playbook else "bootstrap"
+        for old, new in replacements.items():
+            if old:
+                text = text.replace(old, new)
 
-            new_text = re.sub(
-                r"(?ms)related:\n\s+labels:\n(?:\s+- name:.*?\n\s+organization:.*?\n)+",
-                "related:\n"
-                "    labels:\n"
-                "    - name: bootstrap\n"
-                "      organization: '{{ controller_bootstrap_organization }}'\n"
-                f"    - name: {component}\n"
-                "      organization: '{{ controller_bootstrap_organization }}'\n",
-                text,
-            )
+        text = text.replace("- name: bootstrap", "- name: ado")
 
-            target = dest_dir / jt.name
-            target.write_text(new_text)
-            copied.append(jt.name)
+        (dest_dir / name).write_text(text)
+        copied.append(name)
 
-    print("Copied job templates:")
-    for name in copied:
-        print(f"  - {name}")
-    PY2
+    print("Copied job templates:", len(copied))
+    PYCODE
   args:
     executable: /bin/bash
   changed_when: true
@@ -189,4 +232,4 @@
     dest: "{{ playbook_dir }}/configs/workflows/ado-patching-workflow-bootstrap.wf.yml"
     mode: "0644"
   when:
-    - generate_env_vars_component | default(component | default('all')) in ['all', 'rhel', 'patching']
+    - bootstrap_generate_env_vars_component | default(component | default('all')) in ['all', 'rhel', 'patching']

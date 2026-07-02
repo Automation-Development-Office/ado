@@ -1,8 +1,0 @@
----
-
-- name: Register to Satellite
-  hosts: all
-  gather_facts: false
-
-  roles:
-    - role: rhel_sat_reg

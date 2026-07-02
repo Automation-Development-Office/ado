@@ -1,8 +1,8 @@
 ---
-- name: Manage IDM server settings
+- name: ADO | Manage IDM server settings
   hosts: ipaserver
   gather_facts: false
   tasks:
-    - name: Manage IDM server settings
-      ansible.builtin.debug:
-        msg: "TODO: Add IDM server settings tasks/role here"
+  - name: ADO | Manage IDM server settings
+    ansible.builtin.debug:
+      msg: 'TODO: Add IDM server settings tasks/role here'

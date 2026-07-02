@@ -29,7 +29,7 @@
   pre_tasks:
     - name: Resolve vars for component from framework defaults + env overrides
       ansible.builtin.include_role:
-        name: resolve_component
+        name: bootstrap_resolve_component
 
   roles:
     - pega

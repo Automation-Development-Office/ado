@@ -1,7 +1,7 @@
 ---
 - name: Generate playbook repo | Resolve destination
   ansible.builtin.set_fact:
-    bootstrap_generate_playbook_repo_dest_resolved: "{{ generate_playbook_repo_dest | default(playbook_dir, true) }}"
+    bootstrap_generate_playbook_repo_dest_resolved: "{{ bootstrap_generate_playbook_repo_dest | default(playbook_dir, true) }}"
 
 - name: Generate playbook repo | Ensure repo root exists
   ansible.builtin.file:
@@ -23,11 +23,11 @@
 
 - name: Generate playbook repo | Copy seed repo content
   ansible.builtin.copy:
-    src: "{{ generate_playbook_repo_seed_src }}/"
+    src: "{{ bootstrap_generate_playbook_repo_seed_src }}/"
     dest: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/"
     mode: preserve
-    force: "{{ generate_playbook_repo_force | default(false) | bool }}"
-  when: generate_playbook_repo_seed_src is defined
+    force: "{{ bootstrap_generate_playbook_repo_force | default(false) | bool }}"
+  when: bootstrap_generate_playbook_repo_seed_src is defined
 
 - name: Generate playbook repo | Normalize component selector
   ansible.builtin.set_fact:
@@ -167,18 +167,14 @@
 - name: Generate playbook repo | Commit generated files
   ansible.builtin.shell: |
     set -euo pipefail
-    git add .
-    if git diff --cached --quiet; then
-      echo "No changes to commit"
-    else
-      git commit -m '{{ bootstrap_generate_playbook_repo_git_message | default("Generate bootstrap playbook repo") }}'
-    fi
+    git add -A
+    git diff --cached --quiet || git commit -m "Generate bootstrap playbook repo"
   args:
     chdir: "{{ bootstrap_generate_playbook_repo_dest_resolved }}"
     executable: /bin/bash
-  register: bootstrap_generate_playbook_repo_git_commit_result
-  changed_when: "'No changes to commit' not in bootstrap_generate_playbook_repo_git_commit_result.stdout"
-  when: bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
+  changed_when: true
+  when:
+    - bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
 
 - name: Generate playbook repo | Push generated repo
   ansible.builtin.shell: |

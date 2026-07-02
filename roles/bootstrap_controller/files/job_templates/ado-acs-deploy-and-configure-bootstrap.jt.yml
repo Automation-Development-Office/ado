@@ -1,36 +1,37 @@
-controller_bootstrap_templates:
-  - name: Deploy ACS Bootstrap
-    description: Bootstrap - Deploy and configure Advanced Cluster Security
-    organization: '{{ controller_bootstrap_organization }}'
-    playbook: playbooks/acs/ado-deploy-and-configure-bootstrap.yml
-    inventory: '{{ controller_bootstrap_inventory_name }}'
-    project: '{{ controller_bootstrap_project_name }}'
-    execution_environment: '{{ controller_bootstrap_execution_environment_name }}'
-    credentials:
-      - '{{ controller_bootstrap_creds }}'
-    related: null
-    labels:
-      - name: bootstrap
-        organization: '{{ controller_bootstrap_organization }}'
-      - name: acs
-        organization: '{{ controller_bootstrap_organization }}'
-    extra_vars: {}
-    survey_enabled: true
-    survey_spec:
-      name: Deploy ACS Survey
-      description: Configuration options for ACS deployment
-      spec:
-        - question_name: Do you want to install or remove?
-          question_description: Install (present) or Remove (absent)
-          required: true
-          type: multiplechoice
-          variable: state
-          choices: '{{ controller_bootstrap_state_choices }}'
-          default: '{{ controller_bootstrap_default_state }}'
-        - question_name: What environment?
-          question_description: Target environment
-          required: true
-          type: multiplechoice
-          variable: env
-          choices: '{{ controller_bootstrap_environment_choices }}'
-          default: '{{ controller_bootstrap_default_environment }}'
+---
+controller_templates:
+- name: ADO | Deploy ACS
+  description: Bootstrap - Deploy and configure Advanced Cluster Security
+  organization: '{{ bootstrap_controller_organization }}'
+  playbook: playbooks/acs/ado-deploy-and-configure-bootstrap.yml
+  inventory: '{{ bootstrap_controller_inventory_name }}'
+  project: '{{ bootstrap_controller_project_name }}'
+  execution_environment: '{{ bootstrap_controller_execution_environment_name }}'
+  credentials:
+  - '{{ bootstrap_controller_creds }}'
+  related: null
+  labels:
+  - name: ADO | bootstrap
+    organization: '{{ bootstrap_controller_organization }}'
+  - name: ADO | acs
+    organization: '{{ bootstrap_controller_organization }}'
+  extra_vars: {}
+  survey_enabled: true
+  survey_spec:
+    name: ADO | Deploy ACS Survey
+    description: Configuration options for ACS deployment
+    spec:
+    - question_name: ADO | Do you want to install or remove?
+      question_description: Install (present) or Remove (absent)
+      required: true
+      type: multiplechoice
+      variable: state
+      choices: '{{ bootstrap_controller_state_choices }}'
+      default: '{{ bootstrap_controller_default_state }}'
+    - question_name: ADO | What environment?
+      question_description: Target environment
+      required: true
+      type: multiplechoice
+      variable: env
+      choices: '{{ bootstrap_controller_environment_choices }}'
+      default: '{{ bootstrap_controller_default_environment }}'

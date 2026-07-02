@@ -261,6 +261,135 @@
   loop_control:
     loop_var: component_name
 
+- name: Overlay preflight component values into generated vars/vault files
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    from pathlib import Path
+    import json
+    import yaml
+
+    preflight_file = Path("{{ preflight_json }}")
+    env_dir = Path("{{ bootstrap_generate_env_vars_env_dir }}")
+
+    preflight = json.loads(preflight_file.read_text())
+
+    def is_secret_key(key):
+        k = str(key or "").lower()
+        return any(x in k for x in ["password", "token", "secret", "vault", "credential"])
+
+    def load_yaml(path):
+        if not path.exists():
+            return {}
+        data = yaml.safe_load(path.read_text()) or {}
+        return data if isinstance(data, dict) else {}
+
+    def write_yaml(path, data, mode="0644"):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("---\n" + yaml.safe_dump(data, sort_keys=False))
+        path.chmod(int(mode, 8))
+
+    def merge_component(component, cfg):
+        if not isinstance(cfg, dict):
+            return
+
+        vars_path = env_dir / f"vars_{component}.yml"
+        vault_path = env_dir / f"vault_{component}.yml"
+
+        vars_data = load_yaml(vars_path)
+        vault_data = load_yaml(vault_path)
+
+        public_values = {k: v for k, v in cfg.items() if not is_secret_key(k)}
+        secret_values = {k: v for k, v in cfg.items() if is_secret_key(k)}
+
+        if public_values:
+            vars_data.setdefault("component_config", {})
+            vars_data["component_config"][component] = {
+                **vars_data["component_config"].get(component, {}),
+                **public_values,
+            }
+
+            for k, v in public_values.items():
+                vars_data[k] = v
+
+            if component == "grafana":
+                vars_data.setdefault("components_env", {}).setdefault("grafana", {})
+                if public_values.get("storage"):
+                    vars_data["components_env"]["grafana"]["storage"] = public_values["storage"]
+                if public_values.get("folder_name"):
+                    vars_data["components_env"]["grafana"]["grafana_folder"] = public_values["folder_name"]
+                if public_values.get("hostname"):
+                    vars_data["components_env"]["grafana"]["hostname"] = public_values["hostname"]
+
+            if component == "rhbk":
+                vars_data.setdefault("components_env", {}).setdefault("rhbk", {})
+                if public_values.get("storage"):
+                    vars_data["components_env"]["rhbk"]["storage"] = public_values["storage"]
+                if public_values.get("realm"):
+                    vars_data["components_env"]["rhbk"]["rhbk_realm"] = public_values["realm"]
+                if public_values.get("hostname"):
+                    vars_data["components_env"]["rhbk"]["hostname"] = public_values["hostname"]
+
+            if component == "rhel":
+                vars_data.setdefault("components_env", {}).setdefault("rhel", {})
+                vars_data["components_env"]["rhel"].update(public_values)
+
+            write_yaml(vars_path, vars_data, "0644")
+
+        if secret_values:
+            vault_data.setdefault("component_vault_config", {})
+            vault_data["component_vault_config"][component] = {
+                **vault_data["component_vault_config"].get(component, {}),
+                **secret_values,
+            }
+
+            for k, v in secret_values.items():
+                vault_data[k] = v
+
+            write_yaml(vault_path, vault_data, "0600")
+
+    openshift = preflight.get("openshift") or {}
+    if openshift:
+        vars_path = env_dir / "vars_openshift.yml"
+        vault_path = env_dir / "vault_openshift.yml"
+
+        vars_data = load_yaml(vars_path)
+        vault_data = load_yaml(vault_path)
+
+        if openshift.get("api_host") is not None:
+            vars_data["api_host"] = openshift.get("api_host")
+            vars_data["host"] = openshift.get("api_host")
+
+        if preflight.get("domain") is not None:
+            vars_data["domain"] = preflight.get("domain")
+
+        if openshift.get("apps_domain") is not None:
+            vars_data["apps_domain"] = openshift.get("apps_domain")
+            vars_data["app_domain"] = openshift.get("apps_domain")
+
+        vars_data["verify_ssl"] = False
+        vars_data["validate_certs"] = False
+
+        if openshift.get("token") is not None:
+            vault_data["token"] = openshift.get("token")
+            vault_data["openshift_token"] = openshift.get("token")
+
+        write_yaml(vars_path, vars_data, "0644")
+        write_yaml(vault_path, vault_data, "0600")
+
+    for component, cfg in (preflight.get("component_config") or {}).items():
+        merge_component(component, cfg)
+
+    print(f"Overlayed preflight component values into {env_dir}")
+    PYCODE
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when:
+    - bootstrap_generate_env_vars_preflight is defined
+    - preflight_json is defined
+    - preflight_json | length > 0
+
 - name: Ask if using AAP
   ansible.builtin.pause:
     prompt: "Are you using AAP? [Y/n]"
@@ -458,11 +587,18 @@
     - bootstrap_generate_env_vars_use_aap | bool
     - bootstrap_generate_env_vars_enable_jira | default(false) | bool
 
+- name: Set vault encryption from preflight JSON
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_encrypt_vault_files: "{{ bootstrap_generate_env_vars_preflight.vault.encrypt | default(false) | bool }}"
+  when: bootstrap_generate_env_vars_preflight is defined
+
 - name: Ask whether to encrypt generated vault files
   ansible.builtin.pause:
     prompt: "Encrypt generated vault files with ansible-vault? [Y/n]"
   register: bootstrap_generate_env_vars_prompt_encrypt_vault_files
-  when: bootstrap_generate_env_vars_encrypt_vault_files is not defined
+  when:
+    - bootstrap_generate_env_vars_encrypt_vault_files is not defined
+    - bootstrap_generate_env_vars_preflight is not defined
 
 - name: Set vault encryption answer
   ansible.builtin.set_fact:
@@ -473,28 +609,36 @@
          | lower)
         not in ['n', 'no']
       }}
-  when: bootstrap_generate_env_vars_encrypt_vault_files is not defined
+  when:
+    - bootstrap_generate_env_vars_encrypt_vault_files is not defined
+    - bootstrap_generate_env_vars_preflight is not defined
 
 - name: Ask for vault password when encrypting vault files
   ansible.builtin.pause:
     prompt: "Vault password"
     echo: false
   register: bootstrap_generate_env_vars_prompt_vault_password
-  when: bootstrap_generate_env_vars_encrypt_vault_files | bool
+  when:
+    - bootstrap_generate_env_vars_encrypt_vault_files | bool
+    - bootstrap_generate_env_vars_preflight is not defined
 
 - name: Create temporary vault password file
   ansible.builtin.tempfile:
     state: file
     suffix: vault-pass
   register: bootstrap_generate_env_vars_temp_vault_password_file
-  when: bootstrap_generate_env_vars_encrypt_vault_files | bool
+  when:
+    - bootstrap_generate_env_vars_encrypt_vault_files | bool
+    - bootstrap_generate_env_vars_preflight is not defined
 
 - name: Write temporary vault password file
   ansible.builtin.copy:
     dest: "{{ bootstrap_generate_env_vars_temp_vault_password_file.path }}"
     content: "{{ bootstrap_generate_env_vars_prompt_vault_password.user_input }}"
     mode: "0600"
-  when: bootstrap_generate_env_vars_encrypt_vault_files | bool
+  when:
+    - bootstrap_generate_env_vars_encrypt_vault_files | bool
+    - bootstrap_generate_env_vars_preflight is not defined
 
 - name: Find generated vault files
   ansible.builtin.find:
@@ -502,7 +646,9 @@
     patterns: "vault*.yml,*_vault.yml"
     file_type: file
   register: bootstrap_generate_env_vars_vault_files
-  when: bootstrap_generate_env_vars_encrypt_vault_files | bool
+  when:
+    - bootstrap_generate_env_vars_encrypt_vault_files | bool
+    - bootstrap_generate_env_vars_preflight is not defined
 
 - name: Check generated vault file encryption state
   ansible.builtin.command:
@@ -510,7 +656,9 @@
   loop: "{{ bootstrap_generate_env_vars_vault_files.files | default([]) }}"
   register: bootstrap_generate_env_vars_vault_file_headers
   changed_when: false
-  when: bootstrap_generate_env_vars_encrypt_vault_files | bool
+  when:
+    - bootstrap_generate_env_vars_encrypt_vault_files | bool
+    - bootstrap_generate_env_vars_preflight is not defined
 
 - name: Encrypt generated vault files
   ansible.builtin.command:

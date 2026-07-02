@@ -3,7 +3,7 @@
 # Safe defaults / knobs only
 # =========================
 
-controller_bootstrap_enabled_objects:
+bootstrap_controller_enabled_objects:
   - organizations
   - credentials
   - execution_environments
@@ -14,34 +14,34 @@ controller_bootstrap_enabled_objects:
   - job_templates
   - workflow_job_templates
 
-controller_bootstrap_generate_job_templates_from_manifest: true
+bootstrap_controller_generate_job_templates_from_manifest: true
 
 # Common placeholders. Real values belong in group_vars/all/vars_<env>.yml
-controller_bootstrap_organization: ""
-controller_bootstrap_inventory_name: ""
-controller_bootstrap_project_name: ""
-controller_bootstrap_execution_environment_name: ""
-controller_bootstrap_creds: ""
+bootstrap_controller_organization: ""
+bootstrap_controller_inventory_name: ""
+bootstrap_controller_project_name: ""
+bootstrap_controller_execution_environment_name: ""
+bootstrap_controller_creds: ""
 
 # Survey defaults
-controller_bootstrap_environment_choices:
+bootstrap_controller_environment_choices:
   - dev
   - test
   - preprod
   - prod
-controller_bootstrap_default_environment: prod
+bootstrap_controller_default_environment: prod
 
-controller_bootstrap_state_choices:
+bootstrap_controller_state_choices:
   - present
   - absent
-controller_bootstrap_console_banner_state_choices:
+bootstrap_controller_console_banner_state_choices:
   - present
   - new
   - absent
-controller_bootstrap_default_state: present
+bootstrap_controller_default_state: present
 
 # Job Template Defaults
-controller_bootstrap_job_templates_defaults:
+bootstrap_controller_job_templates_defaults:
   job_type: run
   ask_inventory_on_launch: false
   ask_credential_on_launch: false
@@ -65,17 +65,17 @@ controller_bootstrap_job_templates_defaults:
 
 # Controller object lists are intentionally empty by default.
 # Define these in group_vars/all/vars_<env>.yml.
-controller_bootstrap_controller_organizations: []
-controller_bootstrap_controller_inventories: []
-controller_bootstrap_controller_hosts: []
-controller_bootstrap_controller_execution_environments: []
-controller_bootstrap_controller_credentials: []
-controller_bootstrap_controller_projects: []
-controller_bootstrap_controller_labels:
+bootstrap_controller_controller_organizations: []
+bootstrap_controller_controller_inventories: []
+bootstrap_controller_controller_hosts: []
+bootstrap_controller_controller_execution_environments: []
+bootstrap_controller_controller_credentials: []
+bootstrap_controller_controller_projects: []
+bootstrap_controller_controller_labels:
   - name: "bootstrap"
-    organization: "{{ controller_bootstrap_organization }}"
+    organization: "{{ bootstrap_controller_organization }}"
 
   - name: "jira"
-    organization: "{{ controller_bootstrap_organization }}"
-controller_bootstrap_workflow_job_templates: []
-controller_bootstrap_templates: []
+    organization: "{{ bootstrap_controller_organization }}"
+bootstrap_controller_workflow_job_templates: []
+bootstrap_controller_templates: []

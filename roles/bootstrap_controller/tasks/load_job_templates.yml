@@ -1,40 +1,21 @@
 ---
-- name: Job templates | Find job template definition files
+- name: AAP configs | Reset loaded job templates
   ansible.builtin.set_fact:
-    bootstrap_controller_job_template_files: >-
+    controller_templates: []
+
+- name: AAP configs | Load generated job template configs
+  ansible.builtin.set_fact:
+    controller_templates: >-
       {{
-        lookup(
-          'ansible.builtin.fileglob',
-          role_path ~ '/files/job_templates/*.yml',
-          wantlist=True
+        controller_templates
+        +
+        (
+          (lookup('ansible.builtin.file', item) | from_yaml).controller_templates
+          | default([])
         )
       }}
+  loop: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/configs/job_templates/*.jt.yml') }}"
 
-- name: Job templates | Initialize bootstrap_controller_templates
-  ansible.builtin.set_fact:
-    bootstrap_controller_templates: []
-
-- name: Job templates | Load job template definition files
-  ansible.builtin.include_vars:
-    file: "{{ item }}"
-    name: bootstrap_controller_loaded_job_template_file
-  loop: "{{ bootstrap_controller_job_template_files }}"
-  register: bootstrap_controller_loaded_job_template_files
-
-- name: Job templates | Merge loaded job template definitions
-  ansible.builtin.set_fact:
-    bootstrap_controller_templates: >-
-      {{
-        bootstrap_controller_templates
-        + (
-            item.ansible_facts.bootstrap_controller_loaded_job_template_file.bootstrap_controller_templates
-            | default([])
-          )
-      }}
-  loop: "{{ bootstrap_controller_loaded_job_template_files.results }}"
-
-- name: Job templates | Show loaded job templates
+- name: AAP configs | Show loaded job template count
   ansible.builtin.debug:
-    msg:
-      - "Loaded job templates:"
-      - "{{ bootstrap_controller_templates | map(attribute='name') | list }}"
+    msg: "Loaded controller_templates count={{ controller_templates | length }}"

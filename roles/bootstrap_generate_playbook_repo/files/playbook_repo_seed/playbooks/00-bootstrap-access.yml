@@ -1,8 +1,8 @@
 ---
-- name: Bootstrap access / validation
+- name: ADO | Bootstrap access / validation
   hosts: localhost
   gather_facts: false
   tasks:
-    - name: Show selected environment
-      ansible.builtin.debug:
-        msg: "Running bootstrap access validation for env={{ env | default('prod') }}"
+  - name: ADO | Show selected environment
+    ansible.builtin.debug:
+      msg: Running bootstrap access validation for env={{ env | default('prod') }}

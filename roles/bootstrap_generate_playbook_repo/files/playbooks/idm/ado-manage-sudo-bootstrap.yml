@@ -1,24 +1,13 @@
 ---
-- name: Playbook to configure Intial IPA server
+- name: ADO | Playbook to configure Intial IPA server
   hosts: ipaserver
-
-  vars_files:
-
-
-  pre_tasks:
-
+  vars_files: null
+  pre_tasks: null
   tasks:
-    - name: Configure sudo command /usr/bin/su in IPA
-      community.general.ipa_sudocmd:
-        name: /usr/bin/su
-        description: Allow to run su via sudo
-        ipa_host: idm.server.lab
-        ipa_user: admin
-        ipa_pass: ''
-
-#    - freeipa.ansible_freeipa.ipasudocmdgroup:
-#        ipaadmin_password: ''
-#        name: sysadmin
-#        sudocmd:
-#        - /usr/bin/su
-#        state: present
+  - name: ADO | Configure sudo command /usr/bin/su in IPA
+    community.general.ipa_sudocmd:
+      name: ADO | /usr/bin/su
+      description: Allow to run su via sudo
+      ipa_host: idm.server.lab
+      ipa_user: admin
+      ipa_pass: ''
