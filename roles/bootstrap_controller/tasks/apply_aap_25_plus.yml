@@ -1,14 +1,15 @@
 ---
+# yamllint disable rule:line-length
 # Organizations first using direct module call
 # avoids gateway/resource sync issues in infra.aap_configuration 4.6.x
 
-- name: AAP 2.5+ | Normalize controller objects before apply
+- name: AAP 2.5+ | Normalize controller objects before apply  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
-    controller_organizations: "{{ controller_bootstrap_controller_organizations | default(bootstrap_controller_controller_organizations | default(controller_organizations | default([]), true), true) }}"
-    controller_projects: "{{ controller_bootstrap_controller_projects | default(bootstrap_controller_controller_projects | default(controller_projects | default([]), true), true) }}"
-    controller_inventories: "{{ controller_bootstrap_controller_inventories | default(bootstrap_controller_controller_inventories | default(controller_inventories | default([]), true), true) }}"
-    controller_credentials: "{{ controller_bootstrap_controller_credentials | default(bootstrap_controller_controller_credentials | default(controller_credentials | default([]), true), true) }}"
-    controller_execution_environments: "{{ controller_bootstrap_controller_execution_environments | default(bootstrap_controller_controller_execution_environments | default(controller_execution_environments | default([]), true), true) }}"
+    bootstrap_controller_controller_organizations: "{{ controller_bootstrap_controller_organizations | default(bootstrap_controller_controller_organizations | default(controller_organizations | default([]), true), true) }}"
+    bootstrap_controller_controller_projects: "{{ controller_bootstrap_controller_projects | default(bootstrap_controller_controller_projects | default(controller_projects | default([]), true), true) }}"
+    bootstrap_controller_controller_inventories: "{{ controller_bootstrap_controller_inventories | default(bootstrap_controller_controller_inventories | default(controller_inventories | default([]), true), true) }}"
+    bootstrap_controller_controller_credentials: "{{ controller_bootstrap_controller_credentials | default(bootstrap_controller_controller_credentials | default(controller_credentials | default([]), true), true) }}"
+    bootstrap_controller_controller_execution_environments: "{{ controller_bootstrap_controller_execution_environments | default(bootstrap_controller_controller_execution_environments | default(controller_execution_environments | default([]), true), true) }}"
 
 - name: AAP 2.5+ | Debug controller orgs before apply
   ansible.builtin.debug:
@@ -43,11 +44,11 @@
   loop: "{{ controller_inventories | default([]) }}"
   when: controller_inventories | default([]) | length > 0
 
-- name: AAP 2.5+ | Reset generated job template list
+- name: AAP 2.5+ | Reset generated job template list  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     controller_templates: []
 
-- name: AAP 2.5+ | Load generated job template configs
+- name: AAP 2.5+ | Load generated job template configs  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     controller_templates: >-
       {{
@@ -65,11 +66,11 @@
   ansible.builtin.debug:
     msg: "Loaded controller_templates count={{ controller_templates | length }}"
 
-- name: AAP 2.5+ | Reset generated workflow list
+- name: AAP 2.5+ | Reset generated workflow list  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     controller_workflow_job_templates: []
 
-- name: AAP 2.5+ | Load generated workflow configs
+- name: AAP 2.5+ | Load generated workflow configs  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     controller_workflow_job_templates: >-
       {{
@@ -293,7 +294,7 @@
 # Create/update projects separately so we can force sync before job templates
 - name: AAP 2.5+ | Normalize controller projects before apply
   ansible.builtin.set_fact:
-    controller_projects: "{{ controller_bootstrap_controller_projects | default(controller_projects | default([]), true) }}"
+    bootstrap_controller_controller_projects: "{{ controller_bootstrap_controller_projects | default(controller_projects | default([]), true) }}"
 
 - name: AAP 2.5+ | Debug controller projects before apply
   ansible.builtin.debug:

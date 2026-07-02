@@ -1,4 +1,5 @@
 ---
+# yamllint disable rule:line-length
 - name: AAP configs | Load controller config directory
   ansible.builtin.include_vars:
     dir: "{{ playbook_dir }}/configs/controller"
@@ -7,7 +8,7 @@
       - yaml
   when: (playbook_dir ~ '/configs/controller') is directory
 
-- name: AAP configs | Normalize controller projects var
+- name: AAP configs | Normalize controller projects var  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     controller_projects: >-
       {{
@@ -15,11 +16,11 @@
         | default(bootstrap_controller_controller_projects | default(controller_projects | default([]), true), true)
       }}
 
-- name: AAP configs | Reset loaded job templates
+- name: AAP configs | Reset loaded job templates  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     controller_templates: []
 
-- name: AAP configs | Load generated job template configs
+- name: AAP configs | Load generated job template configs  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     controller_templates: >-
       {{
@@ -32,11 +33,11 @@
       }}
   loop: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/configs/job_templates/*.jt.yml') }}"
 
-- name: AAP configs | Reset loaded workflow job templates
+- name: AAP configs | Reset loaded workflow job templates  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     controller_workflow_job_templates: []
 
-- name: AAP configs | Load generated workflow configs
+- name: AAP configs | Load generated workflow configs  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     controller_workflow_job_templates: >-
       {{
