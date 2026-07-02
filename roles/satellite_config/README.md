@@ -35,6 +35,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `satellite_config_server_url` | Satellite server URL | ❌ | `"https://{{ ansible_fqdn }}"` |
 | `satellite_config_organization` | Satellite organization name or label | ✅ | Not defined in role defaults |
 | `satellite_config_validate_certs` | Whether to validate Satellite TLS certificates | ❌ | Not defined in role defaults |
+| `satellite_config_upload_manifest` | When `true`, include the manifest tasks in the role flow to copy, upload, and refresh the subscription manifest | ❌ | `false` |
 | `satellite_config_settings` | List of Satellite settings to apply; each item requires `name` and `value` | ❌ | See `defaults/main.yml` |
 | `satellite_config_rhn_connected` | When `true`, configure connected Satellite proxy settings; when `false`, configure disconnected CDN sync | ❌ | Not defined in role defaults |
 | `satellite_config_proxy_server` | HTTP proxy hostname for connected Satellite content sync | ❌* | Not defined in role defaults |
@@ -52,7 +53,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `satellite_config_custom_repo_src` | Source directory containing custom repository archives | ✅§ | Not defined in role defaults |
 | `satellite_config_custom_repo_files` | Archive filenames extracted from `satellite_config_custom_repo_src` | ✅§ | Not defined in role defaults |
 | `satellite_config_custom_repos` | Custom repository upload definitions passed to `subelements('files')`; each item requires `product`, `repository`, and `files` | ✅§ | Not defined in role defaults |
-| `satellite_config_repo_sync_wait_time` | Async timeout in seconds while waiting for repository sync jobs to finish | ❌ | Not defined in role defaults |
+| `satellite_config_repo_sync_wait_time` | Async timeout in seconds while waiting for repository sync jobs to finish | ❌ | See `defaults/main.yml` |
 | `satellite_config_lifecycle_envs` | Lifecycle environments to create; each item requires `env_name` and `prior` | ✅¶ | Not defined in role defaults |
 | `satellite_config_content_views` | Content views to publish and promote; each item requires `name` and `lifecycle_environments` | ✅¶ | Not defined in role defaults |
 
@@ -78,7 +79,8 @@ Define the Satellite configuration in your playbook or inventory using the varia
 - hosts: satellite_hosts
   become: true
   vars:
-    satellite_config_admin_username: admin
+    satellite_config_username: admin
+    satellite_config_password: "{{ vault_satellite_admin_password }}"
     satellite_config_admin_password: "{{ vault_satellite_admin_password }}"
     satellite_config_organization: Example_Org
     satellite_config_validate_certs: false
@@ -106,7 +108,8 @@ Define the Satellite configuration in your playbook or inventory using the varia
 - hosts: satellite_hosts
   become: true
   vars:
-    satellite_config_admin_username: admin
+    satellite_config_username: admin
+    satellite_config_password: "{{ vault_satellite_admin_password }}"
     satellite_config_admin_password: "{{ vault_satellite_admin_password }}"
     satellite_config_organization: Example_Org
     satellite_config_validate_certs: false
