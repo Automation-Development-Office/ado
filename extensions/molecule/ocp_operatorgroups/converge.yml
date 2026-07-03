@@ -9,13 +9,13 @@
       validate_certs: false
   vars:
     name_space: test-namespace-molecule
-    openshift_tools_operator_groups: test-openshift_tools_operator_groups-molecule
+    operatorgroup: test-operatorgroup-molecule
     verify_ssl: false
     state: present
     all_namespaces_install: false
     validate_certs: false
   tasks:
-    # this is just to create a test namespace for the openshift_tools_operator_groups
+    # this is just to create a test namespace for the operatorgroup
     - name: Include the role under test
       ansible.builtin.include_role:
         name: ado.openshift.namespace
@@ -24,17 +24,17 @@
 
     - name: Include the role under test
       ansible.builtin.include_role:
-        name: ado.openshift.openshift_tools_operator_groups
+        name: ado.openshift.operatorgroup
       vars:
         state: present
 
     # ⬇️ Post-create check (no separate verify step needed)
     # Fetch OG with a couple retries (handles brief API lag)
-    - name: Fetch openshift_tools_operator_groups
+    - name: Fetch OperatorGroup
       kubernetes.core.k8s_info:
         api_version: operators.coreos.com/v1
-        kind: openshift_tools_operator_groups
-        name: "{{ openshift_tools_operator_groups }}"
+        kind: OperatorGroup
+        name: "{{ operatorgroup }}"
         namespace: "{{ name_space }}"
         validate_certs: "{{ k8s_validate_certs | default(false) }}" # set true if you trust the CA
       register: ocp_operator_groups_og_info
@@ -43,7 +43,7 @@
       delay: 3
 
     # ✅/❌ message confirming existence from k8s response
-    - name: Assert openshift_tools_operator_groups exists
+    - name: Assert OperatorGroup exists
       ansible.builtin.assert:
         that:
           - (ocp_operator_groups_og_info.resources | default([])) | length == 1
@@ -58,7 +58,7 @@
           (found {{ (ocp_operator_groups_og_info.resources | default([])) | length }} matches)
 
     # Your existing targetNamespaces check (unchanged)
-    - name: Assert openshift_tools_operator_groups targetNamespaces is correct
+    - name: Assert OperatorGroup targetNamespaces is correct
       vars:
         expected_tns: "{{ [] if (all_namespaces_install | default(false)) else [name_space] }}"
         actual_tns: "{{ (ocp_operator_groups_og_info.resources[0].spec.targetNamespaces | default([])) | list }}"

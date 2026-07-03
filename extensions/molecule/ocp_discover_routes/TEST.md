@@ -16,7 +16,7 @@ dependency → syntax → create → converge → idempotence → destroy → ve
    - Prepares the local runner/connection (localhost driver).
 
 4. **Converge**
-   - Ensures an **AllNamespaces** openshift_tools_operator_groups exists in `openshift-operators`.
+   - Ensures an **AllNamespaces** OperatorGroup exists in `openshift-operators`.
    - Applies the `subscription_operator` role with:
      - `name_space: openshift-operators`
      - `operator_name: web-terminal`
