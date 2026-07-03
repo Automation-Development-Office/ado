@@ -138,27 +138,103 @@
         executable: /bin/bash
       changed_when: false
 
-    - name: Verify generated job templates have bootstrap label
+    - name: Validate generated bootstrap job templates
       ansible.builtin.shell: |
         set -euo pipefail
         python3 - <<'PY'
         from pathlib import Path
         import sys
+        import yaml
 
         jt_dir = Path("{{ playbook_dir }}/configs/job_templates")
-        bad = []
 
-        for jt in sorted(jt_dir.glob("*.jt.yml")):
-            text = jt.read_text()
-            if "name: ado" not in text:
-                bad.append(jt.name)
+        if not jt_dir.exists():
+            print(f"ERROR: directory not found: {jt_dir}")
+            sys.exit(2)
+
+        files = sorted(jt_dir.glob("*.jt.yml"))
+
+        if not files:
+            print(f"ERROR: no *.jt.yml files found in {jt_dir}")
+            sys.exit(2)
+
+        bad = []
+        good = []
+        skipped = []
+
+        for jt in files:
+            issues = []
+
+            if jt.name.startswith("ado-jira-"):
+                skipped.append(jt.name)
+                continue
+
+            if not jt.name.startswith("ado-"):
+                issues.append("filename does not start with ado-")
+
+            try:
+                data = yaml.safe_load(jt.read_text()) or {}
+            except Exception as e:
+                bad.append((jt.name, [f"invalid YAML: {e}"]))
+                continue
+
+            templates = data.get("controller_templates", [])
+
+            if not templates:
+                issues.append("missing controller_templates")
+            elif not isinstance(templates, list):
+                issues.append("controller_templates is not a list")
+            else:
+                for index, template in enumerate(templates):
+                    name = template.get("name", "")
+                    labels = template.get("labels", [])
+
+                    if not name:
+                        issues.append(f"controller_templates[{index}] missing name")
+                    elif not name.startswith("ADO | "):
+                        issues.append(
+                            f"controller_templates[{index}] name does not start with 'ADO | ': {name!r}"
+                        )
+
+                    if "ADO | bootstrap" not in labels:
+                        issues.append(
+                            f"controller_templates[{index}] missing label 'ADO | bootstrap'"
+                        )
+
+            if issues:
+                bad.append((jt.name, issues))
+            else:
+                good.append(jt.name)
+
+        print("=" * 80)
+        print("BOOTSTRAP JOB TEMPLATE VALIDATION REPORT")
+        print("=" * 80)
+        print(f"Directory: {jt_dir}")
+        print(f"Total files: {len(files)}")
+        print(f"Passing: {len(good)}")
+        print(f"Skipped Jira: {len(skipped)}")
+        print(f"Failing: {len(bad)}")
+        print()
+
+        for name in good:
+            print(f"[PASS] {name}")
+
+        for name in skipped:
+            print(f"[SKIP] {name}")
 
         if bad:
-            print("Missing bootstrap label:")
-            print("\n".join(bad))
+            print()
+            print("FAILING FILES")
+            print("-" * 80)
+            for filename, issues in bad:
+                print(f"[FAIL] {filename}")
+                for issue in issues:
+                    print(f"       - {issue}")
+                print()
             sys.exit(1)
 
-        print("All job templates include bootstrap label.")
+        print()
+        print("All non-Jira bootstrap job templates passed.")
         PY
       args:
         executable: /bin/bash
