@@ -1,7 +1,7 @@
 ---
 # AAP version is provided explicitly by the user (required)
 
-- name: Require aap_version (user-supplied)
+- name: Require aap_version user-supplied
   ansible.builtin.assert:
     that:
       - aap_version is defined
@@ -21,5 +21,11 @@
   ansible.builtin.debug:
     msg:
       - "aap_version={{ aap_version }}"
-      - "bootstrap_controller_is_aap_24={{ bootstrap_controller_is_aap_24 }}"
-      - "bootstrap_controller_use_dispatch={{ bootstrap_controller_use_dispatch }}"
+      - >-
+        bootstrap_controller_is_aap_24={{
+          bootstrap_controller_is_aap_24
+        }}
+      - >-
+        bootstrap_controller_use_dispatch={{
+          bootstrap_controller_use_dispatch
+        }}

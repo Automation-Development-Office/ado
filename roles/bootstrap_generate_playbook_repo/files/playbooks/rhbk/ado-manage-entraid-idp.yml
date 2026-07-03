@@ -8,4 +8,4 @@
   - group_vars/all/{{ env }}/vault_{{ component }}.yml
   - group_vars/all/{{ env }}/vars_{{ component }}.yml
   roles:
-  - role: infra.ado.infra.ado.infra.ado.rhbk_client
+  - role: infra.ado.rhbk_client

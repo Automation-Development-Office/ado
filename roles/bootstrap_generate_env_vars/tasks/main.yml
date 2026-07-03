@@ -1,36 +1,74 @@
 ---
 - name: Load preflight JSON input
   ansible.builtin.set_fact:
-    bootstrap_generate_env_vars_preflight: "{{ lookup('ansible.builtin.file', preflight_json) | from_json }}"
+    bootstrap_generate_env_vars_preflight: >-
+      "{{ lookup('ansible.builtin.file', preflight_json) | from_json }}"
   when:
     - preflight_json is defined
     - preflight_json | length > 0
 
 - name: Set values from preflight JSON
   ansible.builtin.set_fact:
-    bootstrap_generate_env_vars_env: "{{ bootstrap_generate_env_vars_preflight.environment | default('prod') }}"
-    bootstrap_generate_env_vars_base_domain: "{{ bootstrap_generate_env_vars_preflight.domain | default('prod.rhlab') }}"
-    bootstrap_generate_env_vars_component: "{{ bootstrap_generate_env_vars_preflight.component | default('all') }}"
+    bootstrap_generate_env_vars_env: >-
+      {{
+        bootstrap_generate_env_vars_preflight.environment
+        | default('prod')
+      }}
+    bootstrap_generate_env_vars_base_domain: >-
+      {{
+        bootstrap_generate_env_vars_preflight.domain
+        | default('prod.rhlab')
+      }}
+    bootstrap_generate_env_vars_component: >-
+      {{
+        bootstrap_generate_env_vars_preflight.component
+        | default('all')
+      }}
     bootstrap_generate_env_vars_platform: >-
       {{
-        (bootstrap_generate_env_vars_preflight.platform | default(['all']))[0] | lower
-        if (bootstrap_generate_env_vars_preflight.platform | default(['all'])) is sequence
-        and (bootstrap_generate_env_vars_preflight.platform | default(['all'])) is not string
-        else (bootstrap_generate_env_vars_preflight.platform | default('all') | lower)
+        bootstrap_generate_env_vars_preflight.platform
+        | default(['all'])
+        | first
+        | lower
       }}
     bootstrap_generate_env_vars_components: >-
       {{
         [bootstrap_generate_env_vars_preflight.component | default('all')]
         if bootstrap_generate_env_vars_preflight.component is defined
-        else
-        (
+        else (
           ['openshift', 'keycloak', 'satellite', 'grafana', 'jira', 'patching']
-          if 'all' in ((bootstrap_generate_env_vars_preflight.platform | default(['all'])) | map('lower') | list)
-          else ((bootstrap_generate_env_vars_preflight.platform | default(['all'])) | map('lower') | list)
+          if 'all' in (
+            bootstrap_generate_env_vars_preflight.platform
+            | default(['all'])
+            | map('lower')
+            | list
+          )
+          else (
+            bootstrap_generate_env_vars_preflight.platform
+            | default(['all'])
+            | map('lower')
+            | list
+          )
         )
       }}
-    bootstrap_generate_env_vars_use_aap: "{{ (bootstrap_generate_env_vars_preflight.aap | default({})).enabled | default(true) | bool }}"
-    bootstrap_generate_env_vars_enable_jira: "{{ (bootstrap_generate_env_vars_preflight.jira | default({})).enabled | default(false) | bool }}"
+    bootstrap_generate_env_vars_use_aap: >-
+      {{
+        (
+          bootstrap_generate_env_vars_preflight.aap
+          | default({})
+        ).enabled
+        | default(true)
+        | bool
+      }}
+    bootstrap_generate_env_vars_enable_jira: >-
+      {{
+        (
+          bootstrap_generate_env_vars_preflight.jira
+          | default({})
+        ).enabled
+        | default(false)
+        | bool
+      }}
   when: bootstrap_generate_env_vars_preflight is defined
 
 - name: Validate env was provided
@@ -60,13 +98,16 @@
 
 - name: Ask whether to create/update repo directories
   ansible.builtin.pause:
-    prompt: "Create/update generated bootstrap repository files and directory structure? [Y/n]"
+    prompt: >-
+        Create/update generated bootstrap repository files and
+        directory structure? [Y/n]
   register: bootstrap_generate_env_vars_prompt_create_dirs
   when: bootstrap_generate_env_vars_preflight is not defined
 
 - name: Set create dirs answer interactive
   ansible.builtin.set_fact:
-    bootstrap_generate_env_vars_create_dirs: "{{ (bootstrap_generate_env_vars_prompt_create_dirs.user_input | default('y', true) | lower) not in ['n', 'no'] }}"
+    bootstrap_generate_env_vars_create_dirs: >-
+          bootstrap_generate_env_vars_prompt_create_dirs.user_input
   when: bootstrap_generate_env_vars_preflight is not defined
 
 - name: Set create dirs answer preflight
@@ -96,7 +137,8 @@
 
 - name: Set base domain interactive
   ansible.builtin.set_fact:
-    bootstrap_generate_env_vars_base_domain: "{{ bootstrap_generate_env_vars_prompt_base_domain.user_input }}"
+    bootstrap_generate_env_vars_base_domain: >-
+      "{{ bootstrap_generate_env_vars_prompt_base_domain.user_input }}"
   when: bootstrap_generate_env_vars_preflight is not defined
 
 - name: Ensure base domain was provided
@@ -114,7 +156,8 @@
 
 - name: Set platform answer interactive
   ansible.builtin.set_fact:
-    bootstrap_generate_env_vars_platform: "{{ bootstrap_generate_env_vars_prompt_platform.user_input | default('all', true) | lower }}"
+    bootstrap_generate_env_vars_platform: >-
+          bootstrap_generate_env_vars_prompt_platform.user_input
   when: bootstrap_generate_env_vars_preflight is not defined
 
 - name: Ask OpenShift questions
@@ -248,7 +291,8 @@
 - name: Write component vars files
   ansible.builtin.template:
     src: component_vars.yml.j2
-    dest: "{{ bootstrap_generate_env_vars_env_dir }}/vars_{{ component_name }}.yml"
+    dest: >-
+      "{{ bootstrap_generate_env_vars_env_dir }}/vars_{{ component_name }}.yml"
     mode: "0644"
     force: "{{ bootstrap_generate_env_vars_force | bool }}"
   loop: "{{ bootstrap_generate_env_vars_components }}"
@@ -258,13 +302,15 @@
 - name: Write component vault files
   ansible.builtin.template:
     src: component_vault.yml.j2
-    dest: "{{ bootstrap_generate_env_vars_env_dir }}/vault_{{ component_name }}.yml"
+    dest: >-
+      "{{ bootstrap_generate_env_vars_env_dir }}/vault_{{ component_name }}.yml"
     mode: "0600"
     force: "{{ bootstrap_generate_env_vars_force | bool }}"
   loop: "{{ bootstrap_generate_env_vars_components }}"
   loop_control:
     loop_var: component_name
 
+# yamllint disable rule:line-length
 - name: Overlay preflight component values into generated vars/vault files
   ansible.builtin.shell: |
     set -euo pipefail
@@ -393,6 +439,7 @@
     - bootstrap_generate_env_vars_preflight is defined
     - preflight_json is defined
     - preflight_json | length > 0
+# yamllint enable rule:line-length
 
 - name: Ask if using AAP
   ansible.builtin.pause:
@@ -402,7 +449,8 @@
 
 - name: Set AAP enabled answer interactive
   ansible.builtin.set_fact:
-    bootstrap_generate_env_vars_use_aap: "{{ (bootstrap_generate_env_vars_prompt_use_aap.user_input | default('y', true) | lower) not in ['n', 'no'] }}"
+    bootstrap_generate_env_vars_use_aap: >-
+            bootstrap_generate_env_vars_prompt_use_aap.user_input
   when: bootstrap_generate_env_vars_preflight is not defined
 
 - name: Ask AAP questions
@@ -593,7 +641,8 @@
 
 - name: Set vault encryption from preflight JSON
   ansible.builtin.set_fact:
-    bootstrap_generate_env_vars_encrypt_vault_files: "{{ bootstrap_generate_env_vars_preflight.vault.encrypt | default(false) | bool }}"
+    bootstrap_generate_env_vars_encrypt_vault_files: >-
+          bootstrap_generate_env_vars_preflight.vault.encrypt
   when: bootstrap_generate_env_vars_preflight is defined
 
 - name: Ask whether to encrypt generated vault files
@@ -638,7 +687,8 @@
 - name: Write temporary vault password file
   ansible.builtin.copy:
     dest: "{{ bootstrap_generate_env_vars_temp_vault_password_file.path }}"
-    content: "{{ bootstrap_generate_env_vars_prompt_vault_password.user_input }}"
+    content: >-
+      "{{ bootstrap_generate_env_vars_prompt_vault_password.user_input }}"
     mode: "0600"
   when:
     - bootstrap_generate_env_vars_encrypt_vault_files | bool
@@ -665,11 +715,18 @@
     - bootstrap_generate_env_vars_preflight is not defined
 
 - name: Encrypt generated vault files
-  ansible.builtin.command:
-    cmd: >-
-      ansible-vault encrypt {{ item.item.path }}
-      --vault-password-file {{ bootstrap_generate_env_vars_temp_vault_password_file.path }}
-  loop: "{{ bootstrap_generate_env_vars_vault_file_headers.results | default([]) }}"
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ansible-vault encrypt "{{ item.item.path }}" \
+      --vault-password-file \
+      "{{ bootstrap_generate_env_vars_temp_vault_password_file.path }}"
+  args:
+    executable: /bin/bash
+    loop: >-
+      {{
+        bootstrap_generate_env_vars_vault_file_headers.results
+        | default([])
+      }}
   when:
     - bootstrap_generate_env_vars_encrypt_vault_files | bool
     - item.stdout is not search('^\\$ANSIBLE_VAULT;')

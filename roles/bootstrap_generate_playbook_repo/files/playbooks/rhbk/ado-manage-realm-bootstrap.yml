@@ -18,4 +18,4 @@
     ansible.builtin.include_role:
       name: ADO | bootstrap_resolve_component
   roles:
-  - role: infra.ado.infra.ado.infra.ado.rhbk_realm
+  - role: infra.ado.rhbk_realm

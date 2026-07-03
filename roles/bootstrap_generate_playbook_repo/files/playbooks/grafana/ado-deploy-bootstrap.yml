@@ -23,6 +23,6 @@
       rhbk_get_client_secrets_client_key: grafana_client
   roles:
   - role: infra.ado.ocp_wait_pods
-  - role: infra.ado.infra.ado.infra.ado.grafana_create_datasource
-  - role: infra.ado.infra.ado.infra.ado.grafana_manage_folders
-  - role: infra.ado.infra.ado.infra.ado.grafana_upload_dashboards
+  - role: infra.ado.grafana_create_datasource
+  - role: infra.ado.grafana_manage_folders
+  - role: infra.ado.grafana_upload_dashboards

@@ -20,7 +20,11 @@
         +
         (
           ['satellite']
-          if 'patching' in (bootstrap_controller_selected_components | default(['openshift']))
+          if 'patching' in
+             (
+               bootstrap_controller_selected_components
+               | default(['openshift'])
+             )
           else []
         )
         | unique
@@ -123,6 +127,7 @@
         | list
       }}
 
+# yamllint disable rule:line-length
 - name: AAP configs | Copy job templates for generated playbooks only
   ansible.builtin.shell: |
     set -euo pipefail
@@ -219,8 +224,10 @@
   args:
     executable: /bin/bash
   changed_when: true
+# yamllint enable rule:line-length
 
-- name: AAP configs | Ensure workflow config directory exists
+- name: >-
+    AAP configs | Ensure workflow config directory exists
   ansible.builtin.file:
     path: "{{ playbook_dir }}/configs/workflows"
     state: directory
@@ -229,7 +236,12 @@
 - name: AAP configs | Copy patching workflow when selected
   ansible.builtin.copy:
     src: workflows/ado-patching-workflow-bootstrap.wf.yml
-    dest: "{{ playbook_dir }}/configs/workflows/ado-patching-workflow-bootstrap.wf.yml"
+    dest: >-
+      "{{ playbook_dir }}/configs/workflows/
+      ado-patching-workflow-bootstrap.wf.yml
     mode: "0644"
   when:
-    - bootstrap_generate_env_vars_component | default(component | default('all')) in ['all', 'rhel', 'patching']
+    - >-
+        bootstrap_generate_env_vars_component
+        | default(component | default('all'))
+        in ['all', 'rhel', 'patching']

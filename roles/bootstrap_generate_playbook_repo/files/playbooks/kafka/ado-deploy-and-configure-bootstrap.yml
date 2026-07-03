@@ -20,4 +20,4 @@
   - role: infra.ado.ocp_namespace
   - role: infra.ado.ocp_operatorgroups
   - role: infra.ado.ocp_operator_subscription
-  - role: infra.ado.infra.ado.infra.ado.kafka_install
+  - role: infra.ado.kafka_install

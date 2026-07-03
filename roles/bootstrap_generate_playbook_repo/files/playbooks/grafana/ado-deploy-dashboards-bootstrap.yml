@@ -17,5 +17,5 @@
     ansible.builtin.include_role:
       name: ADO | bootstrap_resolve_component
   roles:
-  - role: infra.ado.infra.ado.infra.ado.grafana_manage_folders
-  - role: infra.ado.infra.ado.infra.ado.grafana_upload_dashboards
+  - role: infra.ado.grafana_manage_folders
+  - role: infra.ado.grafana_upload_dashboards

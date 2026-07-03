@@ -22,4 +22,4 @@
   - role: infra.ado.ocp_operator_subscription
   - role: infra.ado.ocp_wait_pods
   - role: infra.ado.ocp_routes
-  - role: infra.ado.infra.ado.infra.ado.rhbk_realm
+  - role: infra.ado.rhbk_realm

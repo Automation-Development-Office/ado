@@ -1,7 +1,11 @@
 ---
 - name: Generate playbook repo | Resolve destination
   ansible.builtin.set_fact:
-    bootstrap_generate_playbook_repo_dest_resolved: "{{ bootstrap_generate_playbook_repo_dest | default(playbook_dir, true) }}"
+    bootstrap_generate_playbook_repo_dest_resolved: >-
+      {{
+        bootstrap_generate_playbook_repo_dest
+        | default(playbook_dir, true)
+      }}
 
 - name: Generate playbook repo | Ensure repo root exists
   ansible.builtin.file:
@@ -11,13 +15,19 @@
 
 - name: Generate playbook repo | Ensure playbooks directory exists
   ansible.builtin.file:
-    path: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/playbooks"
+    path: >-
+      {{
+        bootstrap_generate_playbook_repo_dest_resolved
+      }}/playbooks
     state: directory
     mode: "0755"
 
 - name: Generate playbook repo | Ensure configs directory exists
   ansible.builtin.file:
-    path: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/configs"
+    path: >-
+      {{
+        bootstrap_generate_playbook_repo_dest_resolved
+      }}/configs
     state: directory
     mode: "0755"
 
@@ -26,7 +36,8 @@
     src: "{{ bootstrap_generate_playbook_repo_seed_src }}/"
     dest: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/"
     mode: preserve
-    force: "{{ bootstrap_generate_playbook_repo_force | default(false) | bool }}"
+    force: >-
+      {{ bootstrap_generate_playbook_repo_force | default(false) | bool }}
   when: bootstrap_generate_playbook_repo_seed_src is defined
 
 - name: Generate playbook repo | Normalize component selector
@@ -51,10 +62,14 @@
 - name: Generate playbook repo | Validate component selector
   ansible.builtin.assert:
     that:
-      - bootstrap_generate_playbook_repo_component_effective in bootstrap_generate_playbook_repo_component_map
+      - >-
+        bootstrap_generate_playbook_repo_component_effective
+        in bootstrap_generate_playbook_repo_component_map
     fail_msg: >-
-      Invalid component '{{ bootstrap_generate_playbook_repo_component_effective }}'.
-      Valid components: {{ bootstrap_generate_playbook_repo_component_map.keys() | list }}
+      Invalid component
+      '{{ bootstrap_generate_playbook_repo_component_effective }}'.
+      Valid components:
+      {{ bootstrap_generate_playbook_repo_component_map.keys() | list }}
 
 - name: Generate playbook repo | Select playbooks by component
   ansible.builtin.set_fact:
@@ -64,45 +79,80 @@
         if bootstrap_generate_playbook_repo_component_effective == 'all'
         else
         bootstrap_generate_playbook_repo_generated_playbooks
-        | selectattr('app', 'in', bootstrap_generate_playbook_repo_selected_apps)
+        | selectattr(
+            'app',
+            'in',
+            bootstrap_generate_playbook_repo_selected_apps
+          )
         | list
       }}
 
 - name: Generate playbook repo | Ensure playbook component directories exist
   ansible.builtin.file:
-    path: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/{{ item.dest | dirname }}"
+    path: >-
+      {{
+        bootstrap_generate_playbook_repo_dest_resolved
+      }}/{{ item.dest | dirname }}
     state: directory
     mode: "0755"
   loop: "{{ bootstrap_generate_playbook_repo_selected_playbooks }}"
 
-- name: Generate playbook repo | Copy selected playbooks into existing playbooks directory
+- name: >-
+    Generate playbook repo | Copy selected playbooks into existing
+    playbooks directory
   ansible.builtin.copy:
     src: "playbooks/{{ item.src }}"
-    dest: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/{{ item.dest }}"
+    dest: >-
+      {{
+        bootstrap_generate_playbook_repo_dest_resolved
+      }}/{{ item.dest }}
     mode: "0644"
-    force: "{{ bootstrap_generate_playbook_repo_force | default(false) | bool }}"
+    force: >-
+      {{ bootstrap_generate_playbook_repo_force | default(false) | bool }}
   loop: "{{ bootstrap_generate_playbook_repo_selected_playbooks }}"
 
-- name: Generate playbook repo | Render controller project config from repo URL when provided
+- name: >-
+    Generate playbook repo | Render controller project config from
+    repo URL when provided
   ansible.builtin.template:
     src: controller_projects.yml.j2
-    dest: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/configs/controller_projects.yml"
+    dest: >-
+      {{
+        bootstrap_generate_playbook_repo_dest_resolved
+      }}/configs/controller_projects.yml
     mode: "0644"
   when: bootstrap_generate_playbook_repo_git_url | default('') | length > 0
 
 - name: Generate playbook repo | Show generated repo summary
   ansible.builtin.debug:
     msg:
-      - "Repo root: {{ bootstrap_generate_playbook_repo_dest_resolved }}"
-      - "Playbooks directory: {{ bootstrap_generate_playbook_repo_dest_resolved }}/playbooks"
-      - "Configs directory: {{ bootstrap_generate_playbook_repo_dest_resolved }}/configs"
-      - "Component: {{ bootstrap_generate_playbook_repo_component_effective }}"
-      - "Selected apps: {{ bootstrap_generate_playbook_repo_selected_apps }}"
-      - "Generated playbooks: {{ bootstrap_generate_playbook_repo_selected_playbooks | map(attribute='dest') | list }}"
+      - >-
+        Repo root:
+        {{ bootstrap_generate_playbook_repo_dest_resolved }}
+      - >-
+        Playbooks directory:
+        {{ bootstrap_generate_playbook_repo_dest_resolved }}/playbooks
+      - >-
+        Configs directory:
+        {{ bootstrap_generate_playbook_repo_dest_resolved }}/configs
+      - >-
+        Component:
+        {{ bootstrap_generate_playbook_repo_component_effective }}
+      - >-
+        Selected apps:
+        {{ bootstrap_generate_playbook_repo_selected_apps }}
+      - >-
+        Generated playbooks:
+        {{
+          bootstrap_generate_playbook_repo_selected_playbooks
+          | map(attribute='dest')
+          | list
+        }}
 
 - name: Generate playbook repo | Git init  # noqa command-instead-of-module
   ansible.builtin.command: >-
-    git init -b {{ bootstrap_generate_playbook_repo_git_branch | default('main') }}
+    git init -b
+    {{ bootstrap_generate_playbook_repo_git_branch | default('main') }}
   args:
     chdir: "{{ bootstrap_generate_playbook_repo_dest_resolved }}"
     creates: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/.git"
@@ -126,13 +176,21 @@
     dest: "{{ ansible_env.HOME | default('/tmp') }}/.git-credentials"
     mode: "0600"
     content: >-
-      {{ bootstrap_generate_playbook_repo_git_url
-         | regex_replace('^(https?://)(.*)$',
-           '\\1' ~
-           (bootstrap_generate_playbook_repo_git_username | default('oauth2') | urlencode) ~
-           ':' ~
-           (bootstrap_generate_playbook_repo_git_token | urlencode) ~
-           '@\\2')
+      {{
+        bootstrap_generate_playbook_repo_git_url
+        | regex_replace(
+            '^(https?://)(.*)$',
+            '\\1'
+            ~
+            (
+              bootstrap_generate_playbook_repo_git_username
+              | default('oauth2')
+              | urlencode
+            )
+            ~ ':'
+            ~ (bootstrap_generate_playbook_repo_git_token | urlencode)
+            ~ '@\\2'
+          )
       }}
   no_log: true
   when:
@@ -151,10 +209,16 @@
 - name: Generate playbook repo | Configure git remote
   ansible.builtin.shell: |
     set -euo pipefail
-    if git remote | grep -qx '{{ bootstrap_generate_playbook_repo_git_remote | default("origin") }}'; then
-      git remote set-url {{ bootstrap_generate_playbook_repo_git_remote | default("origin") }} '{{ bootstrap_generate_playbook_repo_git_url }}'
+    if git remote | grep -qx \
+      remote_name="{{ bootstrap_generate_playbook_repo_git_remote
+        | default('origin') }}"
+      if git remote | grep -qx "$remote_name"; then
+        {{ bootstrap_generate_playbook_repo_git_remote | default("origin") }} \
+        '{{ bootstrap_generate_playbook_repo_git_url }}'
     else
-      git remote add {{ bootstrap_generate_playbook_repo_git_remote | default("origin") }} '{{ bootstrap_generate_playbook_repo_git_url }}'
+      git remote add \
+        {{ bootstrap_generate_playbook_repo_git_remote | default("origin") }} \
+        '{{ bootstrap_generate_playbook_repo_git_url }}'
     fi
   args:
     chdir: "{{ bootstrap_generate_playbook_repo_dest_resolved }}"
@@ -168,7 +232,8 @@
   ansible.builtin.shell: |
     set -euo pipefail
     git add -A
-    git diff --cached --quiet || git commit -m "Generate bootstrap playbook repo"
+    git diff --cached --quiet || \
+      git commit -m "Generate bootstrap playbook repo"
   args:
     chdir: "{{ bootstrap_generate_playbook_repo_dest_resolved }}"
     executable: /bin/bash
@@ -179,11 +244,15 @@
 - name: Generate playbook repo | Push generated repo
   ansible.builtin.shell: |
     set -euo pipefail
-    git push {{ bootstrap_generate_playbook_repo_git_remote | default('origin') }} {{ bootstrap_generate_playbook_repo_git_branch | default('main') }}
+    git push \
+      {{ bootstrap_generate_playbook_repo_git_remote | default('origin') }} \
+      {{ bootstrap_generate_playbook_repo_git_branch | default('main') }}
   args:
     chdir: "{{ bootstrap_generate_playbook_repo_dest_resolved }}"
     executable: /bin/bash
-  changed_when: "'up-to-date' not in bootstrap_generate_playbook_repo_git_push_result.stderr"
+  changed_when: >-
+    'up-to-date'
+    not in bootstrap_generate_playbook_repo_git_push_result.stderr
   register: bootstrap_generate_playbook_repo_git_push_result
   when:
     - bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
@@ -191,7 +260,17 @@
 
 - name: Generate playbook repo | Pause for manual git push
   ansible.builtin.pause:
-    prompt: "{{ bootstrap_generate_playbook_repo_pause_prompt | default('Playbooks were generated. Push them to Git now, then press ENTER to continue.') }}"
+    prompt: >-
+      {{
+        bootstrap_generate_playbook_repo_pause_prompt
+        | default(
+              'Playbooks were generated. Push them to Git now, '
+              ~ 'then press ENTER to continue.'
+          )
+      }}
   when:
-    - bootstrap_generate_playbook_repo_pause_after_generate | default(false) | bool
+    - >-
+      bootstrap_generate_playbook_repo_pause_after_generate
+      | default(false)
+      | bool
     - bootstrap_generate_playbook_repo_git_mode | default('manual') == 'manual'

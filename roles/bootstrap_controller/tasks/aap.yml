@@ -1,8 +1,28 @@
+---
 - name: AAP | Normalize AAP version facts
   ansible.builtin.set_fact:
-    bootstrap_controller_aap_version_number: "{{ aap_version | default(bootstrap_controller_aap_version | default(26)) | int }}"
-    bootstrap_controller_is_aap_24: "{{ (aap_version | default(bootstrap_controller_aap_version | default(26)) | int) == 24 }}"
-    bootstrap_controller_is_aap_25_plus: "{{ (aap_version | default(bootstrap_controller_aap_version | default(26)) | int) >= 25 }}"
+    bootstrap_controller_aap_version_number: >-
+      {{
+        aap_version
+        | default(bootstrap_controller_aap_version | default(26))
+        | int
+      }}
+    bootstrap_controller_is_aap_24: >-
+      {{
+        (
+          aap_version
+          | default(bootstrap_controller_aap_version | default(26))
+          | int
+        ) == 24
+      }}
+    bootstrap_controller_is_aap_25_plus: >-
+      {{
+        (
+          aap_version
+          | default(bootstrap_controller_aap_version | default(26))
+          | int
+        ) >= 25
+      }}
 
 - name: AAP | Resolve effective environment
   ansible.builtin.set_fact:
@@ -18,16 +38,25 @@
       - bootstrap_controller_effective_env is defined
       - bootstrap_controller_effective_env | length > 0
     fail_msg: >-
-      Unable to determine environment. Pass -e env=prod or provide preflight_json with environment.
+      Unable to determine environment. Pass -e env=prod or provide
+      preflight_json with environment.
 
 - name: AAP | Load split environment vars
   ansible.builtin.include_vars:
-    dir: "{{ playbook_dir }}/group_vars/all/{{ bootstrap_controller_effective_env }}"
+    dir: >-
+      {{
+        playbook_dir
+      }}/group_vars/all/{{ bootstrap_controller_effective_env }}
     extensions:
       - yml
       - yaml
   when:
-    - (playbook_dir + '/group_vars/all/' + bootstrap_controller_effective_env) is directory
+    - >-
+      (
+        playbook_dir
+        + '/group_vars/all/'
+        + bootstrap_controller_effective_env
+      ) is directory
 
 - name: AAP | Preflight checks
   ansible.builtin.include_tasks: preflight.yml

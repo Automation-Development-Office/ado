@@ -1,72 +1,119 @@
 ---
-- name: Map controller bootstrap vars to infra.aap_configuration expected vars # noqa: var-naming mapping only
+- name: >-
+    Map controller bootstrap vars to infra.aap_configuration expected vars
   ansible.builtin.set_fact:
-    # === Canonical vars consumed by infra.aap_configuration.dispatch roles ===
-    # aap_organizations: "{{ bootstrap_controller_controller_organizations | default([]) }}"
-    # controller_organizations: "{{ bootstrap_controller_controller_organizations | default([]) }}"
-    # aap_user_accounts: "{{ bootstrap_controller_controller_credentials | default([]) }}"
-    controller_credentials: "{{ bootstrap_controller_controller_credentials | default([]) }}"
-    controller_projects: "{{ bootstrap_controller_controller_projects | default([]) }}"
-    controller_inventories: "{{ bootstrap_controller_controller_inventories | default([]) }}"
-    controller_hosts: "{{ bootstrap_controller_controller_hosts | default([]) }}"
-    controller_labels: "{{ bootstrap_controller_controller_labels | default([]) }}"
-    controller_execution_environments: "{{ bootstrap_controller_controller_execution_environments | default([]) }}"
+    controller_credentials: >-
+      {{ bootstrap_controller_controller_credentials | default([]) }}
+    controller_projects: >-
+      {{ bootstrap_controller_controller_projects | default([]) }}
+    controller_inventories: >-
+      {{ bootstrap_controller_controller_inventories | default([]) }}
+    controller_hosts: >-
+      {{ bootstrap_controller_controller_hosts | default([]) }}
+    controller_labels: >-
+      {{ bootstrap_controller_controller_labels | default([]) }}
+    controller_execution_environments: >-
+      {{ bootstrap_controller_controller_execution_environments | default([]) }}
 
-    # Job templates: dispatch looks for controller_templates (NOT controller_job_templates)
     controller_templates: >-
       {{
         bootstrap_controller_controller_templates
-          | default(bootstrap_controller_templates | default([]))
+        | default(bootstrap_controller_templates | default([]))
       }}
 
-    # Workflow job templates
     controller_workflow_job_templates: >-
       {{
         bootstrap_controller_controller_workflow_job_templates
-          | default(bootstrap_controller_workflow_job_templates | default([]))
+        | default(bootstrap_controller_workflow_job_templates | default([]))
       }}
 
     controller_workflows: >-
       {{
         bootstrap_controller_controller_workflow_job_templates
-          | default(bootstrap_controller_workflow_job_templates | default([]))
+        | default(bootstrap_controller_workflow_job_templates | default([]))
       }}
 
-    # === Keep your existing "defaults" var for job template rendering ===
     bootstrap_controller_configuration_job_templates_defaults: >-
       {{
         bootstrap_controller_configuration_job_templates_defaults
-          | default(bootstrap_controller_job_templates_defaults | default({}))
+        | default(bootstrap_controller_job_templates_defaults | default({}))
       }}
 
-    # === Optional convenience aliases (leave as-is from your original) ===
-    bootstrap_controller_controller_organization: "{{ bootstrap_controller_organization | default('Lab') }}"
-    controller_organizations: "{{ bootstrap_controller_controller_organizations | default([]) }}"
-    aap_organization: "{{ bootstrap_controller_organization | default('Lab') }}"
-    aap_organizations: "{{ bootstrap_controller_controller_organizations | default([]) }}"
-    bootstrap_controller_inventory_name: "{{ bootstrap_controller_inventory_name | default('ocp') }}"
-    bootstrap_controller_project_name: "{{ bootstrap_controller_project_name | default('lab-bootstrap') }}"
-    bootstrap_controller_execution_environment_name: "{{ bootstrap_controller_execution_environment_name | default('ocp-image') }}"
-    bootstrap_controller_creds: "{{ bootstrap_controller_creds | default('ocp_vault_creds') }}"
+    bootstrap_controller_controller_organization: >-
+      {{ bootstrap_controller_organization | default('Lab') }}
+    controller_organizations: >-
+      {{ bootstrap_controller_controller_organizations | default([]) }}
+    aap_organization: >-
+      {{ bootstrap_controller_organization | default('Lab') }}
+    aap_organizations: >-
+      {{ bootstrap_controller_controller_organizations | default([]) }}
 
-    bootstrap_controller_environment_choices: "{{ bootstrap_controller_environment_choices | default(['dev', 'test', 'preprod', 'prod']) }}"
-    bootstrap_controller_default_environment: "{{ bootstrap_controller_default_environment | default('prod') }}"
-    bootstrap_controller_state_choices: "{{ bootstrap_controller_state_choices | default(['present', 'absent']) }}"
-    bootstrap_controller_default_state: "{{ bootstrap_controller_default_state | default('present') }}"
+    bootstrap_controller_inventory_name: >-
+      {{ bootstrap_controller_inventory_name | default('ocp') }}
+    bootstrap_controller_project_name: >-
+      {{ bootstrap_controller_project_name | default('lab-bootstrap') }}
+    bootstrap_controller_execution_environment_name: >-
+      {{
+        bootstrap_controller_execution_environment_name
+        | default('ocp-image')
+      }}
+    bootstrap_controller_creds: >-
+      {{ bootstrap_controller_creds | default('ocp_vault_creds') }}
 
-    # === CRITICAL: preserve controller connection vars for infra.aap_configuration ===
-    controller_boostrap_enabled_objects: "{{ bootstrap_controller_enabled_objects | default([]) }}"
-    controller_host: "{{ controller_host | default(controller_hostname | default(controller_url | default(omit))) }}"
-    controller_hostname: "{{ controller_hostname | default(controller_host | default(controller_url | default(omit))) }}"
-    aap_hostname: "{{ controller_hostname | default(controller_host | default(controller_url | default(omit))) }}"
-    controller_url: "{{ controller_url | default(controller_host | default(controller_hostname | default(omit))) }}"
-    aap_api_hostname: "{{ controller_hostname | default(controller_host | default(controller_hostname | default(omit))) }}"
+    bootstrap_controller_environment_choices: >-
+      {{
+        bootstrap_controller_environment_choices
+        | default(['dev', 'test', 'preprod', 'prod'])
+      }}
+    bootstrap_controller_default_environment: >-
+      {{ bootstrap_controller_default_environment | default('prod') }}
+    bootstrap_controller_state_choices: >-
+      {{ bootstrap_controller_state_choices | default(['present', 'absent']) }}
+    bootstrap_controller_default_state: >-
+      {{ bootstrap_controller_default_state | default('present') }}
+
+    controller_boostrap_enabled_objects: >-
+      {{ bootstrap_controller_enabled_objects | default([]) }}
+    controller_host: >-
+      {{
+        controller_host
+        | default(controller_hostname | default(controller_url | default(omit)))
+      }}
+    controller_hostname: >-
+      {{
+        controller_hostname
+        | default(controller_host | default(controller_url | default(omit)))
+      }}
+    aap_hostname: >-
+      {{
+        controller_hostname
+        | default(controller_host | default(controller_url | default(omit)))
+      }}
+    controller_url: >-
+      {{
+        controller_url
+        | default(
+            controller_host
+            | default(controller_hostname | default(omit))
+          )
+      }}
+    aap_api_hostname: >-
+      {{
+        controller_hostname
+        | default(
+            controller_host
+            | default(controller_hostname | default(omit))
+          )
+      }}
+
     controller_username: "{{ controller_username | default(omit) }}"
     aap_username: "{{ controller_username | default(omit) }}"
     controller_password: "{{ controller_password | default(omit) }}"
     aap_password: "{{ controller_password | default(omit) }}"
     controller_oauthtoken: "{{ controller_oauthtoken | default(omit) }}"
     aap_oauthtoken: "{{ controller_oauthtoken | default(omit) }}"
-    controller_validate_certs: "{{ controller_validate_certs | default(true) }}"
-    aap_validate_certs: "{{ controller_validate_certs | default(true) }}"
-    # aap_ssl_verify: "{{ controller_validate_certs | default(true) }}"
+    controller_validate_certs: >-
+      {{ controller_validate_certs | default(true) }}
+    aap_validate_certs: >-
+      {{ controller_validate_certs | default(true) }}
+  # noqa: var-naming[no-role-prefix]

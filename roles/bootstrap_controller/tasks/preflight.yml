@@ -4,21 +4,27 @@
     that:
       - vault_controller_hostname is defined
       - vault_controller_hostname | length > 0
-    fail_msg: >
+    fail_msg: >-
       Missing vault_controller_hostname in vault_aap.yml
-      (example: https://aap-aap.apps.ocp.prod.rhlab)
+      example: https://aap-aap.apps.ocp.prod.rhlab
 
 - name: Validate we have either OAuth token OR username/password
   ansible.builtin.assert:
     that:
-      - (vault_controller_oauthtoken is defined and (vault_controller_oauthtoken | length > 0))
+      - >-
+        (
+          vault_controller_oauthtoken is defined
+          and (vault_controller_oauthtoken | length > 0)
+        )
         or
         (
-          (vault_controller_username is defined and (vault_controller_username | length > 0))
+          (vault_controller_username is defined
+           and (vault_controller_username | length > 0))
           and
-          (vault_controller_password is defined and (vault_controller_password | length > 0))
+          (vault_controller_password is defined
+           and (vault_controller_password | length > 0))
         )
-    fail_msg: >
+    fail_msg: >-
       Missing controller auth in vault_aap.yml.
       Provide either:
         - vault_controller_oauthtoken

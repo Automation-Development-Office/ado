@@ -17,4 +17,4 @@
     ansible.builtin.include_role:
       name: ADO | bootstrap_resolve_component
   roles:
-  - role: infra.ado.infra.ado.infra.ado.jira_stories
+  - role: infra.ado.jira_stories

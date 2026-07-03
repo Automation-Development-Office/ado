@@ -1,8 +1,13 @@
+---
 # roles/flatten_vars/tasks/main.yml
 
 - name: Fail if flatten_var_root not provided
   ansible.builtin.fail:
-    msg: "You must set 'flatten_var_root' to the name of the variable to flatten (e.g., 'aap')."
+    bootstrap_flatten_vars_selected_component: >-
+      {{
+        bootstrap_flatten_vars_component
+        | default(component | default('all'))
+      }}
   when: flatten_var_root is not defined
 
 - name: Assert the root variable exists
