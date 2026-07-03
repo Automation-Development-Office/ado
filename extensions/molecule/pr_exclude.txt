@@ -12,3 +12,4 @@ install_elastic
 install_postfix
 install_rhbk
 integration_rhel_repos_rhsm
+integration_bootstrap_generate_content
