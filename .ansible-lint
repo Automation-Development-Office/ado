@@ -18,7 +18,6 @@ mock_modules:
   - infra.ado.ocp_namespace
   - infra.ado.ocp_namespace
   - infra.ado.ocp_routes
-  - infra.ado 
   - infra.ado.ocp_operatorgroups
   - infra.ado.ocp_wait_pods
   - infra.ado.ocp_routes
