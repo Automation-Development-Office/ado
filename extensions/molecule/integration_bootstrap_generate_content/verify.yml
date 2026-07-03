@@ -150,7 +150,7 @@
 
         for jt in sorted(jt_dir.glob("*.jt.yml")):
             text = jt.read_text()
-            if "name: bootstrap" not in text:
+            if "name: ado" not in text:
                 bad.append(jt.name)
 
         if bad:
