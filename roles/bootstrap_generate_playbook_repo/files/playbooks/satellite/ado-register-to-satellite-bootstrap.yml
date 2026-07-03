@@ -1,0 +1,6 @@
+---
+- name: ADO | Register host to Satellite
+  hosts: all
+  gather_facts: true
+  roles:
+  - role: infra.ado.rhel_sat_reg

@@ -1,0 +1,472 @@
+components_aliases:
+  storage_class: storage
+  storage: storage_class
+
+components_defaults:
+  # aap 2.6 latest stable
+  aap:
+    name_space: aap
+    operator_namespace: aap
+    infra.ado.ocp_operatorgroups: aap-operators
+
+    # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
+    operator_name: ansible-automation-platform-operator
+    operator_channel: stable-2.6
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+
+    # the exact host you want
+    hostname: "aap.{{ app_domain }}"
+    ingress_class: openshift-default
+
+    admin_password_secret: controller-admin-password
+    component: aap
+
+  # aap 2.5
+  aap25:
+    name_space: aap25
+    operator_namespace: aap25
+    infra.ado.ocp_operatorgroups: aap25-operators
+
+    # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
+    operator_name: ansible-automation-platform-operator
+    operator_channel: stable-2.5
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+
+    # the exact host you want
+    hostname: "aap25.{{ app_domain }}"
+    ingress_class: openshift-default
+
+    admin_password_secret: controller-admin-password-25`
+
+
+  aap24:
+    name_space: aap24
+    operator_namespace: aap24
+    infra.ado.ocp_operatorgroups: aap24-operators
+
+    # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
+    operator_name: ansible-automation-platform-operator
+    operator_channel: stable-2.4
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+
+    controller_name: controller24
+    admin_user: admin
+    replicas: 1
+
+    ingress_type: Route
+    route_tls_termination_mechanism: Edge
+    controller_route_host: "controller24.{{ app_domain }}"
+    aap24_configure_hub: false
+    aap24_hub_url: ""
+    aap24_hub_token: ""
+    aap24_hub_credential_name: "Automation Hub"
+    aap24_hub_verify_ssl: false
+
+    # ---- cert-manager (your real ClusterIssuer) ----
+    cert_issuer_kind: ClusterIssuer
+    cert_issuer_name: idm-acme
+    controller_tls_secret: "controller24-route-tls"
+
+  acs:
+    # install mode / namespaces
+    all_namespaces_install: true
+    operator_namespace: openshift-operators
+    app_namespace: stackrox
+    namespace: stackrox
+    acs_namespace: stackrox
+    acs_central_name: central
+    acs_route_name: central
+    acs_reinstall: true
+    acs_delete_operator_generated_htpasswd: true
+    acs_admin_password_secret: central-admin-htpasswd
+
+    # standard operator vars (what your OLM roles expect)
+    name_space: openshift-operators          # <-- set as a literal, not a Jinja ref
+    infra.ado.ocp_operatorgroups: rhacs-infra.ado.ocp_operatorgroups       # ignored/skip when all_namespaces_install=true
+    operator_name: rhacs-operator
+    operator_channel: stable
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+
+  # cert manager
+  cert_manager:
+    name_space: cert-manager
+    operator_namespace: cert-manager
+    infra.ado.ocp_operatorgroups: cert-manager
+    acs_namespace: stackrox
+    acs_central_name: central
+    acs_admin_secret_name: central-admin-htpasswd
+
+    # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
+    operator_name: openshift-cert-manager-operator
+    operator_channel: openshift-cert-manager-operator
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+
+    # vars
+    cert_manager_root_ca_secret_name: root-ca-secret
+    cert_manager_root_ca_issuer_name: root-ca-issuer
+    cert_manager_root_ca_is_cluster_issuer: true
+
+    # defaults/main.yml (or component defaults)
+    cert_manager_root_ca_awspca_enabled: false
+
+    # required when enabled
+    cert_manager_root_ca_awspca_region: us-gov-east-1
+    cert_manager_root_ca_awspca_pca_arn: ""          # arn:aws-us-gov:acm-pca:...
+    cert_manager_root_ca_awspca_domain_cn: ""        # e.g. "CA for apps.rosa-preprod-infra.example.com"
+
+    # tuning
+    cert_manager_root_ca_awspca_validity_days: 365
+    cert_manager_root_ca_awspca_signing_algorithm: "SHA384WITHRSA"
+    cert_manager_root_ca_awspca_template_arn: "arn:aws-us-gov:acm-pca:::template/SubordinateCACertificate_PathLen0/V1"
+
+    # where to work (ephemeral)
+    cert_manager_root_ca_awspca_workdir: "/tmp/cert-manager-awspca"
+    cert_manager_root_ca_awspca_key_file: "intermediate-ca.key"
+    cert_manager_root_ca_awspca_csr_file: "intermediate-ca.csr"
+    cert_manager_root_ca_awspca_cert_file: "intermediate-ca.crt"
+    cert_manager_root_ca_awspca_chain_file: "intermediate-ca.chain.crt"
+
+  console_banner:
+    console_banner_state: present
+
+    # Make this unique per banner so you don't overwrite other banners
+    console_banner_name: "ado-banner"
+
+    console_banner_namespace: "openshift-console"
+
+    # Banner content
+    console_banner_text: "Hello OpenShift Banner | UNCLASSIFIED"
+
+    # Banner placement
+    # Valid values seen in OCP: BannerTop, BannerBottom
+    console_banner_location: "BannerTop"
+
+    # Colors
+    console_banner_background_color: "#1f7a1f"   # green
+    console_banner_text_color: "#ffffff"         # white
+
+  devspaces:
+    # operator install (Subscription/CSV)
+    operator_namespace: openshift-operators
+    name_space: openshift-operators
+
+    app_namespace: devspaces
+    devspaces_namespace: devspaces
+
+    all_namespaces_install: true
+
+    operator_name: devspaces
+    operator_channel: stable
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+
+  389ds:
+    name_space: dirsrv
+    state: present
+
+    # replicas / naming
+    statefulset_name: dirsrv
+    expected_replicas: 2
+
+    # images
+    init_image: "registry.k8s.io/busybox:latest"
+    dirsrv_image: "quay.io/389ds/dirsrv:c9s"
+
+    # storage
+    pvc_size: "10Gi"
+    storage_class_name: ""
+
+    # ports
+    ldap_port: 3389
+    ldaps_port: 3636
+    nodeport_ldap: 30389
+    nodeport_ldaps: 30636
+
+    # selectors/labels
+    dirsrv_selector:
+      app: dirsrv
+
+    # SA/SCC binding
+    sa_name: "dirsrv-sa"
+    scc_name: "anyuid"
+
+    # secrets
+    dm_secret_name: "dirsrv-dm-password"
+    dm_secret_key: "dm-password"
+
+    # bootstrap
+    enable_bootstrap: true
+    ds_errorlog_level: "64"
+    ds_reindex: "True"
+    ds_startup_timeout: "120"
+
+    # replication
+    enable_replication: true
+    repl_manager_dn: "cn=rmanager,cn=config"
+
+    # cleanup
+    dirsrv_cleanup: false
+
+    # cert-manager (optional)
+    enable_certificate: false
+    certificate_name: "dirsrv-cert"
+    certificate_secret: "dirsrv-cert-secret"
+    certificate_dns: []
+    certificate_issuer_kind: "ClusterIssuer"
+    certificate_issuer_name: "ocp-ca-issuer"
+    certificate_duration: "26280h0m0s"
+    certificate_renew_before: "720h0m0s"
+    certificate_orgs: []
+    certificate_ous: []
+
+    # defaults
+    allow_empty: false
+    label_selector: "app=dirsrv"
+
+    # samples of users, group creation
+    enable_bootstrap_templates: false
+    bootstrap_templates_dir: "{{ playbook_dir }}/templates/389ds"
+
+    # always apply ACI by default
+    enable_suffix_aci: true
+    aci_template: "aci-anon-read.ldif.j2"
+
+  # GitLab
+  gitlab:
+    release_name: "gitlab"
+
+    name_space: gitlab-system
+    operator_namespace: gitlab
+    infra.ado.ocp_operatorgroups: gitlab-operators
+
+    # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
+    operator_name: gitlab-operator-kubernetes
+    operator_channel: stable
+    operator_source: certified-operators
+    operator_source_namespace: openshift-marketplace
+
+    # the exact host you want
+    hostname: "gitlab.{{ app_domain }}"
+    host_suffix: gitlab
+    ingress_class: openshift-default
+
+    # GitLab chart version used by the operator
+    chart_version: "9.7.0"
+
+    root_password_secret: gitlab-root-password
+
+  gitops:
+    # Operator install namespace (because subscription_operator uses name_space today)
+    name_space: openshift-operators
+    operator_namespace: openshift-operators
+    infra.ado.ocp_operatorgroups: global-operators
+    all_namespaces_install: true
+
+    operator_name: openshift-gitops-operator
+    operator_channel: latest
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+
+    # ArgoCD instance namespace
+    app_namespace: openshift-gitops
+
+    # waits (optional)
+    operator_csv_contains: openshift-gitops-operator
+    pods_label_selector: "app.kubernetes.io/part-of=argocd"
+    timeout_seconds: 900
+    operator_poll_interval: 10
+    operator_install_timeout: 900
+    delay: 10
+
+
+    # optional route enforcement
+    route_enforce: false
+    route_name: openshift-gitops-server
+    route_termination: passthrough
+    route_hostname: ""
+
+  grafana:
+    name_space: grafana
+    infra.ado.ocp_operatorgroups: grafana-operator-group
+
+    operator_name: grafana-operator
+    operator_channel: v5
+    operator_source: community-operators
+    operator_source_namespace: openshift-marketplace
+
+    grafana_hostname: grafana.{{ app_domain }}
+    storage_size: 2Gi
+    prometheus_source: prometheus-k8s-openshift-monitoring.{{ app_domain }}
+    grafana_datasource: "Openshift"
+    grafana_folder: "Openshift"
+    dashboard_dir: "../templates"
+    grafana_dashboards_type: templates
+    grafana_dashboards_source: ""
+
+    grafana_route_name: grafana
+    grafana_route_name_alt: grafana-alt
+    grafana_hostname_alt: "grafana.{{ app_domain_alt }}"
+    grafana_route_backend_svc: grafana-service
+
+    grafana_route_backend_port: grafana
+    grafana_route_tls_termination: edge
+    route_insecure_edge_policy: Redirect
+    route_wildcard_policy: None
+    route_labels: {}
+
+    # OIDC config (OFF by default)
+    oidc:
+      enabled: false
+      tls_skip_verify_insecure: true
+      client_id: "grafana-client"
+      scopes:
+        - openid
+        - profile
+        - email
+      claims:
+        login: preferred_username
+        name: name
+        email: email
+        groups: groups
+      oauth_auto_login: true   # optional: auto redirect to keycloak
+
+  # create htpasswd-admin user
+  htpass_admin:
+    name_space: openshift-config
+    htpasswd_idp: htpasswd-admin
+    htpasswd_idp_name: htpasswd-admin
+    htpasswd_secret: htpasswd-admin-secret
+    update_htpass: true
+
+  kafka:
+    # Namespace for any related objects you want (optional)
+    name_space: cfk-operator
+
+    # Where the operator subscription + CSV actually live
+    # operator_subscription_namespace: openshift-operators
+    operator_subscription_namespace: cfk-operator
+
+    # infra.ado.ocp_operatorgroups settings (optional; only if you want one)
+    infra.ado.ocp_operatorgroups: cfk-infra.ado.ocp_operatorgroups
+    all_namespaces_install: true
+
+    # Subscription settings
+    operator_name: confluent-for-kubernetes
+    operator_channel: "3.1"
+    operator_source: certified-operators
+    operator_source_namespace: openshift-marketplace
+    installPlanApproval: Automatic
+
+    # Pin the operator version
+    operator_starting_csv: ""
+
+  eck:
+    # Operand namespace (only used if you choose to create CRs)
+    name_space: eck-operator
+
+    # Operator namespace (Subscription + CSV live here)
+    operator_subscription_namespace: eck-operator
+
+    # infra.ado.ocp_operatorgroups (created inside eck-operator)
+    infra.ado.ocp_operatorgroups: eck-infra.ado.ocp_operatorgroups
+    all_namespaces_install: true
+
+    # OLM package + subscription settings (from your cluster)
+    operator_name: elasticsearch-eck-operator-certified
+    operator_channel: stable
+    operator_source: certified-operators
+    operator_source_namespace: openshift-marketplace
+    installPlanApproval: Automatic
+
+    # Leave blank to use PackageManifest currentCSV for channel (latest)
+    operator_starting_csv: ""
+
+    # Optional: create a basic Elasticsearch CR
+    eck_create_elasticsearch_cr: false
+    eck_cluster_name: elasticsearch
+    eck_replicas: 1
+    eck_version: "8.12.0"
+
+  oadp:
+    name_space: redhat-oadp
+    infra.ado.ocp_operatorgroups: redhat-oadp-operator
+
+    operator_name: redhat-oadp-operator
+    operator_channel: stable-1.4
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+
+    oadp_configure: false
+
+  quay:
+    name_space: quay-enterprise
+    infra.ado.ocp_operatorgroups: quay-operator-group
+
+    # subscript_operator
+    operator_name: quay-operator
+    operator_channel: stable-3.15
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+
+    # grafana vars
+    quay_hostname: "quay.{{ app_domain}}"
+    storage_size: 10Gi
+    postgres_image: registry.redhat.io/rhel9/postgresql-15:latest
+    quay_config_secret: quay-config-secret
+
+  rhbk:
+    name_space: keycloak
+    infra.ado.ocp_operatorgroups: rhbk-operator
+
+    operator_name: rhbk-operator
+    operator_channel: stable-v26.0
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+    install_rhbk_operator: true
+
+    rhbk_hostname: "keycloak.{{ app_domain }}"
+    create_rhbk_admin_user: true
+    rhbk_recreate_ss_on_immutable_change: true
+    rhbk_tls_secret_name: keycloak-tls-secret
+    rhbk_cert_name: keycloak-tls
+
+    # Postgres
+    postgres_image: "registry.redhat.io/rhel9/postgresql-15:latest"
+    postgres_storage_class: ""
+    postgres_storage_size: "10Gi"
+    postgres_db_name: keycloak
+    postgres_service_name: postgres-db
+    postgres_statefulset_name: postgresql-db
+    postgres_secret_name: keycloak-db-secret
+
+    # DB credentials (do NOT reuse admin creds)
+    rhbk_db_user: keycloak
+    rhbk_db_password: changeme-db
+
+    infra.ado.ocp_oidc_auth:
+      enabled: true
+      openshift_oidc_idp_name: "Keycloak"
+      openshift_oidc_mapping_method: claim
+      openshift_oauth_resource_name: "cluster"
+      extra_scopes: ["email", "profile"]
+      claims:
+        preferred_username: "preferred_username"
+        name: "name"
+        email: "email"
+
+  ldap_auth_openshift:
+    enabled: true
+    oauth_resource_name: "cluster"
+    mapping_method: "claim"
+    attributes:
+      id: ["dn"]
+      preferredUsername: ["uid"]
+      name: ["cn"]
+      email: ["mail"]
+    insecure: false
+    idp_name: "ldap"

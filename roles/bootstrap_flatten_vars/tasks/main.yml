@@ -1,0 +1,22 @@
+---
+# roles/flatten_vars/tasks/main.yml
+
+- name: Fail if flatten_var_root not provided
+  ansible.builtin.fail:
+    bootstrap_flatten_vars_selected_component: >-
+      {{
+        bootstrap_flatten_vars_component
+        | default(component | default('all'))
+      }}
+  when: flatten_var_root is not defined
+
+- name: Assert the root variable exists
+  ansible.builtin.assert:
+    that: vars[flatten_var_root] is defined
+    fail_msg: "Variable '{{ flatten_var_root }}' is not defined"
+    quiet: true
+
+- name: Flatten dict as facts for {{ flatten_var_root }}
+  ansible.builtin.set_fact:
+    "{{ item.key }}": "{{ item.value }}"
+  loop: "{{ query('dict', vars[flatten_var_root]) }}"

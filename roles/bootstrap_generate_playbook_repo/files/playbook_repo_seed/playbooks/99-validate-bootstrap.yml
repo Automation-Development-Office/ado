@@ -1,0 +1,10 @@
+---
+- name: ADO | Validate generated bootstrap repo
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: ADO | Validate required vars exist
+      ansible.builtin.assert:
+        that:
+          - env is defined
+        fail_msg: env must be defined

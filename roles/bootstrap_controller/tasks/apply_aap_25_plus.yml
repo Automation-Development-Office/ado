@@ -1,0 +1,421 @@
+---
+# yamllint disable rule:line-length
+# Organizations first using direct module call
+# avoids gateway/resource sync issues in infra.aap_configuration 4.6.x
+
+- name: AAP 2.5+ | Normalize controller objects before apply  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    bootstrap_controller_controller_organizations: "{{ controller_bootstrap_controller_organizations | default(bootstrap_controller_controller_organizations | default(controller_organizations | default([]), true), true) }}"
+    bootstrap_controller_controller_projects: "{{ controller_bootstrap_controller_projects | default(bootstrap_controller_controller_projects | default(controller_projects | default([]), true), true) }}"
+    bootstrap_controller_controller_inventories: "{{ controller_bootstrap_controller_inventories | default(bootstrap_controller_controller_inventories | default(controller_inventories | default([]), true), true) }}"
+    bootstrap_controller_controller_credentials: "{{ controller_bootstrap_controller_credentials | default(bootstrap_controller_controller_credentials | default(controller_credentials | default([]), true), true) }}"
+    bootstrap_controller_controller_execution_environments: "{{ controller_bootstrap_controller_execution_environments | default(bootstrap_controller_controller_execution_environments | default(controller_execution_environments | default([]), true), true) }}"
+
+- name: AAP 2.5+ | Debug controller orgs before apply
+  ansible.builtin.debug:
+    var: controller_organizations
+
+- name: AAP 2.5+ | Create organizations directly
+  ansible.controller.organization:
+    name: "{{ item.name }}"
+    description: "{{ item.description | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ controller_organizations | default([]) }}"
+  when: controller_organizations | default([]) | length > 0
+
+# Inventories direct because infra.aap_configuration 4.6.19 stringifies variables
+- name: AAP 2.5+ | Create inventories directly
+  ansible.controller.inventory:
+    name: "{{ item.name }}"
+    description: "{{ item.description | default(omit) }}"
+    organization: "{{ item.organization }}"
+    variables: "{{ item.variables | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ controller_inventories | default([]) }}"
+  when: controller_inventories | default([]) | length > 0
+
+- name: AAP 2.5+ | Reset generated job template list  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_templates: []
+
+- name: AAP 2.5+ | Load generated job template configs  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_templates: >-
+      {{
+        controller_templates
+        +
+        (
+          (lookup('ansible.builtin.file', item) | from_yaml).controller_templates
+          | default([])
+        )
+      }}
+  loop: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/configs/job_templates/*.jt.yml') }}"
+  when: bootstrap_apply_aap_configs | default(false) | bool
+
+- name: AAP 2.5+ | Debug loaded job template count
+  ansible.builtin.debug:
+    msg: "Loaded controller_templates count={{ controller_templates | length }}"
+
+- name: AAP 2.5+ | Reset generated workflow list  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_workflow_job_templates: []
+
+- name: AAP 2.5+ | Load generated workflow configs  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_workflow_job_templates: >-
+      {{
+        controller_workflow_job_templates
+        +
+        (
+          (lookup('ansible.builtin.file', item) | from_yaml).controller_workflow_job_templates
+          | default([])
+        )
+      }}
+  loop: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/configs/workflows/*.wf.yml') }}"
+  when: bootstrap_apply_aap_configs | default(false) | bool
+
+- name: AAP 2.5+ | Debug loaded workflow count
+  ansible.builtin.debug:
+    msg: "Loaded controller_workflow_job_templates count={{ controller_workflow_job_templates | length }}"
+
+- name: AAP 2.5+ | Build final label list from selected templates and workflows
+  ansible.builtin.set_fact:
+    bootstrap_controller_labels_final: >-
+      {{
+        (
+          [{'name': 'ado', 'organization': bootstrap_controller_organization}]
+          +
+          (
+            controller_templates | default([])
+            | map(attribute='related')
+            | select('defined')
+            | map(attribute='labels')
+            | select('defined')
+            | flatten
+            | list
+          )
+          +
+          (
+            controller_workflow_job_templates | default([])
+            | map(attribute='related')
+            | select('defined')
+            | map(attribute='labels')
+            | select('defined')
+            | flatten
+            | list
+          )
+        )
+        | unique
+        | list
+      }}
+
+- name: AAP 2.5+ | Normalize labels before creation
+  ansible.builtin.set_fact:
+    bootstrap_controller_final_labels: >-
+      {{
+        bootstrap_controller_final_labels
+        | default([])
+        | map('combine', {'organization': controller_bootstrap_organization | default(bootstrap_controller_organization | default(''))})
+        | list
+      }}
+
+- name: AAP 2.5+ | Build labels to create
+  ansible.builtin.set_fact:
+    bootstrap_controller_labels_to_create: >-
+      {{
+        (
+          [{'name': 'ado'}]
+          +
+          (
+            controller_templates
+            | default([])
+            | map(attribute='labels')
+            | select('defined')
+            | flatten
+            | default([])
+          )
+          +
+          (
+            controller_workflow_job_templates
+            | default([])
+            | map(attribute='labels')
+            | select('defined')
+            | flatten
+            | default([])
+          )
+        )
+        | map('combine', {'organization': controller_bootstrap_organization | default(bootstrap_controller_organization | default(''))})
+        | unique
+        | list
+      }}
+
+- name: AAP 2.5+ | Build labels to create from job templates and workflows
+  ansible.builtin.set_fact:
+    bootstrap_controller_labels_to_create: >-
+      {{
+        (
+          [{'name': 'ado', 'organization': controller_bootstrap_organization | default(bootstrap_controller_organization)}]
+          +
+          (
+            controller_templates
+            | default([])
+            | map(attribute='labels')
+            | select('defined')
+            | flatten
+            | list
+          )
+          +
+          (
+            controller_workflow_job_templates
+            | default([])
+            | map(attribute='labels')
+            | select('defined')
+            | flatten
+            | list
+          )
+        )
+        | unique
+        | list
+      }}
+
+- name: AAP 2.5+ | Build labels to create from loaded templates and workflows
+  ansible.builtin.set_fact:
+    bootstrap_controller_labels_to_create: >-
+      {{
+        (
+          [{'name': 'ado', 'organization': controller_bootstrap_organization | default(bootstrap_controller_organization)}]
+          +
+          (
+            controller_templates | default([])
+            | map(attribute='labels')
+            | select('defined')
+            | flatten
+            | list
+          )
+          +
+          (
+            controller_templates | default([])
+            | map(attribute='related.labels')
+            | select('defined')
+            | flatten
+            | list
+          )
+          +
+          (
+            controller_workflow_job_templates | default([])
+            | map(attribute='labels')
+            | select('defined')
+            | flatten
+            | list
+          )
+          +
+          (
+            controller_workflow_job_templates | default([])
+            | map(attribute='related.labels')
+            | select('defined')
+            | flatten
+            | list
+          )
+        )
+        | rejectattr('name', 'undefined')
+        | rejectattr('organization', 'undefined')
+        | unique
+        | list
+      }}
+
+
+- name: AAP 2.5+ | Debug labels before job templates
+  ansible.builtin.debug:
+    msg:
+      - "labels_to_create={{ bootstrap_controller_labels_to_create | default([]) | length }}"
+      - "{{ bootstrap_controller_labels_to_create | default([]) | map(attribute='name') | list }}"
+  when: bootstrap_controller_labels_to_create | default([]) | length > 0
+
+- name: AAP 2.5+ | Final sanitize labels before creation
+  ansible.builtin.set_fact:
+    bootstrap_controller_labels_to_create: >-
+      {{
+        bootstrap_controller_labels_to_create
+        | default([])
+        | rejectattr('name', 'undefined')
+        | map('combine', {'organization': controller_bootstrap_organization | default(bootstrap_controller_organization)})
+        | unique(attribute='name')
+        | list
+      }}
+
+- name: AAP 2.5+ | Create labels directly before job templates
+  ansible.controller.label:
+    name: "{{ item.name }}"
+    organization: "{{ item.organization | default(controller_bootstrap_organization | default(bootstrap_controller_organization), true) }}"
+    state: "{{ item.state | default('present') }}"
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ bootstrap_controller_labels_to_create }}"
+  when: bootstrap_controller_labels_to_create | default([]) | length > 0
+
+# Create/update credentials and EEs first
+- name: AAP 2.5+ | Apply credentials and execution environments
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.dispatch
+  vars:
+    gateway_configuration_dispatcher_roles: []
+    hub_configuration_dispatcher_roles: []
+    eda_configuration_dispatcher_roles: []
+    controller_configuration_dispatcher_roles:
+      - role: controller_credentials
+        var: controller_credentials
+        tags: credentials
+      - role: controller_execution_environments
+        var: controller_execution_environments
+        tags: execution_environments
+
+- name: AAP 2.5+ | Load controller configs before project sync
+  ansible.builtin.include_tasks: load_controller_configs.yml
+
+- name: AAP 2.5+ | Debug controller object counts before project sync
+  ansible.builtin.debug:
+    msg:
+      - "controller_templates={{ controller_templates | default([]) | length }}"
+      - "controller_workflow_job_templates={{ controller_workflow_job_templates | default([]) | length }}"
+
+# Create/update projects separately so we can force sync before job templates
+- name: AAP 2.5+ | Normalize controller projects before apply
+  ansible.builtin.set_fact:
+    bootstrap_controller_controller_projects: "{{ controller_bootstrap_controller_projects | default(controller_projects | default([]), true) }}"
+
+- name: AAP 2.5+ | Debug controller projects before apply
+  ansible.builtin.debug:
+    var: controller_projects
+
+- name: AAP 2.5+ | Apply projects
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_projects
+  when: controller_projects | default([]) | length > 0
+
+- name: AAP 2.5+ | Force project sync before creating job templates
+  ansible.controller.project_update:
+    project: "{{ item.name }}"
+    organization: "{{ item.organization | default(controller_bootstrap_organization | default(bootstrap_controller_organization), true) }}"
+    wait: true
+    timeout: "{{ bootstrap_controller_project_sync_timeout | default(600) }}"
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ controller_projects | default([]) }}"
+  when:
+    - controller_projects | default([]) | length > 0
+    - item.scm_type | default('') | length > 0
+
+- name: AAP 2.5+ | Wait for project playbooks to become available
+  ansible.builtin.pause:
+    seconds: "{{ bootstrap_controller_project_playbook_wait_seconds | default(30) }}"
+  when: controller_projects | default([]) | length > 0
+
+# Hosts before templates
+- name: AAP 2.5+ | Apply hosts
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.dispatch
+  vars:
+    gateway_configuration_dispatcher_roles: []
+    hub_configuration_dispatcher_roles: []
+    eda_configuration_dispatcher_roles: []
+    controller_configuration_dispatcher_roles:
+      - role: controller_hosts
+        var: controller_hosts
+        tags: hosts
+  when: controller_hosts | default([]) | length > 0
+
+# Now job templates can see synced playbooks
+- name: AAP 2.5+ | Sanitize generated job template and workflow labels for infra.aap_configuration
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    from pathlib import Path
+    import yaml
+
+    root = Path("{{ playbook_dir }}/configs")
+
+    def label_name(label):
+        if isinstance(label, dict):
+            return label.get("name")
+        return label
+
+    def fix_labels(obj):
+        if isinstance(obj, dict):
+            if isinstance(obj.get("labels"), list):
+                obj["labels"] = [
+                    name for name in (label_name(x) for x in obj["labels"])
+                    if name
+                ]
+
+            related = obj.get("related")
+            if isinstance(related, dict) and isinstance(related.get("labels"), list):
+                related["labels"] = [
+                    name for name in (label_name(x) for x in related["labels"])
+                    if name
+                ]
+
+            ujt = obj.get("unified_job_template")
+            if isinstance(ujt, dict):
+                org = ujt.get("organization")
+                if isinstance(org, dict):
+                    org_name = org.get("name")
+                    if org_name and org_name.startswith("ADO | "):
+                        ujt.pop("organization", None)
+
+            for v in obj.values():
+                fix_labels(v)
+
+        elif isinstance(obj, list):
+            for v in obj:
+                fix_labels(v)
+
+    for pattern in ("job_templates/*.jt.yml", "workflows/*.wf.yml"):
+        for f in sorted(root.glob(pattern)):
+            data = yaml.safe_load(f.read_text()) or {}
+            fix_labels(data)
+            f.write_text(yaml.safe_dump(data, sort_keys=False))
+            print(f"sanitized {f}")
+    PYCODE
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: AAP 2.5+ | Load controller configs before job template dispatch
+  ansible.builtin.include_tasks: load_controller_configs.yml
+
+- name: AAP 2.5+ | Debug controller object counts before dispatch
+  ansible.builtin.debug:
+    msg:
+      - "controller_templates={{ controller_templates | default([]) | length }}"
+      - "controller_workflow_job_templates={{ controller_workflow_job_templates | default([]) | length }}"
+
+- name: AAP 2.5+ | Apply job templates and workflows
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.dispatch
+  vars:
+    gateway_configuration_dispatcher_roles: []
+    hub_configuration_dispatcher_roles: []
+    eda_configuration_dispatcher_roles: []
+    controller_configuration_dispatcher_roles:
+      - role: controller_job_templates
+        var: controller_templates
+        tags: job_templates
+      - role: controller_workflow_job_templates
+        var: controller_workflow_job_templates
+        tags: workflow_job_templates

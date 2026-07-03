@@ -1,0 +1,14 @@
+---
+- name: Validate controller_templates is defined
+  ansible.builtin.assert:
+    that:
+      - controller_templates is defined
+      - controller_templates | length > 0
+    fail_msg: "controller_templates is not defined or empty"
+
+# This role respects:
+# - controller_templates list of templates
+# - controller_configuration_job_templates_defaults defaults you already defined
+- name: Apply job templates
+  ansible.builtin.include_role:
+    name: ansible.controller.controller_job_templates

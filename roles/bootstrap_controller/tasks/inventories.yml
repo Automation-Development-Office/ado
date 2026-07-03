@@ -1,0 +1,11 @@
+---
+- name: Validate controller_inventories is defined
+  ansible.builtin.assert:
+    that:
+      - controller_inventories is defined
+      - controller_inventories | length > 0
+    fail_msg: "controller_inventories is not defined or empty"
+
+- name: Apply inventories
+  ansible.builtin.include_role:
+    name: ansible.controller.controller_inventories

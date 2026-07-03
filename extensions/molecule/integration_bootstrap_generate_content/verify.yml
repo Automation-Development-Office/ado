@@ -1,0 +1,151 @@
+---
+- name: Verify generated bootstrap content
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  tasks:
+    - name: Verify generated directories exist
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/{{ item }}"
+      loop:
+        - playbooks
+        - configs
+        - configs/controller
+        - configs/job_templates
+        - configs/workflows
+        - group_vars/all/molecule
+      register: generated_dirs
+
+    - name: Assert generated directories exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isdir
+        fail_msg: "Missing generated directory: {{ item.item }}"
+      loop: "{{ generated_dirs.results }}"
+
+    - name: Find generated playbooks
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/playbooks"
+        patterns: "*.yml"
+        recurse: true
+        file_type: file
+      register: generated_playbooks
+
+    - name: Find generated controller config files
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/configs/controller"
+        patterns: "*.yml"
+        recurse: true
+        file_type: file
+      register: generated_controller_configs
+
+    - name: Find generated job template files
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/configs/job_templates"
+        patterns: "*.jt.yml"
+        recurse: true
+        file_type: file
+      register: generated_job_templates
+
+    - name: Find generated workflow files
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/configs/workflows"
+        patterns: "*.yml"
+        recurse: true
+        file_type: file
+      register: generated_workflows
+
+    - name: Assert generated file counts
+      ansible.builtin.assert:
+        that:
+          - generated_playbooks.files | length >= 30
+          - generated_controller_configs.files | length >= 5
+          - generated_job_templates.files | length >= 30
+          - generated_workflows.files | length >= 1
+        fail_msg: |
+          Generated counts were wrong:
+          playbooks={{ generated_playbooks.files | length }}
+          controller_configs={{ generated_controller_configs.files | length }}
+          job_templates={{ generated_job_templates.files | length }}
+          workflows={{ generated_workflows.files | length }}
+
+    - name: Verify expected component playbook directories exist for all component
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/playbooks/{{ item }}"
+      loop:
+        - aap
+        - acs
+        - cert-manager
+        - console
+        - devspaces
+        - dirsrv
+        - eck
+        - gitlab
+        - gitops
+        - grafana
+        - idm
+        - jira
+        - kafka
+        - oadp
+        - openshift
+        - pega
+        - quay
+        - rhbk
+        - rhel
+        - satellite
+      register: component_dirs
+
+    - name: Assert expected component directories exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isdir
+        fail_msg: "Missing component directory: playbooks/{{ item.item }}"
+      loop: "{{ component_dirs.results }}"
+
+    - name: Validate generated job template playbook references
+      ansible.builtin.shell: |
+        set -euo pipefail
+        python3 - <<'PY'
+        from pathlib import Path
+        import re
+        import sys
+
+        root = Path("{{ playbook_dir }}")
+        jt_dir = root / "configs" / "job_templates"
+        missing = []
+
+        for jt in sorted(jt_dir.glob("*.jt.yml")):
+            text = jt.read_text()
+            m = re.search(r'(?m)^\s*playbook:\s*[\'"]?([^\'"\n]+)[\'"]?\s*$', text)
+            if not m:
+                missing.append(f"{jt.name}: missing playbook field")
+                continue
+
+            playbook = m.group(1).strip()
+            if not (root / playbook).exists():
+                missing.append(f"{jt.name}: references missing playbook {playbook}")
+
+        if missing:
+            print("\n".join(missing))
+            sys.exit(1)
+
+        print("All job template playbook references are valid.")
+        PY
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Verify no old bootstrap role references remainkk
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if grep -R \
+          "infra.ado.bootstrap_generate_env_vars\|infra.ado.bootstrap_generate_playbook_repo\|infra.ado.bootstrap_controller\|infra.ado.bootstrap_flatten_vars\|infra.ado.bootstrap_resolve_component\|infra.ado.bootstrap_framework_defaults" \
+          "{{ playbook_dir }}/../../roles/bootstrap_" -n; then
+          exit 1
+        fi
+      args:
+        executable: /bin/bash
+      changed_when: false

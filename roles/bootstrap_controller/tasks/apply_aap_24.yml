@@ -1,0 +1,44 @@
+---
+- name: AAP 2.4 | Organizations
+  ansible.builtin.include_role:
+    name: infra.controller_configuration.organizations
+  when: controller_organizations | default([]) | length > 0
+
+- name: AAP 2.4 | Credentials
+  ansible.builtin.include_role:
+    name: infra.controller_configuration.credentials
+  when: controller_credentials | default([]) | length > 0
+
+- name: AAP 2.4 | Execution environments
+  ansible.builtin.include_role:
+    name: infra.controller_configuration.execution_environments
+  when: controller_execution_environments | default([]) | length > 0
+
+- name: AAP 2.4 | Projects
+  ansible.builtin.include_role:
+    name: infra.controller_configuration.projects
+  when: controller_projects | default([]) | length > 0
+
+- name: AAP 2.4 | Sync projects before job templates
+  ansible.builtin.include_tasks: sync_projects.yml
+  when: controller_projects | default([]) | length > 0
+
+- name: AAP 2.4 | Inventories
+  ansible.builtin.include_role:
+    name: infra.controller_configuration.inventories
+  when: controller_inventories | default([]) | length > 0
+
+- name: AAP 2.4 | Hosts
+  ansible.builtin.include_role:
+    name: infra.controller_configuration.hosts
+  when: controller_hosts | default([]) | length > 0
+
+- name: AAP 2.4 | Job templates
+  ansible.builtin.include_role:
+    name: infra.controller_configuration.job_templates
+  when: controller_templates | default([]) | length > 0
+
+- name: AAP 2.4 | Workflow job templates
+  ansible.builtin.include_role:
+    name: infra.controller_configuration.workflow_job_templates
+  when: controller_workflows | default([]) | length > 0

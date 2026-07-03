@@ -2,4 +2,3 @@ dn: {{ ds_suffix_effective }}
 changetype: modify
 add: aci
 aci: (targetattr="*")(version 3.0;acl "Anonymous Read";allow (read,search,compare) userdn="ldap:///anyone";)
-

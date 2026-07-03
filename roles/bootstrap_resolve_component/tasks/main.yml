@@ -1,0 +1,94 @@
+---
+# yamllint disable rule:line-length
+# roles/bootstrap_resolve_component/tasks/main.yml
+
+- name: Resolve_component | Snapshot components_env (safe default)
+  ansible.builtin.set_fact:
+    bootstrap_resolve_component_components_env: "{{ components_env | default({}) }}"
+# noqa: var-naming
+
+- name: Resolve_component | Create temp file for rendered registry
+  ansible.builtin.tempfile:
+    state: file
+    suffix: "-components_defaults.yml"
+  register: bootstrap_resolve_component_registry_tmp
+
+- name: Resolve_component | Render registry file (Jinja evaluated)
+  ansible.builtin.template:
+    src: "{{ role_path }}/files/components_defaults.yml"
+    dest: "{{ bootstrap_resolve_component_registry_tmp.path }}"
+    mode: "0644"
+  changed_when: false
+
+- name: Resolve_component | Load rendered registry YAML
+  ansible.builtin.include_vars:
+    file: "{{ bootstrap_resolve_component_registry_tmp.path }}"
+    name: bootstrap_resolve_component_registry
+
+- name: Resolve_component | Cleanup temp registry file
+  ansible.builtin.file:
+    path: "{{ bootstrap_resolve_component_registry_tmp.path }}"
+    state: absent
+  changed_when: false
+
+- name: Resolve_component | Assert component exists in registry
+  ansible.builtin.assert:
+    that:
+      - component is defined
+      - bootstrap_resolve_component_registry.components_defaults is defined
+      - component in bootstrap_resolve_component_registry.components_defaults
+    fail_msg: >-
+      Component '{{ component | default("UNSET") }}' not found in components_defaults.
+      Available: {{ (bootstrap_resolve_component_registry.components_defaults | default({})).keys() | list }}
+
+- name: Resolve_component | Merge defaults + env + override (framework precedence)
+  ansible.builtin.set_fact:
+    bootstrap_resolve_component_selected: >-
+      {{
+        bootstrap_resolve_component_registry.components_defaults[component]
+        | combine((bootstrap_resolve_component_components_env | default({})).get(component, {}), recursive=True)
+        | combine((components_override | default({})).get(component, {}), recursive=True)
+      }}
+# noqa: var-naming
+
+- name: Resolve_component | DEBUG dump merge for component (toggle with -e bootstrap_resolve_component_debug=true)
+  ansible.builtin.debug:
+    msg:
+      component: "{{ component }}"
+      env_for_component: "{{ (bootstrap_resolve_component_components_env | default({})).get(component, {}) }}"
+      override_for_component: "{{ (components_override | default({})).get(component, {}) }}"
+      registry_for_component: "{{ bootstrap_resolve_component_registry.components_defaults[component] }}"
+      selected: "{{ bootstrap_resolve_component_selected }}"
+  when: (bootstrap_resolve_component_debug | default(false)) | bool
+
+# Export EVERYTHING (scalars/lists/dicts), but NEVER clobber higher precedence vars
+- name: Resolve_component | Export resolved vars (top-level, don't clobber higher precedence vars)
+  ansible.builtin.set_fact:
+    "{{ item.key }}": "{{ item.value }}"
+  loop: "{{ bootstrap_resolve_component_selected | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: vars[item.key] is not defined
+# noqa: var-naming
+
+# Apply aliases safely:
+# - Only set target if it's missing or empty string
+# - Only if source exists and is non-empty
+- name: Resolve_component | Load alias map
+  ansible.builtin.set_fact:
+    bootstrap_resolve_component_aliases: "{{ bootstrap_resolve_component_registry.components_aliases | default({}) }}"
+  when: bootstrap_resolve_component_registry.components_aliases is defined
+# noqa: var-naming
+
+- name: Resolve_component | Apply aliases (only if target missing/empty)
+  ansible.builtin.set_fact:
+    "{{ item.key }}": "{{ vars[item.value] }}"
+  loop: "{{ (bootstrap_resolve_component_aliases | default({})) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }} <- {{ item.value }}"
+  when:
+    - item.value in vars
+    - vars[item.value] is not none
+    - (vars[item.value] | string | length) > 0
+    - (vars[item.key] is not defined) or ((vars[item.key] | string) == "")
+# noqa: var-naming

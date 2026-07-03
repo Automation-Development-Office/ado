@@ -1,0 +1,57 @@
+---
+# yamllint disable rule:line-length
+- name: AAP configs | Load controller config directory
+  ansible.builtin.include_vars:
+    dir: "{{ playbook_dir }}/configs/controller"
+    extensions:
+      - yml
+      - yaml
+  when: (playbook_dir ~ '/configs/controller') is directory
+
+- name: AAP configs | Normalize controller projects var  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_projects: >-
+      {{
+        controller_bootstrap_controller_projects
+        | default(bootstrap_controller_controller_projects | default(controller_projects | default([]), true), true)
+      }}
+
+- name: AAP configs | Reset loaded job templates  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_templates: []
+
+- name: AAP configs | Load generated job template configs  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_templates: >-
+      {{
+        controller_templates
+        +
+        (
+          (lookup('ansible.builtin.file', item) | from_yaml).controller_templates
+          | default([])
+        )
+      }}
+  loop: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/configs/job_templates/*.jt.yml') }}"
+
+- name: AAP configs | Reset loaded workflow job templates  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_workflow_job_templates: []
+
+- name: AAP configs | Load generated workflow configs  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_workflow_job_templates: >-
+      {{
+        controller_workflow_job_templates
+        +
+        (
+          (lookup('ansible.builtin.file', item) | from_yaml).controller_workflow_job_templates
+          | default([])
+        )
+      }}
+  loop: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/configs/workflows/*.wf.yml') }}"
+
+- name: AAP configs | Show loaded config counts
+  ansible.builtin.debug:
+    msg:
+      - "controller_templates={{ controller_templates | length }}"
+      - "controller_workflow_job_templates={{ controller_workflow_job_templates | length }}"

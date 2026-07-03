@@ -2,8 +2,8 @@ template_stories_phase3:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Validation, Adoption, and Application Migration - Phase 3"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Validate {{ product }} functionality using real workloads  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate {{ product }} functionality using real workloads
       *So that:* the platform is production-ready and trusted by application and platform teams.
 
       Notes / Context:
@@ -29,8 +29,8 @@ template_stories_phase3:
     subtasks:
       - summary: "Deploy pilot workloads via {{ product }}"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Deploy pilot workloads using {{ product }}  
+          *As a:* "{{ role_name }}"
+          *I want to:* Deploy pilot workloads using {{ product }}
           *So that:* real application scenarios can be used to validate the platform.
 
           Notes / Context:
@@ -43,8 +43,8 @@ template_stories_phase3:
 
       - summary: "Validate policy enforcement"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Validate policy enforcement using {{ product }}  
+          *As a:* "{{ role_name }}"
+          *I want to:* Validate policy enforcement using {{ product }}
           *So that:* governance controls behave as expected across managed clusters.
 
           Notes / Context:
@@ -57,8 +57,8 @@ template_stories_phase3:
 
       - summary: "Test drift detection and remediation"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Test drift detection and remediation capabilities  
+          *As a:* "{{ role_name }}"
+          *I want to:* Test drift detection and remediation capabilities
           *So that:* configuration drift is detected and corrected automatically.
 
           Notes / Context:
@@ -71,8 +71,8 @@ template_stories_phase3:
 
       - summary: "Verify monitoring and alerts"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Verify monitoring and alerting for managed clusters and workloads  
+          *As a:* "{{ role_name }}"
+          *I want to:* Verify monitoring and alerting for managed clusters and workloads
           *So that:* operational visibility is available and actionable.
 
           Notes / Context:
@@ -85,8 +85,8 @@ template_stories_phase3:
 
       - summary: "Onboard application teams and validate workflows"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Onboard application teams and validate their workflows  
+          *As a:* "{{ role_name }}"
+          *I want to:* Onboard application teams and validate their workflows
           *So that:* teams can successfully use {{ product }} in day-to-day operations.
 
           Notes / Context:
@@ -99,8 +99,8 @@ template_stories_phase3:
 
       - summary: "Collect metrics and stakeholder feedback"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Collect metrics and stakeholder feedback  
+          *As a:* "{{ role_name }}"
+          *I want to:* Collect metrics and stakeholder feedback
           *So that:* readiness, gaps, and improvement areas are clearly identified.
 
           Notes / Context:

@@ -1,0 +1,8 @@
+---
+- name: ADO | Install IDM server
+  hosts: ipaserver
+  gather_facts: true
+  tasks:
+  - name: ADO | Install IDM server
+    ansible.builtin.include_role:
+      name: ADO | redhat.rhel_idm.ipaserver

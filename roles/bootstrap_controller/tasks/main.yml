@@ -1,0 +1,80 @@
+---
+- name: Normalize bootstrap flags
+  ansible.builtin.set_fact:
+    bootstrap_controller_generate_env_vars: >-
+      {{ generate_env_vars | default(false) | bool }}
+    bootstrap_controller_generate_playbooks: >-
+      {{ generate_playbooks | default(false) | bool }}
+    bootstrap_controller_generate_aap_configs: >-
+      {{ generate_aap_configs | default(false) | bool }}
+    bootstrap_controller_apply_aap_configs: >-
+      {{ apply_aap_configs | default(false) | bool }}
+
+- name: Generate env var files
+  ansible.builtin.include_role:
+    name: infra.ado.bootstrap_generate_env_vars
+  when: bootstrap_controller_generate_env_vars | default(false) | bool
+
+- name: Load generated AAP config vars before repo generation
+  ansible.builtin.include_vars:
+    file: "group_vars/all/{{ env }}/aap_config_vars.yml"
+  when:
+    - bootstrap_controller_generate_playbooks | default(false) | bool
+    - env is defined
+
+- name: Load generated AAP vault vars before repo generation
+  ansible.builtin.include_vars:
+    file: "group_vars/all/{{ env }}/aap_vault.yml"
+  when:
+    - bootstrap_controller_generate_playbooks | default(false) | bool
+    - env is defined
+
+- name: Generate playbook repo
+  ansible.builtin.include_role:
+    name: infra.ado.bootstrap_generate_playbook_repo
+  vars:
+    bootstrap_generate_playbook_repo_selected_components: >-
+      {{ bootstrap_generate_env_vars_components | default(['openshift']) }}
+  when: bootstrap_controller_generate_playbooks | default(false) | bool
+
+- name: Push generated playbooks before AAP config apply
+  ansible.builtin.shell: |
+    set -euo pipefail
+    git add -A
+    git diff --cached --quiet || \
+      git commit -m "Generate bootstrap playbook repo"
+    git push origin main
+  args:
+    chdir: "{{ playbook_dir }}"
+    executable: /bin/bash
+  changed_when: true
+  when:
+    - bootstrap_controller_generate_playbooks | default(false) | bool
+    - bootstrap_controller_apply_aap_configs | default(false) | bool
+
+- name: Generate AAP config files
+  ansible.builtin.include_tasks: generate_aap_configs.yml
+  vars:
+    bootstrap_controller_selected_components: >-
+      {{ bootstrap_generate_env_vars_components | default(['openshift']) }}
+  when: bootstrap_controller_generate_aap_configs | default(false) | bool
+
+- name: Push generated repo after AAP config generation
+  ansible.builtin.shell: |
+    set -euo pipefail
+    git add -A
+    git diff --cached --quiet || \
+      git commit -m "Generate bootstrap playbook repo"
+    git push origin main
+  args:
+    chdir: "{{ playbook_dir }}"
+    executable: /bin/bash
+  changed_when: true
+  when:
+    - bootstrap_controller_generate_aap_configs | default(false) | bool
+    - bootstrap_generate_playbook_repo_git_mode
+      | default(generate_playbook_repo_git_mode | default('manual')) == 'push'
+
+- name: Apply AAP controller objects
+  ansible.builtin.include_tasks: aap.yml
+  when: bootstrap_controller_apply_aap_configs | default(false) | bool

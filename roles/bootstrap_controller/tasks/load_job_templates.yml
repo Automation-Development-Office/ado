@@ -1,0 +1,35 @@
+---
+- name: AAP configs | Reset loaded job templates
+  ansible.builtin.set_fact:
+    bootstrap_controller_loaded_templates: []
+
+- name: AAP configs | Load generated job template configs
+  ansible.builtin.set_fact:
+    bootstrap_controller_loaded_templates: >-
+      {{
+        bootstrap_controller_loaded_templates
+        +
+        (
+          (
+            lookup('ansible.builtin.file', item) | from_yaml
+          ).controller_templates
+          | default([])
+        )
+      }}
+  loop: >-
+    {{ query(
+      'ansible.builtin.fileglob',
+      playbook_dir ~ '/configs/job_templates/*.jt.yml'
+    ) }}
+
+- name: AAP configs | Mirror loaded templates for controller roles
+  ansible.builtin.set_fact:
+    controller_templates: "{{ bootstrap_controller_loaded_templates }}"
+    # noqa: var-naming[no-role-prefix]
+
+- name: AAP configs | Show loaded job template count
+  ansible.builtin.debug:
+    msg: >-
+      Loaded controller_templates count={{
+        controller_templates | default([]) | length
+      }}

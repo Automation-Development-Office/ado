@@ -2,8 +2,8 @@ template_stories_phase4:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations Handoff and Long-Term Support - Phase 4"
     story_description: |
-      *As a:* "{{ role_name }}"   
-      *I want to:* Operationalize {{ product }} for long-term support  
+      *As a:* "{{ role_name }}"
+      *I want to:* Operationalize {{ product }} for long-term support
       *So that:* the platform is stable, maintainable, and auditable.
 
       Notes / Context:
@@ -29,8 +29,8 @@ template_stories_phase4:
     subtasks:
       - summary: "Create operational runbooks"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Create operational runbooks for {{ product }}  
+          *As a:* "{{ role_name }}"
+          *I want to:* Create operational runbooks for {{ product }}
           *So that:* day-to-day operations, troubleshooting, and recovery are well documented.
 
           Notes / Context:
@@ -43,8 +43,8 @@ template_stories_phase4:
 
       - summary: "Define support and escalation model"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Define the support and escalation model for {{ product }}  
+          *As a:* "{{ role_name }}"
+          *I want to:* Define the support and escalation model for {{ product }}
           *So that:* ownership, responsibilities, and escalation paths are clearly understood.
 
           Notes / Context:
@@ -57,8 +57,8 @@ template_stories_phase4:
 
       - summary: "Validate backup and recovery"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Validate backup and recovery procedures  
+          *As a:* "{{ role_name }}"
+          *I want to:* Validate backup and recovery procedures
           *So that:* {{ product }} can be recovered in the event of failure.
 
           Notes / Context:
@@ -71,8 +71,8 @@ template_stories_phase4:
 
       - summary: "Document upgrade procedures"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Document upgrade procedures for {{ product }}  
+          *As a:* "{{ role_name }}"
+          *I want to:* Document upgrade procedures for {{ product }}
           *So that:* upgrades can be performed safely and repeatably.
 
           Notes / Context:
@@ -85,8 +85,8 @@ template_stories_phase4:
 
       - summary: "Customer and TAMS training conducted"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Conduct training for customer teams and TAMS  
+          *As a:* "{{ role_name }}"
+          *I want to:* Conduct training for customer teams and TAMS
           *So that:* teams are prepared to operate and support {{ product }}.
 
           Notes / Context:
@@ -99,8 +99,8 @@ template_stories_phase4:
 
       - summary: "Automation gaps identified and backlog created"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Identify automation gaps and create backlog items  
+          *As a:* "{{ role_name }}"
+          *I want to:* Identify automation gaps and create backlog items
           *So that:* future automation improvements are tracked and prioritized.
 
           Notes / Context:
@@ -113,8 +113,8 @@ template_stories_phase4:
 
       - summary: "Finalize handoff documentation"
         description: |
-          *As a:* "{{ role_name }}"  
-          *I want to:* Finalize handoff documentation for {{ product }}  
+          *As a:* "{{ role_name }}"
+          *I want to:* Finalize handoff documentation for {{ product }}
           *So that:* operational ownership is clearly transferred.
 
           Notes / Context:

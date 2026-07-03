@@ -1,0 +1,7 @@
+---
+{% if generate_env_vars_use_aap | bool %}
+vault_controller_hostname: "{{ generate_env_vars_prompt_aap_hostname.user_input }}"
+vault_controller_oauthtoken: "{{ generate_env_vars_prompt_aap_token.user_input }}"
+vault_controller_username: "{{ generate_env_vars_prompt_aap_username.user_input | default('admin', true) }}"
+vault_controller_password: "{{ generate_env_vars_prompt_aap_password.user_input }}"
+{% endif %}

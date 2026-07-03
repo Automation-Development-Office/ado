@@ -1,0 +1,28 @@
+---
+- name: ADO | Deploy and Configure Grafana and Grafana dashboards
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: grafana
+  vars_files:
+  - group_vars/all/{{ env }}/infra_config_vars.yml
+  - group_vars/all/{{ env }}/vault_{{ component }}.yml
+  - group_vars/all/{{ env }}/vars_{{ component }}.yml
+  environment:
+    K8S_AUTH_HOST: '{{ host }}'
+    K8S_AUTH_API_KEY: '{{ token }}'
+    K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'',''no'') }}'
+  pre_tasks:
+  - name: ADO | Resolve vars for component from framework defaults + env overrides
+    ansible.builtin.include_role:
+      name: ADO | bootstrap_resolve_component
+  - name: ADO | Fetch Keycloak secret for Grafana client (sets grafana_oidc_client_secret)
+    ansible.builtin.include_role:
+      name: ADO | rhbk_get_client_secrets
+    vars:
+      rhbk_get_client_secrets_client_key: grafana_client
+  roles:
+  - role: infra.ado.ocp_wait_pods
+  - role: infra.ado.grafana_create_datasource
+  - role: infra.ado.grafana_manage_folders
+  - role: infra.ado.grafana_upload_dashboards

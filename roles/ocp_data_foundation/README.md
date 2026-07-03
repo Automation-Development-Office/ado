@@ -39,8 +39,8 @@
     name_space: openshift-storage
     all_namespaces_install: false
     state: present
-    # operator OperatorGroup
-    operatorgroup: openshift-storage
+    # operator openshift_tools_operator_groups
+    openshift_tools_operator_groups: openshift-storage
     # subscript_operator
     operator_name: odf-operator
     operator_channel: stable-4.19
@@ -49,7 +49,7 @@
 
   roles:
     - role: ado.openshfit.namespace
-    - role: ado.openshift.operatorgroup
+    - role: ado.openshift.openshift_tools_operator_groups
     - role: ado.openshift.subscription_operator
     - role: ado.openshift.wait_for_pods_running
 ```

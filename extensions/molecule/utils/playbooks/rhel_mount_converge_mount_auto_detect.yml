@@ -5,7 +5,7 @@
   become: true
 
   vars:
-  
+
 
   tasks:
     - name: Include rhel_mount role for auto-detect mount # noqa: var-naming[no-role-prefix]

@@ -1,0 +1,40 @@
+---
+# User-facing compatibility variables
+generate_env_vars_force: false  # noqa: var-naming[no-role-prefix]
+generate_env_vars_force_overwrite: false  # noqa: var-naming[no-role-prefix]
+generate_env_vars_base_dir: >-  # noqa: var-naming[no-role-prefix]
+  {{ playbook_dir | default('.') }}/group_vars/all
+generate_env_vars_create_dirs: true  # noqa: var-naming[no-role-prefix]
+generate_env_vars_encrypt_vault_files: true  # noqa: var-naming[no-role-prefix]
+
+generate_env_vars_components:  # noqa: var-naming[no-role-prefix]
+  - aap
+  - aap24
+  - 389ds
+  - acs
+  - cert_manager
+  - eck
+  - gitlab
+  - grafana
+  - htpasswd
+  - kafka
+  - keycloak
+  - ldap_auth_openshift
+  - oadp
+  - pega
+  - quay
+  - rhbk
+
+# Internal role-prefixed variables used by tasks
+bootstrap_generate_env_vars_force: >-
+  {{
+    generate_env_vars_force_overwrite
+    | default(generate_env_vars_force)
+    | bool
+  }}
+bootstrap_generate_env_vars_base_dir: "{{ generate_env_vars_base_dir }}"
+bootstrap_generate_env_vars_create_dirs: >-
+  "{{ generate_env_vars_create_dirs | bool }}"
+bootstrap_generate_env_vars_encrypt_vault_files: >-
+  "{{ generate_env_vars_encrypt_vault_files | bool }}"
+bootstrap_generate_env_vars_components: "{{ generate_env_vars_components }}"

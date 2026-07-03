@@ -1,0 +1,10 @@
+---
+- name: Validate controller_labels is defined
+  ansible.builtin.assert:
+    that:
+      - controller_labels is defined
+    fail_msg: "controller_labels is not defined"
+
+- name: Apply labels
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_labels

@@ -1,0 +1,32 @@
+---
+controller_workflow_job_templates:
+  - name: ADO | Patching Workflow
+    description: Bootstrap workflow - register to Satellite, patch RHEL host, register to IDM
+    organization: "{{ bootstrap_controller_organization }}"
+    inventory: "{{ bootstrap_controller_inventory_name }}"
+    state: present
+    related:
+      labels:
+        - ADO | bootstrap
+        - ADO | patching
+    workflow_nodes:
+      - identifier: Register to Satellite
+        unified_job_template:
+          name: ADO | Register Host to Satellite
+          type: job_template
+        related:
+          success_nodes:
+            - identifier: Patch RHEL Host
+
+      - identifier: Patch RHEL Host
+        unified_job_template:
+          name: ADO | RHEL Patch Host
+          type: job_template
+        related:
+          success_nodes:
+            - identifier: Manage IDM Client
+
+      - identifier: Manage IDM Client
+        unified_job_template:
+          name: ADO | IdM Manage Client
+          type: job_template

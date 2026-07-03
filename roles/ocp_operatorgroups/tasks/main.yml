@@ -1,8 +1,8 @@
 ---
-- name: Create operatorgroup
-  ansible.builtin.import_tasks: create_operatorgroup.yml
+- name: Create openshift_tools_operator_groups
+  ansible.builtin.import_tasks: create_openshift_tools_operator_groups.yml
   when: state == "present"
 
-- name: Deleting operatorgroup
-  ansible.builtin.import_tasks: delete_operatorgroup.yml
+- name: Deleting openshift_tools_operator_groups
+  ansible.builtin.import_tasks: delete_openshift_tools_operator_groups.yml
   when: state == "absent"

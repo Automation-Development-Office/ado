@@ -1,0 +1,31 @@
+---
+# AAP version is provided explicitly by the user (required)
+
+- name: Require aap_version user-supplied
+  ansible.builtin.assert:
+    that:
+      - aap_version is defined
+      - (aap_version | string) | length > 0
+      - (aap_version | int) in [24, 25, 26]
+    fail_msg: >-
+      aap_version is required and must be one of: 24, 25, 26.
+      Example: ansible-playbook ... -e aap_version=24
+      Or set it in group_vars/all/vars_*.yml: aap_version: 24
+
+- name: Set routing flags from aap_version
+  ansible.builtin.set_fact:
+    bootstrap_controller_is_aap_24: "{{ (aap_version | int) == 24 }}"
+    bootstrap_controller_use_dispatch: "{{ (aap_version | int) >= 25 }}"
+
+- name: Show routing decision
+  ansible.builtin.debug:
+    msg:
+      - "aap_version={{ aap_version }}"
+      - >-
+        bootstrap_controller_is_aap_24={{
+          bootstrap_controller_is_aap_24
+        }}
+      - >-
+        bootstrap_controller_use_dispatch={{
+          bootstrap_controller_use_dispatch
+        }}

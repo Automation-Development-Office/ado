@@ -1,0 +1,35 @@
+---
+dependency:
+  name: shell
+  command: echo "Skipping galaxy dependency install for local generate-only bootstrap test"
+
+driver:
+  name: default
+
+platforms:
+  - name: localhost
+
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      all:
+        hosts:
+          localhost:
+            ansible_connection: local
+  playbooks:
+    cleanup: cleanup.yml
+    converge: converge.yml
+    verify: verify.yml
+
+verifier:
+  name: ansible
+
+scenario:
+  test_sequence:
+    - dependency
+    - cleanup
+    - syntax
+    - converge
+    - verify
+    - cleanup

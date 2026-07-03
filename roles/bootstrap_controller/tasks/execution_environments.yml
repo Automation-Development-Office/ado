@@ -1,0 +1,11 @@
+---
+- name: Validate controller_execution_environments is defined
+  ansible.builtin.assert:
+    that:
+      - controller_execution_environments is defined
+      - controller_execution_environments | length > 0
+    fail_msg: "controller_execution_environments is not defined or empty"
+
+- name: Apply execution environments
+  ansible.builtin.include_role:
+    name: ansible.controller.controller_execution_environments

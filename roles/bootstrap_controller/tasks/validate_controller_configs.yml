@@ -1,0 +1,24 @@
+---
+- name: Validate organizations defined
+  ansible.builtin.assert:
+    that:
+      - bootstrap_controller_controller_organizations | length > 0
+    fail_msg: |
+      No controller organizations defined.
+
+      Define:
+      bootstrap_controller_controller_organizations
+
+      in vars_{{ env }}.yml
+
+- name: Validate projects defined
+  ansible.builtin.assert:
+    that:
+      - bootstrap_controller_controller_projects | length > 0
+    fail_msg: |
+      No controller projects defined.
+
+      Define:
+      bootstrap_controller_controller_projects
+
+      in vars_{{ env }}.yml

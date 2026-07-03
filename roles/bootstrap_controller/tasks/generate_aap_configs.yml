@@ -1,0 +1,247 @@
+---
+- name: AAP configs | Ensure config directories exist
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/configs/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - controller
+    - job_templates
+    - workflows
+
+- name: AAP configs | Expand patching component dependencies
+  ansible.builtin.set_fact:
+    bootstrap_controller_effective_components: >-
+      {{
+        (
+          bootstrap_controller_selected_components
+          | default(['openshift'])
+        )
+        +
+        (
+          ['satellite']
+          if 'patching' in
+             (
+               bootstrap_controller_selected_components
+               | default(['openshift'])
+             )
+          else []
+        )
+        | unique
+        | list
+      }}
+
+- name: AAP configs | Render controller config templates
+  ansible.builtin.template:
+    src: "controller_config.yml.j2"
+    dest: "{{ playbook_dir }}/configs/{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - var_name: bootstrap_controller_controller_organizations
+      dest: controller/organizations.yml
+
+    - var_name: bootstrap_controller_controller_credentials
+      dest: controller/credentials.yml
+
+    - var_name: controller_bootstrap_controller_projects
+      dest: controller/projects.yml
+
+    - var_name: bootstrap_controller_controller_inventories
+      dest: controller/inventories.yml
+
+    - var_name: bootstrap_controller_controller_execution_environments
+      dest: controller/execution_environments.yml
+
+    - var_name: bootstrap_controller_controller_hosts
+      dest: controller/hosts.yml
+
+    - var_name: bootstrap_controller_controller_labels
+      dest: controller/labels.yml
+
+    - var_name: bootstrap_controller_workflow_job_templates
+      dest: workflows/bootstrap_workflows.yml
+
+- name: AAP configs | Define job template component map
+  ansible.builtin.set_fact:
+    bootstrap_controller_job_template_component_map:
+      openshift:
+        - cert-manager-bootstrap.yml
+        - create-admin-htpasswd-user-bootstrap.yml
+        - deploy-aap-24-bootstrap.yml
+        - deploy-aap-26-bootstrap.yml
+        - deploy-acs-bootstrap.yml
+        - deploy-awspca-cert-manager-bootstrap.yml
+        - deploy-devspaces-bootstrap.yml
+        - deploy-discover-routes-and-add-alternative-route-bootstrap.yml
+        - deploy-discover-routes-and-print-bootstrap.yml
+        - deploy-eck-bootstrap.yml
+        - deploy-gitlab-bootstrap.yml
+        - deploy-gitops-bootstrap.yml
+        - deploy-kafka-bootstrap.yml
+        - deploy-oadp-bootstrap.yml
+        - deploy-pega-bootstrap.yml
+        - deploy-quay-bootstrap.yml
+        - update-pull-secret-bootstrap.yml
+
+      grafana:
+        - deploy-grafana-bootstrap.yml
+        - deploy-grafana-dashboards-bootstrap.yml
+        - deploy-grafana-route-bootstrap.yml
+
+      keycloak:
+        - deploy-rhbk-bootstrap.yml
+        - deploy-rhbk-client-bootstrap.yml
+        - deploy-rhbk-realm-bootstrap.yml
+        - configure-oauth-rhbk-in-openshift-bootstrap.yml
+        - configure-ldap-in-openshift-bootstrap.yml
+        - rhbk-389ds-federation-bootstrap.yml
+        - rhbk-entraid-bootstrap.yml
+        - deploy-389ds-bootstrap.yml
+        - search-389ds-bootstrap.yml
+        - ldap-modify-bootstrap.yml
+        - search-user-bootstrap.yml
+
+      jira:
+        - jira-stories-bugfix-bootstrap.yml
+        - jira-stories-collections-delivery-bootstrap.yml
+        - jira-stories-day2-bootstrap.yml
+        - jira-stories-feature-request-bootstrap.yml
+        - jira-stories-mfa-delivery-bootstrap.yml
+        - jira-stories-product-delivery-bootstrap.yml
+        - jira-stories-spike-bootstrap.yml
+
+      satellite: []
+
+      patching: []
+
+- name: AAP configs | Build selected job template file list
+  ansible.builtin.set_fact:
+    bootstrap_controller_job_template_files_selected: >-
+      {{
+        bootstrap_controller_job_template_component_map
+        | dict2items
+        | selectattr('key', 'in', bootstrap_controller_effective_components)
+        | map(attribute='value')
+        | flatten
+        | unique
+        | list
+      }}
+
+# yamllint disable rule:line-length
+- name: AAP configs | Copy job templates for generated playbooks only
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    from pathlib import Path
+
+    src_dir = Path("{{ role_path }}/files/job_templates")
+    dest_dir = Path("{{ playbook_dir }}/configs/job_templates")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    organization = "{{ bootstrap_controller_organization | default(controller_bootstrap_organization, true) }}"
+    inventory = "{{ bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true) }}"
+    project = "{{ bootstrap_controller_project_name | default(controller_bootstrap_project_name, true) }}"
+    execution_environment = "{{ bootstrap_controller_execution_environment_name | default(controller_bootstrap_execution_environment_name, true) }}"
+    credential = "{{ bootstrap_controller_creds | default(controller_bootstrap_creds, true) }}"
+    state_choices_yaml = "present\nabsent"
+    default_state = "{{ bootstrap_controller_default_state | default('present', true) }}"
+    environment_choices_yaml = "{{ env | default('prod') }}"
+    default_environment = "{{ bootstrap_controller_default_environment | default(env | default('prod'), true) }}"
+
+    selected = {{ bootstrap_controller_selected_job_template_files | default([]) | to_json }}
+    if not selected:
+        selected = [p.name for p in sorted(src_dir.glob("*.jt.yml"))]
+
+    lb = "{" * 2
+    rb = "}" * 2
+
+    replacements = {
+        f"{lb} bootstrap_controller_organization {rb}": organization,
+        f"{lb} controller_bootstrap_organization {rb}": organization,
+        f"{lb} bootstrap_controller_inventory_name {rb}": inventory,
+        f"{lb} controller_bootstrap_inventory_name {rb}": inventory,
+        f"{lb} bootstrap_controller_project_name {rb}": project,
+        f"{lb} controller_bootstrap_project_name {rb}": project,
+        f"{lb} bootstrap_controller_execution_environment_name {rb}": execution_environment,
+        f"{lb} controller_bootstrap_execution_environment_name {rb}": execution_environment,
+        f"{lb} bootstrap_controller_creds {rb}": credential,
+        f"{lb} controller_bootstrap_creds {rb}": credential,
+        f"{lb} bootstrap_controller_state_choices {rb}": state_choices_yaml,
+        f"{lb} controller_bootstrap_state_choices {rb}": state_choices_yaml,
+        f"{lb} bootstrap_controller_default_state {rb}": default_state,
+        f"{lb} controller_bootstrap_default_state {rb}": default_state,
+        f"{lb} bootstrap_controller_environment_choices {rb}": environment_choices_yaml,
+        f"{lb} controller_bootstrap_environment_choices {rb}": environment_choices_yaml,
+        f"{lb} bootstrap_controller_default_environment {rb}": default_environment,
+        f"{lb} controller_bootstrap_default_environment {rb}": default_environment,
+    }
+
+    quoted_replacements = {}
+    for old, new in replacements.items():
+        quoted_replacements["'" + old + "'"] = new
+        quoted_replacements['"' + old + '"'] = new
+    replacements.update(quoted_replacements)
+
+    replacements[f"{lb} bootstrap_controller_state_choices {rb}"] = state_choices_yaml
+    replacements[f"{lb} controller_bootstrap_state_choices {rb}"] = state_choices_yaml
+    replacements[f"'{lb} bootstrap_controller_state_choices {rb}'"] = f'"{state_choices_yaml}"'
+    replacements[f"'{lb} controller_bootstrap_state_choices {rb}'"] = f'"{state_choices_yaml}"'
+
+    replacements[f"{lb} bootstrap_controller_default_state {rb}"] = default_state
+    replacements[f"{lb} controller_bootstrap_default_state {rb}"] = default_state
+    replacements[f"'{lb} bootstrap_controller_default_state {rb}'"] = default_state
+    replacements[f"'{lb} controller_bootstrap_default_state {rb}'"] = default_state
+
+    replacements[f"{lb} bootstrap_controller_environment_choices {rb}"] = environment_choices_yaml
+    replacements[f"{lb} controller_bootstrap_environment_choices {rb}"] = environment_choices_yaml
+    replacements[f"'{lb} bootstrap_controller_environment_choices {rb}'"] = f'"{environment_choices_yaml}"'
+    replacements[f"'{lb} controller_bootstrap_environment_choices {rb}'"] = f'"{environment_choices_yaml}"'
+
+    replacements[f"{lb} bootstrap_controller_default_environment {rb}"] = default_environment
+    replacements[f"{lb} controller_bootstrap_default_environment {rb}"] = default_environment
+    replacements[f"'{lb} bootstrap_controller_default_environment {rb}'"] = default_environment
+    replacements[f"'{lb} controller_bootstrap_default_environment {rb}'"] = default_environment
+
+    copied = []
+    for name in selected:
+        src = src_dir / name
+        if not src.exists():
+            continue
+
+        text = src.read_text()
+
+        for old, new in replacements.items():
+            if old:
+                text = text.replace(old, new)
+
+        text = text.replace("- name: bootstrap", "- name: ado")
+
+        (dest_dir / name).write_text(text)
+        copied.append(name)
+
+    print("Copied job templates:", len(copied))
+    PYCODE
+  args:
+    executable: /bin/bash
+  changed_when: true
+# yamllint enable rule:line-length
+
+- name: >-
+    AAP configs | Ensure workflow config directory exists
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/configs/workflows"
+    state: directory
+    mode: "0755"
+
+- name: AAP configs | Copy patching workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-patching-workflow-bootstrap.wf.yml
+    dest: >-
+      "{{ playbook_dir }}/configs/workflows/
+      ado-patching-workflow-bootstrap.wf.yml
+    mode: "0644"
+  when:
+    - >-
+        bootstrap_generate_env_vars_component
+        | default(component | default('all'))
+        in ['all', 'rhel', 'patching']

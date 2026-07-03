@@ -1,6 +1,6 @@
-# Role: ado.openshift.operatorgroup
+# Role: ado.openshift.openshift_tools_operator_groups
 
-Create, reconcile, or remove an **OperatorGroup** in OpenShift.
+Create, reconcile, or remove an **openshift_tools_operator_groups** in OpenShift.
 
 - Supports **Single Namespace** mode (default) and **All Namespaces** mode.
 - Idempotent: safely skips/updates when objects already match the desired state.
@@ -22,7 +22,7 @@ Create, reconcile, or remove an **OperatorGroup** in OpenShift.
 |---------|-------------|
 | `name_space` | Target application namespace (required for single-namespace mode). |
 | `all_namespaces_install` | `false` = Single Namespace (default); `true` = All Namespaces (installs in `openshift-operators`). |
-| `operatorgroup` / `operatorgroup_name` | OperatorGroup name. Defaults to `global-operators` (all-ns) or `<name_space>-operatorgroup` (single-ns). |
+| `openshift_tools_operator_groups` / `openshift_tools_operator_groups_name` | openshift_tools_operator_groups name. Defaults to `global-operators` (all-ns) or `<name_space>-openshift_tools_operator_groups` (single-ns). |
 | `state` | `present` (default) or `absent`. |
 | `validate_certs` | TLS verification for API calls (`true` with a trusted CA; set `false` for lab/self-signed). |
 
@@ -40,24 +40,24 @@ Create, reconcile, or remove an **OperatorGroup** in OpenShift.
 
 ## Examples
 
-### Single-namespace OperatorGroup (most common)
+### Single-namespace openshift_tools_operator_groups (most common)
 ```yaml
 - hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift.operatorgroup
+    - role: ado.openshift.openshift_tools_operator_groups
       vars:
         name_space: my-app
-        operatorgroup: my-app-operatorgroup
+        openshift_tools_operator_groups: my-app-openshift_tools_operator_groups
         validate_certs: true
 ```
 
-### Remove the OperatorGroup (namespace may or may not still exist)
+### Remove the openshift_tools_operator_groups (namespace may or may not still exist)
 ```yaml
 - hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift.operatorgroup
+    - role: ado.openshift.openshift_tools_operator_groups
       vars:
         state: absent
         name_space: my-app
@@ -69,7 +69,7 @@ Create, reconcile, or remove an **OperatorGroup** in OpenShift.
 - hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift.operatorgroup
+    - role: ado.openshift.openshift_tools_operator_groups
       vars:
         all_namespaces_install: true
         validate_certs: false
@@ -113,7 +113,7 @@ dependency → lint → syntax → create → converge → idempotence → destr
 
 ```text
 roles/
-└─ operatorgroup/
+└─ openshift_tools_operator_groups/
    ├─ README.md                 # ← this file
    ├─ defaults/
    │  └─ main.yml

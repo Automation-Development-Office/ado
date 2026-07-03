@@ -2,8 +2,8 @@ template_stories_collections_phase2:
 
   - story_summary: "Collections - {{ group }}: Role {{ role_name }} - Phase 2: Integration, Validation, and Adoption"
     story_description: |
-      *As a:* Platform / Automation Engineer  
-      *I want to:* Integrate and validate the role in real automation workflows  
+      *As a:* Platform / Automation Engineer
+      *I want to:* Integrate and validate the role in real automation workflows
       *So that:* it can be reliably consumed by pipelines, playbooks, and AAP.
 
       Notes / Context:
@@ -35,48 +35,48 @@ template_stories_collections_phase2:
     subtasks:
       - summary: "Integrate role into CI pipeline (ansible-lint + Molecule)"
         description: |
-          *As a:* Platform / Automation Engineer  
-          *I want to:* Integrate quality gates into CI  
+          *As a:* Platform / Automation Engineer
+          *I want to:* Integrate quality gates into CI
           *So that:* linting and tests run automatically on every change.
         labels: ["collections", "automation", "{{ jira_stories_section }}"]
         component: "{{ group }}"
 
       - summary: "Validate role in target environments"
         description: |
-          *As a:* Platform / Automation Engineer  
-          *I want to:* Validate the role in target environments  
+          *As a:* Platform / Automation Engineer
+          *I want to:* Validate the role in target environments
           *So that:* behavior matches real clusters and integrations.
         labels: ["collections", "automation", "{{ jira_stories_section }}"]
         component: "{{ group }}"
 
       - summary: "Document required variables, inputs, and dependencies"
         description: |
-          *As a:* Platform / Automation Engineer  
-          *I want to:* Document variables and dependencies clearly  
+          *As a:* Platform / Automation Engineer
+          *I want to:* Document variables and dependencies clearly
           *So that:* consumers know exactly what is required and supported.
         labels: ["collections", "automation", "{{ jira_stories_section }}"]
         component: "{{ group }}"
 
       - summary: "Validate versioning and release alignment"
         description: |
-          *As a:* Platform / Automation Engineer  
-          *I want to:* Validate versioning and release approach  
+          *As a:* Platform / Automation Engineer
+          *I want to:* Validate versioning and release approach
           *So that:* consumers can upgrade safely and predictably.
         labels: ["collections", "automation", "{{ jira_stories_section }}"]
         component: "{{ group }}"
 
       - summary: "Confirm compatibility with AAP execution environments"
         description: |
-          *As a:* Platform / Automation Engineer  
-          *I want to:* Confirm compatibility with AAP execution environments  
+          *As a:* Platform / Automation Engineer
+          *I want to:* Confirm compatibility with AAP execution environments
           *So that:* Controller jobs run reliably and dependencies are satisfied.
         labels: ["collections", "automation", "{{ jira_stories_section }}"]
         component: "{{ group }}"
 
       - summary: "Validate adoption with consumers and incorporate feedback"
         description: |
-          *As a:* Platform / Automation Engineer  
-          *I want to:* Validate role usability with consumers  
+          *As a:* Platform / Automation Engineer
+          *I want to:* Validate role usability with consumers
           *So that:* the interface and documentation are practical and correct.
         labels: ["collections", "automation", "{{ jira_stories_section }}"]
         component: "{{ group }}"

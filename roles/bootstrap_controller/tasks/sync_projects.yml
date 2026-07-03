@@ -1,0 +1,13 @@
+---
+- name: AAP | Sync projects
+  ansible.controller.project_update:
+    controller_host: "{{ controller_hostname }}"
+    controller_username: "{{ controller_username | default(omit) }}"
+    controller_password: "{{ controller_password | default(omit) }}"
+    controller_oauthtoken: >-
+      "{{ controller_oauthtoken | default(aap_oauthtoken | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+    name: "{{ item.name }}"
+    organization: "{{ item.organization }}"
+    wait: true
+  loop: "{{ controller_projects }}"

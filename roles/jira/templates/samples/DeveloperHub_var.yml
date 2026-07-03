@@ -2,8 +2,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Kickoff, Readiness, and Design"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Validate all prerequisites and architectural decisions for Red Hat Developer Hub  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate all prerequisites and architectural decisions for Red Hat Developer Hub
       *So that:* a scalable, secure, and self-service developer experience can be delivered.
 
       Notes / Context:
@@ -39,8 +39,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Deployment and Implementation"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Deploy and configure Red Hat Developer Hub using approved architecture  
+      *As a:* "{{ role_name }}"
+      *I want to:* Deploy and configure Red Hat Developer Hub using approved architecture
       *So that:* developers can self-service safely and consistently.
 
     custom_ac: |
@@ -67,8 +67,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Validation, Adoption, and Platform Enablement"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Validate Developer Hub functionality using real workflows  
+      *As a:* "{{ role_name }}"
+      *I want to:* Validate Developer Hub functionality using real workflows
       *So that:* development teams can confidently adopt the platform.
 
     custom_ac: |
@@ -94,8 +94,8 @@ template_stories:
 
   - story_summary: "{{ product }} - {{ group }} - {{ enviroment }}: Operations, Governance, and Long-Term Support"
     story_description: |
-      *As a:* "{{ role_name }}"  
-      *I want to:* Operationalize Developer Hub for long-term use  
+      *As a:* "{{ role_name }}"
+      *I want to:* Operationalize Developer Hub for long-term use
       *So that:* platform usage remains secure, reliable, and scalable.
 
     custom_ac: |

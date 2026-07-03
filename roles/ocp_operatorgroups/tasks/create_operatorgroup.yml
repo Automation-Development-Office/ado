@@ -1,5 +1,5 @@
 ---
-- name: Derive operator namespace and OperatorGroup name
+- name: Derive operator namespace and openshift_tools_operator_groups name
   ansible.builtin.set_fact:
     # Prefer the standard framework var if present
     ocp_operatorgroups_operator_ns: >-
@@ -11,7 +11,7 @@
       {{ operatorgroup
          | default(ocp_operatorgroups_name)
          | default( (all_namespaces_install | default(false) | bool)
-                    | ternary('global-operators', name_space ~ '-operatorgroup') ) }}
+                    | ternary('global-operators', name_space ~ '-openshift_tools_operator_groups') ) }}
 
 - name: Guard — require name_space when not in AllNamespaces mode
   ansible.builtin.assert:
@@ -20,7 +20,7 @@
     fail_msg: "Variable 'name_space' must be set when all_namespaces_install is false."
 
 # --- Module defaults (TLS + waits) apply to all k8s tasks below ---------------
-- name: Manage OperatorGroup with module defaults
+- name: Manage openshift_tools_operator_groups with module defaults
   module_defaults:
     kubernetes.core.k8s:
       validate_certs: "{{ validate_certs | default(true) | bool }}"
@@ -30,7 +30,7 @@
       validate_certs: "{{ validate_certs | default(true) | bool }}"
   block:
     # ========================== PRESENT =======================================
-    - name: Lookup existing OperatorGroups in operator namespace
+    - name: Lookup existing openshift_tools_operator_groupss in operator namespace
       kubernetes.core.k8s_info:
         api_version: operators.coreos.com/v1
         kind: OperatorGroup
@@ -48,12 +48,12 @@
         - (ocp_operator_groups_og_info.resources | length) > 1
 
     # ---- AllNamespaces mode: create when none exists; reconcile if needed -----
-    - name: Create OperatorGroup (AllNamespaces mode) when none exists
+    - name: Create openshift_tools_operator_groups (AllNamespaces mode) when none exists
       kubernetes.core.k8s:
         state: present
         definition:
           apiVersion: operators.coreos.com/v1
-          kind: OperatorGroup
+          kind: openshift_tools_operator_groups
           metadata:
             name: "{{ ocp_operatorgroups_name }}"
             namespace: "{{ ocp_operatorgroups_operator_ns }}"
@@ -72,7 +72,7 @@
         state: present
         definition:
           apiVersion: operators.coreos.com/v1
-          kind: OperatorGroup
+          kind: openshift_tools_operator_groups
           metadata:
             name: "{{ existing_name }}"
             namespace: "{{ ocp_operatorgroups_operator_ns }}"
@@ -99,12 +99,12 @@
         - (current_tns | length) == 0
 
     # ---- SingleNamespace mode -------------------------------------------------
-    - name: Create OperatorGroup (SingleNamespace mode) when none exists
+    - name: Create openshift_tools_operator_groups (SingleNamespace mode) when none exists
       kubernetes.core.k8s:
         state: present
         definition:
           apiVersion: operators.coreos.com/v1
-          kind: OperatorGroup
+          kind: openshift_tools_operator_groups
           metadata:
             name: "{{ ocp_operatorgroups_name }}"
             namespace: "{{ ocp_operatorgroups_operator_ns }}"
@@ -126,7 +126,7 @@
         state: present
         definition:
           apiVersion: operators.coreos.com/v1
-          kind: OperatorGroup
+          kind: openshift_tools_operator_groups
           metadata:
             name: "{{ existing_name }}"
             namespace: "{{ ocp_operatorgroups_operator_ns }}"
