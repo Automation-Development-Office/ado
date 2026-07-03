@@ -1,0 +1,2 @@
+minor_changes:
+  - satellite_config - Added condition to create 3rd party products and repositories on Satellite only when satellite_products is defined and non-empty.

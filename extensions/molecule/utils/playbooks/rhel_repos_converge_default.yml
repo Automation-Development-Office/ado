@@ -1,0 +1,48 @@
+---
+- name: Converge integration_rhel_repos_default - enable repository via file-edit
+  hosts: all
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Enable test-repo-disabled with file-edit method
+      ansible.builtin.include_role:
+        name: infra.ado.rhel_repos
+      vars:
+        repos_action: "enable"
+        repos_to_enable: "test-repo-disabled"
+        repos_enable_method: "file-edit"
+        rhel_repos_clean_cache: false
+
+- name: Converge integration_rhel_repos_default - disable repository via file-edit
+  hosts: all
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Disable test-repo-enabled with file-edit method
+      ansible.builtin.include_role:
+        name: infra.ado.rhel_repos
+      vars:
+        repos_action: "disable"
+        repos_to_disable: "test-repo-enabled"
+        repos_disable_method: "file-edit"
+        rhel_repos_backup_files: true
+        rhel_repos_clean_cache: false
+
+- name: Converge integration_rhel_repos_default - enable repository via yum_repository
+  hosts: el9
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Enable test-repo-yum with yum_repository method
+      ansible.builtin.include_role:
+        name: infra.ado.rhel_repos
+      vars:
+        repos_action: "enable"
+        repos_to_enable: "test-repo-yum"
+        repos_enable_method: "yum_repository"
+        repos_baseurl:
+          test-repo-yum: "https://example.com/test-repo-yum/"
+        rhel_repos_clean_cache: false

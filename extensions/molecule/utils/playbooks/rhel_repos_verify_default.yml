@@ -1,0 +1,95 @@
+---
+- name: Verify integration_rhel_repos_default scenario - README format
+  hosts: localhost
+  gather_facts: false
+  become: false
+  connection: local
+
+  vars:
+    repo_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/../.."
+    rhel_repos_readme_path: "{{ repo_root }}/roles/rhel_repos/README.md"
+    rhel_repos_verify_script: "{{ repo_root }}/scripts/verify_readme.py"
+    rhel_repos_readme_template: >-
+      {{ repo_root }}/docs/templates/role_readme_format_template.md
+
+  tasks:
+    - name: Verify role README format with verify_readme.py
+      ansible.builtin.command:
+        argv:
+          - python
+          - "{{ rhel_repos_verify_script }}"
+          - "{{ rhel_repos_readme_path }}"
+          - --template
+          - "{{ rhel_repos_readme_template }}"
+        chdir: "{{ repo_root }}"
+      register: rhel_repos_verify_readme
+      changed_when: false
+
+    - name: Fail when README verification fails
+      ansible.builtin.fail:
+        msg: >-
+          README verification failed for {{ rhel_repos_readme_path }}:
+          {{ rhel_repos_verify_readme.stdout }}
+          {{ rhel_repos_verify_readme.stderr }}
+      when: rhel_repos_verify_readme.rc != 0
+
+- name: Verify integration_rhel_repos_default role effects on target hosts
+  hosts: all
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Assert target host is a supported Red Hat family release
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == "RedHat"
+          - ansible_facts.distribution_major_version | int == rhel_repos_expected_major_version | int
+        fail_msg: >-
+          Expected a RHEL-compatible EL{{ rhel_repos_expected_major_version }}
+          host for {{ inventory_hostname }}.
+
+    - name: Assert test-repo-disabled is enabled after file-edit converge
+      ansible.builtin.command:
+        cmd: grep -E '^enabled\s*=\s*1' /etc/yum.repos.d/test-repo-disabled.repo
+      register: rhel_repos_verify_disabled_enabled
+      changed_when: false
+      failed_when: rhel_repos_verify_disabled_enabled.rc != 0
+
+    - name: Assert test-repo-enabled is disabled after file-edit converge
+      ansible.builtin.command:
+        cmd: grep -E '^enabled\s*=\s*0' /etc/yum.repos.d/test-repo-enabled.repo
+      register: rhel_repos_verify_enabled_disabled
+      changed_when: false
+      failed_when: rhel_repos_verify_enabled_disabled.rc != 0
+
+    - name: Find backup files from file-edit disable step
+      ansible.builtin.find:
+        paths: /etc/yum.repos.d/
+        patterns: "test-repo-enabled.repo.*"
+      register: rhel_repos_verify_backup_files
+
+    - name: Validate backup files were created
+      ansible.builtin.assert:
+        that:
+          - rhel_repos_verify_backup_files.matched | int >= 1
+        fail_msg: Expected at least one backup file from file-edit disable step
+        success_msg: Backup files were created as expected
+
+    - name: Assert dnf is functional on target host
+      ansible.builtin.command:
+        cmd: >-
+          dnf --disablerepo=test-repo-disabled
+          --disablerepo=test-repo-enabled
+          --disablerepo=test-repo-yum
+          repolist
+      register: rhel_repos_verify_repolist
+      changed_when: false
+      failed_when: rhel_repos_verify_repolist.rc != 0
+
+    - name: Assert test-repo-yum is enabled after yum_repository converge on UBI 9
+      ansible.builtin.command:
+        cmd: grep -E '^enabled\s*=\s*1' /etc/yum.repos.d/test-repo-yum.repo
+      register: rhel_repos_verify_yum_enabled
+      changed_when: false
+      failed_when: rhel_repos_verify_yum_enabled.rc != 0
+      when: inventory_hostname is search('el9')

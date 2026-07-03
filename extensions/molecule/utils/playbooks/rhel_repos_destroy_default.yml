@@ -1,0 +1,11 @@
+---
+- name: Destroy integration_rhel_repos_default scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+  connection: local
+
+  tasks:
+    - name: Destroy step is intentionally minimal
+      ansible.builtin.debug:
+        msg: "Podman platform cleanup is handled by the Molecule destroy sequence."

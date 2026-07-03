@@ -75,13 +75,13 @@ on:
         required: false
         default: false
         type: boolean
-      run_platform_repos_default:
-        description: "Run platform_repos default scenario"
+      run_rhel_repos_default:
+        description: "Run rhel_repos default scenario"
         required: false
         default: false
         type: boolean
-      run_platform_repos_rhsm:
-        description: "Run platform_repos RHSM scenario"
+      run_rhel_repos_rhsm:
+        description: "Run rhel_repos RHSM scenario"
         required: false
         default: false
         type: boolean
@@ -368,6 +368,8 @@ jobs:
               [integration_rhel_mount_mount_explicit_fstype]="${{ github.event.inputs.run_integration_rhel_mount_mount_explicit_fstype }}"
               [integration_rhel_mount_remove_from_fstab]="${{ github.event.inputs.run_integration_rhel_mount_remove_from_fstab }}"
               [integration_rhel_mount_unmount_filesystem]="${{ github.event.inputs.run_integration_rhel_mount_unmount_filesystem }}"
+              [integration_rhel_repos_default]="${{ github.event.inputs.run_rhel_repos_default }}"
+              [integration_rhel_repos_rhsm]="${{ github.event.inputs.run_rhel_repos_rhsm }}"
               [integration_satellite_content_view_create]="${{ github.event.inputs.run_integration_satellite_content_view_create }}"
               [integration_satellite_content_view_publish]="${{ github.event.inputs.run_integration_satellite_content_view_publish }}"
               [integration_satellite_content_view_promote]="${{ github.event.inputs.run_integration_satellite_content_view_promote }}"

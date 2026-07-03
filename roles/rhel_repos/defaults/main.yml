@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# defaults file for rhel_repos
+
+# List of repositories to disable (required for disable_repo.yml)
+# repos_to_disable:
+#   - "rhel-8-for-x86_64-appstream-rpms"
+#   - "rhel-8-for-x86_64-baseos-rpms"
+#   - "epel"
+
+# List of repositories to enable (required for enable_repo.yml)
+# repos_to_enable:
+#   - "rhel-8-for-x86_64-appstream-rpms"
+#   - "rhel-8-for-x86_64-baseos-rpms"
+#   - "epel"
+
+# Method to use for disabling repositories
+# Options: "rhsm_repository", "yum_repository", "file-edit"
+# If not specified, will auto-detect best method available
+# repos_disable_method: "rhsm_repository"
+
+# Method to use for enabling repositories
+# Options: "rhsm_repository", "yum_repository", "file-edit"
+# If not specified, will auto-detect best method available
+# repos_enable_method: "rhsm_repository"
+
+# Whether to backup repository files when using file-edit method
+rhel_repos_backup_files: true
+
+# Whether to clean package cache after disabling repositories
+rhel_repos_clean_cache: false

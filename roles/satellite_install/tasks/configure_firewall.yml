@@ -1,4 +1,9 @@
 ---
+- name: configure_firewall | Ensure firewalld is installed
+  ansible.builtin.dnf:
+    name: firewalld
+    state: present
+
 - name: configure_firewall | Ensure service is running and enabled.
   ansible.builtin.service:
     name: firewalld

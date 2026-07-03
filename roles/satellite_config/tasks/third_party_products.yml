@@ -15,7 +15,9 @@
 - name: third_party_products | Create 3rd party products and repos on satellite
   ansible.builtin.include_role:
     name: redhat.satellite.repositories
-
+  when:
+    - satellite_products is defined
+    - satellite_products | length > 0
 
 - name: third_party_products | Create custom repo destination directory
   ansible.builtin.file:
@@ -34,8 +36,11 @@
     mode: '0600'
     remote_src: true
   loop: "{{ satellite_config_custom_repo_files }}"
+  when:
+    - satellite_config_custom_repo_files is defined
+    - satellite_config_custom_repo_files |length > 0
 
-- name: third_party_products | Upload custom repos"
+- name: third_party_products | Upload custom repos
   redhat.satellite.content_upload:
     username: "{{ satellite_config_username }}"
     password: "{{ satellite_config_password }}"
@@ -45,5 +50,5 @@
     product: "{{ item.0.product }}"
     repository: "{{ item.0.repository }}"
     validate_certs: "{{ satellite_config_validate_certs }}"
-  loop: "{{ satellite_config_custom_repos | subelements('files') }}"
+  loop: "{{ satellite_config_custom_repos | default([]) | subelements('files') }}"
 ...
