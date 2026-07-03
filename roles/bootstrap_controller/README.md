@@ -1,38 +1,21 @@
-Role Name
-=========
+# Role: bootstrap_controller
 
-A brief description of the role goes here.
+Generate and optionally apply **AAP / Controller bootstrap configuration** for the ADO bootstrap framework.
 
-Requirements
-------------
+This role is the orchestration layer that ties together the bootstrap collection. It can:
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+- generate environment variable files
+- generate a bootstrap playbook repository
+- generate AAP controller configuration artifacts
+- load generated job template / workflow YAML
+- apply the generated AAP configuration to AAP 2.4 / 2.5+ environments
 
-Role Variables
---------------
+The role is designed to be used by the bootstrap CLI / UI scaffolding workflow and is the top-level execution role for end-to-end bootstrap generation.
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
 
-Dependencies
-------------
+## Notes
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+This is the first draft README generated from the bootstrap design/work we discussed in chat.
+Before committing, I recommend one cleanup pass to align variable tables and examples with the current
+`defaults/main.yml` and `tasks/main.yml` in the role directory.
 
-Example Playbook
-----------------
-
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
-
-License
--------
-
-BSD
-
-Author Information
-------------------
-
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).

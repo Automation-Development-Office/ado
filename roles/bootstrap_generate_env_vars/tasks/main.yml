@@ -52,7 +52,11 @@
 
 - name: Set environment directory
   ansible.builtin.set_fact:
-    bootstrap_generate_env_vars_env_dir: "{{ bootstrap_generate_env_vars_base_dir | default(generate_env_vars_base_dir | default('group_vars/all')) }}/{{ bootstrap_generate_env_vars_env }}"
+    bootstrap_generate_env_vars_env_dir: >-
+      {{
+        (bootstrap_generate_env_vars_base_dir
+         | default(generate_env_vars_base_dir | default('group_vars/all')))
+      }}/{{ bootstrap_generate_env_vars_env }}
 
 - name: Ask whether to create/update repo directories
   ansible.builtin.pause:
