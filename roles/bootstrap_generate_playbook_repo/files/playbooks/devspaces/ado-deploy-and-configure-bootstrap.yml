@@ -18,7 +18,6 @@
       name: ADO | bootstrap_resolve_component
   roles:
   - role: infra.ado.ocp_namespace
-  - role: infra.ado.ocp_namespace
   - role: infra.ado.ocp_operator_subscription
   - role: infra.ado.ocp_devspaces
   - role: infra.ado.ocp_wait_pods

@@ -5,14 +5,14 @@
   vars:
     component: cert_manager
   vars_files:
-  - group_vars/all/{{ env }}/infra_config_vars.yml
-  - group_vars/all/{{ env }}/vault_{{ component }}.yml
-  - group_vars/all/{{ env }}/vars_{{ component }}.yml
+    - group_vars/all/{{ env }}/infra_config_vars.yml
+    - group_vars/all/{{ env }}/vault_{{ component }}.yml
+    - group_vars/all/{{ env }}/vars_{{ component }}.yml
   environment:
     K8S_AUTH_HOST: '{{ host }}'
     K8S_AUTH_API_KEY: '{{ token }}'
     K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'',''no'') }}'
   tasks:
-  - name: ADO | Create AWS PCA ClusterIssuer
-    ansible.builtin.include_role:
-      name: ADO | awspca_clusterissuer
+    - name: ADO | Create AWS PCA ClusterIssuer
+      ansible.builtin.include_role:
+        name: ADO | awspca_clusterissuer
