@@ -16,11 +16,12 @@ exclude_paths:
 mock_modules:
   - ansible.posix.mount
   - infra.ado.ocp_namespace
-  - infra.ado.ocp_namespace
   - infra.ado.ocp_routes
   - infra.ado.ocp_operatorgroups
   - infra.ado.ocp_wait_pods
   - infra.ado.ocp_routes
+  - infra.ado.ocp_console_banner
+  - infra.ado.ocp_search_dirsrv
   - redhat.satellite.registration_command
   - redhat.satellite.host
   - redhat.rhel_idm.ipaclient
