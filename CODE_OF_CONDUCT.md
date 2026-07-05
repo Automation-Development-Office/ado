@@ -10,7 +10,7 @@ and related discussion.
 
 That document covers how we treat one another: be considerate, patient,
 respectful, kind, inquisitive, and helpful; follow the anti-harassment policy;
-and report serious violations through Ansible’s channels when appropriate (see
+and report serious violations through Ansible's channels when appropriate (see
 the Ansible document for details, including
 [codeofconduct@ansible.com](mailto:codeofconduct@ansible.com)).
 
@@ -64,7 +64,7 @@ reviewing, testing, and understanding any code or documentation you submit.
 ## Reporting concerns for this repository
 
 For behavior related to **this repository** that you do not wish to raise
-through Ansible’s community channels, contact:
+through Ansible's community channels, contact:
 
 - **Email:** [automation-development-office@redhat.com](mailto:automation-development-office@redhat.com)
 - **GitHub:** [open an issue](https://github.com/Automation-Development-Office/ado/issues)
