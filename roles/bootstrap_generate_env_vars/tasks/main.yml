@@ -2,7 +2,7 @@
 - name: Load preflight JSON input
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_preflight: >-
-      "{{ lookup('ansible.builtin.file', preflight_json) | from_json }}"
+      {{ lookup('ansible.builtin.file', preflight_json) | from_json }}
   when:
     - preflight_json is defined
     - preflight_json | length > 0
@@ -107,7 +107,10 @@
 - name: Set create dirs answer interactive
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_create_dirs: >-
-          bootstrap_generate_env_vars_prompt_create_dirs.user_input
+      {{
+        bootstrap_generate_env_vars_prompt_create_dirs.user_input
+        | default('y')
+      }}
   when: bootstrap_generate_env_vars_preflight is not defined
 
 - name: Set create dirs answer preflight
@@ -138,7 +141,7 @@
 - name: Set base domain interactive
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_base_domain: >-
-      "{{ bootstrap_generate_env_vars_prompt_base_domain.user_input }}"
+      {{ bootstrap_generate_env_vars_prompt_base_domain.user_input }}
   when: bootstrap_generate_env_vars_preflight is not defined
 
 - name: Ensure base domain was provided
@@ -157,7 +160,7 @@
 - name: Set platform answer interactive
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_platform: >-
-          bootstrap_generate_env_vars_prompt_platform.user_input
+      {{ bootstrap_generate_env_vars_prompt_platform.user_input }}
   when: bootstrap_generate_env_vars_preflight is not defined
 
 - name: Ask OpenShift questions
@@ -292,7 +295,9 @@
   ansible.builtin.template:
     src: component_vars.yml.j2
     dest: >-
-      "{{ bootstrap_generate_env_vars_env_dir }}/vars_{{ component_name }}.yml"
+      {{
+        bootstrap_generate_env_vars_env_dir
+      }}/vars_{{ component_name }}.yml
     mode: "0644"
     force: "{{ bootstrap_generate_env_vars_force | bool }}"
   loop: "{{ bootstrap_generate_env_vars_components }}"
@@ -303,7 +308,9 @@
   ansible.builtin.template:
     src: component_vault.yml.j2
     dest: >-
-      "{{ bootstrap_generate_env_vars_env_dir }}/vault_{{ component_name }}.yml"
+      {{
+        bootstrap_generate_env_vars_env_dir
+      }}/vault_{{ component_name }}.yml
     mode: "0600"
     force: "{{ bootstrap_generate_env_vars_force | bool }}"
   loop: "{{ bootstrap_generate_env_vars_components }}"
@@ -688,7 +695,7 @@
   ansible.builtin.copy:
     dest: "{{ bootstrap_generate_env_vars_temp_vault_password_file.path }}"
     content: >-
-      "{{ bootstrap_generate_env_vars_prompt_vault_password.user_input }}"
+      {{ bootstrap_generate_env_vars_prompt_vault_password.user_input }}
     mode: "0600"
   when:
     - bootstrap_generate_env_vars_encrypt_vault_files | bool

@@ -3,17 +3,34 @@
     Map controller bootstrap vars to infra.aap_configuration expected vars
   ansible.builtin.set_fact:
     controller_credentials: >-
-      {{ bootstrap_controller_controller_credentials | default([]) }}
+      {{
+        controller_bootstrap_controller_credentials
+        | default(bootstrap_controller_controller_credentials | default([]))
+      }}
     controller_projects: >-
-      {{ bootstrap_controller_controller_projects | default([]) }}
+      {{
+        controller_bootstrap_controller_projects
+        | default(bootstrap_controller_controller_projects | default([]))
+      }}
     controller_inventories: >-
-      {{ bootstrap_controller_controller_inventories | default([]) }}
+      {{
+        controller_bootstrap_controller_inventories
+        | default(bootstrap_controller_controller_inventories | default([]))
+      }}
     controller_hosts: >-
       {{ bootstrap_controller_controller_hosts | default([]) }}
     controller_labels: >-
-      {{ bootstrap_controller_controller_labels | default([]) }}
+      {{
+        controller_bootstrap_controller_labels
+        | default(bootstrap_controller_controller_labels | default([]))
+      }}
     controller_execution_environments: >-
-      {{ bootstrap_controller_controller_execution_environments | default([]) }}
+      {{
+        controller_bootstrap_controller_execution_environments
+        | default(
+          bootstrap_controller_controller_execution_environments | default([])
+        )
+      }}
 
     controller_templates: >-
       {{
@@ -42,11 +59,17 @@
     bootstrap_controller_controller_organization: >-
       {{ bootstrap_controller_organization | default('Lab') }}
     controller_organizations: >-
-      {{ bootstrap_controller_controller_organizations | default([]) }}
+      {{
+        controller_bootstrap_controller_organizations
+        | default(bootstrap_controller_controller_organizations | default([]))
+      }}
     aap_organization: >-
       {{ bootstrap_controller_organization | default('Lab') }}
     aap_organizations: >-
-      {{ bootstrap_controller_controller_organizations | default([]) }}
+      {{
+        controller_bootstrap_controller_organizations
+        | default(bootstrap_controller_controller_organizations | default([]))
+      }}
 
     bootstrap_controller_inventory_name: >-
       {{ bootstrap_controller_inventory_name | default('ocp') }}
