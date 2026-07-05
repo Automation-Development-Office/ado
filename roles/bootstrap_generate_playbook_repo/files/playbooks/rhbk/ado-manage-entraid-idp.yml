@@ -4,8 +4,8 @@
   vars:
     component: rhbk
   vars_files:
-  - group_vars/all/{{ env }}/infra_config_vars.yml
-  - group_vars/all/{{ env }}/vault_{{ component }}.yml
-  - group_vars/all/{{ env }}/vars_{{ component }}.yml
+    - group_vars/all/{{ env }}/infra_config_vars.yml
+    - group_vars/all/{{ env }}/vault_{{ component }}.yml
+    - group_vars/all/{{ env }}/vars_{{ component }}.yml
   roles:
-  - role: infra.ado.rhbk_client
+    - role: infra.ado.rhbk_client

@@ -3,4 +3,4 @@
   hosts: all
   gather_facts: true
   roles:
-  - role: infra.ado.satellite_install
+    - role: infra.ado.satellite_install

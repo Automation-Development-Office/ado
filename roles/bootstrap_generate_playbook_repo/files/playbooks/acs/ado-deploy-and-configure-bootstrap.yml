@@ -5,29 +5,29 @@
   vars:
     component: acs
   vars_files:
-  - group_vars/all/{{ env }}/infra_config_vars.yml
-  - group_vars/all/{{ env }}/vault_{{ component }}.yml
-  - group_vars/all/{{ env }}/vars_{{ component }}.yml
+    - group_vars/all/{{ env }}/infra_config_vars.yml
+    - group_vars/all/{{ env }}/vault_{{ component }}.yml
+    - group_vars/all/{{ env }}/vars_{{ component }}.yml
   environment:
     K8S_AUTH_HOST: '{{ host }}'
     K8S_AUTH_API_KEY: '{{ token }}'
     K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'',''no'') }}'
   pre_tasks:
-  - name: ADO | Resolve vars for component from framework defaults + env overrides
-    ansible.builtin.include_role:
-      name: ADO | bootstrap_resolve_component
-  - name: ADO | Map ACS namespaces
-    ansible.builtin.set_fact:
-      bootstrap_generate_playbook_repo_operator_namespace: '{{ operator_namespace | default(acs.operator_namespace | default(''openshift-operators'')) }}'
-      bootstrap_generate_playbook_repo_acs_namespace: '{{ acs_namespace | default(acs.namespace | default(''stackrox'')) }}'
+    - name: ADO | Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: infra.ado.bootstrap_resolve_component
+    - name: ADO | Map ACS namespaces
+      ansible.builtin.set_fact:
+        bootstrap_generate_playbook_repo_operator_namespace: '{{ operator_namespace | default(acs.operator_namespace | default(''openshift-operators'')) }}'
+        bootstrap_generate_playbook_repo_acs_namespace: '{{ acs_namespace | default(acs.namespace | default(''stackrox'')) }}'
   roles:
-  - role: infra.ado.ocp_namespace
-    vars:
-      infra.ado.ocp_namespace_name_space: '{{ bootstrap_generate_playbook_repo_operator_namespace }}'
-  - role: infra.ado.ocp_operator_subscription
-    vars:
-      infra.ado.ocp_operator_subscription_name_space: '{{ bootstrap_generate_playbook_repo_operator_namespace }}'
-  - role: infra.ado.ocp_acs
-  - role: infra.ado.ocp_wait_pods
-    vars:
-      infra.ado.ocp_wait_pods_name_space: '{{ bootstrap_generate_playbook_repo_acs_namespace }}'
+    - role: infra.ado.ocp_namespace
+      vars:
+        infra.ado.ocp_namespace_name_space: '{{ bootstrap_generate_playbook_repo_operator_namespace }}'
+    - role: infra.ado.ocp_operator_subscription
+      vars:
+        infra.ado.ocp_operator_subscription_name_space: '{{ bootstrap_generate_playbook_repo_operator_namespace }}'
+    - role: infra.ado.ocp_acs
+    - role: infra.ado.ocp_wait_pods
+      vars:
+        infra.ado.ocp_wait_pods_name_space: '{{ bootstrap_generate_playbook_repo_acs_namespace }}'

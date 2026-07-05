@@ -2,57 +2,47 @@
 - name: Update an LDAP attribute generically in IdM or 389 DS
   hosts: localhost
   gather_facts: false
-
   vars:
     component: ldap_auth_openshift
-
-  vars_files:
-    - "group_vars/all/{{ env }}/infra_config_vars.yml"
-    - "group_vars/all/{{ env }}/vault_{{ component }}.yml"
-    - "group_vars/all/{{ env }}/vars_{{ component }}.yml"
-    ldap_server_uri: "ldaps://idm.server.lab"
-    ldap_bind_dn: "cn=Directory Manager"
-    ldap_bind_password: "knuckle01"
-
-    ldap_entry_dn: "uid=chad,cn=users,cn=accounts,dc=server,dc=lab"
-
-    ldap_attribute_name: "altSecurityIdentities"
+    ldap_server_uri: ldaps://idm.server.lab
+    ldap_bind_dn: cn=Directory Manager
+    ldap_bind_password: knuckle01
+    ldap_entry_dn: uid=chad,cn=users,cn=accounts,dc=server,dc=lab
+    ldap_attribute_name: altSecurityIdentities
     ldap_attribute_values:
-      - "X509:<I>CN=Certificate Authority,O=SERVER.LAB<S>CN=Chad Elliott2"
-
-    ldap_state: "exact"
+      - X509:<I>CN=Certificate Authority,O=SERVER.LAB<S>CN=Chad Elliott2
+    ldap_state: exact
     ldap_validate_certs: false
-
+  vars_files:
+    - group_vars/all/{{ env }}/infra_config_vars.yml
+    - group_vars/all/{{ env }}/vault_{{ component }}.yml
+    - group_vars/all/{{ env }}/vars_{{ component }}.yml
   tasks:
     - name: Build LDAP attribute payload
       ansible.builtin.set_fact:
-        ldap_attributes_payload: >-
-          {{ {} | combine({ ldap_attribute_name: ldap_attribute_values }) }}
-
+        ldap_attributes_payload: '{{ {} | combine({ ldap_attribute_name: ldap_attribute_values }) }}'
     - name: Ensure required LDAP attribute value is set
       community.general.ldap_attrs:
-        server_uri: "{{ ldap_server_uri }}"
-        bind_dn: "{{ ldap_bind_dn }}"
-        bind_pw: "{{ ldap_bind_password }}"
-        dn: "{{ ldap_entry_dn }}"
-        attributes: "{{ ldap_attributes_payload }}"
-        state: "{{ ldap_state }}"
-        validate_certs: "{{ ldap_validate_certs }}"
+        server_uri: '{{ ldap_server_uri }}'
+        bind_dn: '{{ ldap_bind_dn }}'
+        bind_pw: '{{ ldap_bind_password }}'
+        dn: '{{ ldap_entry_dn }}'
+        attributes: '{{ ldap_attributes_payload }}'
+        state: '{{ ldap_state }}'
+        validate_certs: '{{ ldap_validate_certs }}'
       no_log: false
-
     - name: Read back attribute
       community.general.ldap_search:
-        server_uri: "{{ ldap_server_uri }}"
-        bind_dn: "{{ ldap_bind_dn }}"
-        bind_pw: "{{ ldap_bind_password }}"
-        dn: "{{ ldap_entry_dn }}"
+        server_uri: '{{ ldap_server_uri }}'
+        bind_dn: '{{ ldap_bind_dn }}'
+        bind_pw: '{{ ldap_bind_password }}'
+        dn: '{{ ldap_entry_dn }}'
         scope: base
         attrs:
           - objectClass
           - altSecurityIdentities
-        validate_certs: "{{ ldap_validate_certs }}"
+        validate_certs: '{{ ldap_validate_certs }}'
       register: ldap_check
-
     - name: Display LDAP search result
       ansible.builtin.debug:
         var: ldap_check
