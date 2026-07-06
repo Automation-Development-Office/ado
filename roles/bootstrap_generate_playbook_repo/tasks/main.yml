@@ -209,16 +209,17 @@
 - name: Generate playbook repo | Configure git remote
   ansible.builtin.shell: |
     set -euo pipefail
-    if git remote | grep -qx \
-      remote_name="{{ bootstrap_generate_playbook_repo_git_remote
-        | default('origin') }}"
-      if git remote | grep -qx "$remote_name"; then
-        {{ bootstrap_generate_playbook_repo_git_remote | default("origin") }} \
-        '{{ bootstrap_generate_playbook_repo_git_url }}'
+    remote_name={{
+      bootstrap_generate_playbook_repo_git_remote
+      | default('origin')
+      | quote
+    }}
+    remote_url={{ bootstrap_generate_playbook_repo_git_url | quote }}
+
+    if git remote | grep -qx "$remote_name"; then
+      git remote set-url "$remote_name" "$remote_url"
     else
-      git remote add \
-        {{ bootstrap_generate_playbook_repo_git_remote | default("origin") }} \
-        '{{ bootstrap_generate_playbook_repo_git_url }}'
+      git remote add "$remote_name" "$remote_url"
     fi
   args:
     chdir: "{{ bootstrap_generate_playbook_repo_dest_resolved }}"

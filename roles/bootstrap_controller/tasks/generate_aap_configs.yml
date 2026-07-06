@@ -37,25 +37,25 @@
     dest: "{{ playbook_dir }}/configs/{{ item.dest }}"
     mode: "0644"
   loop:
-    - var_name: bootstrap_controller_controller_organizations
+    - var_name: controller_bootstrap_controller_organizations
       dest: controller/organizations.yml
 
-    - var_name: bootstrap_controller_controller_credentials
+    - var_name: controller_bootstrap_controller_credentials
       dest: controller/credentials.yml
 
     - var_name: controller_bootstrap_controller_projects
       dest: controller/projects.yml
 
-    - var_name: bootstrap_controller_controller_inventories
+    - var_name: controller_bootstrap_controller_inventories
       dest: controller/inventories.yml
 
-    - var_name: bootstrap_controller_controller_execution_environments
+    - var_name: controller_bootstrap_controller_execution_environments
       dest: controller/execution_environments.yml
 
     - var_name: bootstrap_controller_controller_hosts
       dest: controller/hosts.yml
 
-    - var_name: bootstrap_controller_controller_labels
+    - var_name: controller_bootstrap_controller_labels
       dest: controller/labels.yml
 
     - var_name: bootstrap_controller_workflow_job_templates
@@ -237,8 +237,9 @@
   ansible.builtin.copy:
     src: workflows/ado-patching-workflow-bootstrap.wf.yml
     dest: >-
-      "{{ playbook_dir }}/configs/workflows/
-      ado-patching-workflow-bootstrap.wf.yml
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-patching-workflow-bootstrap.wf.yml
     mode: "0644"
   when:
     - >-

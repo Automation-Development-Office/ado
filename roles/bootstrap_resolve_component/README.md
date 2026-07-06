@@ -2,7 +2,7 @@
 
 Resolve a selected bootstrap component into the **effective merged component configuration** used by the bootstrap framework.
 
-This role is the framework’s **component registry resolver**. It takes a requested component (for example `openshift`, `rhel`, `patching`, or an application component) and merges:
+This role is the framework's **component registry resolver**. It takes a requested component (for example `openshift`, `rhel`, `patching`, or an application component) and merges:
 
 - framework defaults
 - component registry defaults

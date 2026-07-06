@@ -1,0 +1,87 @@
+---
+- name: Clean ADO-generated objects from AAP controller
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars:
+    aap_cleanup_controller_host: >-
+      {{
+        lookup('ansible.builtin.env', 'CONTROLLER_HOST')
+        | default(lookup('ansible.builtin.env', 'AAP_HOSTNAME'), true)
+      }}
+    aap_cleanup_oauthtoken: >-
+      {{
+        lookup('ansible.builtin.env', 'CONTROLLER_OAUTH_TOKEN')
+        | default(lookup('ansible.builtin.env', 'AAP_OAUTH_TOKEN'), true)
+      }}
+    aap_cleanup_username: >-
+      {{ lookup('ansible.builtin.env', 'CONTROLLER_USERNAME') }}
+    aap_cleanup_password: >-
+      {{ lookup('ansible.builtin.env', 'CONTROLLER_PASSWORD') }}
+    aap_cleanup_validate_certs: false
+    aap_cleanup_name_pattern: ADO |
+    aap_cleanup_page_size: 200
+    aap_cleanup_confirm: false
+    aap_cleanup_resources:
+      - label: workflow job templates
+        endpoint: workflow_job_templates
+      - label: job templates
+        endpoint: job_templates
+      - label: projects
+        endpoint: projects
+      - label: inventories
+        endpoint: inventories
+      - label: credentials
+        endpoint: credentials
+      - label: execution environments
+        endpoint: execution_environments
+      - label: labels
+        endpoint: labels
+      - label: organizations
+        endpoint: organizations
+
+  tasks:
+    - name: AAP cleanup | Normalize connection vars
+      ansible.builtin.set_fact:
+        aap_cleanup_controller_host_clean: >-
+          {{ aap_cleanup_controller_host | regex_replace('/+$', '') }}
+        aap_cleanup_auth_headers: >-
+          {{
+            {'Authorization': 'Bearer ' ~ aap_cleanup_oauthtoken}
+            if (aap_cleanup_oauthtoken | length > 0)
+            else {}
+          }}
+
+    - name: AAP cleanup | Validate connection vars
+      ansible.builtin.assert:
+        that:
+          - aap_cleanup_controller_host_clean | length > 0
+          - >-
+            (aap_cleanup_oauthtoken | length > 0)
+            or
+            (
+              aap_cleanup_username | length > 0
+              and aap_cleanup_password | length > 0
+            )
+        fail_msg: >-
+          Provide a controller host and either an OAuth token or username/password.
+          Example: -e aap_cleanup_controller_host=https://aap.example.com
+          -e aap_cleanup_oauthtoken=TOKEN
+
+    - name: AAP cleanup | Show cleanup mode
+      ansible.builtin.debug:
+        msg:
+          - "controller={{ aap_cleanup_controller_host_clean }}"
+          - "name_pattern={{ aap_cleanup_name_pattern }}"
+          - "confirm={{ aap_cleanup_confirm | bool }}"
+          - >-
+            dry_run={{ not (aap_cleanup_confirm | bool) }};
+            pass -e aap_cleanup_confirm=true to delete matching objects
+
+    - name: AAP cleanup | Process resource types
+      ansible.builtin.include_tasks: cleanup_ado_aap_resource.yml
+      loop: "{{ aap_cleanup_resources }}"
+      loop_control:
+        loop_var: aap_cleanup_resource
+        label: "{{ aap_cleanup_resource.label }}"

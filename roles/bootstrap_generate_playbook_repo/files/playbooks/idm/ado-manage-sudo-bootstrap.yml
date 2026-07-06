@@ -4,10 +4,10 @@
   vars_files: null
   pre_tasks: null
   tasks:
-  - name: ADO | Configure sudo command /usr/bin/su in IPA
-    community.general.ipa_sudocmd:
-      name: ADO | /usr/bin/su
-      description: Allow to run su via sudo
-      ipa_host: idm.server.lab
-      ipa_user: admin
-      ipa_pass: ''
+    - name: ADO | Configure sudo command /usr/bin/su in IPA
+      community.general.ipa_sudocmd:
+        name: ADO | /usr/bin/su
+        description: Allow to run su via sudo
+        ipa_host: idm.server.lab
+        ipa_user: admin
+        ipa_pass: ""

@@ -1,0 +1,56 @@
+---
+- name: AAP cleanup | Query resource type
+  ansible.builtin.uri:
+    url: >-
+      {{
+        aap_cleanup_controller_host_clean
+      }}/api/controller/v2/{{ aap_cleanup_resource.endpoint }}/?search={{
+        aap_cleanup_name_pattern | urlencode
+      }}&page_size={{ aap_cleanup_page_size }}
+    method: GET
+    headers: "{{ aap_cleanup_auth_headers }}"
+    url_username: "{{ aap_cleanup_username | default(omit) }}"
+    url_password: "{{ aap_cleanup_password | default(omit) }}"
+    force_basic_auth: "{{ aap_cleanup_oauthtoken | length == 0 }}"
+    validate_certs: "{{ aap_cleanup_validate_certs | bool }}"
+    status_code: 200
+  register: aap_cleanup_query
+  changed_when: false
+
+- name: AAP cleanup | Reset match list
+  ansible.builtin.set_fact:
+    aap_cleanup_matching_items: []
+
+- name: AAP cleanup | Collect matching items
+  ansible.builtin.set_fact:
+    aap_cleanup_matching_items: "{{ aap_cleanup_matching_items + [item] }}"
+  loop: "{{ aap_cleanup_query.json.results | default([]) }}"
+  loop_control:
+    label: "{{ item.name | default(item.id | string) }}"
+  when:
+    - item.name is defined
+    - aap_cleanup_name_pattern in item.name
+
+- name: AAP cleanup | Show matching items
+  ansible.builtin.debug:
+    msg:
+      resource: "{{ aap_cleanup_resource.label }}"
+      count: "{{ aap_cleanup_matching_items | length }}"
+      names: "{{ aap_cleanup_matching_items | map(attribute='name') | list }}"
+
+- name: AAP cleanup | Delete matching items
+  ansible.builtin.uri:
+    url: "{{ aap_cleanup_controller_host_clean }}{{ item.url }}"
+    method: DELETE
+    headers: "{{ aap_cleanup_auth_headers }}"
+    url_username: "{{ aap_cleanup_username | default(omit) }}"
+    url_password: "{{ aap_cleanup_password | default(omit) }}"
+    force_basic_auth: "{{ aap_cleanup_oauthtoken | length == 0 }}"
+    validate_certs: "{{ aap_cleanup_validate_certs | bool }}"
+    status_code:
+      - 202
+      - 204
+  loop: "{{ aap_cleanup_matching_items }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: aap_cleanup_confirm | bool

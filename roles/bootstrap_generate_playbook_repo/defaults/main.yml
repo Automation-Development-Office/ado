@@ -1,7 +1,7 @@
 ---
 bootstrap_generate_playbook_repo_dest: "{{ playbook_dir }}"
 bootstrap_generate_playbook_repo_seed_src: >-
-  "{{ role_path }}/files/playbook_repo_seed"
+  {{ role_path }}/files/playbook_repo_seed
 bootstrap_generate_playbook_repo_force: true
 
 bootstrap_generate_playbook_repo_git_mode: manual

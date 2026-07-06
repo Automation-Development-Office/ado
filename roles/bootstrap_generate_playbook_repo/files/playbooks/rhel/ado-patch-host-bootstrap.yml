@@ -1,15 +1,9 @@
 ---
-- name: ADO | Patch Host to satellite server
-  hosts: all
-  gather_facts: false
+- name: Patch RHEL servers
+  hosts: rhel_servers
+  gather_facts: true
   vars:
-    ipaadmin_principal: admin@SERVER.LAB
-    ipaadmin_password: '{{ ipaadmin_password }}'
-    zone_name: server.lab
-    record_name: eras01
-    record_ttl: 3600
-    record_ip: 192.168.0.150
-  tasks:
-  - name: ADO | Start patch process
-    ansible.builtin.pause:
-      seconds: 30
+    rhel_patching_update_cache: true
+    rhel_patching_package_cleanup: true
+  roles:
+    - role: infra.ado.rhel_patching

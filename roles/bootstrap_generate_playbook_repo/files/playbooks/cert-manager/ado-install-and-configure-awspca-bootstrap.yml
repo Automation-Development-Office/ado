@@ -15,4 +15,4 @@
   tasks:
     - name: ADO | Create AWS PCA ClusterIssuer
       ansible.builtin.include_role:
-        name: ADO | awspca_clusterissuer
+        name: infra.ado.ocp_awspca
