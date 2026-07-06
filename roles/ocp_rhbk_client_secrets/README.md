@@ -1,91 +1,62 @@
-# Role: ocp_rhbk_client_secrets
+# Role: infra.ado.ocp_rhbk_client_secrets
 
-Look up a Red Hat Build of Keycloak client secret through the admin API and publish the result as Ansible facts.
+Ocp Rhbk Client Secrets automation role. Primary tasks include: Rhbk_get_client_secrets Snapshot components_env (safe default); Rhbk_get_client_secrets Create temp file for rendered registry; Rhbk_get_client_secrets Render registry file (Jinja evaluated).
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- Network access to the RHBK admin endpoint.
-- Valid admin credentials available from variables, vault, or component defaults.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `rhbk_component_name_effective` | Component key used to resolve the effective RHBK configuration. Defaults to `rhbk` in the surrounding workflow. |
-| `rhbk_secret_client_id / rhbk_secret_client_key` | Client identifier or component-map key used to locate the client. One is required. |
-| `rhbk_secret_realm` | Optional realm override. Otherwise the role uses the component default realm. |
-| `rhbk_secret_admin_user / rhbk_secret_admin_password` | Optional admin credentials used for the Keycloak token request. |
-| `rhbk_secret_target_var` | Optional fact name to receive the fetched client secret value. |
+|----------|-------------|
+| `ocp_rhbk_client_secrets_client_key` | Sensitive credential value used by this role. |
+| `ocp_rhbk_client_secrets_client_id` | Sensitive credential value used by this role. |
+| `ocp_rhbk_client_secrets_set_var_name` | Resource name used by this role. |
+| `ocp_rhbk_client_secrets_do_not_override_existing` | Sensitive credential value used by this role. |
+| `ocp_rhbk_client_secrets_validate_certs` | Sensitive credential value used by this role. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_rhbk_client_secrets
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_rhbk_client_secrets
-      vars:
-        rhbk_secret_client_id: grafana
-        rhbk_secret_realm: master
-        rhbk_secret_target_var: grafana_oidc_client_secret
+    - role: infra.ado.ocp_rhbk_client_secrets
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Renders the shared component registry to resolve effective RHBK settings before calling the admin API.
-- Publishes the discovered secret value and related metadata as facts for downstream roles.
+This role runs tasks such as:
 
----
+- Rhbk_get_client_secrets Snapshot components_env (safe default)
+- Rhbk_get_client_secrets Create temp file for rendered registry
+- Rhbk_get_client_secrets Render registry file (Jinja evaluated)
+- Rhbk_get_client_secrets Load rendered registry YAML
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
+```bash
+cd roles/ocp_rhbk_client_secrets
+molecule test
 ```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
-```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_rhbk_client_secrets/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/ocp_rhbk_client_secrets/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

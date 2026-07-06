@@ -1,96 +1,56 @@
-# Role: ocp_descheduler
+# Role: infra.ado.ocp_descheduler
 
-Create or update a `KubeDescheduler` custom resource from a Jinja template.
+Ocp Descheduler automation role. Primary tasks include: Create/Delete Kube Descheduler Instance; Kube descheduler task.
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- OpenShift/Kubernetes API access.
-- `kubernetes.core` collection installed.
-- Kube Descheduler operator installed before this role runs.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `state` | Outer role guard used by `tasks/main.yml`. Use `present` for the current workflow. |
-| `kube_descheduler_state` | State passed to the `kubernetes.core.k8s` task for the CR. |
-| `instance_name` | Instance name rendered into the template. |
-| `scheduling_interval` | Scheduling interval rendered into the template. |
-| `descheduler_profiles` | List of descheduler profiles rendered into the template. |
+|----------|-------------|
+| `ocp_descheduler_state` | Desired state used by role tasks when supported. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_descheduler
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_descheduler
-      vars:
-        state: present
-        kube_descheduler_state: present
-        instance_name: cluster
-        scheduling_interval: 300
-        descheduler_profiles:
-          - AffinityAndTaints
-          - TopologyAndDuplicates
+    - role: infra.ado.ocp_descheduler
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Renders `templates/kube_cluster.j2` and applies it through `kubernetes.core.k8s`.
-- This role assumes the operator and required CRDs are already available.
+This role runs tasks such as:
 
----
+- Create/Delete Kube Descheduler Instance
+- Kube descheduler task
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
-```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```bash
+cd roles/ocp_descheduler
+molecule test
 ```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_descheduler/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/ocp_descheduler/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

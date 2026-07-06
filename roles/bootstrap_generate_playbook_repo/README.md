@@ -1,20 +1,65 @@
-# Role: bootstrap_generate_playbook_repo
+# Role: infra.ado.bootstrap_generate_playbook_repo
 
-Generate a **bootstrap playbook repository** from the selected bootstrap components and applications.
+Create or refresh the generated bootstrap playbook repository structure used by
+ADO component automation.
 
-This role seeds a destination repository with:
+## Role Author
 
-- inventory
-- `group_vars`
-- playbooks
-- controller config scaffolding
-- README / support files
-- optional Git initialization / commit / push behavior
+Automation Development Office
 
+## ✅ Role Requirements
 
-## Notes
+- Ansible Core
+- Write access to the target bootstrap repository directory
+- Optional Git remote credentials when automatic commit and push is enabled
+- Seed playbook content bundled with this collection
 
-This is the first draft README generated from the bootstrap design/work we discussed in chat.
-Before committing, I recommend one cleanup pass to align variable tables and examples with the current
-`defaults/main.yml` and `tasks/main.yml` in the role directory.
+## 📦 Role Variables
 
+| Variable | Description |
+|----------|-------------|
+| `bootstrap_generate_playbook_repo_dest` | Destination repository root for generated files. |
+| `bootstrap_generate_playbook_repo_seed_src` | Source directory for baseline repository seed files. |
+| `bootstrap_generate_playbook_repo_force` | Overwrites generated content when true. |
+| `bootstrap_generate_playbook_repo_git_mode` | Git behavior, such as manual or automatic push flow. |
+| `bootstrap_generate_playbook_repo_git_remote` | Git remote name to configure or update. |
+| `bootstrap_generate_playbook_repo_git_branch` | Branch used for generated repository commits. |
+| `bootstrap_generate_playbook_repo_git_message` | Commit message for generated content. |
+| `bootstrap_generate_playbook_repo_git_token` | Optional token used for non-interactive Git pushes. |
+| `bootstrap_generate_playbook_repo_component` | Component group to generate, such as `all`, `openshift`, or `rhel`. |
+| `bootstrap_generate_playbook_repo_component_map` | Maps component selections to generated playbook groups. |
+| `bootstrap_generate_playbook_repo_generated_playbooks` | Manifest of bundled playbooks copied into the generated repository. |
+
+## 🚀 Role Usage
+
+```yaml
+- name: Generate bootstrap playbook repository
+  hosts: localhost
+  gather_facts: false
+  vars:
+    bootstrap_generate_playbook_repo_dest: "{{ playbook_dir }}"
+    bootstrap_generate_playbook_repo_component: all
+  roles:
+    - role: infra.ado.bootstrap_generate_playbook_repo
+```
+
+## 🧪 Role Molecule Testing
+
+Run focused linting against the role and validate generated content with the
+bootstrap sample CLI repository.
+
+```bash
+ansible-lint --offline roles/bootstrap_generate_playbook_repo
+yamllint roles/bootstrap_generate_playbook_repo/tasks
+```
+
+## 📁 Role Structure
+
+```text
+roles/bootstrap_generate_playbook_repo/
+  defaults/main.yml
+  files/playbook_repo_seed/
+  files/playbooks/
+  tasks/main.yml
+  README.md
+```

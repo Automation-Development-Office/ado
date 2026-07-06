@@ -1,49 +1,59 @@
-# Role: idm_server
+# Role: infra.ado.idm_server
 
-Installs/manages an IdM server using `redhat.rhel_idm.ipaserver`.
+Idm Server automation role. Primary tasks include: Install IDM server; Validate idm_server inputs; Add IDM Server entry.
 
-This role is intentionally small and currently performs:
-- input validation
-- one module call to `redhat.rhel_idm.ipaserver`
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- Ansible Core 2.16+ (per role metadata)
-- `redhat.rhel_idm` collection available
-- Host/network prerequisites for IdM server installation based on your environment
+## ✅ Role Requirements
 
-## Role Variables
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-### Canonical role variables
+## 📦 Role Variables
 
-| Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `idm_server_state` | no | `present` | Desired state (`present` or `absent`). |
-| `idm_server_name` | yes | `""` | IdM server host/name passed to `ipaserver`. |
-| `idm_server_ipaadmin_password` | yes for `present` | `""` | IPA admin password used by module. |
+| Variable | Description |
+|----------|-------------|
+| `idm_server_state` | Desired state used by role tasks when supported. |
+| `idm_server_name` | Resource name used by this role. |
+| `idm_server_ipaadmin_password` | Endpoint or host value used by this role. |
 
-## Behavior Notes
-
-- Validation fails early if:
-  - state is not `present`/`absent`
-  - server name is missing
-  - password is missing for `present` state
-- Module keys remain native (`state`, `name`, `ipaadmin_password`) while role vars are namespaced to avoid collisions when included from other roles.
-
-## Example Playbook
+## 🚀 Role Usage
 
 ```yaml
-- name: Manage IdM server
-  hosts: idm_servers
-  become: true
+- name: Run idm_server
+  hosts: localhost
+  gather_facts: false
   roles:
     - role: infra.ado.idm_server
-      vars:
-        idm_server_state: present
-        idm_server_name: "idm01.example.com"
-        idm_server_ipaadmin_password: "{{ vault_ipa_admin_password }}"
 ```
 
-## License
+## 🧪 Role Molecule Testing
 
-GPL-3.0-or-later
+Run Molecule scenarios from the role directory when a scenario is available.
+
+This role runs tasks such as:
+
+- Install IDM server
+- Validate idm_server inputs
+- Add IDM Server entry
+
+```bash
+cd roles/idm_server
+molecule test
+```
+
+## 📁 Role Structure
+
+```text
+roles/idm_server/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
+```

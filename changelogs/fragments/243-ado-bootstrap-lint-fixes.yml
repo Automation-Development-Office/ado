@@ -14,7 +14,3 @@ minor_changes:
   - >-
     ci - Added ADO collection roles to ``mock_roles`` and excluded generated
     bootstrap seed payloads from source lint checks.
-doc_changes:
-  - >-
-    bootstrap_resolve_component - Replaced a smart quote in the role README so
-    Ansible sanity ``no-smart-quotes`` passes.

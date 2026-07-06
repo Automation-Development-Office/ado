@@ -1,102 +1,58 @@
-# Role: ocp_rhbk
+# Role: infra.ado.install_rhbk
 
-Install or remove a Red Hat Build of Keycloak deployment with PostgreSQL and TLS configuration.
+Install Rhbk automation role. Primary tasks include: Delete Keycloak Custom Resource; Delete PostgreSQL Service; Delete PostgreSQL StatefulSet.
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- OpenShift/Kubernetes API access.
-- `kubernetes.core` collection installed.
-- RHBK operator installed before the custom resource is created.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `state` | Desired state: `present` or `absent`. |
-| `name_space` | Namespace where Keycloak and PostgreSQL resources are managed. |
-| `rhbk_hostname` | External host name for Keycloak. Required. |
-| `rhbk_admin_user / rhbk_admin_password` | Bootstrap admin credentials. |
-| `rhbk_db_user / rhbk_db_password` | Database credentials stored in the generated secret. |
-| `cert_manager` | Boolean toggle to use cert-manager instead of manual TLS secret creation. |
-| `rhbk_issuer_name / rhbk_issuer_kind` | Issuer reference used when `cert_manager: true`. |
-| `tls_crt / tls_key` | Manual TLS values used when `cert_manager: false`. |
+|----------|-------------|
+| `install_rhbk_state` | Desired state used by role tasks when supported. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run install_rhbk
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_rhbk
-      vars:
-        state: present
-        name_space: rhbk
-        rhbk_hostname: sso.apps.example.com
-        rhbk_admin_user: admin
-        rhbk_admin_password: "{{ vault_rhbk_admin_password }}"
-        rhbk_db_user: keycloak
-        rhbk_db_password: "{{ vault_rhbk_db_password }}"
-        cert_manager: false
-        tls_crt: "{{ vault_rhbk_tls_crt }}"
-        tls_key: "{{ vault_rhbk_tls_key }}"
+    - role: infra.ado.install_rhbk
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Creates supporting secrets and PostgreSQL objects before creating the Keycloak custom resource.
-- Delete mode removes the custom resource and supporting secrets, services, and stateful resources.
+This role runs tasks such as:
 
----
+- Delete Keycloak Custom Resource
+- Delete PostgreSQL Service
+- Delete PostgreSQL StatefulSet
+- Delete PVC from StatefulSet
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
+```bash
+cd roles/install_rhbk
+molecule test
 ```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
-```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_rhbk/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/install_rhbk/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

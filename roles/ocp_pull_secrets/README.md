@@ -1,94 +1,62 @@
-# Role: ocp_pull_secrets
+# Role: infra.ado.ocp_pull_secrets
 
-Add or remove a registry authentication entry inside the cluster pull secret.
+Ocp Pull Secrets automation role. Primary tasks include: Assert state is provided via -e or AAP survey; Normalize state; Set defaults for pull secret target.
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- OpenShift/Kubernetes API access.
-- `kubernetes.core` collection installed.
-- Access to the `openshift-config/pull-secret` secret or an alternate target provided by variables.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `state` | Desired state: `present` or `absent`. Required. |
-| `update_pull_secret_name / update_pull_secret_namespace` | Target pull secret name and namespace. Defaults to `pull-secret` in `openshift-config`. |
-| `registry_host` | Registry host to add or remove. Required. |
-| `registry_username / registry_password` | Registry credentials required when `state: present`. |
-| `registry_email` | Optional email stored with the registry auth entry. |
+|----------|-------------|
+| `ocp_pull_secrets_name` | Resource name used by this role. |
+| `ocp_pull_secrets_namespace` | OpenShift namespace value used by this role. |
+| `ocp_pull_secrets_registry_host` | Endpoint or host value used by this role. |
+| `ocp_pull_secrets_registry_username` | Resource name used by this role. |
+| `ocp_pull_secrets_registry_password` | Sensitive credential value used by this role. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_pull_secrets
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_pull_secrets
-      vars:
-        state: present
-        registry_host: registry.example.com
-        registry_username: svc-account
-        registry_password: "{{ vault_registry_password }}"
-        registry_email: ops@example.com
+    - role: infra.ado.ocp_pull_secrets
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Reads, decodes, updates, and patches the `.dockerconfigjson` content in place.
-- Only writes the secret back when the rendered auth document actually changes.
+This role runs tasks such as:
 
----
+- Assert state is provided via -e or AAP survey
+- Normalize state
+- Set defaults for pull secret target
+- Read current pull-secret
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
+```bash
+cd roles/ocp_pull_secrets
+molecule test
 ```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
-```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_pull_secrets/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/ocp_pull_secrets/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

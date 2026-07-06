@@ -1,99 +1,56 @@
-# Role: ocp_efs_csi
+# Role: infra.ado.ocp_efs_csi
 
-Create an AWS EFS CSI storage class backed by the EFS CSI provisioner.
+Ocp Efs Csi automation role. Primary tasks include: Create Storage Class; EFS CSI Storage Driver.
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- OpenShift/Kubernetes API access.
-- `kubernetes.core` collection installed.
-- The AWS EFS CSI driver must already be installed in the cluster.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `state` | Desired state. The current task creates the storage class when `state: present`. |
-| `storage_class_name` | Name of the EFS-backed storage class. Required. |
-| `efs_filesystem_id` | EFS filesystem identifier used by the storage class. Required. |
-| `base_path / base_path_perms` | Base directory and permissions used by the access point provisioner. |
-| `gid_start / gid_end` | GID range reserved for access point provisioning. |
-| `reclaim_policy / binding_mode` | Storage class reclaim policy and binding mode values. |
+|----------|-------------|
+| `ocp_efs_csi_state` | Desired state used by role tasks when supported. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_efs_csi
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_efs_csi
-      vars:
-        state: present
-        storage_class_name: efs-sc
-        efs_filesystem_id: fs-12345678
-        base_path: /team-a
-        base_path_perms: '700'
-        gid_start: '1000'
-        gid_end: '2000'
-        reclaim_policy: Delete
-        binding_mode: Immediate
+    - role: infra.ado.ocp_efs_csi
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Creates a `StorageClass` using the `efs.csi.aws.com` provisioner.
-- The role does not install the operator; it only manages the storage class resource.
+This role runs tasks such as:
 
----
+- Create Storage Class
+- EFS CSI Storage Driver
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
-```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
+```bash
+cd roles/ocp_efs_csi
+molecule test
 ```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_efs_csi/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/ocp_efs_csi/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

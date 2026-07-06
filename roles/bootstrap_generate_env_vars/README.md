@@ -1,19 +1,60 @@
-# Role: bootstrap_generate_env_vars
+# Role: infra.ado.bootstrap_generate_env_vars
 
-Generate bootstrap **environment variable files** for the selected environment and component set.
+Generate environment group variables and vault files used by the ADO bootstrap
+playbook repository.
 
-This role renders the `group_vars/all/<env>/` structure used by the generated bootstrap playbook repository and CLI/UI workflows.
+## Role Author
 
-Typical outputs include:
+Automation Development Office
 
-- application / platform vars files
-- component vars files
-- component vault files
+## ✅ Role Requirements
 
+- Ansible Core
+- `env` set to the target environment
+- A vault password file when encrypted vault files are enabled
+- Optional preflight JSON from the ADO preflight UI or CLI
+- Write access to the bootstrap playbook repository working tree
 
-## Notes
+## 📦 Role Variables
 
-This is the first draft README generated from the bootstrap design/work we discussed in chat.
-Before committing, I recommend one cleanup pass to align variable tables and examples with the current
-`defaults/main.yml` and `tasks/main.yml` in the role directory.
+| Variable | Description |
+|----------|-------------|
+| `env` | Target environment directory under `group_vars/all`. |
+| `preflight_json` | Optional JSON file containing UI or CLI preflight answers. |
+| `generate_env_vars_base_dir` | Base directory for generated environment variables. |
+| `generate_env_vars_create_dirs` | Creates bootstrap repository directories when true. |
+| `generate_env_vars_encrypt_vault_files` | Encrypts generated vault files when true. |
+| `generate_env_vars_components` | Component list for generated `vars_*.yml` and `vault_*.yml` files. |
+| `generate_env_vars_force` | Allows generated files to be overwritten. |
+| `generate_env_vars_force_overwrite` | Compatibility overwrite flag mapped to `generate_env_vars_force`. |
 
+## 🚀 Role Usage
+
+```yaml
+- name: Generate bootstrap environment variables
+  hosts: localhost
+  gather_facts: false
+  vars:
+    env: prod
+    preflight_json: ado-preflight-prod.json
+  roles:
+    - role: infra.ado.bootstrap_generate_env_vars
+```
+
+## 🧪 Role Molecule Testing
+
+Validate with a sample preflight JSON and local bootstrap repository fixture.
+
+```bash
+ansible-lint --offline roles/bootstrap_generate_env_vars
+yamllint roles/bootstrap_generate_env_vars/tasks
+```
+
+## 📁 Role Structure
+
+```text
+roles/bootstrap_generate_env_vars/
+  defaults/main.yml
+  tasks/main.yml
+  README.md
+```

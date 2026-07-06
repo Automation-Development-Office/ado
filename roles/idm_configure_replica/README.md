@@ -1,78 +1,60 @@
-# Role: idm_configure_replica
+# Role: infra.ado.idm_configure_replica
 
-Installs/manages an IdM replica using `redhat.rhel_idm.ipareplica`.
+Idm Configure Replica automation role. Primary tasks include: Install IdM replica; Add IdM configure replica entry.
 
-This role currently performs:
-- input validation in `tasks/main.yml`
-- one module call to `redhat.rhel_idm.ipareplica` in `tasks/install-idm-configure-replica.yml`
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- Ansible Core 2.16+ (per role metadata)
-- `redhat.rhel_idm` collection available
-- Environment prerequisites for IdM replica installation (DNS/time/network/connectivity and upstream IdM requirements)
+## ✅ Role Requirements
 
-## Dependencies
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-- Role dependencies: none (`dependencies: []` in `meta/main.yml`)
-- Required collection dependency:
-  - `redhat.rhel_idm`
+## 📦 Role Variables
 
-Example `requirements.yml` snippet for copy/paste:
+| Variable | Description |
+|----------|-------------|
+| `idm_configure_replica_state` | Desired state used by role tasks when supported. |
+| `idm_configure_replica_setup_dns` | Role input variable used to configure automation behavior. |
+| `idm_configure_replica_setup_ca` | Role input variable used to configure automation behavior. |
+| `idm_configure_replica_no_host_dns` | Endpoint or host value used by this role. |
+| `idm_configure_replica_no_ntp` | Role input variable used to configure automation behavior. |
 
-```yaml
-collections:
-  - name: redhat.rhel_idm
-```
-
-## Variables
-
-| Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `idm_configure_replica_state` | no | `present` | Desired state (`present` or `absent`). |
-| `idm_configure_replica_hostname` | yes | none | Replica host FQDN/hostname passed to module. |
-| `idm_configure_replica_domain` | yes | none | IdM DNS domain. |
-| `idm_configure_replica_realm` | yes | none | Kerberos realm for IdM. |
-| `idm_configure_replica_server` | yes | none | Existing IdM server used for replica enrollment. |
-| `idm_configure_replica_principal` | no | none | Principal for authenticated enrollment flows (omitted when undefined/empty). |
-| `idm_configure_replica_admin_password` | yes for `present` | none | IdM admin password (`password`). |
-| `idm_configure_replica_dm_password` | yes for `present` | none | Directory Manager password (`dm_password`). |
-| `idm_configure_replica_setup_dns` | no | `false` | Whether to configure integrated DNS on replica. |
-| `idm_configure_replica_setup_ca` | no | `false` | Whether to configure CA services on replica. |
-| `idm_configure_replica_no_host_dns` | no | `false` | Disable host DNS checks. |
-| `idm_configure_replica_no_ntp` | no | `false` | Disable NTP configuration checks/steps. |
-| `idm_configure_replica_ip_addresses` | no | `[]` | Optional list of IP addresses for replica setup. |
-| `idm_configure_replica_auto_forwarders` | no | `false` | Automatically discover DNS forwarders. |
-| `idm_configure_replica_forwarders` | no | `[]` | Explicit DNS forwarders list. |
-
-## Behavior Notes
-
-- Validation currently enforces:
-  - `idm_configure_replica_state` must be `present` or `absent`
-  - hostname/domain/realm/server must be non-empty
-  - admin and DM passwords are required when state is `present`
-- The replica task uses `no_log: true` to reduce sensitive data exposure in logs.
-
-## Example Playbook
+## 🚀 Role Usage
 
 ```yaml
-- name: Manage IdM replica
-  hosts: idm_replicas
-  become: true
+- name: Run idm_configure_replica
+  hosts: localhost
+  gather_facts: false
   roles:
     - role: infra.ado.idm_configure_replica
-      vars:
-        idm_configure_replica_state: present
-        idm_configure_replica_hostname: "idm-replica01.example.com"
-        idm_configure_replica_domain: "example.com"
-        idm_configure_replica_realm: "EXAMPLE.COM"
-        idm_configure_replica_server: "idm01.example.com"
-        idm_configure_replica_admin_password: "{{ vault_ipa_admin_password }}"
-        idm_configure_replica_dm_password: "{{ vault_ipa_dm_password }}"
-        idm_configure_replica_setup_dns: false
-        idm_configure_replica_setup_ca: false
 ```
 
-## License
+## 🧪 Role Molecule Testing
 
-GPL-3.0-or-later
+Run Molecule scenarios from the role directory when a scenario is available.
+
+This role runs tasks such as:
+
+- Install IdM replica
+- Add IdM configure replica entry
+
+```bash
+cd roles/idm_configure_replica
+molecule test
+```
+
+## 📁 Role Structure
+
+```text
+roles/idm_configure_replica/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
+```

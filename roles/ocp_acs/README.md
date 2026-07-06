@@ -1,35 +1,58 @@
----
+# Role: infra.ado.ocp_acs
 
-## `advanced-cluster-security`
+Ocp Acs automation role. Primary tasks include: Validate required ACS vars; Ensure ACS operand namespace exists; Delete Central CR (clean reinstall).
 
-**Example Usage:**
+## Role Author
+
+Automation Development Office
+
+## ✅ Role Requirements
+
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
+
+## 📦 Role Variables
+
+| Variable | Description |
+|----------|-------------|
+| `ocp_acs_state` | Desired state used by role tasks when supported. |
+
+## 🚀 Role Usage
 
 ```yaml
-- name: Execute the advanced-cluster-security role
+- name: Run ocp_acs
   hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift_infrastructure_automation.advanced-cluster-security
-      vars:
-        example_variable: example_value
+    - role: infra.ado.ocp_acs
 ```
 
-> Replace `example_variable` and `example_value` with the appropriate parameters defined in `defaults/main.yml` for the role.
+## 🧪 Role Molecule Testing
 
+Run Molecule scenarios from the role directory when a scenario is available.
 
-**Description**: Installs RHACS (Advanced Cluster Security)
+This role runs tasks such as:
 
-**Structure:**
+- Validate required ACS vars
+- Ensure ACS operand namespace exists
+- Delete Central CR (clean reinstall)
+- Delete Central route (clean reinstall)
+
+```bash
+cd roles/ocp_acs
+molecule test
 ```
-advanced-cluster-security/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/main.yml
-├── templates/
-├── handlers/main.yml
-├── files/
-├── tests/
-│   ├── inventory
-│   └── test.yml
-└── README.md
+
+## 📁 Role Structure
+
+```text
+roles/ocp_acs/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

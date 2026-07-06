@@ -1,92 +1,58 @@
-# Role: ocp_nfs_storage
+# Role: infra.ado.ocp_nfs_storage
 
-Configure NFS-backed storage resources for OpenShift.
+Ocp Nfs Storage automation role. Primary tasks include: Ensure Helm repo for csi-driver-nfs is present; Install csi-driver-nfs with Helm; Assign privileged SCC to csi-nfs-node-sa.
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- OpenShift/Kubernetes API access.
-- Any manifest files or external resources referenced by the role must exist before execution.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `state` | Desired state for the NFS storage workflow. |
-| `name_space` | Namespace used by the storage resources when applicable. |
-| `storage_class_name` | Storage class name when creating NFS-backed storage objects. |
-| `nfs_server / nfs_path` | Typical caller-provided NFS endpoint values for the backing export. |
+|----------|-------------|
+| `ocp_nfs_storage_state` | Desired state used by role tasks when supported. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_nfs_storage
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_nfs_storage
-      vars:
-        state: present
-        name_space: openshift-storage
-        storage_class_name: nfs-storage
-        nfs_server: nfs.example.com
-        nfs_path: /exports/ocp
+    - role: infra.ado.ocp_nfs_storage
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Use this README format as the role contract even if the implementation is still evolving.
-- Keep the example variables aligned with the live task files as the role grows.
+This role runs tasks such as:
 
----
+- Ensure Helm repo for csi-driver-nfs is present
+- Install csi-driver-nfs with Helm
+- Assign privileged SCC to csi-nfs-node-sa
+- Assign privileged SCC to csi-nfs-controller-sa
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
+```bash
+cd roles/ocp_nfs_storage
+molecule test
 ```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
-```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_nfs_storage/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/ocp_nfs_storage/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

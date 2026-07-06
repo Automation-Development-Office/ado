@@ -1,18 +1,63 @@
-# Role: bootstrap_resolve_component
+# Role: infra.ado.bootstrap_resolve_component
 
-Resolve a selected bootstrap component into the **effective merged component configuration** used by the bootstrap framework.
+Resolve one bootstrap component into the effective variable set used by its
+generated playbook.
 
-This role is the framework's **component registry resolver**. It takes a requested component (for example `openshift`, `rhel`, `patching`, or an application component) and merges:
+## Role Author
 
-- framework defaults
-- component registry defaults
-- environment-specific overrides
-- aliases / normalized names where needed
+Automation Development Office
 
+## ✅ Role Requirements
 
-## Notes
+- Ansible Core
+- `component` set to a key in the bootstrap component registry
+- Optional `components_env` and `components_override` dictionaries for
+  environment-specific or runtime overrides
+- Component registry data from `files/components_defaults.yml`
 
-This is the first draft README generated from the bootstrap design/work we discussed in chat.
-Before committing, I recommend one cleanup pass to align variable tables and examples with the current
-`defaults/main.yml` and `tasks/main.yml` in the role directory.
+## 📦 Role Variables
 
+| Variable | Description |
+|----------|-------------|
+| `component` | Component key to resolve from the registry. |
+| `components_env` | Environment-level component overrides merged after registry defaults. |
+| `components_override` | Runtime overrides merged after `components_env`. |
+| `bootstrap_resolve_component_debug` | Dumps the registry, override, and selected values when true. |
+| `bootstrap_resolve_component_selected` | Fact containing the merged component configuration. |
+| `bootstrap_resolve_component_aliases` | Alias map loaded from the component registry. |
+
+## 🚀 Role Usage
+
+```yaml
+- name: Resolve Grafana bootstrap component
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: grafana
+    components_env:
+      grafana:
+        namespace: grafana
+  roles:
+    - role: infra.ado.bootstrap_resolve_component
+```
+
+## 🧪 Role Molecule Testing
+
+Validate with a known component name and assert that expected component facts
+are exported without clobbering higher-precedence variables.
+
+```bash
+ansible-lint --offline roles/bootstrap_resolve_component
+yamllint roles/bootstrap_resolve_component/tasks
+```
+
+## 📁 Role Structure
+
+```text
+roles/bootstrap_resolve_component/
+  defaults/main.yml
+  files/components_defaults.yml
+  tasks/main.yml
+  vars/main.yml
+  README.md
+```

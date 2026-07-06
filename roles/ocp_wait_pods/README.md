@@ -1,110 +1,57 @@
-# Role: ado.openshift.wait_for_pods_running
+# Role: infra.ado.ocp_wait_pods
 
-Wait until matching Pods are **Running** and **Ready** in an OpenShift namespace.
+Ocp Wait Pods automation role. Primary tasks include: Importing namespace; Set default values for pod wait retries and delay (if not set); Wait for all pods in namespace to be running.
 
-- Read-only: polls the API, does not mutate pod specs
-- Works with kubeconfig **or** host+token authentication
-- Designed for CI: clear success/fail outcomes with timeout
+## Role Author
 
----
+Automation Development Office
 
-## Requirements
+## ✅ Role Requirements
 
-- OpenShift/Kubernetes API access (via kubeconfig or env vars)
-- `kubernetes.core` collection installed
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
----
-
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `name_space` | Namespace to watch. **Required.** |
-| `validate_certs` | TLS verification for API calls (`true` with a trusted CA; set `false` for lab/self-signed). |
+|----------|-------------|
+| `ocp_wait_pods_state` | Desired state used by role tasks when supported. |
 
-### Auth via environment (optional)
+## 🚀 Role Usage
 
-| Variable | Description |
-|---------|-------------|
-| `KUBECONFIG` | Path to kubeconfig (alternative to host+token). |
-| `K8S_AUTH_HOST` | API server URL, e.g. `https://api.cluster:6443`. |
-| `K8S_AUTH_API_KEY` | Bearer token for the API. |
-| `K8S_AUTH_VERIFY_SSL` | `true`/`false` TLS verify toggle. |
-| `K8S_AUTH_SSL_CA_CERT` | Path to CA bundle file when verifying TLS. |
-
----
-
-## Examples
-
-### Wait for two pods with label `app=hello` to be Ready
 ```yaml
-- hosts: localhost
+- name: Run ocp_wait_pods
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift.wait_for_pods_running
-      vars:
-        name_space: my-app
-        validate_certs: true
-
+    - role: infra.ado.ocp_wait_pods
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Uses `kubernetes.core.k8s_info` to poll matching Pods until criteria are met.
-- Success when:
-  - The **count** of matched pods equals `expected_pods` (if set), **and**
-  - Every container in each pod reports `Ready=true`.
-- If `expected_pods` is **not** set, the role requires a **non-empty** matched set, and all containers Ready.
-- Fails on timeout or when no pods match.
-- Emits **no changes** (idempotent "wait").
+This role runs tasks such as:
 
----
+- Importing namespace
+- Set default values for pod wait retries and delay (if not set)
+- Wait for all pods in namespace to be running
 
-## Molecule Testing
-
-A default Molecule scenario is provided that:
+```bash
+cd roles/ocp_wait_pods
+molecule test
 ```
-dependency → lint → syntax → create → converge → idempotence → verify → destroy
-```
-- Creates a fixture Deployment (`app=hello`, 2 replicas) in a test namespace.
-- Runs this role to wait for the pods to become Ready.
-- Verifies with `k8s_info`, then cleans up the namespace.
 
-> If your cluster uses a self-signed cert, provide a CA file and keep `validate_certs: true`, or temporarily set `K8S_AUTH_VERIFY_SSL=false` for tests.
-
----
-
-## Author
-- Chad Elliott (<chelliot@redhat.com>)
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-└─ wait_for_pods_running/
-   ├─ README.md                 # ← this file
-   ├─ defaults/
-   │  └─ main.yml
-   ├─ tasks/
-   │  ├─ main.yml
-   │  └─ wait_for_pods.yml
-   ├─ molecule/
-   │  └─ default/
-   │     ├─ converge.yml
-   │     ├─ destroy.yml
-   │     ├─ molecule.yml
-   │     ├─ verify.yml
-   │     ├─ README.md
-   │     └─ TEST.md
-   ├─ vars/
-   │  └─ main.yml               # (optional)
-   ├─ handlers/
-   │  └─ main.yml               # (optional)
-   └─ tests/
-      ├─ inventory
-      └─ test.yml
+roles/ocp_wait_pods/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

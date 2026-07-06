@@ -1,73 +1,58 @@
 # Role: infra.ado.grafana_upload_dashboards
 
-Upload Grafana dashboard JSON files generated from templates and set their
-datasource value before import.
+Grafana Upload Dashboards automation role. Primary tasks include: Render dashboard templates to /tmp; Replace datasource with Openshift in rendered JSON; Import Grafana dashboard.
 
 ## Role Author
 
-Automation Development Office.
+Automation Development Office
 
 ## ✅ Role Requirements
 
-- `grafana.grafana` collection for `grafana.grafana.dashboard`.
-- Reachable Grafana endpoint and valid API key credentials.
-- Dashboard template files referenced by `grafana_dashboards`.
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
 ## 📦 Role Variables
 
-Variables used by the role tasks:
-
-- `state` (`present` expected to run upload tasks).
-- `grafana_dashboards` (list of items with at least `name` and `template`).
-- `grafana_datasource` (replacement datasource value in rendered JSON).
-- `grafana_hostname` (Grafana host, scheme is set in the task as `https://`).
-- `grafana_api_key` (Grafana API key used by `grafana.grafana.dashboard`).
-
-Notes:
-
-- `defaults/main.yml` does not currently define role defaults.
-- Role execution is gated in `tasks/main.yml` by `when: state == "present"`.
-- `grafana_folder` is no longer used by this role after the collection migration.
+| Variable | Description |
+|----------|-------------|
+| `grafana_upload_dashboards_state` | Desired state used by role tasks when supported. |
 
 ## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run grafana_upload_dashboards
+  hosts: localhost
   gather_facts: false
   roles:
     - role: infra.ado.grafana_upload_dashboards
-      vars:
-        state: present
-        grafana_hostname: grafana.example.com
-        grafana_api_key: "{{ vault_grafana_api_key }}"
-        grafana_datasource: Openshift
-        grafana_dashboards:
-          - name: cluster-overview
-            template: dashboards/cluster-overview.json.j2
 ```
 
 ## 🧪 Role Molecule Testing
 
-There is no dedicated extension-level Molecule scenario for this role in the
-current repository layout.
+Run Molecule scenarios from the role directory when a scenario is available.
+
+This role runs tasks such as:
+
+- Render dashboard templates to /tmp
+- Replace datasource with Openshift in rendered JSON
+- Import Grafana dashboard
+- Setup upload dashboards
+
+```bash
+cd roles/grafana_upload_dashboards
+molecule test
+```
 
 ## 📁 Role Structure
 
 ```text
-grafana_upload_dashboards/
-├── defaults/
-│   └── main.yml
-├── handlers/
-│   └── main.yml
-├── meta/
-│   └── main.yml
-├── README.md
-├── tasks/
-│   ├── main.yml
-│   └── grafana-upload-dashboards.yml
-├── tests/
-│   ├── inventory
-│   └── test.yml
-└── vars/
-    └── main.yml
+roles/grafana_upload_dashboards/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

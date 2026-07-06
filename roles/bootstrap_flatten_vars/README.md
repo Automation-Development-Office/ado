@@ -1,17 +1,57 @@
-# Role: bootstrap_flatten_vars
+# Role: infra.ado.bootstrap_flatten_vars
 
-Flatten a nested bootstrap component configuration structure into a simpler variable map that downstream bootstrap roles can consume consistently.
+Flatten a named dictionary into top-level Ansible facts for bootstrap playbooks
+that expect direct variable names.
 
-This role is a **data-shaping / normalization role** used by the bootstrap framework. It is not responsible for generating files or applying AAP resources directly. Instead, it takes structured component input and produces a normalized variable set for later roles such as:
+## Role Author
 
-- `bootstrap_generate_env_vars`
-- `bootstrap_generate_playbook_repo`
-- `bootstrap_controller`
+Automation Development Office
 
+## ✅ Role Requirements
 
-## Notes
+- Ansible Core
+- A dictionary variable available in the current play context
+- `flatten_var_root` set to the name of the dictionary to export
 
-This is the first draft README generated from the bootstrap design/work we discussed in chat.
-Before committing, I recommend one cleanup pass to align variable tables and examples with the current
-`defaults/main.yml` and `tasks/main.yml` in the role directory.
+## 📦 Role Variables
 
+| Variable | Description |
+|----------|-------------|
+| `flatten_var_root` | Name of the dictionary variable to flatten into facts. |
+| `bootstrap_flatten_vars_component` | Optional component name used for bootstrap context. |
+| `component` | Fallback component name when `bootstrap_flatten_vars_component` is not set. |
+
+## 🚀 Role Usage
+
+```yaml
+- name: Flatten component defaults
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component_defaults:
+      namespace: grafana
+      state: present
+    flatten_var_root: component_defaults
+  roles:
+    - role: infra.ado.bootstrap_flatten_vars
+```
+
+## 🧪 Role Molecule Testing
+
+Validate this role with a simple local play that provides `flatten_var_root` and
+asserts the exported facts.
+
+```bash
+ansible-lint --offline roles/bootstrap_flatten_vars
+yamllint roles/bootstrap_flatten_vars/tasks roles/bootstrap_flatten_vars/defaults
+```
+
+## 📁 Role Structure
+
+```text
+roles/bootstrap_flatten_vars/
+  defaults/main.yml
+  tasks/main.yml
+  vars/main.yml
+  README.md
+```
