@@ -1,90 +1,56 @@
---
+# Role: infra.ado.ocp_data_foundation
 
-## `Openshift Data Foundation Operator Role`
-**Description**: Configures Openshift Data Foundation initial storage cluster
+Ocp Data Foundation automation role. Primary tasks include: Openshift Data Foundation; Create Storage Cluster.
 
-**Example Usage:**
+## Role Author
+
+Automation Development Office
+
+## ✅ Role Requirements
+
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
+
+## 📦 Role Variables
+
+| Variable | Description |
+|----------|-------------|
+| `ocp_data_foundation_state` | Desired state used by role tasks when supported. |
+
+## 🚀 Role Usage
 
 ```yaml
-- name: Execute the Openshift Data Foundation role
+- name: Run ocp_data_foundation
   hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift.ocp_data_foundation
-  vars:
-    storage_cluster_name: ben-ocs
-    resource_profile: lean
-    storage_system_size: ".5Ti"
-    storage_class: "gp3-csi"
-    nfs_enabled: false
-
+    - role: infra.ado.ocp_data_foundation
 ```
 
-**Openshift Data Foundation must be installed, an example install playbook is as follows:**
+## 🧪 Role Molecule Testing
 
-> To run this playbook, you will need access to the Openshift ADO collections
+Run Molecule scenarios from the role directory when a scenario is available.
 
-```yaml
----
-- name: Deploy Openshift Data Foundation Operator
-  hosts: localhost
-  gather_facts: false
-  collections: ado:openshift
+This role runs tasks such as:
 
-  vars_files:
-     - vault.yml
+- Openshift Data Foundation
+- Create Storage Cluster
 
-  vars:
-    # namespace vars
-    name_space: openshift-storage
-    all_namespaces_install: false
-    state: present
-    # operator openshift_tools_operator_groups
-    openshift_tools_operator_groups: openshift-storage
-    # subscript_operator
-    operator_name: odf-operator
-    operator_channel: stable-4.19
-    operator_source: redhat-operators
-    operator_source_namespace: openshift-marketplace
-
-  roles:
-    - role: ado.openshfit.namespace
-    - role: ado.openshift.openshift_tools_operator_groups
-    - role: ado.openshift.subscription_operator
-    - role: ado.openshift.wait_for_pods_running
+```bash
+cd roles/ocp_data_foundation
+molecule test
 ```
 
-**Required Variables**
-```
-storage_cluster_name: "string" ## This is the intended name for the storage cluster you are creating, note this will create similarly named storage classes.
-resource_profile: "lean/balanced/performance" ## This is the level of performance for the Openshift Data Foundation cluster, guidelines are as follows:
-    Lean: This profile is designed for resource-constrained environments. It minimizes resource consumption by allocating fewer CPUs and less memory than the other profiles. It is suitable when resources are lower than recommended specifications.
-    Example: 24 CPU, 72 GiB RAM (these values can vary slightly depending on the ODF version and specific deployment).
-    Balanced (Default): This profile provides a balance between resource consumption and performance. It is the default
-    choice and is recommended when the recommended resources are available, offering a good balance for diverse workloads.
-    Example: 30 CPU, 72 GiB RAM.
-    Performance: This profile is tailored for high-performance environments with ample resources. It allocates more memory and CPUs to ensure optimal execution of demanding workloads, providing the best possible performance.
-    Example: 45 CPU, 96 GiB RAM.
-storage_system_size: ".5Ti/1Ti/2Ti..." ## This is the size that you desire for the end storage state.
-## VERY IMPORTANT NOTE REGARDING storage_system_size
-## The number defined by storage_system_size is the amount of storage allotted to each node in the storage cluster. Thus if you pick .5Ti, and you have 3 nodes, you are actually going to provision .5Ti on each of the 3 nodes, and will total 1.5 Ti across the whole cluster. This is to ensure data replication and reliability.
-storage_class: "storage class name" ## This should be an existing storage class for your cluster, I have been using gp3-csi on AWS
-nfs_enabled: true/false ## This is specifying whether an NFS storage class should be provisioned.
-```
+## 📁 Role Structure
 
-**Structure:**
-```
-ocp_data_foundation/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/
-│   ├── main.yml
-│   ├── storage_cluster.yml
-├── templates/
-├── handlers/main.yml
-├── files/
-├── meta/main.yaml
-├── tests/
-│   ├── inventory
-└── README.md
+```text
+roles/ocp_data_foundation/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

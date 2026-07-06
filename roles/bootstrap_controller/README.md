@@ -1,21 +1,72 @@
-# Role: bootstrap_controller
+# Role: infra.ado.bootstrap_controller
 
-Generate and optionally apply **AAP / Controller bootstrap configuration** for the ADO bootstrap framework.
+Generate and apply Ansible Automation Platform controller objects for an ADO
+bootstrap repository.
 
-This role is the orchestration layer that ties together the bootstrap collection. It can:
+## Role Author
 
-- generate environment variable files
-- generate a bootstrap playbook repository
-- generate AAP controller configuration artifacts
-- load generated job template / workflow YAML
-- apply the generated AAP configuration to AAP 2.4 / 2.5+ environments
+Automation Development Office
 
-The role is designed to be used by the bootstrap CLI / UI scaffolding workflow and is the top-level execution role for end-to-end bootstrap generation.
+## ✅ Role Requirements
 
+- Ansible Core
+- A reachable AAP controller or automation controller endpoint
+- Controller credentials supplied through environment variables, inventory, or
+  generated group variables
+- Controller collections listed in `collections/requirements.yml`
+- Generated controller configuration files under `configs/controller`,
+  `configs/job_templates`, and `configs/workflows`
 
-## Notes
+## 📦 Role Variables
 
-This is the first draft README generated from the bootstrap design/work we discussed in chat.
-Before committing, I recommend one cleanup pass to align variable tables and examples with the current
-`defaults/main.yml` and `tasks/main.yml` in the role directory.
+| Variable | Description |
+|----------|-------------|
+| `bootstrap_controller_enabled_objects` | Ordered list of controller object groups to manage. |
+| `bootstrap_controller_generate_job_templates_from_manifest` | Enables rendering job template definitions from bundled bootstrap manifests. |
+| `bootstrap_controller_organization` | Default organization used for generated controller objects. |
+| `bootstrap_controller_inventory_name` | Default inventory assigned to generated job templates. |
+| `bootstrap_controller_project_name` | Default project assigned to generated job templates. |
+| `bootstrap_controller_execution_environment_name` | Default execution environment assigned to generated job templates. |
+| `bootstrap_controller_controller_organizations` | Organization definitions to create or update. |
+| `bootstrap_controller_controller_credentials` | Credential definitions to create or update. |
+| `bootstrap_controller_controller_projects` | Project definitions to create or update. |
+| `bootstrap_controller_controller_inventories` | Inventory definitions to create or update. |
+| `bootstrap_controller_templates` | Job template definitions loaded from generated YAML. |
+| `bootstrap_controller_workflow_job_templates` | Workflow job template definitions loaded from generated YAML. |
 
+## 🚀 Role Usage
+
+```yaml
+- name: Apply generated ADO controller configuration
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: infra.ado.bootstrap_controller
+      vars:
+        bootstrap_controller_organization: ado-lab
+        bootstrap_controller_project_name: ado-project
+        bootstrap_controller_inventory_name: ado-inventory
+```
+
+## 🧪 Role Molecule Testing
+
+This role is normally validated through the bootstrap scaffolding playbook and
+targeted lint checks because it talks to a live AAP controller.
+
+```bash
+ansible-lint --offline roles/bootstrap_controller
+yamllint roles/bootstrap_controller/tasks roles/bootstrap_controller/defaults
+```
+
+## 📁 Role Structure
+
+```text
+roles/bootstrap_controller/
+  defaults/main.yml
+  files/job_templates/
+  files/workflows/
+  tasks/
+  templates/workflows/
+  vars/main.yml
+  README.md
+```

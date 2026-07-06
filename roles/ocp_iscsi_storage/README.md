@@ -1,91 +1,58 @@
-# Role: ocp_iscsi_storage
+# Role: infra.ado.ocp_iscsi_storage
 
-Configure Synology-backed iSCSI storage resources when no default storage class is already present.
+Ocp Iscsi Storage automation role. Primary tasks include: Get all storage classes; Set fact if default storage class exists; Create synology-csi namespace.
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- Cluster access through `community.kubernetes` modules.
-- The files referenced by `synology_dir` and `deploy_dir` must exist on the control node.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `kubeconfig_tmp` | Kubeconfig path used by the role. Required. |
-| `synology_dir` | Directory containing Synology storage manifests and `client-info.yml`. Required. |
-| `deploy_dir` | Directory containing CSI deployment manifests. Required. |
-| `state` | This role currently implements the create path for storage resources. |
+|----------|-------------|
+| `ocp_iscsi_storage_state` | Desired state used by role tasks when supported. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_iscsi_storage
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_iscsi_storage
-      vars:
-        kubeconfig_tmp: /tmp/kubeconfig
-        synology_dir: /opt/synology
-        deploy_dir: /opt/synology/deploy
-        state: present
+    - role: infra.ado.ocp_iscsi_storage
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Checks for an existing default storage class before applying Synology manifests.
-- Applies namespace, secret, driver, and snapshot manifests when provisioning is needed.
+This role runs tasks such as:
 
----
+- Get all storage classes
+- Set fact if default storage class exists
+- Create synology-csi namespace
+- Create client-info-secret from file
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
+```bash
+cd roles/ocp_iscsi_storage
+molecule test
 ```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
-```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_iscsi_storage/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/ocp_iscsi_storage/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

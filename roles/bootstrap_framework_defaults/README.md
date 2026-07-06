@@ -1,18 +1,55 @@
-# Role: bootstrap_framework_defaults
+# Role: infra.ado.bootstrap_framework_defaults
 
-Load and expose the **default bootstrap framework model** used by the ADO bootstrap collection.
+Load shared bootstrap framework defaults before component-specific roles resolve
+their effective configuration.
 
-This role provides the canonical defaults for:
+## Role Author
 
-- component groups
-- component-to-application expansion
-- component option defaults
-- framework-level default values used by bootstrap generation
+Automation Development Office
 
+## ✅ Role Requirements
 
-## Notes
+- Ansible Core
+- Bootstrap playbooks that use the ADO component default and override model
+- Inventory or extra vars that define the target environment
 
-This is the first draft README generated from the bootstrap design/work we discussed in chat.
-Before committing, I recommend one cleanup pass to align variable tables and examples with the current
-`defaults/main.yml` and `tasks/main.yml` in the role directory.
+## 📦 Role Variables
 
+| Variable | Description |
+|----------|-------------|
+| `env` | Target environment name, such as `dev`, `test`, or `prod`. |
+| `component` | Optional component being prepared by the bootstrap framework. |
+| `components_env` | Environment-specific component override mapping. |
+| `components_override` | Highest-precedence component override mapping. |
+
+## 🚀 Role Usage
+
+```yaml
+- name: Load bootstrap framework defaults
+  hosts: localhost
+  gather_facts: false
+  vars:
+    env: prod
+  roles:
+    - role: infra.ado.bootstrap_framework_defaults
+```
+
+## 🧪 Role Molecule Testing
+
+This role is checked with bootstrap role linting and playbook-level bootstrap
+tests.
+
+```bash
+ansible-lint --offline roles/bootstrap_framework_defaults
+yamllint roles/bootstrap_framework_defaults/tasks
+```
+
+## 📁 Role Structure
+
+```text
+roles/bootstrap_framework_defaults/
+  defaults/main.yml
+  tasks/main.yml
+  vars/main.yml
+  README.md
+```

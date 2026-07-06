@@ -1,81 +1,58 @@
 # Role: infra.ado.rhbk_manage_federation
 
-Create and remove LDAP federation providers in Red Hat build of Keycloak.
+Rhbk Manage Federation automation role. Primary tasks include: Create RHBK federation; Delete RHBK federation; Ensure LDAP federation provider is absent.
 
 ## Role Author
 
-Automation Development Office.
+Automation Development Office
 
 ## ✅ Role Requirements
 
-- Reachable Red Hat build of Keycloak endpoint.
-- Admin credentials with permission to manage realm federation components.
-- `redhat.rhbk` collection for `redhat.rhbk.keycloak_user_federation`.
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
 ## 📦 Role Variables
 
-Required runtime variables:
-
-- `state` (`present` to create federation, `absent` to remove federation).
-- `rhbk_host` (RHBK host used by federation module calls).
-- `rhbk_admin_user` (admin username).
-- `rhbk_admin_password` (admin password).
-- `rhbk_realm` (target realm name).
-- `rhbk_verify_ssl` (`true`/`false` SSL validation flag).
-
-Create path variables (`state: present`):
-
-- `rhbk_federation_name` (name of the LDAP federation provider to ensure).
-- `ldap_config` (LDAP provider configuration dictionary).
-
-Delete path behavior (`state: absent`):
-
-- Removes the LDAP federation provider named by `rhbk_federation_name`.
-- Uses the same `redhat.rhbk.keycloak_user_federation` module flow as create path.
-
-Notes:
-
-- `defaults/main.yml` and `vars/main.yml` currently do not define role defaults.
+| Variable | Description |
+|----------|-------------|
+| `rhbk_manage_federation_state` | Desired state used by role tasks when supported. |
 
 ## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run rhbk_manage_federation
+  hosts: localhost
   gather_facts: false
   roles:
     - role: infra.ado.rhbk_manage_federation
-      vars:
-        state: present
-        rhbk_host: rhbk.example.com
-        rhbk_admin_user: admin
-        rhbk_admin_password: "{{ vault_rhbk_admin_password }}"
-        rhbk_realm: myrealm
-        rhbk_verify_ssl: false
-        rhbk_federation_name: IDM
-        ldap_config:
-          enabled: true
 ```
 
 ## 🧪 Role Molecule Testing
 
-There is no dedicated extension-level Molecule scenario for this role in the
-current repository layout.
+Run Molecule scenarios from the role directory when a scenario is available.
+
+This role runs tasks such as:
+
+- Create RHBK federation
+- Delete RHBK federation
+- Ensure LDAP federation provider is absent
+- Ensure LDAP federation provider exists
+
+```bash
+cd roles/rhbk_manage_federation
+molecule test
+```
 
 ## 📁 Role Structure
 
 ```text
-rhbk_manage_federation/
-├── defaults/
-│   └── main.yml
-├── handlers/
-│   └── main.yml
-├── meta/
-│   └── main.yml
-├── README.md
-├── tasks/
-│   ├── main.yml
-│   ├── rhbk_manage_ldap_federation.yml
-│   └── rhbk_delete_ldap_federation.yml
-└── vars/
-    └── main.yml
+roles/rhbk_manage_federation/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

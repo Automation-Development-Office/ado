@@ -1,35 +1,58 @@
----
+# Role: infra.ado.install_aap
 
-## `cert-manager`
+Install Aap automation role. Primary tasks include: Assert manifest path is provided; Upload subscription manifest to AAP Controller; Wait for controller API to be reachable.
 
-**Example Usage:**
+## Role Author
+
+Automation Development Office
+
+## ✅ Role Requirements
+
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
+
+## 📦 Role Variables
+
+| Variable | Description |
+|----------|-------------|
+| `install_aap_state` | Desired state used by role tasks when supported. |
+
+## 🚀 Role Usage
 
 ```yaml
-- name: Execute the cert-manager role
+- name: Run install_aap
   hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift_infrastructure_automation.cert-manager
-      vars:
-        example_variable: example_value
+    - role: infra.ado.install_aap
 ```
 
-> Replace `example_variable` and `example_value` with the appropriate parameters defined in `defaults/main.yml` for the role.
+## 🧪 Role Molecule Testing
 
+Run Molecule scenarios from the role directory when a scenario is available.
 
-**Description**: Installs cert-manager and integrates with external CA
+This role runs tasks such as:
 
-**Structure:**
+- Assert manifest path is provided
+- Upload subscription manifest to AAP Controller
+- Wait for controller API to be reachable
+- Create Automation Hub credential (token)
+
+```bash
+cd roles/install_aap
+molecule test
 ```
-cert-manager/
-├── defaults/main.yml
-├── vars/main.yml
-├── tasks/main.yml
-├── templates/
-├── handlers/main.yml
-├── files/
-├── tests/
-│   ├── inventory
-│   └── test.yml
-└── README.md
+
+## 📁 Role Structure
+
+```text
+roles/install_aap/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

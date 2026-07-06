@@ -1,90 +1,62 @@
-# Role: ocp_discover_routes
+# Role: infra.ado.ocp_discover_routes
 
-Discover OpenShift routes and expose the resulting route data for downstream automation.
+Ocp Discover Routes automation role. Primary tasks include: Discover Routes | Gather all routes in cluster; Discover Routes | Start empty candidate list; Discover Routes | Append candidates (primary domain, not already -alt).
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- OpenShift/Kubernetes API access.
-- `kubernetes.core` collection installed.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `name_space` | Namespace to inspect for route resources. |
-| `discover_routes_label_selectors` | Optional label selectors used to filter routes. |
-| `discover_routes_name_filter` | Optional route name filter used by the role. |
-| `discover_routes_output_var` | Optional variable name used to store discovered route data. |
+|----------|-------------|
+| `ocp_discover_routes_primary_suffix` | Role input variable used to configure automation behavior. |
+| `ocp_discover_routes_alt_suffix` | Role input variable used to configure automation behavior. |
+| `ocp_discover_routes_filter_primary_suffix` | Role input variable used to configure automation behavior. |
+| `ocp_discover_routes_exclude_namespaces` | OpenShift namespace value used by this role. |
+| `ocp_discover_routes_alt_exclude_name_regex` | Resource name used by this role. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_discover_routes
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_discover_routes
-      vars:
-        name_space: grafana
-        discover_routes_label_selectors:
-          - app.kubernetes.io/name=grafana
+    - role: infra.ado.ocp_discover_routes
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Use this role to build a route inventory for later tasks such as alternate-route management.
-- Keep the README aligned with any future filters added to the route discovery workflow.
+This role runs tasks such as:
 
----
+- Discover Routes | Gather all routes in cluster
+- Discover Routes | Start empty candidate list
+- Discover Routes | Append candidates (primary domain, not already -alt)
+- Discover Routes | Print summary
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
+```bash
+cd roles/ocp_discover_routes
+molecule test
 ```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
-```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_discover_routes/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/ocp_discover_routes/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

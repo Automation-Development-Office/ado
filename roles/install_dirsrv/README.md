@@ -1,97 +1,58 @@
-# Role: ocp_dirsrv
+# Role: infra.ado.install_dirsrv
 
-Deploy a 389 Directory Server stack including service account, services, StatefulSet, and optional certificate/bootstrap flows.
+Install Dirsrv automation role. Primary tasks include: DirSrv Normalize inputs (component vars + vault); DirSrv Assert required component vars; DirSrv Guard bootstrap inputs (vault).
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- OpenShift/Kubernetes API access.
-- `kubernetes.core` collection installed.
-- Vault values for the `dirsrv` component must be available when bootstrap or replication is enabled.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `name_space` | Target namespace for the directory server deployment. |
-| `statefulset_name` | StatefulSet name for the deployment. Required. |
-| `storage_class_name` | Storage class used by the PVC template. Required. |
-| `sa_name / scc_name` | Service account and SCC binding inputs. |
-| `dm_secret_name / dm_secret_key` | Secret name and key used for the Directory Manager password. |
-| `enable_certificate / enable_bootstrap / enable_replication` | Feature toggles for optional certificate, bootstrap, and replication workflows. |
+|----------|-------------|
+| `install_dirsrv_state` | Desired state used by role tasks when supported. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run install_dirsrv
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_dirsrv
-      vars:
-        name_space: dirsrv
-        statefulset_name: dirsrv
-        storage_class_name: gp3-csi
-        sa_name: dirsrv
-        scc_name: anyuid
-        dm_secret_name: dirsrv-admin
-        dm_secret_key: password
+    - role: infra.ado.install_dirsrv
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Builds several derived facts from component defaults and vault-provided `dirsrv` values.
-- Creates supporting service, secret, and StatefulSet resources as part of one role execution.
+This role runs tasks such as:
 
----
+- DirSrv Normalize inputs (component vars + vault)
+- DirSrv Assert required component vars
+- DirSrv Guard bootstrap inputs (vault)
+- Dirsrv Guard replication inputs (vault)
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
+```bash
+cd roles/install_dirsrv
+molecule test
 ```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
-```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_dirsrv/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/install_dirsrv/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

@@ -1,95 +1,58 @@
-# Role: ocp_component_route
+# Role: infra.ado.ocp_component_route
 
-Ensure a component route and optional alternate route match the requested service, host, and TLS settings.
+Ocp Component Route automation role. Primary tasks include: Validate required framework vars; Resolve component hostname var names; Resolve primary route host from flattened vars.
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- OpenShift/Kubernetes API access.
-- `kubernetes.core` collection installed.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `ensure_component_route_namespace` | Namespace that owns the route resources. |
-| `ensure_component_route_route_name` | Primary route name. |
-| `ensure_component_route_route_host` | Primary route host name. |
-| `ensure_component_route_route_name_alt / ensure_component_route_route_host_alt` | Optional alternate route name and host values. |
-| `backend_svc / backend_port` | Service name and target port for the route backend. |
+|----------|-------------|
+| `ocp_component_route_state` | Desired state used by role tasks when supported. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_component_route
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_component_route
-      vars:
-        ensure_component_route_namespace: grafana
-        ensure_component_route_route_name: grafana
-        ensure_component_route_route_host: grafana.apps.example.com
-        ensure_component_route_route_name_alt: grafana-alt
-        ensure_component_route_route_host_alt: grafana-alt.apps.example.com
-        backend_svc: grafana-service
-        backend_port: https
+    - role: infra.ado.ocp_component_route
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Compares the live route spec to the requested values and replaces incorrect routes when necessary.
-- Can manage both a primary route and an alternate route in a single run.
+This role runs tasks such as:
 
----
+- Validate required framework vars
+- Resolve component hostname var names
+- Resolve primary route host from flattened vars
+- Resolve alt route host (only if app_domain_alt is set)
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
+```bash
+cd roles/ocp_component_route
+molecule test
 ```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
-```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_component_route/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/ocp_component_route/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

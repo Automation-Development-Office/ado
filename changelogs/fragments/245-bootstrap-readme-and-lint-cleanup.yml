@@ -1,0 +1,9 @@
+---
+doc_changes:
+  - >-
+    bootstrap_resolve_component - Replaced a smart quote in the role README so
+    Ansible sanity ``no-smart-quotes`` passes.
+  - >-
+    roles - Normalized role README files to match the repository role README
+    format template and replaced generated placeholder text with role-specific
+    summaries, variables, usage, and test notes.

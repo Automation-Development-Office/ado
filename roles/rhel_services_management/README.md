@@ -1,139 +1,58 @@
 # Role: infra.ado.rhel_services_management
 
-Manage the state (start/stop/restart/reload) and enable/disable settings of one or
-more **system services** in a consistent, idempotent way.
+Rhel Services Management automation role. Primary tasks include: Read RHEL major version (raw); Parse major version from raw output; Choose path booleans from major.
 
-- Accepts a list of `rhel_services_management_service_names` and a target `rhel_services_management_service_state`.
-- **Smart unit resolution:** accepts names with or without the `.service` suffix.
-- Optional `rhel_services_management_service_enabled` toggles enablement state.
-- Skips cleanly when a given service isn't present on the host.
+## Role Author
 
----
+Automation Development Office
 
-## Requirements
+## ✅ Role Requirements
 
-- Target hosts reachable by Ansible (privileged account or `become: true` as needed).
-- **Systemd-based hosts** are expected (facts are derived from systemd inventory).
-- **Python ≥ 3.7 on managed hosts**. *Note:* Python **3.6 and older** cannot use `service_facts`, so this role will no‑op on those hosts.
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
----
-
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-| --- | --- |
-| `rhel_services_management_service_names` | **Required.** A list of service names to manage (with or without `.service`). |
-| `rhel_services_management_service_state` | **Required.** Desired state for each service. Common values: `started`, `stopped`, `restarted`, `reloaded`. |
-| `rhel_services_management_service_enabled` | Optional boolean. If set, enables (`true`) or disables (`false`) each service. |
+|----------|-------------|
+| `rhel_services_management_state` | Desired state used by role tasks when supported. |
 
-> The role gathers `service_facts` and manages only services present in `ansible_facts.services`.
-> Names without `.service` are automatically mapped to their unit (e.g., `sshd` → `sshd.service`).
-
----
-
-## Examples
-
-### Start and enable multiple services
+## 🚀 Role Usage
 
 ```yaml
-- hosts: all
+- name: Run rhel_services_management
+  hosts: localhost
   gather_facts: false
-  vars:
-    rhel_services_management_service_names:
-      - sshd
-      - crond
-    rhel_services_management_service_state: started
-    rhel_services_management_service_enabled: true
   roles:
     - role: infra.ado.rhel_services_management
 ```
 
-### Stop and disable a service
+## 🧪 Role Molecule Testing
 
-```yaml
-- hosts: app_servers
-  gather_facts: false
-  vars:
-    rhel_services_management_service_names:
-      - httpd
-    rhel_services_management_service_state: stopped
-    rhel_services_management_service_enabled: false
-  roles:
-    - role: infra.ado.rhel_services_management
+Run Molecule scenarios from the role directory when a scenario is available.
+
+This role runs tasks such as:
+
+- Read RHEL major version (raw)
+- Parse major version from raw output
+- Choose path booleans from major
+- Gather service facts (RHEL 9/10)
+
+```bash
+cd roles/rhel_services_management
+molecule test
 ```
 
-### Restart services without changing enablement
-
-```yaml
-- hosts: db_servers
-  gather_facts: false
-  vars:
-    rhel_services_management_service_names:
-      - tuned
-      - firewalld
-    rhel_services_management_service_state: restarted
-  roles:
-    - role: infra.ado.rhel_services_management
-```
-
----
-
-## Behavior Notes
-
-- Uses `ansible.builtin.service_facts` to discover available services.
-- For each name in `rhel_services_management_service_names`, the role manages it **only if** the service (or `${name}.service`) exists in `ansible_facts.services`.
-- On non‑systemd hosts (or where `service_facts` is unavailable), the role performs no changes.
-- Operations are idempotent; repeated runs won't introduce changes unless service state drifts.
-
----
-
-## Molecule Testing
-
-This role is tested using the extension-level Molecule scenario:
-
-- `integration_rhel_services_management`
-
-Scenario definition lives under `extensions/molecule/integration_rhel_services_management/`,
-and shared scenario playbooks are under `extensions/molecule/utils/playbooks/`:
-
-- `rhel_services_management_prepare.yml`
-- `rhel_services_management_converge.yml`
-- `rhel_services_management_verify.yml`
-- `rhel_services_management_destroy.yml`
-
-The scenario test sequence is:
+## 📁 Role Structure
 
 ```text
-prepare → converge → idempotence → verify
-```
-
-Destroy sequence:
-
-```text
-destroy
-```
-
----
-
-## Author
-
-- Chad Elliott (<chelliot@redhat.com>)
-
----
-
-## Repository layout (role)
-
-```text
-.
-├── defaults
-│   └── main.yml
-├── handlers
-│   └── main.yml
-├── meta
-│   └── main.yml
-├── README.md                # ← this file
-├── tasks
-│   └── main.yml
-└── vars
-    └── main.yml
+roles/rhel_services_management/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

@@ -1,88 +1,58 @@
-# Role: ado.openshift.lookup_operator_defaults
+# Role: infra.ado.ocp_operator_defaults
 
-Lookup recommended **operator defaults** for a given application name (e.g., suggested operator package/channel/catalog settings).
-This role is **read-only** and does not create or modify any cluster resources.
+Ocp Operator Defaults automation role. Primary tasks include: Get list of all PackageManifests; Build list of matching operators; Fail if no matching operators found.
 
-- Deterministic lookup based on `app_name`
-- Emits facts you can reuse in install/subscription roles
-- Safe to run in CI (no side effects)
+## Role Author
 
----
+Automation Development Office
 
-## Requirements
+## ✅ Role Requirements
 
-- Ansible 2.13+ (or compatible with your collection)
-- No cluster access required (pure data lookup)
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
----
+## 📦 Role Variables
 
-## Role Variables
+| Variable | Description |
+|----------|-------------|
+| `ocp_operator_defaults_state` | Desired state used by role tasks when supported. |
 
-| Variable   | Description                                   |
-|------------|-----------------------------------------------|
-| `app_name` | Application short name used for the lookup. **Required.** |
+## 🚀 Role Usage
 
----
-
-## Examples
-
-### Basic usage
 ```yaml
-- hosts: localhost
+- name: Run ocp_operator_defaults
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift.lookup_operator_defaults
-      vars:
-        app_name: web-terminal
-
-
+    - role: infra.ado.ocp_operator_defaults
 ```
 
-> The role sets a fact named `operator_defaults` (dict) with fields your collection defines (e.g., `operator_name`, `operator_channel`, `operator_source`, `operator_source_namespace`, etc.). Adjust consumers accordingly.
+## 🧪 Role Molecule Testing
 
----
+Run Molecule scenarios from the role directory when a scenario is available.
 
-## Behavior Notes
+This role runs tasks such as:
 
-- Pure lookup: the role should only set facts; it should **not** contact the cluster or create resources.
-- If `app_name` is unknown, the role should fail clearly or return an empty/default structure (your choice—documented in your tasks).
+- Get list of all PackageManifests
+- Build list of matching operators
+- Fail if no matching operators found
+- Show all matching operator packages
 
----
-
-## Molecule Testing
-
-A default Molecule scenario is included and validates:
+```bash
+cd roles/ocp_operator_defaults
+molecule test
 ```
-dependency → syntax → create → converge → idempotence → verify
-```
-No `destroy` step is needed since the role is read-only.
 
----
-
-## Author
-- Chad Elliott (<chelliot@redhat.com>)
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-└─ lookup_operator_defaults/
-   ├─ README.md                 # ← this file
-   ├─ defaults/
-   │  └─ main.yml               # maps app_name → defaults
-   ├─ tasks/
-   │  └─ main.yml               # sets operator_defaults fact
-   ├─ molecule/
-   │  └─ default/
-   │     ├─ converge.yml
-   │     ├─ molecule.yml
-   │     ├─ verify.yml
-   │     ├─ README.md           # scenario guide (optional)
-   │     └─ TEST.md
-   ├─ vars/
-   │  └─ main.yml               # (optional)
-   └─ tests/
-      └─ inventory
+roles/ocp_operator_defaults/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

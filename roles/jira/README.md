@@ -1,101 +1,62 @@
-# Role: jira
+# Role: infra.ado.jira
 
-This role provides a repeatable framework for generating Jira stories and subtasks
-from structured templates and selected delivery tracks.
+Jira automation role. Primary tasks include: Jira | Validate required vars; Jira | Build list of template files for selected track; Jira | Process templates for track.
 
-Supported work styles include:
+## Role Author
 
-- Platform/service delivery (phase-based)
-- Ansible collection/code delivery
-- Day-2 operations
-- Engineering work types (`spike`, `bugfix`, `feature`)
+Automation Development Office
 
----
+## ✅ Role Requirements
 
-## Core Concepts
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-### Phases vs Tracks
+## 📦 Role Variables
 
-| Dimension | Meaning |
-| --- | --- |
-| **Phase** | Position in the delivery lifecycle (design -> deploy -> validate -> operate) |
-| **Track** | Work type (`platform_4phase`, `collections_2phase`, `day2`, `spike`, etc.) |
+| Variable | Description |
+|----------|-------------|
+| `jira_story_issuetype` | Role input variable used to configure automation behavior. |
+| `jira_subtask_issuetype` | Role input variable used to configure automation behavior. |
+| `jira_create_subtasks` | Role input variable used to configure automation behavior. |
+| `jira_templates_dir` | Role input variable used to configure automation behavior. |
+| `jira_feature_key` | Role input variable used to configure automation behavior. |
 
----
+## 🚀 Role Usage
 
-## Default Delivery Model
+```yaml
+- name: Run jira
+  hosts: localhost
+  gather_facts: false
+  roles:
+    - role: infra.ado.jira
+```
 
-The default platform flow uses 4 phases:
+## 🧪 Role Molecule Testing
 
-1. Phase 1: Kickoff, readiness, and design
-2. Phase 2: Deployment and core configuration
-3. Phase 3: Validation, adoption, and enablement
-4. Phase 4: Operations, governance, and handoff
+Run Molecule scenarios from the role directory when a scenario is available.
 
----
+This role runs tasks such as:
 
-## Track Selection Matrix
+- Jira | Validate required vars
+- Jira | Build list of template files for selected track
+- Jira | Process templates for track
+- Jira Set section for this template batch
 
-| Track | Purpose | Typical Use | Template Files | Section Values |
-| --- | --- | --- | --- | --- |
-| `platform_4phase` | Full platform/service delivery | Most products/services | `templates/phases/story_phase1.yml` to `story_phase4.yml` | `phase1..phase4` |
-| `collections_2phase` | Deliver Ansible collection code | Collection work | `templates/tracks/collections_phase1.yml`, `collections_phase2.yml` | `phase1,phase2` |
-| `mfa_2phase` | MFA enablement + handoff | MFA deployments | `templates/tracks/mfa_phase1.yml`, `mfa_phase2.yml` | `phase1,phase2` |
-| `day2` | Operational issue handling | Break/fix incidents | `templates/day2/adhoc_day2.yml` | `operations` |
-| `spike` | Timeboxed discovery | Unknowns/evaluation | `templates/special/adhoc_spike.yml` | `discovery` |
-| `bugfix` | Fix broken behavior | Automation defects | `templates/special/adhoc_bugfix.yml` | `delivery` |
-| `feature` | Add capability | Role enhancements | `templates/special/adhoc_feature.yml` | `delivery` |
+```bash
+cd roles/jira
+molecule test
+```
 
----
+## 📁 Role Structure
 
-## Running the Role
-
-### 1) Configure Jira credentials
-
-Set these through environment variables, vault, or vars files.
-
-Required variables:
-
-- `jira_url`
-- `jira_username`
-- `jira_token`
-- `jira_project_key`
-
-### 2) Choose a track
-
-Set `jira_track` to one of:
-`platform_4phase`, `collections_2phase`, `mfa_2phase`, `day2`, `spike`, `bugfix`, `feature`.
-
-### 3) Provide template inputs
-
-Common template fields:
-
-- `product`
-- `group`
-- `enviroment`
-- `role_name`
-- `section`
-
-Track-specific templates may add additional fields.
-
----
-
-## Optional Feature/Epic Link
-
-- `jira_feature_key` (for example `TET-123`)
-- `jira_feature_field` (for example `customfield_XXXXX`)
-
-When both are set, created stories include:
-`fields[jira_feature_field] = jira_feature_key`.
-
-## Collection Role Name
-
-Use `infra.ado.jira` when calling this role from a collection context.
-
----
-
-## Notes
-
-- Default to phase-based tracks for platform/service work
-- Use `spike`, `bugfix`, `feature`, `day2`, and `collections_*` when appropriate
-- Keep templates consistent and automation-friendly
+```text
+roles/jira/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
+```

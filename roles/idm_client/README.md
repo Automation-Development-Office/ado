@@ -1,43 +1,56 @@
-# Role: idm_client
+# Role: infra.ado.idm_client
 
-Registers an IPA/IdM client using `redhat.rhel_idm.ipaclient`.
+Idm Client automation role. Primary tasks include: Register IPA client; Register IDM Client.
 
-This role is intentionally small. It imports `tasks/idm_register_client.yml`, which currently runs one module call:
+## Role Author
 
-- `redhat.rhel_idm.ipaclient`
-- `state: "{{ state }}"`
-- `force: true`
+Automation Development Office
 
-## Requirements
+## ✅ Role Requirements
 
-- Ansible Core 2.16+ (per role metadata)
-- `redhat.rhel_idm` collection available
-- Host/network prerequisites required by the IPA client module (DNS/time/connectivity and credentials as applicable to your environment)
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `state` | yes | Desired IPA client state passed directly to `redhat.rhel_idm.ipaclient` (for example, `present` or `absent`). |
+| Variable | Description |
+|----------|-------------|
+| `idm_client_state` | Desired state used by role tasks when supported. |
 
-## Behavior Notes
-
-- The role currently exposes only `state` and hard-sets `force: true`.
-- Additional `redhat.rhel_idm.ipaclient` options are not surfaced in this role yet.
-- Complexity is mostly environmental (IPA server reachability, auth, DNS/time setup), not in role logic.
-
-## Example Playbook
+## 🚀 Role Usage
 
 ```yaml
-- name: Manage IPA client registration
-  hosts: all
-  become: true
+- name: Run idm_client
+  hosts: localhost
+  gather_facts: false
   roles:
     - role: infra.ado.idm_client
-      vars:
-        state: present
 ```
 
-## License
+## 🧪 Role Molecule Testing
 
-See `meta/main.yml` for current role license metadata.
+Run Molecule scenarios from the role directory when a scenario is available.
+
+This role runs tasks such as:
+
+- Register IPA client
+- Register IDM Client
+
+```bash
+cd roles/idm_client
+molecule test
+```
+
+## 📁 Role Structure
+
+```text
+roles/idm_client/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
+```

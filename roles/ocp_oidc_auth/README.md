@@ -1,93 +1,58 @@
-# Role: ocp_oidc_auth
+# Role: infra.ado.ocp_oidc_auth
 
-Configure OpenShift OAuth to use an OIDC identity provider.
+Ocp Oidc Auth automation role. Primary tasks include: Assert required OIDC inputs are set; Build Keycloak URLs; Try to get Keycloak client secret via module.
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- OpenShift/Kubernetes API access.
-- `kubernetes.core` collection installed.
-- OIDC client configuration and secrets available from inventory or vault.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `openshift_oidc_auth_config` | Primary caller-provided OIDC configuration structure consumed by the role. |
-| `state` | Desired state for the OIDC configuration workflow. |
-| `validate_certs` | TLS verification toggle when talking to the cluster or provider, where applicable. |
+|----------|-------------|
+| `ocp_oidc_auth_state` | Desired state used by role tasks when supported. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_oidc_auth
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_oidc_auth
-      vars:
-        state: present
-        openshift_oidc_auth_config:
-          idp_name: keycloak
-          issuer_url: https://sso.example.com/realms/master
-          client_id: openshift
-          client_secret: "{{ vault_oidc_client_secret }}
+    - role: infra.ado.ocp_oidc_auth
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Intended for managing OpenShift OAuth OIDC provider settings.
-- Keep caller-provided secret values in vault and out of plain-text inventories.
+This role runs tasks such as:
 
----
+- Assert required OIDC inputs are set
+- Build Keycloak URLs
+- Try to get Keycloak client secret via module
+- Extract Keycloak client secret from module result
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
+```bash
+cd roles/ocp_oidc_auth
+molecule test
 ```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
-```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_oidc_auth/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/ocp_oidc_auth/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

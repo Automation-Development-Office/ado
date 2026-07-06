@@ -1,93 +1,58 @@
-# Role: ocp_alt_routes
+# Role: infra.ado.ocp_alt_routes
 
-Ensure alternate OpenShift routes exist for each route definition in a caller-provided list.
+Ocp Alt Routes automation role. Primary tasks include: Ensure_alt_routes_from_list Normalize candidates input; Ensure_alt_routes_from_list Set defaults; Ensure_alt_routes_from_list Validate required inputs.
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- OpenShift/Kubernetes API access.
-- `kubernetes.core` collection installed.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `ensure_alt_routes_from_list_routes` | List of route definitions to process. Required. |
-| `ensure_alt_routes_from_list_default_tls_termination` | Default TLS termination used when a route item does not override it. |
-| `route_labels` | Optional labels applied to generated route resources. |
+|----------|-------------|
+| `ocp_alt_routes_state` | Desired state used by role tasks when supported. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_alt_routes
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_alt_routes
-      vars:
-        ensure_alt_routes_from_list_routes:
-          - namespace: grafana
-            route_name: grafana
-            route_name_alt: grafana-alt
-            route_host_alt: grafana-alt.apps.example.com
-            backend_svc: grafana-service
-            backend_port: https
+    - role: infra.ado.ocp_alt_routes
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Processes each route entry and creates or updates the alternate route when needed.
-- This role is typically paired with route-discovery workflows.
+This role runs tasks such as:
 
----
+- Ensure_alt_routes_from_list Normalize candidates input
+- Ensure_alt_routes_from_list Set defaults
+- Ensure_alt_routes_from_list Validate required inputs
+- Ensure_alt_routes_from_list Debug first candidate shape
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
+```bash
+cd roles/ocp_alt_routes
+molecule test
 ```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
-```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_alt_routes/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/ocp_alt_routes/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

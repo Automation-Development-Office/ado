@@ -1,92 +1,59 @@
-# Role: ocp_wait_operator
+# Role: infra.ado.ocp_wait_operator
 
-Wait for an operator CSV and deployment to become available in a target namespace.
+Ocp Wait Operator automation role. Primary tasks include: Wait for Operator CSV to appear; Set fact if Operator CSV is installed; Debug operator installation status.
 
----
+## Role Author
 
-## Requirements
+Automation Development Office
 
-- OpenShift/Kubernetes API access.
-- `kubernetes.core` collection installed.
+## ✅ Role Requirements
 
----
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
-|---------|-------------|
-| `name_space` | Namespace where the operator is installed. Required. |
-| `operator_name_substring` | Substring used to identify the operator CSV. Required. |
-| `operator_poll_interval / operator_install_timeout` | CSV polling interval and overall install timeout values. |
-| `operator_wait_retries / operator_wait_delay` | Deployment readiness polling values. |
-| `wait_for_operator_ready_operator_deployment_pattern` | Optional deployment name pattern override. |
+|----------|-------------|
+| `ocp_wait_operator_retries` | Role input variable used to configure automation behavior. |
+| `ocp_wait_operator_delay` | Role input variable used to configure automation behavior. |
 
----
-
-## Examples
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_wait_operator
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ocp_wait_operator
-      vars:
-        name_space: openshift-operators
-        operator_name_substring: cert-manager
-        operator_poll_interval: 10
-        operator_install_timeout: 900
+    - role: infra.ado.ocp_wait_operator
 ```
 
----
+## 🧪 Role Molecule Testing
 
-## Behavior Notes
+Run Molecule scenarios from the role directory when a scenario is available.
 
-- Waits first for a matching CSV to appear, then discovers and waits on the matching deployment.
-- Publishes debug messages that show both the CSV and deployment readiness status.
+This role runs tasks such as:
 
----
+- Wait for Operator CSV to appear
+- Set fact if Operator CSV is installed
+- Debug operator installation status
+- Get all Deployments in namespace
 
-## Molecule Testing
-
-Use the same README layout as the working collection roles so Molecule/README validation sees the expected sections and ordering.
-
+```bash
+cd roles/ocp_wait_operator
+molecule test
 ```
-dependency -> lint -> syntax -> create -> converge -> idempotence -> destroy -> verify
-```
 
----
-
-## License
-
-GPL-3.0-or-later
-
----
-
-## Author
-
-Chad Elliott
-
----
-
-## Repository layout (role)
+## 📁 Role Structure
 
 ```text
-roles/
-`-- ocp_wait_operator/
-    |-- README.md
-    |-- defaults/
-    |   `-- main.yml
-    |-- tasks/
-    |   `-- main.yml
-    |-- vars/
-    |   `-- main.yml
-    |-- handlers/
-    |   `-- main.yml
-    |-- meta/
-    |   `-- main.yml
-    |-- templates/                # optional
-    |-- files/                    # optional
-    `-- tests/
-        |-- inventory
-        `-- test.yml               # optional
+roles/ocp_wait_operator/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```

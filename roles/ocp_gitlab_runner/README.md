@@ -1,25 +1,58 @@
-# Role: ado.openshift_infrastructure_automation.gitlab_runner
+# Role: infra.ado.ocp_gitlab_runner
 
-This role deploys GitLab Runner to an OpenShift cluster using a Kubernetes Deployment manifest. It registers the runner with GitLab and sets up the namespace and service account needed to operate.
+Ocp Gitlab Runner automation role. Primary tasks include: Create service account; Create/ensure ClusterRole for GitLab Runner; Bind ClusterRole to the runner ServiceAccount (namespaced binding name).
 
-## Role Variables
+## Role Author
 
-| Name         | Description                         | Required | Default |
-|--------------|-------------------------------------|----------|---------|
-| namespace    | Namespace to deploy into            | No       | gitlab-runner |
-| runner_name  | Display name of the GitLab runner   | No       | openshift-runner |
-| gitlab_url   | GitLab server URL                   | Yes      | https://gitlab.com/ |
-| runner_token | GitLab runner registration token    | Yes      | "" |
-| image        | GitLab Runner image to deploy       | No       | gitlab/gitlab-runner:alpine |
+Automation Development Office
 
-## Example
+## ✅ Role Requirements
+
+- Ansible Core
+- Required collections listed in `collections/requirements.yml`
+- Inventory or extra variables appropriate for the target platform
+
+## 📦 Role Variables
+
+| Variable | Description |
+|----------|-------------|
+| `ocp_gitlab_runner_state` | Desired state used by role tasks when supported. |
+
+## 🚀 Role Usage
 
 ```yaml
-- hosts: localhost
+- name: Run ocp_gitlab_runner
+  hosts: localhost
   gather_facts: false
   roles:
-    - role: ado.openshift_infrastructure_automation.gitlab_runner
-      vars:
-        gitlab_url: "https://gitlab.com/"
-        runner_token: "{{ vault_gitlab_runner_token }}"
+    - role: infra.ado.ocp_gitlab_runner
+```
+
+## 🧪 Role Molecule Testing
+
+Run Molecule scenarios from the role directory when a scenario is available.
+
+This role runs tasks such as:
+
+- Create service account
+- Create/ensure ClusterRole for GitLab Runner
+- Bind ClusterRole to the runner ServiceAccount (namespaced binding name)
+- Deploy GitLab Runner to OpenShift
+
+```bash
+cd roles/ocp_gitlab_runner
+molecule test
+```
+
+## 📁 Role Structure
+
+```text
+roles/ocp_gitlab_runner/
+  README.md
+  defaults/
+  handlers/
+  meta/
+  tasks/
+  tests/
+  vars/
 ```
