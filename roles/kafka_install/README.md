@@ -12,6 +12,17 @@ Automation Development Office
 - Required collections listed in `collections/requirements.yml`
 - Inventory or extra variables appropriate for the target platform
 
+### Auth via environment
+
+Set Kubernetes authentication through the standard `K8S_AUTH_*` environment
+variables before running the role or the Molecule verify scenario.
+
+```bash
+export K8S_AUTH_HOST=https://api.example.com:6443
+export K8S_AUTH_API_KEY=<token>
+export K8S_AUTH_VERIFY_SSL=false
+```
+
 ## 📦 Role Variables
 
 | Variable | Description |

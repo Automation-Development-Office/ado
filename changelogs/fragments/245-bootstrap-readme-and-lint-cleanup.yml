@@ -7,3 +7,6 @@ doc_changes:
     roles - Normalized role README files to match the repository role README
     format template and replaced generated placeholder text with role-specific
     summaries, variables, usage, and test notes.
+  - >-
+    kafka_install - Restored the README environment authentication section
+    required by the role's Molecule verify scenario.
