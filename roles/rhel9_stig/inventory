@@ -1,0 +1,11 @@
+#cushzilla
+rhel_test:
+  children:
+    rhel9_host:
+
+# Child group
+rhel9_host:
+  hosts:
+    myhome.lab:
+      ansible_host: 192.168.1.50
+
