@@ -10,6 +10,8 @@ Automation Development Office
 
 - Ansible Core
 - Required collections listed in `collections/requirements.yml`
+- `redhat.rhel_system_roles` installed in the execution environment when
+  running RHEL System Roles such as `stig`
 - Inventory or extra variables appropriate for the target platform
 
 ## 📦 Role Variables
@@ -41,6 +43,13 @@ This role runs tasks such as:
 - Invoke selected RHEL System Roles, including `stig` for RHEL STIG hardening
 
 ### STIG hardening example
+
+Install the optional STIG dependency when it is not already included in the
+execution environment:
+
+```bash
+ansible-galaxy collection install -r collections/requirements-stig.yml
+```
 
 ```yaml
 - name: Apply RHEL STIG hardening

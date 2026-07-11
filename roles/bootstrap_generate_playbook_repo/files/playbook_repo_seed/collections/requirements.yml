@@ -1,4 +1,3 @@
 ---
 collections:
   - name: infra.ado
-  - name: redhat.rhel_system_roles

@@ -2,8 +2,9 @@
 minor_changes:
   - >-
     bootstrap_generate_playbook_repo - add a RHEL STIG hardening bootstrap
-    playbook and generated repository collection requirements for
-    ``redhat.rhel_system_roles``.
+    playbook and optional generated repository STIG requirements for
+    ``redhat.rhel_system_roles`` without making it a hard dependency of
+    ``infra.ado`` installation.
   - >-
     bootstrap_controller - add an AAP job template for RHEL STIG hardening
     with surveys for environment, compliance profile, and STIG profile.

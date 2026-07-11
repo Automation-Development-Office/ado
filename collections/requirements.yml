@@ -9,4 +9,3 @@ collections:
   - name: infra.aap_configuration
   - name: community.hashi_vault
   - name: amazon.aws
-  - name: redhat.rhel_system_roles
