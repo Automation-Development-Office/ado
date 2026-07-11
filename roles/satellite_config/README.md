@@ -68,6 +68,11 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 >
 > ¶ Required when running the corresponding lifecycle environment or content view tasks.
 
+The bootstrap generator can populate `satellite_config_username`,
+`satellite_config_password`, and `satellite_config_admin_password` from the
+Satellite service account fields in the UI or from
+`bootstrap_generate_env_vars_satellite_service_account_*` CLI variables.
+
 See `defaults/main.yml` for default values and structure.
 
 ## 🚀 Role Usage
@@ -76,29 +81,9 @@ Define the Satellite configuration in your playbook or inventory using the varia
 
 ### Example 1: Configure a connected Satellite server
 ```yaml
-- hosts: satellite_hosts
-  become: true
-  vars:
-    satellite_config_username: admin
-    satellite_config_password: "{{ vault_satellite_admin_password }}"
-    satellite_config_admin_password: "{{ vault_satellite_admin_password }}"
-    satellite_config_organization: Example_Org
-    satellite_config_validate_certs: false
-    satellite_config_rhn_connected: true
-    satellite_config_satellite_deployment_version: "6.16"
-    satellite_config_manifest_src: files/manifest.zip
-    satellite_config_manifest_path: /root/manifest.zip
-    satellite_config_lifecycle_envs:
-      - env_name: Dev
-        prior: Library
-      - env_name: Production
-        prior: Dev
-    satellite_config_content_views:
-      - name: RHEL9-Base
-        lifecycle_environments:
-          - Dev
-          - Production
-    satellite_config_repo_sync_wait_time: 3600
+- name: ADO | Configure Satellite
+  hosts: all
+  gather_facts: true
   roles:
     - role: infra.ado.satellite_config
 ```

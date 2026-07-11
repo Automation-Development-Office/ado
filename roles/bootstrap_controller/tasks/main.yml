@@ -40,10 +40,39 @@
 - name: Push generated playbooks before AAP config apply
   ansible.builtin.shell: |
     set -euo pipefail
+    remote_name={{
+      bootstrap_generate_playbook_repo_git_remote
+      | default(generate_playbook_repo_git_remote | default('origin'))
+      | quote
+    }}
+    branch_name={{
+      bootstrap_generate_playbook_repo_git_branch
+      | default(generate_playbook_repo_git_branch | default('main'))
+      | quote
+    }}
+    sync_before_push={{
+      bootstrap_generate_playbook_repo_git_sync_before_push
+      | default(generate_playbook_repo_git_sync_before_push | default(true))
+      | bool
+      | ternary('true', 'false')
+      | quote
+    }}
+
     git add -A
     git diff --cached --quiet || \
       git commit -m "Generate bootstrap playbook repo"
-    git push origin main
+    if [ "$sync_before_push" = "true" ]; then
+      if git ls-remote --exit-code --heads "$remote_name" "$branch_name" >/dev/null; then
+        git fetch "$remote_name" "$branch_name"
+        git rebase FETCH_HEAD
+      else
+        rc=$?
+        if [ "$rc" -ne 2 ]; then
+          exit "$rc"
+        fi
+      fi
+    fi
+    git push "$remote_name" "$branch_name"
   args:
     chdir: "{{ playbook_dir }}"
     executable: /bin/bash
@@ -62,10 +91,39 @@
 - name: Push generated repo after AAP config generation
   ansible.builtin.shell: |
     set -euo pipefail
+    remote_name={{
+      bootstrap_generate_playbook_repo_git_remote
+      | default(generate_playbook_repo_git_remote | default('origin'))
+      | quote
+    }}
+    branch_name={{
+      bootstrap_generate_playbook_repo_git_branch
+      | default(generate_playbook_repo_git_branch | default('main'))
+      | quote
+    }}
+    sync_before_push={{
+      bootstrap_generate_playbook_repo_git_sync_before_push
+      | default(generate_playbook_repo_git_sync_before_push | default(true))
+      | bool
+      | ternary('true', 'false')
+      | quote
+    }}
+
     git add -A
     git diff --cached --quiet || \
       git commit -m "Generate bootstrap playbook repo"
-    git push origin main
+    if [ "$sync_before_push" = "true" ]; then
+      if git ls-remote --exit-code --heads "$remote_name" "$branch_name" >/dev/null; then
+        git fetch "$remote_name" "$branch_name"
+        git rebase FETCH_HEAD
+      else
+        rc=$?
+        if [ "$rc" -ne 2 ]; then
+          exit "$rc"
+        fi
+      fi
+    fi
+    git push "$remote_name" "$branch_name"
   args:
     chdir: "{{ playbook_dir }}"
     executable: /bin/bash

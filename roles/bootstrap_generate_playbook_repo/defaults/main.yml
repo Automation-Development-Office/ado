@@ -10,6 +10,7 @@ bootstrap_generate_playbook_repo_git_branch: main
 bootstrap_generate_playbook_repo_git_message: "Generate bootstrap playbook repo"
 bootstrap_generate_playbook_repo_git_username: oauth2
 bootstrap_generate_playbook_repo_git_token: ""
+bootstrap_generate_playbook_repo_git_sync_before_push: true
 bootstrap_generate_playbook_repo_pause_after_generate: false
 
 bootstrap_generate_playbook_repo_component: all
@@ -48,6 +49,7 @@ bootstrap_generate_playbook_repo_component_map:
     - grafana
     - kafka
     - rhbk
+    - stig
 
   patching:
     - rhel
@@ -77,6 +79,12 @@ bootstrap_generate_playbook_repo_component_map:
 
   rhel-patching:
     - rhel
+
+  stig:
+    - stig
+
+  rhel-stig:
+    - stig
 
   pega:
     - pega
@@ -343,6 +351,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     target_platform: linux
     category: patching
     app: rhel
+
+  - src: rhel/ado-stig-hardening-bootstrap.yml
+    dest: playbooks/rhel/ado-stig-hardening-bootstrap.yml
+    target_platform: linux
+    category: compliance
+    app: stig
 
   - src: satellite/ado-register-to-satellite-bootstrap.yml
     dest: playbooks/satellite/ado-register-to-satellite-bootstrap.yml

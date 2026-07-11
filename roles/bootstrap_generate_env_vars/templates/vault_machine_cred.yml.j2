@@ -1,0 +1,10 @@
+{% set preflight_aap = bootstrap_generate_env_vars_preflight.aap | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set preflight_machine_credential = preflight_aap.machine_credential | default({}) %}
+---
+vault_machine_credential_name: "{{ preflight_machine_credential.name | default(bootstrap_generate_env_vars_machine_credential_name | default('ado-machine'), true) }}"
+vault_machine_credential_username: "{{ preflight_machine_credential.username | default(bootstrap_generate_env_vars_machine_credential_username | default('cloud-user'), true) }}"
+vault_machine_credential_ssh_key_data: |
+{{ preflight_machine_credential.ssh_key_data | default(bootstrap_generate_env_vars_machine_credential_ssh_key_data | default(''), true) | indent(2, true) }}
+vault_machine_credential_ssh_key_unlock: "{{ preflight_machine_credential.ssh_key_unlock | default(bootstrap_generate_env_vars_machine_credential_ssh_key_unlock | default(''), true) }}"
+vault_machine_credential_become_method: "{{ preflight_machine_credential.become_method | default(bootstrap_generate_env_vars_machine_credential_become_method | default('sudo'), true) }}"
+vault_machine_credential_become_username: "{{ preflight_machine_credential.become_username | default(bootstrap_generate_env_vars_machine_credential_become_username | default('root'), true) }}"

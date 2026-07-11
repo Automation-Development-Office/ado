@@ -6,6 +6,7 @@ generate_env_vars_base_dir: >-  # noqa: var-naming[no-role-prefix]
   {{ playbook_dir | default('.') }}/group_vars/all
 generate_env_vars_create_dirs: true  # noqa: var-naming[no-role-prefix]
 generate_env_vars_encrypt_vault_files: true  # noqa: var-naming[no-role-prefix]
+generate_env_vars_vault_password_file: ""  # noqa: var-naming[no-role-prefix]
 
 generate_env_vars_components:  # noqa: var-naming[no-role-prefix]
   - aap
@@ -37,4 +38,26 @@ bootstrap_generate_env_vars_create_dirs: >-
   {{ generate_env_vars_create_dirs | bool }}
 bootstrap_generate_env_vars_encrypt_vault_files: >-
   {{ generate_env_vars_encrypt_vault_files | bool }}
+bootstrap_generate_env_vars_vault_password_file: >-
+  {{ generate_env_vars_vault_password_file }}
 bootstrap_generate_env_vars_components: "{{ generate_env_vars_components }}"
+
+# AAP generated object defaults
+bootstrap_generate_env_vars_aap_additional_credentials: []
+bootstrap_generate_env_vars_hub_publish_ado_collection: true
+bootstrap_generate_env_vars_hub_mark_ado_validated: true
+bootstrap_generate_env_vars_hub_ado_collection_path: "."
+
+# Satellite dynamic inventory defaults
+bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled: false
+bootstrap_generate_env_vars_satellite_credential_name: >-
+  ADO Satellite Service Account
+bootstrap_generate_env_vars_satellite_inventory_source_name: >-
+  ADO Satellite Dynamic Inventory
+bootstrap_generate_env_vars_satellite_inventory_overwrite: true
+bootstrap_generate_env_vars_satellite_inventory_overwrite_vars: true
+bootstrap_generate_env_vars_satellite_inventory_update_on_launch: true
+bootstrap_generate_env_vars_satellite_inventory_update_cache_timeout: 0
+bootstrap_generate_env_vars_satellite_inventory_verbosity: 0
+bootstrap_generate_env_vars_satellite_inventory_host_filter: ""
+bootstrap_generate_env_vars_satellite_inventory_source_vars: {}

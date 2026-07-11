@@ -1,5 +1,5 @@
 ---
-- name: ADO | Deploy and Configure Quay
+- name: ADO | Configure OpenShift console banner
   hosts: localhost
   gather_facts: false
   vars:

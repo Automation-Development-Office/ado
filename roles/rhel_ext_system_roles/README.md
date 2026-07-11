@@ -38,6 +38,24 @@ This role runs tasks such as:
 - Normalize wrapper inputs
 - Normalize SELinux inputs
 - Map selinux_state to role-accepted values
+- Invoke selected RHEL System Roles, including `stig` for RHEL STIG hardening
+
+### STIG hardening example
+
+```yaml
+- name: Apply RHEL STIG hardening
+  hosts: rhel_servers
+  become: true
+  gather_facts: true
+  roles:
+    - role: infra.ado.rhel_ext_system_roles
+      vars:
+        sr_apply:
+          - stig
+        sr_vars:
+          stig:
+            stig_profile: stig
+```
 
 ```bash
 cd roles/rhel_ext_system_roles

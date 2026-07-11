@@ -25,9 +25,20 @@ Automation Development Office
 ## 🚀 Role Usage
 
 ```yaml
-- name: Run ocp_search_dirsrv
+- name: ADO | List LDAP users/groups from 389-DS
   hosts: localhost
   gather_facts: false
+  vars:
+    component: 389ds
+  vars_files:
+    - group_vars/all/{{ env }}/infra_config_vars.yml
+    - group_vars/all/{{ env }}/vault_{{ component }}.yml
+    - group_vars/all/{{ env }}/vars_{{ component }}.yml
+  environment:
+    K8S_AUTH_HOST: '{{ host }}'
+    K8S_AUTH_API_KEY: '{{ token }}'
+    K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'',''no'') }}'
+  pre_tasks: null
   roles:
     - role: infra.ado.ocp_search_dirsrv
 ```

@@ -25,9 +25,9 @@ Automation Development Office
 ## 🚀 Role Usage
 
 ```yaml
-- name: Run rhel_sat_reg
-  hosts: localhost
-  gather_facts: false
+- name: ADO | Register host to Satellite
+  hosts: all
+  gather_facts: true
   roles:
     - role: infra.ado.rhel_sat_reg
 ```

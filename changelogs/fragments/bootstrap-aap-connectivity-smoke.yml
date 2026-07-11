@@ -1,0 +1,5 @@
+---
+minor_changes:
+  - >-
+    Check AAP controller API connectivity before applying bootstrap controller
+    objects and run a configurable demo job template smoke test.

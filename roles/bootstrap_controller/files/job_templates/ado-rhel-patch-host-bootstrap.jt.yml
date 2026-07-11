@@ -9,6 +9,7 @@ controller_templates:
     execution_environment: '{{ bootstrap_controller_execution_environment_name }}'
     credentials:
       - '{{ bootstrap_controller_creds }}'
+      # ADO_MACHINE_CREDENTIAL
     related: null
     labels:
       - name: ADO | bootstrap
@@ -35,3 +36,66 @@ controller_templates:
           variable: env
           choices: '{{ bootstrap_controller_environment_choices }}'
           default: '{{ bootstrap_controller_default_environment }}'
+        - question_name: ADO | Reboot after patching?
+          question_description: Reboot hosts when patching changes the system
+          required: true
+          type: multiplechoice
+          variable: rhel_patching_reboot
+          choices:
+            - "true"
+            - "false"
+          default: "true"
+        - question_name: ADO | Update package cache?
+          question_description: Refresh package metadata before patching
+          required: true
+          type: multiplechoice
+          variable: rhel_patching_update_cache
+          choices:
+            - "true"
+            - "false"
+          default: "true"
+        - question_name: ADO | Clean up old kernels?
+          question_description: Remove old kernels from /boot while preserving the running kernel
+          required: true
+          type: multiplechoice
+          variable: rhel_patching_package_cleanup
+          choices:
+            - "true"
+            - "false"
+          default: "true"
+        - question_name: ADO | Package list
+          question_description: Packages to patch. Use * for all packages, or enter one package per line.
+          required: true
+          type: textarea
+          variable: rhel_patching_package_list
+          default: "*"
+        - question_name: ADO | Package version state
+          question_description: Package state to apply
+          required: true
+          type: multiplechoice
+          variable: rhel_patching_versions
+          choices:
+            - latest
+            - present
+          default: latest
+        - question_name: ADO | Exclude packages
+          question_description: Optional packages to exclude, one per line
+          required: false
+          type: textarea
+          variable: rhel_patching_exclude_list
+          default: ""
+        - question_name: ADO | Disable repositories
+          question_description: Optional repositories to disable during patching, one per line
+          required: false
+          type: textarea
+          variable: rhel_patching_disable_repos
+          default: ""
+        - question_name: ADO | Skip broken dependencies?
+          question_description: Continue when package dependency issues are encountered
+          required: true
+          type: multiplechoice
+          variable: rhel_patching_skip_broken
+          choices:
+            - "false"
+            - "true"
+          default: "false"

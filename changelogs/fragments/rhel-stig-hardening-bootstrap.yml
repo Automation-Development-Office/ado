@@ -1,0 +1,15 @@
+---
+minor_changes:
+  - >-
+    bootstrap_generate_playbook_repo - add a RHEL STIG hardening bootstrap
+    playbook and generated repository collection requirements for
+    ``redhat.rhel_system_roles``.
+  - >-
+    bootstrap_controller - add an AAP job template for RHEL STIG hardening
+    with surveys for environment, compliance profile, and STIG profile.
+  - >-
+    bootstrap_generate_env_vars - allow UI and CLI preflight JSON RHEL STIG
+    options to generate the STIG component artifacts and profile vars.
+  - >-
+    rhel_ext_system_roles - add support for invoking the upstream STIG RHEL
+    system role through the existing wrapper.

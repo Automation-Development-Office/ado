@@ -1,0 +1,5 @@
+---
+minor_changes:
+  - >-
+    Sync generated bootstrap playbook repositories with the remote branch before
+    pushing so repeated UI or CLI generation runs can rebase on origin first.

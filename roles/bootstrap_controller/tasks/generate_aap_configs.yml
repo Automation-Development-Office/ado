@@ -49,6 +49,9 @@
     - var_name: controller_bootstrap_controller_inventories
       dest: controller/inventories.yml
 
+    - var_name: controller_bootstrap_controller_inventory_sources
+      dest: controller/inventory_sources.yml
+
     - var_name: controller_bootstrap_controller_execution_environments
       dest: controller/execution_environments.yml
 
@@ -64,55 +67,104 @@
 - name: AAP configs | Define job template component map
   ansible.builtin.set_fact:
     bootstrap_controller_job_template_component_map:
-      openshift:
-        - cert-manager-bootstrap.yml
-        - create-admin-htpasswd-user-bootstrap.yml
-        - deploy-aap-24-bootstrap.yml
-        - deploy-aap-26-bootstrap.yml
-        - deploy-acs-bootstrap.yml
-        - deploy-awspca-cert-manager-bootstrap.yml
-        - deploy-devspaces-bootstrap.yml
-        - deploy-discover-routes-and-add-alternative-route-bootstrap.yml
-        - deploy-discover-routes-and-print-bootstrap.yml
-        - deploy-eck-bootstrap.yml
-        - deploy-gitlab-bootstrap.yml
-        - deploy-gitops-bootstrap.yml
-        - deploy-kafka-bootstrap.yml
-        - deploy-oadp-bootstrap.yml
-        - deploy-pega-bootstrap.yml
-        - deploy-quay-bootstrap.yml
-        - update-pull-secret-bootstrap.yml
+      aap:
+        - ado-aap-aap24-deploy-and-configure-bootstrap.jt.yml
+        - ado-aap-aap25-deploy-and-configure-bootstrap.jt.yml
+        - ado-aap-aap26-deploy-and-configure-bootstrap.jt.yml
+        - ado-aap-aap27-deploy-and-configure-bootstrap.jt.yml
+
+      acs:
+        - ado-acs-deploy-and-configure-bootstrap.jt.yml
+
+      cert_manager:
+        - ado-cert-manager-configure-idm-acme-clusterissuer.jt.yml
+        - ado-cert-manager-deploy-and-configure-bootstrap.jt.yml
+        - ado-cert-manager-install-and-configure-awspca-bootstrap.jt.yml
+
+      console:
+        - ado-console-configure-bootstrap.jt.yml
+
+      devspaces:
+        - ado-devspaces-deploy-and-configure-bootstrap.jt.yml
+
+      dirsrv:
+        - ado-dirsrv-deploy-and-configure-bootstrap.jt.yml
+        - ado-dirsrv-ldap-modify-bootstrap.jt.yml
+        - ado-dirsrv-search-user-bootstrap.jt.yml
+        - ado-dirsrv-search-users-groups-bootstrap.jt.yml
+
+      eck:
+        - ado-eck-deploy-and-configure-bootstrap.jt.yml
+
+      gitlab:
+        - ado-gitlab-deploy-and-configure-bootstrap.jt.yml
+
+      gitops:
+        - ado-gitops-deploy-bootstrap.jt.yml
 
       grafana:
-        - deploy-grafana-bootstrap.yml
-        - deploy-grafana-dashboards-bootstrap.yml
-        - deploy-grafana-route-bootstrap.yml
+        - ado-grafana-create-custom-route.jt.yml
+        - ado-grafana-deploy-bootstrap.jt.yml
+        - ado-grafana-deploy-dashboards-bootstrap.jt.yml
 
-      keycloak:
-        - deploy-rhbk-bootstrap.yml
-        - deploy-rhbk-client-bootstrap.yml
-        - deploy-rhbk-realm-bootstrap.yml
-        - configure-oauth-rhbk-in-openshift-bootstrap.yml
-        - configure-ldap-in-openshift-bootstrap.yml
-        - rhbk-389ds-federation-bootstrap.yml
-        - rhbk-entraid-bootstrap.yml
-        - deploy-389ds-bootstrap.yml
-        - search-389ds-bootstrap.yml
-        - ldap-modify-bootstrap.yml
-        - search-user-bootstrap.yml
+      idm:
+        - ado-idm-install-replica-bootstrap.jt.yml
+        - ado-idm-install-server-bootstrap.jt.yml
+        - ado-idm-manage-client-bootstrap.jt.yml
+        - ado-idm-manage-dns-bootstrap.jt.yml
+        - ado-idm-manage-server-settings-bootstrap.jt.yml
+        - ado-idm-manage-sudo-bootstrap.jt.yml
+        - ado-idm-manage-topology-bootstrap.jt.yml
 
       jira:
-        - jira-stories-bugfix-bootstrap.yml
-        - jira-stories-collections-delivery-bootstrap.yml
-        - jira-stories-day2-bootstrap.yml
-        - jira-stories-feature-request-bootstrap.yml
-        - jira-stories-mfa-delivery-bootstrap.yml
-        - jira-stories-product-delivery-bootstrap.yml
-        - jira-stories-spike-bootstrap.yml
+        - ado-jira-create-stories-bootstrap.jt.yml
+        - ado-jira-jira-stories-collections-delivery-bootstrap.jt.yml
+        - ado-jira-jira-stories-day2-bootstrap.jt.yml
+        - ado-jira-jira-stories-feature-request-bootstrap.jt.yml
+        - ado-jira-jira-stories-mfa-delivery-bootstrap.jt.yml
+        - ado-jira-jira-stories-product-delivery-bootstrap.jt.yml
+        - ado-jira-jira-stories-spike-bootstrap.jt.yml
 
-      satellite: []
+      kafka:
+        - ado-kafka-deploy-and-configure-bootstrap.jt.yml
+        - ado-kafka-setup-alerting-bootstrap.jt.yml
 
-      patching: []
+      oadp:
+        - ado-oadp-deploy-bootstrap.jt.yml
+
+      openshift:
+        - ado-openshift-configure-ldap-auth-bootstrap.jt.yml
+        - ado-openshift-configure-oauth-with-rhbk-bootstrap.jt.yml
+        - ado-openshift-create-htpass-user-bootstrap.jt.yml
+        - ado-openshift-deploy-discover-routes-and-print-bootstrap.jt.yml
+        - ado-openshift-discover-routes-bootstrap.jt.yml
+        - ado-openshift-update-pull-secret-bootstrap.jt.yml
+
+      pega:
+        - ado-pega-install-and-configure-bootstrap.jt.yml
+
+      quay:
+        - ado-quay-deploy-and-configure-bootstrap.jt.yml
+
+      rhbk:
+        - ado-rhbk-deploy-and-configure-bootstrap.jt.yml
+        - ado-rhbk-manage-client-bootstrap.jt.yml
+        - ado-rhbk-manage-entraid-idp.jt.yml
+        - ado-rhbk-manage-realm-bootstrap.jt.yml
+        - ado-rhbk-realm-bootstrap.jt.yml
+
+      rhel:
+        - ado-rhel-patch-host-bootstrap.jt.yml
+        - ado-rhel-stig-hardening-bootstrap.jt.yml
+
+      satellite:
+        - ado-satellite-register-host-bootstrap.jt.yml
+
+      patching:
+        - ado-rhel-patch-host-bootstrap.jt.yml
+
+      stig:
+        - ado-rhel-stig-hardening-bootstrap.jt.yml
 
 - name: AAP configs | Build selected job template file list
   ansible.builtin.set_fact:
@@ -143,12 +195,19 @@
     project = "{{ bootstrap_controller_project_name | default(controller_bootstrap_project_name, true) }}"
     execution_environment = "{{ bootstrap_controller_execution_environment_name | default(controller_bootstrap_execution_environment_name, true) }}"
     credential = "{{ bootstrap_controller_creds | default(controller_bootstrap_creds, true) }}"
+    machine_credential = "{{ bootstrap_controller_machine_credential | default(controller_bootstrap_machine_credential | default('', true), true) }}"
     state_choices_yaml = "present\nabsent"
     default_state = "{{ bootstrap_controller_default_state | default('present', true) }}"
-    environment_choices_yaml = "{{ env | default('prod') }}"
-    default_environment = "{{ bootstrap_controller_default_environment | default(env | default('prod'), true) }}"
+    environment_choices = {{ (
+        bootstrap_controller_environment_choices
+        | default(controller_bootstrap_environment_choices
+        | default(['dev', 'test', 'preprod', 'prod']))
+        + [env | default('prod')]
+      ) | unique | list | to_json }}
+    environment_choices_yaml = "\n".join(environment_choices)
+    default_environment = "{{ env | default(bootstrap_controller_default_environment | default('prod'), true) }}"
 
-    selected = {{ bootstrap_controller_selected_job_template_files | default([]) | to_json }}
+    selected = {{ bootstrap_controller_job_template_files_selected | default([]) | to_json }}
     if not selected:
         selected = [p.name for p in sorted(src_dir.glob("*.jt.yml"))]
 
@@ -166,6 +225,8 @@
         f"{lb} controller_bootstrap_execution_environment_name {rb}": execution_environment,
         f"{lb} bootstrap_controller_creds {rb}": credential,
         f"{lb} controller_bootstrap_creds {rb}": credential,
+        f"{lb} bootstrap_controller_machine_credential {rb}": machine_credential,
+        f"{lb} controller_bootstrap_machine_credential {rb}": machine_credential,
         f"{lb} bootstrap_controller_state_choices {rb}": state_choices_yaml,
         f"{lb} controller_bootstrap_state_choices {rb}": state_choices_yaml,
         f"{lb} bootstrap_controller_default_state {rb}": default_state,
@@ -214,10 +275,25 @@
             if old:
                 text = text.replace(old, new)
 
+        if machine_credential:
+            text = text.replace(
+                "      # ADO_MACHINE_CREDENTIAL",
+                f"      - '{machine_credential}'",
+            )
+        else:
+            text = text.replace("      # ADO_MACHINE_CREDENTIAL\n", "")
+
         text = text.replace("- name: bootstrap", "- name: ado")
+        text = text.replace("ADO |", f"{organization} |")
+        text = text.replace(f"{organization} | ADO ", f"{organization} | ")
 
         (dest_dir / name).write_text(text)
         copied.append(name)
+
+    selected_set = set(selected)
+    for existing in dest_dir.glob("*.jt.yml"):
+        if existing.name not in selected_set:
+            existing.unlink()
 
     print("Copied job templates:", len(copied))
     PYCODE
@@ -243,6 +319,34 @@
     mode: "0644"
   when:
     - >-
-        bootstrap_generate_env_vars_component
-        | default(component | default('all'))
-        in ['all', 'rhel', 'patching']
+        'rhel' in bootstrap_controller_effective_components
+        or 'patching' in bootstrap_controller_effective_components
+
+- name: AAP configs | Remove patching workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-patching-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - >-
+        'rhel' not in bootstrap_controller_effective_components
+        and 'patching' not in bootstrap_controller_effective_components
+
+- name: AAP configs | Apply organization prefix to workflow templates
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: "ADO \\|"
+    replace: >-
+      {{
+        bootstrap_controller_organization
+        | default(controller_bootstrap_organization, true)
+      }} |
+  loop: >-
+    {{
+      query(
+        'ansible.builtin.fileglob',
+        playbook_dir ~ '/configs/workflows/*.wf.yml'
+      )
+    }}

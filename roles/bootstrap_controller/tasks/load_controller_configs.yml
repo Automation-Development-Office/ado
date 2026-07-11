@@ -15,6 +15,11 @@
         controller_bootstrap_controller_projects
         | default(bootstrap_controller_controller_projects | default(controller_projects | default([]), true), true)
       }}
+    controller_inventory_sources: >-
+      {{
+        controller_bootstrap_controller_inventory_sources
+        | default(bootstrap_controller_controller_inventory_sources | default(controller_inventory_sources | default([]), true), true)
+      }}
 
 - name: AAP configs | Reset loaded job templates  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:

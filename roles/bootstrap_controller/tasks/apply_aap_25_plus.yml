@@ -8,6 +8,7 @@
     bootstrap_controller_controller_organizations: "{{ controller_bootstrap_controller_organizations | default(bootstrap_controller_controller_organizations | default(controller_organizations | default([]), true), true) }}"
     bootstrap_controller_controller_projects: "{{ controller_bootstrap_controller_projects | default(bootstrap_controller_controller_projects | default(controller_projects | default([]), true), true) }}"
     bootstrap_controller_controller_inventories: "{{ controller_bootstrap_controller_inventories | default(bootstrap_controller_controller_inventories | default(controller_inventories | default([]), true), true) }}"
+    bootstrap_controller_controller_inventory_sources: "{{ controller_bootstrap_controller_inventory_sources | default(bootstrap_controller_controller_inventory_sources | default(controller_inventory_sources | default([]), true), true) }}"
     bootstrap_controller_controller_credentials: "{{ controller_bootstrap_controller_credentials | default(bootstrap_controller_controller_credentials | default(controller_credentials | default([]), true), true) }}"
     bootstrap_controller_controller_execution_environments: "{{ controller_bootstrap_controller_execution_environments | default(bootstrap_controller_controller_execution_environments | default(controller_execution_environments | default([]), true), true) }}"
 
@@ -301,6 +302,11 @@
       - role: controller_execution_environments
         var: controller_execution_environments
         tags: execution_environments
+
+- name: AAP 2.5+ | Apply inventory sources
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.controller_inventory_sources
+  when: controller_inventory_sources | default([]) | length > 0
 
 - name: AAP 2.5+ | Load controller configs before project sync
   ansible.builtin.include_tasks: load_controller_configs.yml

@@ -26,6 +26,7 @@ Automation Development Office
 | `bootstrap_generate_playbook_repo_git_branch` | Branch used for generated repository commits. |
 | `bootstrap_generate_playbook_repo_git_message` | Commit message for generated content. |
 | `bootstrap_generate_playbook_repo_git_token` | Optional token used for non-interactive Git pushes. |
+| `bootstrap_generate_playbook_repo_git_sync_before_push` | Rebase on the remote branch before pushing generated commits. Defaults to `true`. |
 | `bootstrap_generate_playbook_repo_component` | Component group to generate, such as `all`, `openshift`, or `rhel`. |
 | `bootstrap_generate_playbook_repo_component_map` | Maps component selections to generated playbook groups. |
 | `bootstrap_generate_playbook_repo_generated_playbooks` | Manifest of bundled playbooks copied into the generated repository. |

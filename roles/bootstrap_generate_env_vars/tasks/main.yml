@@ -7,6 +7,7 @@
     - preflight_json is defined
     - preflight_json | length > 0
 
+# yamllint disable rule:line-length
 - name: Set values from preflight JSON
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_env: >-
@@ -33,23 +34,92 @@
       }}
     bootstrap_generate_env_vars_components: >-
       {{
-        [bootstrap_generate_env_vars_preflight.component | default('all')]
-        if bootstrap_generate_env_vars_preflight.component is defined
+        bootstrap_generate_env_vars_preflight.selected_component_apps
+        if (
+          bootstrap_generate_env_vars_preflight.selected_component_apps
+          is defined
+          and bootstrap_generate_env_vars_preflight.selected_component_apps
+          | length > 0
+        )
         else (
           ['openshift', 'keycloak', 'satellite', 'grafana', 'jira', 'patching']
-          if 'all' in (
-            bootstrap_generate_env_vars_preflight.platform
-            | default(['all'])
-            | map('lower')
-            | list
+          if (
+            'all' in (
+              bootstrap_generate_env_vars_preflight.components
+              | default(bootstrap_generate_env_vars_preflight.platform | default(['all']))
+              | map('lower')
+              | list
+            )
           )
           else (
-            bootstrap_generate_env_vars_preflight.platform
-            | default(['all'])
-            | map('lower')
-            | list
+            (
+              (
+                bootstrap_generate_env_vars_preflight.component_apps.openshift
+                | default([])
+              )
+              if 'openshift' in (
+                bootstrap_generate_env_vars_preflight.components
+                | default(bootstrap_generate_env_vars_preflight.platform | default([]))
+                | map('lower')
+                | list
+              )
+              else []
+            )
+            +
+            (
+              (
+                bootstrap_generate_env_vars_preflight.component_apps.rhel
+                | default([])
+              )
+              if 'rhel' in (
+                bootstrap_generate_env_vars_preflight.components
+                | default(bootstrap_generate_env_vars_preflight.platform | default([]))
+                | map('lower')
+                | list
+              )
+              else []
+            )
+            +
+            (
+              (
+                bootstrap_generate_env_vars_preflight.component_apps.patching
+                | default([])
+              )
+              if 'patching' in (
+                bootstrap_generate_env_vars_preflight.components
+                | default(bootstrap_generate_env_vars_preflight.platform | default([]))
+                | map('lower')
+                | list
+              )
+              else []
+            )
+            +
+            (
+              (
+                bootstrap_generate_env_vars_preflight.component_apps.provision
+                | default([])
+              )
+              if 'provision' in (
+                bootstrap_generate_env_vars_preflight.components
+                | default(bootstrap_generate_env_vars_preflight.platform | default([]))
+                | map('lower')
+                | list
+              )
+              else []
+            )
+            +
+            (
+              bootstrap_generate_env_vars_preflight.components
+              | default(bootstrap_generate_env_vars_preflight.platform | default([]))
+              | map('lower')
+              | difference(['openshift', 'rhel', 'patching', 'provision'])
+              | list
+            )
           )
         )
+        | reject('equalto', '')
+        | unique
+      | list
       }}
     bootstrap_generate_env_vars_use_aap: >-
       {{
@@ -70,6 +140,101 @@
         | bool
       }}
   when: bootstrap_generate_env_vars_preflight is defined
+# yamllint enable rule:line-length
+
+- name: Preserve top-level preflight components with no child selections
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_components: >-
+      {{
+        (
+          bootstrap_generate_env_vars_components
+          + (
+              ['openshift']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and (
+                  bootstrap_generate_env_vars_preflight.component_apps.openshift
+                  | default([])
+                  | length
+                ) == 0
+              )
+              else []
+            )
+          + (
+              ['rhel']
+              if (
+                'rhel' in bootstrap_generate_env_vars_preflight_components
+                and (
+                  bootstrap_generate_env_vars_preflight.component_apps.rhel
+                  | default([])
+                  | length
+                ) == 0
+              )
+              else []
+            )
+          + (
+              ['patching']
+              if (
+                'patching' in bootstrap_generate_env_vars_preflight_components
+                and (
+                  bootstrap_generate_env_vars_preflight.component_apps.patching
+                  | default([])
+                  | length
+                ) == 0
+              )
+              else []
+            )
+          + (
+              ['provision']
+              if (
+                'provision' in bootstrap_generate_env_vars_preflight_components
+                and (
+                  bootstrap_generate_env_vars_preflight.component_apps.provision
+                  | default([])
+                  | length
+                ) == 0
+              )
+              else []
+            )
+        )
+        | unique
+        | list
+      }}
+  vars:
+    bootstrap_generate_env_vars_preflight_components: >-
+      {{
+        bootstrap_generate_env_vars_preflight.components
+        | default(bootstrap_generate_env_vars_preflight.platform | default([]))
+        | map('lower')
+        | list
+      }}
+  when:
+    - bootstrap_generate_env_vars_preflight is defined
+
+- name: Add components implied by RHEL options from preflight JSON
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_components: >-
+      {{
+        (
+          bootstrap_generate_env_vars_components
+          +
+          (
+            ['stig']
+            if 'stig' in
+              (
+                bootstrap_generate_env_vars_preflight.component_options.rhel
+                | default([])
+                | map('lower')
+                | list
+              )
+            else []
+          )
+        )
+        | unique
+        | list
+      }}
+  when:
+    - bootstrap_generate_env_vars_preflight is defined
 
 - name: Validate env was provided
   ansible.builtin.assert:
@@ -187,6 +352,7 @@
       - grafana
       - jira
       - patching
+      - stig
   when:
     - bootstrap_generate_env_vars_preflight is not defined
     - bootstrap_generate_env_vars_platform == 'all'
@@ -196,7 +362,7 @@
     prompt: >-
       What additional components do you want to enable?
       (comma separated)
-      Options: openshift,keycloak,satellite,grafana,jira,patching
+      Options: openshift,keycloak,satellite,grafana,jira,patching,stig
   register: bootstrap_generate_env_vars_prompt_components
   when:
     - bootstrap_generate_env_vars_preflight is not defined
@@ -246,6 +412,27 @@
     - bootstrap_generate_env_vars_platform == 'linux'
 
 - name: Show selected components
+  ansible.builtin.debug:
+    var: bootstrap_generate_env_vars_components
+
+- name: Normalize patching selection to RHEL component vars
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_components: >-
+      {{
+        (
+          bootstrap_generate_env_vars_components
+          + (
+              ['rhel']
+              if 'patching' in bootstrap_generate_env_vars_components
+              else []
+            )
+        )
+        | reject('equalto', 'patching')
+        | unique
+        | list
+      }}
+
+- name: Show normalized selected components
   ansible.builtin.debug:
     var: bootstrap_generate_env_vars_components
 
@@ -328,6 +515,7 @@
 
     preflight_file = Path("{{ preflight_json }}")
     env_dir = Path("{{ bootstrap_generate_env_vars_env_dir }}")
+    selected_components = set({{ bootstrap_generate_env_vars_components | to_json }})
 
     preflight = json.loads(preflight_file.read_text())
 
@@ -343,7 +531,7 @@
 
     def write_yaml(path, data, mode="0644"):
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("---\n" + yaml.safe_dump(data, sort_keys=False))
+        path.write_text("---\n" + yaml.safe_dump(data, sort_keys=False, width=1000))
         path.chmod(int(mode, 8))
 
     def merge_component(component, cfg):
@@ -387,9 +575,40 @@
                 if public_values.get("hostname"):
                     vars_data["components_env"]["rhbk"]["hostname"] = public_values["hostname"]
 
+            if component == "satellite":
+                vars_data.setdefault("components_env", {}).setdefault("satellite", {})
+                vars_data["components_env"]["satellite"].pop("storage", None)
+                if public_values.get("hostname"):
+                    satellite_url = str(public_values["hostname"])
+                    if not satellite_url.startswith(("http://", "https://")):
+                        satellite_url = "https://" + satellite_url
+                    vars_data["components_env"]["satellite"]["hostname"] = public_values["hostname"]
+                    vars_data["satellite_config_server_url"] = satellite_url
+                if public_values.get("organization"):
+                    vars_data["satellite_config_organization"] = public_values["organization"]
+                if public_values.get("activation_key"):
+                    vars_data["satellite_activation_key"] = public_values["activation_key"]
+                if public_values.get("service_account_username"):
+                    vars_data["satellite_config_username"] = public_values["service_account_username"]
+                    vars_data["satellite_service_account_username"] = public_values["service_account_username"]
+                    vault_data["vault_satellite_service_account_username"] = public_values["service_account_username"]
+                if "validate_certs" in public_values:
+                    vars_data["satellite_config_validate_certs"] = public_values["validate_certs"]
+
             if component == "rhel":
                 vars_data.setdefault("components_env", {}).setdefault("rhel", {})
                 vars_data["components_env"]["rhel"].update(public_values)
+
+            if component == "stig":
+                rhel_values = (preflight.get("component_config") or {}).get("rhel") or {}
+                if rhel_values.get("compliance_profile"):
+                    vars_data["compliance_profile"] = rhel_values["compliance_profile"]
+                if rhel_values.get("stig_profile"):
+                    vars_data["stig_profile"] = rhel_values["stig_profile"]
+                    vars_data["rhel_stig_profile"] = rhel_values["stig_profile"]
+                if public_values.get("profile"):
+                    vars_data["stig_profile"] = public_values["profile"]
+                    vars_data["rhel_stig_profile"] = public_values["profile"]
 
             write_yaml(vars_path, vars_data, "0644")
 
@@ -403,9 +622,21 @@
             for k, v in secret_values.items():
                 vault_data[k] = v
 
+            if component == "satellite":
+                if secret_values.get("service_account_password") is not None:
+                    vault_data["vault_satellite_service_account_password"] = secret_values["service_account_password"]
+                    vault_data["satellite_config_password"] = secret_values["service_account_password"]
+                if secret_values.get("admin_password") is not None:
+                    vault_data["vault_satellite_admin_password"] = secret_values["admin_password"]
+                    vault_data["satellite_config_admin_password"] = secret_values["admin_password"]
+
             write_yaml(vault_path, vault_data, "0600")
 
     openshift = preflight.get("openshift") or {}
+    if openshift:
+        if "openshift" not in selected_components:
+            openshift = {}
+
     if openshift:
         vars_path = env_dir / "vars_openshift.yml"
         vault_path = env_dir / "vault_openshift.yml"
@@ -424,8 +655,10 @@
             vars_data["apps_domain"] = openshift.get("apps_domain")
             vars_data["app_domain"] = openshift.get("apps_domain")
 
-        vars_data["verify_ssl"] = False
-        vars_data["validate_certs"] = False
+        skip_tls_verify = bool(openshift.get("skip_tls_verify", True))
+        vars_data["skip_tls_verify"] = skip_tls_verify
+        vars_data["verify_ssl"] = not skip_tls_verify
+        vars_data["validate_certs"] = not skip_tls_verify
 
         if openshift.get("token") is not None:
             vault_data["token"] = openshift.get("token")
@@ -435,6 +668,8 @@
         write_yaml(vault_path, vault_data, "0600")
 
     for component, cfg in (preflight.get("component_config") or {}).items():
+        if component not in selected_components:
+            continue
         merge_component(component, cfg)
 
     print(f"Overlayed preflight component values into {env_dir}")
@@ -514,7 +749,10 @@
 
     - name: Ask AAP project Git branch
       ansible.builtin.pause:
-        prompt: "AAP project Git branch [main]"
+        prompt: >-
+          AAP project Git branch
+          [{{ bootstrap_generate_env_vars_default_git_branch
+              | default('main') }}]
       register: bootstrap_generate_env_vars_prompt_aap_project_scm_branch
 
     - name: Ask AAP project Git token
@@ -636,6 +874,15 @@
   when:
     - bootstrap_generate_env_vars_use_aap | bool
 
+- name: Write machine credential vault vars
+  ansible.builtin.template:
+    src: vault_machine_cred.yml.j2
+    dest: "{{ bootstrap_generate_env_vars_env_dir }}/vault_machine_cred.yml"
+    mode: "0600"
+    force: "{{ bootstrap_generate_env_vars_force | bool }}"
+  when:
+    - bootstrap_generate_env_vars_use_aap | bool
+
 - name: Write Jira vault file
   ansible.builtin.template:
     src: vault_jira.yml.j2
@@ -649,8 +896,32 @@
 - name: Set vault encryption from preflight JSON
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_encrypt_vault_files: >-
-          bootstrap_generate_env_vars_preflight.vault.encrypt
+      {{
+        (
+          bootstrap_generate_env_vars_preflight.vault
+          | default({})
+        ).encrypt
+        | default(bootstrap_generate_env_vars_encrypt_vault_files)
+        | bool
+      }}
   when: bootstrap_generate_env_vars_preflight is defined
+
+- name: Set provided vault password file
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_effective_vault_password_file: >-
+      {{
+        bootstrap_generate_env_vars_vault_password_file
+        | default(generate_env_vars_vault_password_file | default(''), true)
+      }}
+  when:
+    - bootstrap_generate_env_vars_encrypt_vault_files | bool
+    - >-
+      (
+        bootstrap_generate_env_vars_vault_password_file
+        | default(generate_env_vars_vault_password_file | default(''), true)
+        | string
+        | length
+      ) > 0
 
 - name: Ask whether to encrypt generated vault files
   ansible.builtin.pause:
@@ -681,6 +952,51 @@
   when:
     - bootstrap_generate_env_vars_encrypt_vault_files | bool
     - bootstrap_generate_env_vars_preflight is not defined
+    - bootstrap_generate_env_vars_effective_vault_password_file is not defined
+
+- name: Set preflight vault password
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_preflight_vault_password: >-
+      {{
+        (
+          bootstrap_generate_env_vars_preflight.vault
+          | default({})
+        ).password
+        | default(
+            (
+              bootstrap_generate_env_vars_preflight.aap
+              | default({})
+            ).vault_password
+            | default(
+                bootstrap_generate_env_vars_preflight.vault_password
+                | default(''),
+                true
+              ),
+            true
+          )
+      }}
+  no_log: true
+  when:
+    - bootstrap_generate_env_vars_encrypt_vault_files | bool
+    - bootstrap_generate_env_vars_preflight is defined
+    - bootstrap_generate_env_vars_effective_vault_password_file is not defined
+
+- name: Ensure vault password is available for preflight encryption
+  ansible.builtin.assert:
+    that:
+      - >-
+          bootstrap_generate_env_vars_preflight_vault_password
+          | default('')
+          | length > 0
+    fail_msg: >-
+      Vault encryption is enabled, but no vault password was provided. Set
+      preflight vault.password, aap.vault_password, vault_password, or pass
+      bootstrap_generate_env_vars_vault_password_file.
+  no_log: true
+  when:
+    - bootstrap_generate_env_vars_encrypt_vault_files | bool
+    - bootstrap_generate_env_vars_preflight is defined
+    - bootstrap_generate_env_vars_effective_vault_password_file is not defined
 
 - name: Create temporary vault password file
   ansible.builtin.tempfile:
@@ -689,17 +1005,29 @@
   register: bootstrap_generate_env_vars_temp_vault_password_file
   when:
     - bootstrap_generate_env_vars_encrypt_vault_files | bool
-    - bootstrap_generate_env_vars_preflight is not defined
+    - bootstrap_generate_env_vars_effective_vault_password_file is not defined
 
 - name: Write temporary vault password file
   ansible.builtin.copy:
     dest: "{{ bootstrap_generate_env_vars_temp_vault_password_file.path }}"
     content: >-
-      {{ bootstrap_generate_env_vars_prompt_vault_password.user_input }}
+      {{
+        bootstrap_generate_env_vars_preflight_vault_password
+        | default(bootstrap_generate_env_vars_prompt_vault_password.user_input)
+      }}
     mode: "0600"
+  no_log: true
   when:
     - bootstrap_generate_env_vars_encrypt_vault_files | bool
-    - bootstrap_generate_env_vars_preflight is not defined
+    - bootstrap_generate_env_vars_effective_vault_password_file is not defined
+
+- name: Set temporary vault password file
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_effective_vault_password_file: >-
+      {{ bootstrap_generate_env_vars_temp_vault_password_file.path }}
+  when:
+    - bootstrap_generate_env_vars_encrypt_vault_files | bool
+    - bootstrap_generate_env_vars_effective_vault_password_file is not defined
 
 - name: Find generated vault files
   ansible.builtin.find:
@@ -709,7 +1037,6 @@
   register: bootstrap_generate_env_vars_vault_files
   when:
     - bootstrap_generate_env_vars_encrypt_vault_files | bool
-    - bootstrap_generate_env_vars_preflight is not defined
 
 - name: Check generated vault file encryption state
   ansible.builtin.command:
@@ -719,21 +1046,20 @@
   changed_when: false
   when:
     - bootstrap_generate_env_vars_encrypt_vault_files | bool
-    - bootstrap_generate_env_vars_preflight is not defined
 
 - name: Encrypt generated vault files
   ansible.builtin.shell: |
     set -euo pipefail
     ansible-vault encrypt "{{ item.item.path }}" \
       --vault-password-file \
-      "{{ bootstrap_generate_env_vars_temp_vault_password_file.path }}"
+      "{{ bootstrap_generate_env_vars_effective_vault_password_file }}"
   args:
     executable: /bin/bash
-    loop: >-
-      {{
-        bootstrap_generate_env_vars_vault_file_headers.results
-        | default([])
-      }}
+  loop: >-
+    {{
+      bootstrap_generate_env_vars_vault_file_headers.results
+      | default([])
+    }}
   when:
     - bootstrap_generate_env_vars_encrypt_vault_files | bool
     - item.stdout is not search('^\\$ANSIBLE_VAULT;')

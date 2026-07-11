@@ -63,6 +63,18 @@ components_env:
     operator_channel: "2.11"
     operator_starting_csv: ""
 
+{% elif component_name == 'satellite' %}
+satellite_config_server_url: "{{ bootstrap_generate_env_vars_satellite_server_url | default('') }}"
+{% if bootstrap_generate_env_vars_satellite_service_account_username is defined %}
+satellite_config_username: "{{ bootstrap_generate_env_vars_satellite_service_account_username }}"
+{% else %}
+satellite_config_username: "{% raw %}{{ vault_satellite_service_account_username | default(omit) }}{% endraw %}"
+{% endif %}
+satellite_config_password: "{% raw %}{{ vault_satellite_service_account_password | default(omit) }}{% endraw %}"
+satellite_config_admin_password: "{% raw %}{{ vault_satellite_admin_password | default(vault_satellite_service_account_password | default(omit)) }}{% endraw %}"
+satellite_config_organization: "{{ bootstrap_generate_env_vars_satellite_organization | default('') }}"
+satellite_config_validate_certs: {{ bootstrap_generate_env_vars_satellite_validate_certs | default(false) | bool | lower }}
+
 {% elif component_name == 'eck' %}
 components_env:
   eck:
@@ -140,6 +152,23 @@ pega_local_images:
     target_image: "pega/installer:23.1.1"
 
 pega_kafka_bootstrap_server: "pega-kafka-cluster-kafka-bootstrap.pega.svc.cluster.local:9092"
+
+{% elif component_name == 'rhel' %}
+components_env:
+  rhel:
+    hostname: ''
+    compliance_profile: PCI-DSS
+    stig_profile: RHEL 9 STIG
+
+{% elif component_name == 'stig' %}
+compliance_profile: STIG
+stig_profile: RHEL 9 STIG
+rhel_stig_profile: RHEL 9 STIG
+
+{% elif component_name == 'compliance' %}
+components_env:
+  compliance:
+    profile: PCI-DSS
 
 {% else %}
 # No default vars for this component yet.

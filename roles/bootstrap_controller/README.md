@@ -23,6 +23,9 @@ Automation Development Office
 |----------|-------------|
 | `bootstrap_controller_enabled_objects` | Ordered list of controller object groups to manage. |
 | `bootstrap_controller_generate_job_templates_from_manifest` | Enables rendering job template definitions from bundled bootstrap manifests. |
+| `bootstrap_controller_aap_connectivity_check_enabled` | Checks AAP controller API connectivity and authentication before applying controller objects. Defaults to `true`. |
+| `bootstrap_controller_aap_smoke_test_enabled` | Launches a harmless AAP job template before applying controller objects. Defaults to `true`. |
+| `bootstrap_controller_aap_smoke_test_job_template` | Job template used for the AAP smoke test. Defaults to `Demo Job Template`. |
 | `bootstrap_controller_organization` | Default organization used for generated controller objects. |
 | `bootstrap_controller_inventory_name` | Default inventory assigned to generated job templates. |
 | `bootstrap_controller_project_name` | Default project assigned to generated job templates. |
