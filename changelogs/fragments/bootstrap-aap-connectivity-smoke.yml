@@ -12,3 +12,6 @@ bugfixes:
     bootstrap_controller - Use the AAP 2.5 and 2.6 controller gateway API
     path for connectivity and smoke-test checks while keeping the AAP 2.4
     controller API path.
+  - >-
+    bootstrap_controller - Continue bootstrap runs when the optional smoke-test
+    job template is missing after AAP connectivity succeeds.
