@@ -107,8 +107,30 @@
 {% set bootstrap_generate_env_vars_aap_additional_credentials = preflight_aap.additional_credentials | default(bootstrap_generate_env_vars_aap_additional_credentials | default([]), true) %}
 {% set bootstrap_generate_env_vars_hub_publish_ado_collection = preflight_aap.hub_publish_ado_collection | default(bootstrap_generate_env_vars_hub_publish_ado_collection | default(true)) | bool %}
 {% set bootstrap_generate_env_vars_hub_mark_ado_validated = true if bootstrap_generate_env_vars_hub_publish_ado_collection else false %}
+{% set bootstrap_generate_env_vars_aap_skip_tls_verify =
+    preflight_aap.skip_tls_verify
+    | default(skip_tls_verify | default(false), true)
+    | bool
+    if bootstrap_generate_env_vars_preflight is defined
+    else (skip_tls_verify | default(false) | bool)
+%}
+{% set bootstrap_generate_env_vars_aap_validate_certs =
+    (not bootstrap_generate_env_vars_aap_skip_tls_verify)
+    if bootstrap_generate_env_vars_preflight is defined
+    else (
+      controller_validate_certs
+      | default(not bootstrap_generate_env_vars_aap_skip_tls_verify)
+      | bool
+    )
+%}
 
 aap_version: {{ bootstrap_generate_env_vars_aap_version_number | trim }}
+
+controller_validate_certs: {{ bootstrap_generate_env_vars_aap_validate_certs | lower }}
+controller_verify_ssl: {{ bootstrap_generate_env_vars_aap_validate_certs | lower }}
+tower_verify_ssl: {{ bootstrap_generate_env_vars_aap_validate_certs | lower }}
+validate_certs: {{ bootstrap_generate_env_vars_aap_validate_certs | lower }}
+verify_ssl: {{ bootstrap_generate_env_vars_aap_validate_certs | lower }}
 
 controller_bootstrap_organization: "{{ bootstrap_generate_env_vars_aap_org }}"
 controller_bootstrap_inventory_name: "{{ bootstrap_generate_env_vars_aap_inventory }}"

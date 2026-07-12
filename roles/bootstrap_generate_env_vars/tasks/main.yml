@@ -595,6 +595,42 @@
                 if "validate_certs" in public_values:
                     vars_data["satellite_config_validate_certs"] = public_values["validate_certs"]
 
+            if component == "idm":
+                vars_data.setdefault("components_env", {}).setdefault("idm", {})
+                public_values.pop("storage", None)
+                vars_data["component_config"][component].pop("storage", None)
+                vars_data.pop("storage", None)
+                vars_data["components_env"]["idm"].pop("storage", None)
+                if public_values.get("hostname"):
+                    vars_data["components_env"]["idm"]["hostname"] = public_values["hostname"]
+                    vars_data["idm_hostname"] = public_values["hostname"]
+                    vars_data["idm_server_name"] = public_values["hostname"]
+                    vars_data["idm_configure_replica_server"] = public_values["hostname"]
+                if public_values.get("domain"):
+                    vars_data["idm_domain"] = public_values["domain"]
+                    vars_data["idm_configure_replica_domain"] = public_values["domain"]
+                if public_values.get("realm"):
+                    vars_data["idm_realm"] = public_values["realm"]
+                    vars_data["idm_configure_replica_realm"] = public_values["realm"]
+                if public_values.get("replica_hostname"):
+                    vars_data["idm_replica_hostname"] = public_values["replica_hostname"]
+                    vars_data["idm_configure_replica_hostname"] = public_values["replica_hostname"]
+                if "replica_install_dns" in public_values:
+                    vars_data["idm_replica_install_dns"] = public_values["replica_install_dns"]
+                    vars_data["idm_configure_replica_setup_dns"] = public_values["replica_install_dns"]
+                if "replica_install_ca" in public_values:
+                    vars_data["idm_replica_install_ca"] = public_values["replica_install_ca"]
+                    vars_data["idm_configure_replica_setup_ca"] = public_values["replica_install_ca"]
+                if "auto_forwarders" in public_values:
+                    vars_data["idm_auto_forwarders"] = public_values["auto_forwarders"]
+                    vars_data["idm_configure_replica_auto_forwarders"] = public_values["auto_forwarders"]
+                if public_values.get("custom_cert_file"):
+                    vars_data["idm_custom_cert_file"] = public_values["custom_cert_file"]
+                if public_values.get("custom_cert_key_file"):
+                    vars_data["idm_custom_cert_key_file"] = public_values["custom_cert_key_file"]
+                if public_values.get("custom_cert_chain_file"):
+                    vars_data["idm_custom_cert_chain_file"] = public_values["custom_cert_chain_file"]
+
             if component == "rhel":
                 vars_data.setdefault("components_env", {}).setdefault("rhel", {})
                 vars_data["components_env"]["rhel"].update(public_values)
@@ -629,6 +665,15 @@
                 if secret_values.get("admin_password") is not None:
                     vault_data["vault_satellite_admin_password"] = secret_values["admin_password"]
                     vault_data["satellite_config_admin_password"] = secret_values["admin_password"]
+
+            if component == "idm":
+                if secret_values.get("admin_password") is not None:
+                    vault_data["vault_idm_admin_password"] = secret_values["admin_password"]
+                    vault_data["idm_server_ipaadmin_password"] = secret_values["admin_password"]
+                    vault_data["idm_configure_replica_admin_password"] = secret_values["admin_password"]
+                if secret_values.get("directory_manager_password") is not None:
+                    vault_data["vault_idm_directory_manager_password"] = secret_values["directory_manager_password"]
+                    vault_data["idm_configure_replica_dm_password"] = secret_values["directory_manager_password"]
 
             write_yaml(vault_path, vault_data, "0600")
 

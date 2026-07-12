@@ -1,0 +1,10 @@
+---
+minor_changes:
+  - >-
+    bootstrap_generate_env_vars - Preserve UI and CLI IDM configuration fields
+    for DNS, replica, certificate, custom certificate, and auto-forwarder
+    settings while removing the obsolete IDM storage value.
+  - >-
+    ado-preflight-ui - Add Satellite field help, consistent skip-TLS wording,
+    IDM configuration controls, immediate SSH key paste support, and an
+    end-of-run ADO bootstrap recap.

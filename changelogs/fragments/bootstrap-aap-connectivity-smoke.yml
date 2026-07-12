@@ -3,3 +3,8 @@ minor_changes:
   - >-
     Check AAP controller API connectivity before applying bootstrap controller
     objects and run a configurable demo job template smoke test.
+bugfixes:
+  - >-
+    bootstrap_controller - Report safe AAP connectivity failure details instead
+    of stopping on a fully censored no_log result, and persist the UI or CLI
+    TLS validation setting into generated AAP vars.
