@@ -1,0 +1,21 @@
+---
+bugfixes:
+  - >-
+    Treat Satellite dynamic inventory as enabled when older preflight JSON
+    selects Satellite but omits the dynamic inventory setting.
+  - >-
+    Load generated AAP and component vault files before rendering controller
+    config files so Satellite dynamic inventory credentials can reference
+    generated vault variables.
+  - >-
+    Preserve vault variable references in generated controller credential
+    config files instead of resolving secrets during config generation.
+  - >-
+    Skip the post-AAP-config Git push when only AAP configs are generated and
+    no playbook repository was generated.
+  - >-
+    Refresh generated AAP config and vault files on preflight JSON runs so UI
+    reruns do not keep stale controller object definitions.
+  - >-
+    Render additional AAP credentials with credential-type-specific inputs, so
+    Vault credentials use vault_password instead of machine credential fields.

@@ -20,6 +20,13 @@
     or 'satellite' in preflight_rhel_apps
     or 'patching' in preflight_patching_apps
 %}
+{% set satellite_component_selected =
+    'all' in preflight_components
+    or 'satellite' in preflight_components
+    or preflight_component == 'satellite'
+    or 'satellite' in preflight_rhel_apps
+    or 'satellite' in preflight_patching_apps
+%}
 {% set bootstrap_generate_env_vars_machine_credential_enabled =
     (machine_credential_component_selected and (preflight_machine_credential.name | default('ado-machine', true) | length > 0))
     if bootstrap_generate_env_vars_preflight is defined
@@ -29,7 +36,7 @@
     preflight_machine_credential.name | default(bootstrap_generate_env_vars_machine_credential_name | default((preflight_aap.organization | default('ADO', true)) ~ '-machine'), true)
 %}
 {% set bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled =
-    (preflight_satellite_config.dynamic_inventory_enabled | default(false) | bool)
+    (preflight_satellite_config.dynamic_inventory_enabled | default(satellite_component_selected) | bool)
     if bootstrap_generate_env_vars_preflight is defined
     else (bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled | default(false) | bool)
 %}
@@ -166,7 +173,7 @@ controller_bootstrap_controller_credentials:
     credential_type: Source Control
     inputs:
       username: "oauth2"
-      password: "{% raw %}{{ vault_controller_git_token }}{% endraw %}"
+      password: "{% raw %}{{ '{{ vault_controller_git_token }}' }}{% endraw %}"
 {% endif %}
 
   - name: "{{ bootstrap_generate_env_vars_aap_cred }}"
@@ -174,7 +181,7 @@ controller_bootstrap_controller_credentials:
     organization: "{{ bootstrap_generate_env_vars_aap_org }}"
     credential_type: Vault
     inputs:
-      vault_password: "{% raw %}{{ vault_controller_vault_password }}{% endraw %}"
+      vault_password: "{% raw %}{{ '{{ vault_controller_vault_password }}' }}{% endraw %}"
 {% if bootstrap_generate_env_vars_machine_credential_enabled %}
 
   - name: "{{ bootstrap_generate_env_vars_machine_credential_name }}"
@@ -182,11 +189,11 @@ controller_bootstrap_controller_credentials:
     organization: "{{ bootstrap_generate_env_vars_aap_org }}"
     credential_type: Machine
     inputs:
-      username: "{% raw %}{{ vault_machine_credential_username }}{% endraw %}"
-      ssh_key_data: "{% raw %}{{ vault_machine_credential_ssh_key_data }}{% endraw %}"
-      ssh_key_unlock: "{% raw %}{{ vault_machine_credential_ssh_key_unlock }}{% endraw %}"
-      become_method: "{% raw %}{{ vault_machine_credential_become_method }}{% endraw %}"
-      become_username: "{% raw %}{{ vault_machine_credential_become_username }}{% endraw %}"
+      username: "{% raw %}{{ '{{ vault_machine_credential_username }}' }}{% endraw %}"
+      ssh_key_data: "{% raw %}{{ '{{ vault_machine_credential_ssh_key_data }}' }}{% endraw %}"
+      ssh_key_unlock: "{% raw %}{{ '{{ vault_machine_credential_ssh_key_unlock }}' }}{% endraw %}"
+      become_method: "{% raw %}{{ '{{ vault_machine_credential_become_method }}' }}{% endraw %}"
+      become_username: "{% raw %}{{ '{{ vault_machine_credential_become_username }}' }}{% endraw %}"
 {% endif %}
 {% if bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled %}
 
@@ -196,47 +203,75 @@ controller_bootstrap_controller_credentials:
     credential_type: Red Hat Satellite 6
     inputs:
       host: "{{ bootstrap_generate_env_vars_satellite_server_url }}"
-      username: "{% raw %}{{ vault_satellite_service_account_username }}{% endraw %}"
-      password: "{% raw %}{{ vault_satellite_service_account_password }}{% endraw %}"
+      username: "{% raw %}{{ '{{ vault_satellite_service_account_username }}' }}{% endraw %}"
+      password: "{% raw %}{{ '{{ vault_satellite_service_account_password }}' }}{% endraw %}"
       verify_ssl: {{ bootstrap_generate_env_vars_satellite_validate_certs | lower }}
 {% endif %}
 {% for extra_credential in bootstrap_generate_env_vars_aap_additional_credentials %}
 {% if extra_credential.name | default('', true) | length > 0 %}
 {% set extra_credential_vault_ref = 'vault_aap_additional_credentials[' ~ loop.index0 ~ ']' %}
+{% set extra_credential_type = extra_credential.credential_type | default('Machine', true) %}
 
   - name: "{{ extra_credential.name }}"
     description: "{{ extra_credential.description | default('Additional AAP credential', true) }}"
     organization: "{{ extra_credential.organization | default(bootstrap_generate_env_vars_aap_org, true) }}"
-    credential_type: "{{ extra_credential.credential_type | default('Machine', true) }}"
+    credential_type: "{{ extra_credential_type }}"
     inputs:
+{% if extra_credential_type == 'Vault' %}
+{% if extra_credential.vault_password | default('', true) | length > 0 %}
+      vault_password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.vault_password{% raw %} }}' }}{% endraw %}"
+{% elif extra_credential.password | default('', true) | length > 0 %}
+      vault_password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.password{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% elif extra_credential_type == 'Red Hat Satellite 6' %}
 {% if extra_credential.host | default('', true) | length > 0 %}
-      host: "{{ '{{ ' ~ extra_credential_vault_ref ~ '.host }}' }}"
+      host: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.host{% raw %} }}' }}{% endraw %}"
 {% endif %}
 {% if extra_credential.username | default('', true) | length > 0 %}
-      username: "{{ '{{ ' ~ extra_credential_vault_ref ~ '.username }}' }}"
+      username: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.username{% raw %} }}' }}{% endraw %}"
 {% endif %}
 {% if extra_credential.password | default('', true) | length > 0 %}
-      password: "{{ '{{ ' ~ extra_credential_vault_ref ~ '.password }}' }}"
+      password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.password{% raw %} }}' }}{% endraw %}"
 {% endif %}
-{% if extra_credential.token | default('', true) | length > 0 %}
-      bearer_token: "{{ '{{ ' ~ extra_credential_vault_ref ~ '.token }}' }}"
-      token: "{{ '{{ ' ~ extra_credential_vault_ref ~ '.token }}' }}"
+      verify_ssl: true
+{% elif extra_credential_type == 'Source Control' %}
+{% if extra_credential.username | default('', true) | length > 0 %}
+      username: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.username{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.password | default('', true) | length > 0 %}
+      password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.password{% raw %} }}' }}{% endraw %}"
 {% endif %}
 {% if extra_credential.ssh_key_data | default('', true) | length > 0 %}
       ssh_key_data: |
-        {{ '{{ ' ~ extra_credential_vault_ref ~ '.ssh_key_data }}' }}
+        {% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.ssh_key_data{% raw %} }}' }}{% endraw %}
+{% endif %}
+{% else %}
+{% if extra_credential.username | default('', true) | length > 0 %}
+      username: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.username{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.password | default('', true) | length > 0 %}
+      password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.password{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.token | default('', true) | length > 0 %}
+      bearer_token: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.token{% raw %} }}' }}{% endraw %}"
+      token: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.token{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.ssh_key_data | default('', true) | length > 0 %}
+      ssh_key_data: |
+        {% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.ssh_key_data{% raw %} }}' }}{% endraw %}
 {% endif %}
 {% if extra_credential.ssh_key_unlock | default('', true) | length > 0 %}
-      ssh_key_unlock: "{{ '{{ ' ~ extra_credential_vault_ref ~ '.ssh_key_unlock }}' }}"
+      ssh_key_unlock: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.ssh_key_unlock{% raw %} }}' }}{% endraw %}"
 {% endif %}
 {% if extra_credential.become_method | default('', true) | length > 0 %}
-      become_method: "{{ '{{ ' ~ extra_credential_vault_ref ~ '.become_method }}' }}"
+      become_method: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.become_method{% raw %} }}' }}{% endraw %}"
 {% endif %}
 {% if extra_credential.become_username | default('', true) | length > 0 %}
-      become_username: "{{ '{{ ' ~ extra_credential_vault_ref ~ '.become_username }}' }}"
+      become_username: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.become_username{% raw %} }}' }}{% endraw %}"
 {% endif %}
 {% if extra_credential.vault_password | default('', true) | length > 0 %}
-      vault_password: "{{ '{{ ' ~ extra_credential_vault_ref ~ '.vault_password }}' }}"
+      vault_password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.vault_password{% raw %} }}' }}{% endraw %}"
+{% endif %}
 {% endif %}
 {% endif %}
 {% endfor %}

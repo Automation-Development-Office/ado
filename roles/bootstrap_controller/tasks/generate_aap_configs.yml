@@ -1,4 +1,70 @@
 ---
+- name: AAP configs | Load generated AAP config vars
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/group_vars/all/{{ env }}/aap_config_vars.yml"
+  when:
+    - env is defined
+    - (playbook_dir ~ '/group_vars/all/' ~ env ~ '/aap_config_vars.yml') is file
+
+- name: AAP configs | Load generated AAP vault vars
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/group_vars/all/{{ env }}/aap_vault.yml"
+  when:
+    - env is defined
+    - (playbook_dir ~ '/group_vars/all/' ~ env ~ '/aap_vault.yml') is file
+
+- name: AAP configs | Find generated component vault files
+  ansible.builtin.find:
+    paths: "{{ playbook_dir }}/group_vars/all/{{ env }}"
+    patterns:
+      - "vault_*.yml"
+    file_type: file
+  register: bootstrap_controller_generated_component_vault_files
+  when:
+    - env is defined
+    - (playbook_dir ~ '/group_vars/all/' ~ env) is directory
+
+- name: AAP configs | Load generated component vault files
+  ansible.builtin.include_vars:
+    file: "{{ item.path }}"
+  loop: >-
+    {{
+      bootstrap_controller_generated_component_vault_files.files
+      | default([])
+      | sort(attribute='path')
+    }}
+  no_log: true
+
+- name: AAP configs | Validate Satellite dynamic inventory credential inputs
+  ansible.builtin.assert:
+    that:
+      - >-
+        vault_satellite_service_account_username
+        | default('', true)
+        | length > 0
+      - >-
+        vault_satellite_service_account_password
+        | default('', true)
+        | length > 0
+      - >-
+        controller_bootstrap_controller_credentials
+        | default([])
+        | selectattr('credential_type', 'match', '^Red Hat Satellite 6$')
+        | selectattr('inputs.host', 'defined')
+        | list
+        | length > 0
+    fail_msg: >-
+      Satellite dynamic inventory is enabled, but the generated Satellite
+      service account username, password, or server URL is missing. Confirm the
+      Satellite service account fields are present in the preflight JSON.
+  when:
+    - >-
+      controller_bootstrap_controller_inventory_sources
+      | default([])
+      | selectattr('source', 'match', '^satellite6$')
+      | list
+      | length > 0
+
 - name: AAP configs | Ensure config directories exist
   ansible.builtin.file:
     path: "{{ playbook_dir }}/configs/{{ item }}"

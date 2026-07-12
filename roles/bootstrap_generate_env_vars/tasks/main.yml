@@ -997,7 +997,11 @@
     src: aap_config_vars.yml.j2
     dest: "{{ bootstrap_generate_env_vars_env_dir }}/aap_config_vars.yml"
     mode: "0644"
-    force: "{{ bootstrap_generate_env_vars_force | bool }}"
+    force: >-
+      {{
+        bootstrap_generate_env_vars_force | bool
+        or bootstrap_generate_env_vars_preflight is defined
+      }}
   when:
     - bootstrap_generate_env_vars_use_aap | bool
 
@@ -1006,7 +1010,11 @@
     src: aap_vault.yml.j2
     dest: "{{ bootstrap_generate_env_vars_env_dir }}/aap_vault.yml"
     mode: "0600"
-    force: "{{ bootstrap_generate_env_vars_force | bool }}"
+    force: >-
+      {{
+        bootstrap_generate_env_vars_force | bool
+        or bootstrap_generate_env_vars_preflight is defined
+      }}
   when:
     - bootstrap_generate_env_vars_use_aap | bool
 
@@ -1015,7 +1023,11 @@
     src: vault_machine_cred.yml.j2
     dest: "{{ bootstrap_generate_env_vars_env_dir }}/vault_machine_cred.yml"
     mode: "0600"
-    force: "{{ bootstrap_generate_env_vars_force | bool }}"
+    force: >-
+      {{
+        bootstrap_generate_env_vars_force | bool
+        or bootstrap_generate_env_vars_preflight is defined
+      }}
   when:
     - bootstrap_generate_env_vars_use_aap | bool
 
@@ -1024,7 +1036,11 @@
     src: vault_jira.yml.j2
     dest: "{{ bootstrap_generate_env_vars_env_dir }}/vault_jira.yml"
     mode: "0600"
-    force: "{{ bootstrap_generate_env_vars_force | bool }}"
+    force: >-
+      {{
+        bootstrap_generate_env_vars_force | bool
+        or bootstrap_generate_env_vars_preflight is defined
+      }}
   when:
     - bootstrap_generate_env_vars_use_aap | bool
     - bootstrap_generate_env_vars_enable_jira | default(false) | bool

@@ -62,7 +62,11 @@
     git diff --cached --quiet || \
       git commit -m "Generate bootstrap playbook repo"
     if [ "$sync_before_push" = "true" ]; then
-      if git ls-remote --exit-code --heads "$remote_name" "$branch_name" >/dev/null; then
+      if git ls-remote \
+        --exit-code \
+        --heads \
+        "$remote_name" \
+        "$branch_name" >/dev/null; then
         git fetch "$remote_name" "$branch_name"
         git rebase FETCH_HEAD
       else
@@ -113,7 +117,11 @@
     git diff --cached --quiet || \
       git commit -m "Generate bootstrap playbook repo"
     if [ "$sync_before_push" = "true" ]; then
-      if git ls-remote --exit-code --heads "$remote_name" "$branch_name" >/dev/null; then
+      if git ls-remote \
+        --exit-code \
+        --heads \
+        "$remote_name" \
+        "$branch_name" >/dev/null; then
         git fetch "$remote_name" "$branch_name"
         git rebase FETCH_HEAD
       else
@@ -129,6 +137,7 @@
     executable: /bin/bash
   changed_when: true
   when:
+    - bootstrap_controller_generate_playbooks | default(false) | bool
     - bootstrap_controller_generate_aap_configs | default(false) | bool
     - bootstrap_generate_playbook_repo_git_mode
       | default(generate_playbook_repo_git_mode | default('manual')) == 'push'
