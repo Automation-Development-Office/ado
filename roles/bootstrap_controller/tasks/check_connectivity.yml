@@ -7,6 +7,35 @@
         if (bootstrap_controller_controller_host | regex_search('^https?://'))
         else 'https://' ~ bootstrap_controller_controller_host
       }}
+    bootstrap_controller_aap_effective_api_path: >-
+      {{
+        bootstrap_controller_aap_api_path
+        | default(
+            (
+              bootstrap_controller_is_aap_25_plus
+              | default(false)
+              | bool
+            )
+            | ternary('/api/controller/v2', '/api/v2'),
+            true
+          )
+      }}
+    bootstrap_controller_aap_effective_ping_endpoint: >-
+      {{
+        bootstrap_controller_aap_connectivity_endpoint
+        | default(
+            (
+              (
+                bootstrap_controller_is_aap_25_plus
+                | default(false)
+                | bool
+              )
+              | ternary('/api/controller/v2', '/api/v2')
+            )
+            ~ '/ping/',
+            true
+          )
+      }}
 
 - name: AAP connectivity | Call controller ping endpoint
   no_log: "{{ bootstrap_controller_aap_connectivity_no_log | default(true) }}"
@@ -14,7 +43,7 @@
     url: >-
       {{
         bootstrap_controller_aap_api_url
-        ~ bootstrap_controller_aap_connectivity_endpoint
+        ~ bootstrap_controller_aap_effective_ping_endpoint
       }}
     method: GET
     headers: >-
@@ -73,7 +102,7 @@
       - >-
         AAP controller connectivity check failed for
         {{ bootstrap_controller_aap_api_url
-        ~ bootstrap_controller_aap_connectivity_endpoint }}.
+        ~ bootstrap_controller_aap_effective_ping_endpoint }}.
       - >-
         Authentication method:
         {{ 'OAuth token'

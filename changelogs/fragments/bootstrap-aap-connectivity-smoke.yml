@@ -8,3 +8,7 @@ bugfixes:
     bootstrap_controller - Report safe AAP connectivity failure details instead
     of stopping on a fully censored no_log result, and persist the UI or CLI
     TLS validation setting into generated AAP vars.
+  - >-
+    bootstrap_controller - Use the AAP 2.5 and 2.6 controller gateway API
+    path for connectivity and smoke-test checks while keeping the AAP 2.4
+    controller API path.

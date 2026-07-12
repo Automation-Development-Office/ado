@@ -19,7 +19,8 @@ bootstrap_controller_generate_job_templates_from_manifest: true
 
 bootstrap_controller_aap_connectivity_check_enabled: true
 bootstrap_controller_aap_connectivity_no_log: true
-bootstrap_controller_aap_connectivity_endpoint: /api/v2/ping/
+bootstrap_controller_aap_api_path: ""
+bootstrap_controller_aap_connectivity_endpoint: ""
 bootstrap_controller_aap_smoke_test_enabled: true
 bootstrap_controller_aap_smoke_test_job_template: "Demo Job Template"
 bootstrap_controller_aap_smoke_test_extra_vars: {}

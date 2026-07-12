@@ -142,6 +142,97 @@
   when: bootstrap_generate_env_vars_preflight is defined
 # yamllint enable rule:line-length
 
+# yamllint disable rule:line-length
+- name: Prefer component app selections over stale selected_component_apps
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_components: >-
+      {{
+        (
+          ['openshift', 'keycloak', 'satellite', 'grafana', 'jira', 'patching']
+          if 'all' in bootstrap_generate_env_vars_preflight_components
+          else (
+            (
+              (
+                bootstrap_generate_env_vars_preflight.component_apps.openshift
+                | default([])
+              )
+              if 'openshift' in bootstrap_generate_env_vars_preflight_components
+              else []
+            )
+            +
+            (
+              (
+                bootstrap_generate_env_vars_preflight.component_apps.rhel
+                | default([])
+              )
+              if 'rhel' in bootstrap_generate_env_vars_preflight_components
+              else []
+            )
+            +
+            (
+              (
+                bootstrap_generate_env_vars_preflight.component_apps.patching
+                | default([])
+              )
+              if 'patching' in bootstrap_generate_env_vars_preflight_components
+              else []
+            )
+            +
+            (
+              (
+                bootstrap_generate_env_vars_preflight.component_apps.provision
+                | default([])
+              )
+              if 'provision' in bootstrap_generate_env_vars_preflight_components
+              else []
+            )
+            +
+            (
+              bootstrap_generate_env_vars_preflight_components
+              | difference(['openshift', 'rhel', 'patching', 'provision'])
+              | list
+            )
+          )
+        )
+        | reject('equalto', '')
+        | unique
+        | list
+      }}
+  vars:
+    bootstrap_generate_env_vars_preflight_components: >-
+      {{
+        bootstrap_generate_env_vars_preflight.components
+        | default(bootstrap_generate_env_vars_preflight.platform | default([]))
+        | map('lower')
+        | list
+      }}
+    bootstrap_generate_env_vars_preflight_component_apps: >-
+      {{ bootstrap_generate_env_vars_preflight.component_apps | default({}) }}
+  when:
+    - bootstrap_generate_env_vars_preflight is defined
+    - >-
+      (
+        bootstrap_generate_env_vars_preflight_component_apps.openshift
+        | default([])
+        | length > 0
+      )
+      or (
+        bootstrap_generate_env_vars_preflight_component_apps.rhel
+        | default([])
+        | length > 0
+      )
+      or (
+        bootstrap_generate_env_vars_preflight_component_apps.patching
+        | default([])
+        | length > 0
+      )
+      or (
+        bootstrap_generate_env_vars_preflight_component_apps.provision
+        | default([])
+        | length > 0
+      )
+# yamllint enable rule:line-length
+
 - name: Preserve top-level preflight components with no child selections
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_components: >-
