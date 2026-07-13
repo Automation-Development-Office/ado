@@ -142,6 +142,9 @@
       acs:
         - ado-acs-deploy-and-configure-bootstrap.jt.yml
 
+      acm:
+        - ado-acm-deploy-and-configure-bootstrap.jt.yml
+
       cert_manager:
         - ado-cert-manager-configure-idm-acme-clusterissuer.jt.yml
         - ado-cert-manager-deploy-and-configure-bootstrap.jt.yml
@@ -220,14 +223,21 @@
         - ado-rhbk-realm-bootstrap.jt.yml
 
       rhel:
+        - ado-rhel-compliance-bootstrap.jt.yml
         - ado-rhel-patch-host-bootstrap.jt.yml
         - ado-rhel-stig-hardening-bootstrap.jt.yml
 
       satellite:
+        - ado-satellite-install-bootstrap.jt.yml
+        - ado-satellite-configure-bootstrap.jt.yml
+        - ado-satellite-content-view-bootstrap.jt.yml
         - ado-satellite-register-host-bootstrap.jt.yml
 
       patching:
         - ado-rhel-patch-host-bootstrap.jt.yml
+
+      compliance:
+        - ado-rhel-compliance-bootstrap.jt.yml
 
       stig:
         - ado-rhel-stig-hardening-bootstrap.jt.yml
@@ -258,6 +268,10 @@
 
     organization = "{{ bootstrap_controller_organization | default(controller_bootstrap_organization, true) }}"
     inventory = "{{ bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true) }}"
+    local_inventory = "{{ bootstrap_controller_local_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+    rhel_inventory = "{{ bootstrap_controller_rhel_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+    idm_inventory = "{{ bootstrap_controller_idm_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+    satellite_inventory = "{{ bootstrap_controller_satellite_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
     project = "{{ bootstrap_controller_project_name | default(controller_bootstrap_project_name, true) }}"
     execution_environment = "{{ bootstrap_controller_execution_environment_name | default(controller_bootstrap_execution_environment_name, true) }}"
     credential = "{{ bootstrap_controller_creds | default(controller_bootstrap_creds, true) }}"
@@ -285,6 +299,14 @@
         f"{lb} controller_bootstrap_organization {rb}": organization,
         f"{lb} bootstrap_controller_inventory_name {rb}": inventory,
         f"{lb} controller_bootstrap_inventory_name {rb}": inventory,
+        f"{lb} bootstrap_controller_local_inventory_name {rb}": local_inventory,
+        f"{lb} controller_bootstrap_local_inventory_name {rb}": local_inventory,
+        f"{lb} bootstrap_controller_rhel_inventory_name {rb}": rhel_inventory,
+        f"{lb} controller_bootstrap_rhel_inventory_name {rb}": rhel_inventory,
+        f"{lb} bootstrap_controller_idm_inventory_name {rb}": idm_inventory,
+        f"{lb} controller_bootstrap_idm_inventory_name {rb}": idm_inventory,
+        f"{lb} bootstrap_controller_satellite_inventory_name {rb}": satellite_inventory,
+        f"{lb} controller_bootstrap_satellite_inventory_name {rb}": satellite_inventory,
         f"{lb} bootstrap_controller_project_name {rb}": project,
         f"{lb} controller_bootstrap_project_name {rb}": project,
         f"{lb} bootstrap_controller_execution_environment_name {rb}": execution_environment,
@@ -349,7 +371,7 @@
         else:
             text = text.replace("      # ADO_MACHINE_CREDENTIAL\n", "")
 
-        text = text.replace("- name: bootstrap", "- name: ado")
+        text = text.replace("- name: bootstrap", f"- name: {organization}")
         text = text.replace("ADO |", f"{organization} |")
         text = text.replace(f"{organization} | ADO ", f"{organization} | ")
 
@@ -386,7 +408,50 @@
   when:
     - >-
         'rhel' in bootstrap_controller_effective_components
-        or 'patching' in bootstrap_controller_effective_components
+        and 'satellite' in bootstrap_controller_effective_components
+        and 'idm' in bootstrap_controller_effective_components
+        and (
+          'patching' in bootstrap_controller_effective_components
+          or 'rhel' in bootstrap_controller_effective_components
+        )
+
+- name: AAP configs | Copy RHEL workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-rhel-workflow-bootstrap.wf.yml
+    dest: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-rhel-workflow-bootstrap.wf.yml
+    mode: "0644"
+  when:
+    - >-
+        'rhel' in bootstrap_controller_effective_components
+        and 'satellite' in bootstrap_controller_effective_components
+        and 'idm' in bootstrap_controller_effective_components
+        and 'compliance' in bootstrap_controller_effective_components
+        and 'stig' in bootstrap_controller_effective_components
+
+- name: AAP configs | Copy Satellite workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-satellite-workflow-bootstrap.wf.yml
+    dest: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-satellite-workflow-bootstrap.wf.yml
+    mode: "0644"
+  when:
+    - "'satellite' in bootstrap_controller_effective_components"
+
+- name: AAP configs | Copy OpenShift workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-openshift-workflow-bootstrap.wf.yml
+    dest: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-openshift-workflow-bootstrap.wf.yml
+    mode: "0644"
+  when:
+    - "'openshift' in bootstrap_controller_effective_components"
 
 - name: AAP configs | Remove patching workflow when unselected
   ansible.builtin.file:
@@ -398,7 +463,43 @@
   when:
     - >-
         'rhel' not in bootstrap_controller_effective_components
-        and 'patching' not in bootstrap_controller_effective_components
+        or 'satellite' not in bootstrap_controller_effective_components
+        or 'idm' not in bootstrap_controller_effective_components
+
+- name: AAP configs | Remove RHEL workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-rhel-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - >-
+        'rhel' not in bootstrap_controller_effective_components
+        or 'satellite' not in bootstrap_controller_effective_components
+        or 'idm' not in bootstrap_controller_effective_components
+        or 'compliance' not in bootstrap_controller_effective_components
+        or 'stig' not in bootstrap_controller_effective_components
+
+- name: AAP configs | Remove Satellite workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-satellite-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - "'satellite' not in bootstrap_controller_effective_components"
+
+- name: AAP configs | Remove OpenShift workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-openshift-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - "'openshift' not in bootstrap_controller_effective_components"
 
 - name: AAP configs | Apply organization prefix to workflow templates
   ansible.builtin.replace:
@@ -416,3 +517,132 @@
         playbook_dir ~ '/configs/workflows/*.wf.yml'
       )
     }}
+
+# yamllint disable rule:line-length
+- name: AAP configs | Apply generated values to workflow templates
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    from pathlib import Path
+
+    workflow_dir = Path("{{ playbook_dir }}/configs/workflows")
+    organization = "{{ bootstrap_controller_organization | default(controller_bootstrap_organization, true) }}"
+    inventory = "{{ bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true) }}"
+    rhel_inventory = "{{ bootstrap_controller_rhel_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+    idm_inventory = "{{ bootstrap_controller_idm_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+    satellite_inventory = "{{ bootstrap_controller_satellite_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+
+    lb = "{" * 2
+    rb = "}" * 2
+    replacements = {
+        f"{lb} bootstrap_controller_organization {rb}": organization,
+        f"{lb} controller_bootstrap_organization {rb}": organization,
+        f"{lb} bootstrap_controller_inventory_name {rb}": inventory,
+        f"{lb} controller_bootstrap_inventory_name {rb}": inventory,
+        f"{lb} bootstrap_controller_rhel_inventory_name {rb}": rhel_inventory,
+        f"{lb} controller_bootstrap_rhel_inventory_name {rb}": rhel_inventory,
+        f"{lb} bootstrap_controller_idm_inventory_name {rb}": idm_inventory,
+        f"{lb} controller_bootstrap_idm_inventory_name {rb}": idm_inventory,
+        f"{lb} bootstrap_controller_satellite_inventory_name {rb}": satellite_inventory,
+        f"{lb} controller_bootstrap_satellite_inventory_name {rb}": satellite_inventory,
+    }
+
+    changed = 0
+    for path in sorted(workflow_dir.glob("*.wf.yml")):
+        text = path.read_text()
+        updated = text
+        for old, new in replacements.items():
+            updated = updated.replace(old, new)
+        if updated != text:
+            path.write_text(updated)
+            changed += 1
+
+    print("Rendered workflow templates:", changed)
+    PYCODE
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: AAP configs | Prune workflow nodes without generated job templates
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    from pathlib import Path
+    import yaml
+
+    playbook_dir = Path("{{ playbook_dir }}")
+    workflow_dir = playbook_dir / "configs" / "workflows"
+    job_template_dir = playbook_dir / "configs" / "job_templates"
+    cert_manager_mode = "{{ bootstrap_controller_cert_manager_mode | default('cert', true) }}"
+
+    available_templates = set()
+    for path in sorted(job_template_dir.glob("*.jt.yml")):
+        data = yaml.safe_load(path.read_text()) or {}
+        for item in data.get("controller_templates", []) or []:
+            name = item.get("name")
+            if name:
+                available_templates.add(name)
+
+    edge_keys = ("success_nodes", "failure_nodes", "always_nodes")
+    changed = 0
+    for path in sorted(workflow_dir.glob("*.wf.yml")):
+        data = yaml.safe_load(path.read_text()) or {}
+        workflows = data.get("controller_workflow_job_templates", []) or []
+        keep_file = False
+
+        for workflow in workflows:
+            nodes = workflow.get("simplified_workflow_nodes", []) or []
+            kept_nodes = [
+                node for node in nodes
+                if node.get("unified_job_template") in available_templates
+            ]
+            if cert_manager_mode == "cert":
+                kept_nodes = [
+                    node for node in kept_nodes
+                    if node.get("identifier") not in (
+                        "Configure IDM ACME ClusterIssuer",
+                        "Deploy AWSPCA Cert Manager",
+                    )
+                ]
+            elif cert_manager_mode == "idm_acme":
+                kept_nodes = [
+                    node for node in kept_nodes
+                    if node.get("identifier") != "Deploy AWSPCA Cert Manager"
+                ]
+            elif cert_manager_mode == "aws_pca":
+                kept_nodes = [
+                    node for node in kept_nodes
+                    if node.get("identifier") != "Configure IDM ACME ClusterIssuer"
+                ]
+            kept_ids = {node.get("identifier") for node in kept_nodes}
+
+            for node in kept_nodes:
+                for edge_key in edge_keys:
+                    if edge_key in node:
+                        node[edge_key] = [
+                            item for item in (node.get(edge_key) or [])
+                            if item in kept_ids
+                        ]
+                        if not node[edge_key]:
+                            node.pop(edge_key, None)
+
+            workflow["simplified_workflow_nodes"] = kept_nodes
+            if kept_nodes:
+                keep_file = True
+
+        if not keep_file:
+            path.unlink()
+            changed += 1
+            continue
+
+        updated = "---\n" + yaml.safe_dump(data, sort_keys=False, width=1000)
+        if updated != path.read_text():
+            path.write_text(updated)
+            changed += 1
+
+    print("Pruned workflow templates:", changed)
+    PYCODE
+  args:
+    executable: /bin/bash
+  changed_when: true
+# yamllint enable rule:line-length

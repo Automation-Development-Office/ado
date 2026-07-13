@@ -1,0 +1,149 @@
+---
+controller_workflow_job_templates:
+  - name: ADO | OpenShift Workflow
+    description: >-
+      Bootstrap workflow - prepare OpenShift, install selected platform
+      services, and wire common OIDC integrations
+    organization: "{{ bootstrap_controller_organization }}"
+    inventory: "{{ bootstrap_controller_inventory_name }}"
+    state: present
+    destroy_current_nodes: true
+    labels:
+      - ADO | bootstrap
+      - ADO | openshift
+    simplified_workflow_nodes:
+      - identifier: Create Admin HTPasswd User
+        unified_job_template: ADO | Create Admin HTPasswd User
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy cert-manager
+          - Configure Console Banner
+
+      - identifier: Deploy cert-manager
+        unified_job_template: ADO | Deploy cert-manager
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Configure IDM ACME ClusterIssuer
+          - Deploy AWSPCA Cert Manager
+
+      - identifier: Configure IDM ACME ClusterIssuer
+        unified_job_template: ADO | Configure IDM ACME ClusterIssuer
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy AWSPCA Cert Manager
+        unified_job_template: ADO | Deploy AWSPCA Cert Manager
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Configure Console Banner
+        unified_job_template: ADO | Configure Console Banner
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy RHBK
+          - Deploy Grafana
+          - Deploy GitLab
+          - Deploy Pega
+          - Deploy Kafka
+          - Deploy AAP 26
+          - Deploy ECK
+          - Deploy GitOps
+          - Deploy 389ds
+          - Deploy OADP
+          - Deploy Quay
+          - Deploy ACS
+          - Deploy ACM
+
+      - identifier: Deploy RHBK
+        unified_job_template: ADO | Deploy RHBK
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy RHBK Realm
+          - RHBK 389ds Federation
+
+      - identifier: Deploy RHBK Realm
+        unified_job_template: ADO | Deploy RHBK Realm
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - RHBK EntraID
+          - Deploy RHBK Client
+
+      - identifier: RHBK 389ds Federation
+        unified_job_template: ADO | RHBK 389ds Federation
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy RHBK Client
+
+      - identifier: RHBK EntraID
+        unified_job_template: ADO | RHBK EntraID
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy RHBK Client
+
+      - identifier: Deploy RHBK Client
+        unified_job_template: ADO | Deploy RHBK Client
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Configure OAuth/RHBK in OpenShift
+
+      - identifier: Configure OAuth/RHBK in OpenShift
+        unified_job_template: ADO | Configure OAuth/RHBK in OpenShift
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy Grafana
+        unified_job_template: ADO | Deploy Grafana
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy Grafana Route
+
+      - identifier: Deploy Grafana Route
+        unified_job_template: ADO | Deploy Grafana Route
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy Grafana Dashboards
+
+      - identifier: Deploy Grafana Dashboards
+        unified_job_template: ADO | Deploy Grafana Dashboards
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy GitLab
+        unified_job_template: ADO | Deploy GitLab
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy Pega
+        unified_job_template: ADO | Deploy Pega
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy Kafka
+        unified_job_template: ADO | Deploy Kafka
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy AAP 26
+        unified_job_template: ADO | Deploy AAP 26
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy ECK
+        unified_job_template: ADO | Deploy ECK
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy GitOps
+        unified_job_template: ADO | Deploy GitOps
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy 389ds
+        unified_job_template: ADO | Deploy 389ds
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy OADP
+        unified_job_template: ADO | Deploy OADP
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy Quay
+        unified_job_template: ADO | Deploy Quay
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy ACS
+        unified_job_template: ADO | Deploy ACS
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+
+      - identifier: Deploy ACM
+        unified_job_template: ADO | Deploy ACM
+        lookup_organization: "{{ bootstrap_controller_organization }}"

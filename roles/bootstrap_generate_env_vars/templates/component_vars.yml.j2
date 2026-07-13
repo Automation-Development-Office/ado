@@ -85,6 +85,21 @@ components_env:
   quay:
     storage: synology-nfs-csi
 
+{% elif component_name == 'openshift' %}
+ocp_console_banner_text: "Hello! ADO OpenShift"
+ocp_console_banner_location: BannerTop
+ocp_console_banner_background_color: "#1f7a1f"
+ocp_console_banner_text_color: "#ffffff"
+ocp_cert_manager_mode: cert
+ocp_awspca_namespace: cert-manager
+ocp_awspca_secret_name: awspca-creds
+ocp_awspca_issuer_name: awspca-clusterissuer
+ocp_awspca_region: us-gov-west-1
+ocp_awspca_pca_arn: ""
+idm:
+  acme_directory_url: ""
+  ca_bundle_file: ""
+
 {% elif component_name == 'rhbk' %}
 components_env:
   rhbk:

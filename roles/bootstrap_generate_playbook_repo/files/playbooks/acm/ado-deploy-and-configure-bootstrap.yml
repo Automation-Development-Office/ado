@@ -1,9 +1,9 @@
 ---
-- name: ADO | Configure OpenShift console banner
+- name: ADO | Deploy and Configure ACM
   hosts: localhost
   gather_facts: false
   vars:
-    component: openshift
+    component: acm
   vars_files:
     - group_vars/all/{{ env }}/infra_config_vars.yml
     - group_vars/all/{{ env }}/vault_{{ component }}.yml
@@ -20,4 +20,4 @@
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component
   roles:
-    - role: infra.ado.ocp_console_banner
+    - role: infra.ado.ocp_acm

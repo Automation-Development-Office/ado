@@ -49,6 +49,7 @@ bootstrap_generate_playbook_repo_component_map:
     - grafana
     - kafka
     - rhbk
+    - compliance
     - stig
 
   patching:
@@ -85,6 +86,9 @@ bootstrap_generate_playbook_repo_component_map:
 
   rhel-stig:
     - stig
+
+  compliance:
+    - compliance
 
   pega:
     - pega
@@ -123,6 +127,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     target_platform: openshift
     category: platform
     app: acs
+
+  - src: acm/ado-deploy-and-configure-bootstrap.yml
+    dest: playbooks/acm/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: acm
 
   - src: cert-manager/ado-configure-idm-acme-clusterissuer.yml
     dest: playbooks/cert-manager/ado-configure-idm-acme-clusterissuer.yml
@@ -352,11 +362,35 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     category: patching
     app: rhel
 
+  - src: rhel/ado-compliance-bootstrap.yml
+    dest: playbooks/rhel/ado-compliance-bootstrap.yml
+    target_platform: linux
+    category: compliance
+    app: compliance
+
   - src: rhel/ado-stig-hardening-bootstrap.yml
     dest: playbooks/rhel/ado-stig-hardening-bootstrap.yml
     target_platform: linux
     category: compliance
     app: stig
+
+  - src: satellite/ado-install-satellite-bootstrap.yml
+    dest: playbooks/satellite/ado-install-satellite-bootstrap.yml
+    target_platform: linux
+    category: satellite
+    app: satellite
+
+  - src: satellite/ado-configure-satellite-bootstrap.yml
+    dest: playbooks/satellite/ado-configure-satellite-bootstrap.yml
+    target_platform: linux
+    category: satellite
+    app: satellite
+
+  - src: satellite/ado-manage-content-view-bootstrap.yml
+    dest: playbooks/satellite/ado-manage-content-view-bootstrap.yml
+    target_platform: linux
+    category: satellite
+    app: satellite
 
   - src: satellite/ado-register-to-satellite-bootstrap.yml
     dest: playbooks/satellite/ado-register-to-satellite-bootstrap.yml

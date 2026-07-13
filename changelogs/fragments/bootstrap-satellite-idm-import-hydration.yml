@@ -19,3 +19,60 @@ bugfixes:
   - >-
     Render additional AAP credentials with credential-type-specific inputs, so
     Vault credentials use vault_password instead of machine credential fields.
+  - >-
+    Preflight the optional Satellite 6 dynamic inventory credential type before
+    applying AAP credentials, and skip only the Satellite inventory source when
+    that credential type is unavailable.
+  - >-
+    Stop adding the Satellite TLS verification flag to Satellite credential
+    inputs because AAP credential schemas may not accept it as a credential
+    field.
+  - >-
+    Generate component-specific AAP inventories so the default inventory
+    contains only localhost, RHEL managed hosts use the RHEL inventory, IDM
+    hosts use the IDM inventory, and Satellite server jobs use the Satellite
+    server inventory.
+  - >-
+    Normalize additional AAP credential names and Satellite dynamic inventory
+    object names to the organization-prefixed naming pattern.
+  - >-
+    Add generated RHEL compliance and Satellite install/config/content-view
+    playbooks and job templates, plus RHEL and Satellite workflow templates
+    that target the matching generated component inventories.
+  - >-
+    Reload generated controller config files before applying AAP objects so
+    split inventories, hosts, inventory sources, labels, job templates, and
+    workflow templates are created from the current UI or CLI run.
+  - >-
+    Generate both a focused patching workflow and a full RHEL workflow with
+    simplified workflow nodes so AAP creates workflow templates reliably.
+  - >-
+    Create an organization label/domain such as ADO and keep generated
+    job-template and workflow labels organization-prefixed.
+  - >-
+    Map generated workflow config files to the controller_workflows dispatcher
+    variable so AAP workflow templates are applied, not only written to Git.
+  - >-
+    Attach the plain organization label to generated job templates and
+    workflows so AAP domain/filter views can show the organization grouping.
+  - >-
+    Normalize generated AAP project names to the organization-prefixed naming
+    pattern so UI and CLI inputs such as test-project become RH-test-project
+    when the organization is RH.
+  - >-
+    Normalize generated primary AAP Vault and Machine credential names to the
+    organization-prefixed naming pattern so UI and CLI inputs such as
+    test-vault and test-machine become RH-test-vault and RH-test-machine when
+    the organization is RH.
+  - >-
+    Ignore stale component app selections from inactive groups so an OpenShift
+    run with old RHEL/Satellite JSON state does not enable Satellite dynamic
+    inventory or require Satellite service account fields.
+  - >-
+    Normalize generated primary AAP inventory names to the
+    organization-prefixed naming pattern so inputs such as test-inventory become
+    RH-test-inventory when the organization is RH.
+  - >-
+    Generate workflow template labels as top-level label lists instead of
+    related label strings so infra.aap_configuration can create workflow
+    templates without failing on missing label object names.

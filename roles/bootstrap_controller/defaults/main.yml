@@ -84,10 +84,13 @@ bootstrap_controller_controller_execution_environments: []
 bootstrap_controller_controller_credentials: []
 bootstrap_controller_controller_projects: []
 bootstrap_controller_controller_labels:
-  - name: "bootstrap"
+  - name: "{{ bootstrap_controller_organization }}"
     organization: "{{ bootstrap_controller_organization }}"
 
-  - name: "jira"
+  - name: "{{ bootstrap_controller_organization }} | bootstrap"
+    organization: "{{ bootstrap_controller_organization }}"
+
+  - name: "{{ bootstrap_controller_organization }} | jira"
     organization: "{{ bootstrap_controller_organization }}"
 bootstrap_controller_workflow_job_templates: []
 bootstrap_controller_templates: []

@@ -612,7 +612,7 @@
 
     def is_secret_key(key):
         k = str(key or "").lower()
-        return any(x in k for x in ["password", "token", "secret", "vault", "credential"])
+        return any(x in k for x in ["password", "token", "secret", "vault", "credential", "tls_key"])
 
     def load_yaml(path):
         if not path.exists():
@@ -686,6 +686,28 @@
                 if "validate_certs" in public_values:
                     vars_data["satellite_config_validate_certs"] = public_values["validate_certs"]
 
+            if component == "cert_manager":
+                if public_values.get("mode"):
+                    vars_data["ocp_cert_manager_mode"] = public_values["mode"]
+                if public_values.get("idm_acme_directory_url"):
+                    vars_data.setdefault("idm", {})
+                    vars_data["idm"]["acme_directory_url"] = public_values["idm_acme_directory_url"]
+                if public_values.get("idm_ca_bundle_file"):
+                    vars_data.setdefault("idm", {})
+                    vars_data["idm"]["ca_bundle_file"] = public_values["idm_ca_bundle_file"]
+                if public_values.get("awspca_namespace"):
+                    vars_data["ocp_awspca_namespace"] = public_values["awspca_namespace"]
+                if public_values.get("awspca_secret_name"):
+                    vars_data["ocp_awspca_secret_name"] = public_values["awspca_secret_name"]
+                if public_values.get("awspca_issuer_name"):
+                    vars_data["ocp_awspca_issuer_name"] = public_values["awspca_issuer_name"]
+                if public_values.get("awspca_region"):
+                    vars_data["ocp_awspca_region"] = public_values["awspca_region"]
+                if public_values.get("awspca_pca_arn"):
+                    vars_data["ocp_awspca_pca_arn"] = public_values["awspca_pca_arn"]
+                if public_values.get("tls_crt"):
+                    vault_data["tls_crt"] = public_values["tls_crt"]
+
             if component == "idm":
                 vars_data.setdefault("components_env", {}).setdefault("idm", {})
                 public_values.pop("storage", None)
@@ -757,6 +779,14 @@
                     vault_data["vault_satellite_admin_password"] = secret_values["admin_password"]
                     vault_data["satellite_config_admin_password"] = secret_values["admin_password"]
 
+            if component == "cert_manager":
+                if secret_values.get("tls_key") is not None:
+                    vault_data["tls_key"] = secret_values["tls_key"]
+                if secret_values.get("awspca_access_key_id") is not None:
+                    vault_data["ocp_awspca_access_key_id"] = secret_values["awspca_access_key_id"]
+                if secret_values.get("awspca_secret_access_key") is not None:
+                    vault_data["ocp_awspca_secret_access_key"] = secret_values["awspca_secret_access_key"]
+
             if component == "idm":
                 if secret_values.get("admin_password") is not None:
                     vault_data["vault_idm_admin_password"] = secret_values["admin_password"]
@@ -799,6 +829,28 @@
         if openshift.get("token") is not None:
             vault_data["token"] = openshift.get("token")
             vault_data["openshift_token"] = openshift.get("token")
+
+        if openshift.get("admin_username") or openshift.get("admin_password"):
+            admin_username = openshift.get("admin_username") or "admin"
+            admin_password = openshift.get("admin_password") or ""
+            vault_data["htpasswd_users"] = [
+                {
+                    "name": admin_username,
+                    "password": admin_password,
+                    "role": openshift.get("admin_role") or "cluster-admin",
+                }
+            ]
+            vault_data["htpasswd_pass"] = admin_password
+
+        if openshift.get("banner_text"):
+            vars_data["ocp_console_banner_text"] = openshift.get("banner_text")
+            vars_data["console_banner_text"] = openshift.get("banner_text")
+        if openshift.get("banner_location"):
+            vars_data["ocp_console_banner_location"] = openshift.get("banner_location")
+        if openshift.get("banner_background_color"):
+            vars_data["ocp_console_banner_background_color"] = openshift.get("banner_background_color")
+        if openshift.get("banner_text_color"):
+            vars_data["ocp_console_banner_text_color"] = openshift.get("banner_text_color")
 
         write_yaml(vars_path, vars_data, "0644")
         write_yaml(vault_path, vault_data, "0600")

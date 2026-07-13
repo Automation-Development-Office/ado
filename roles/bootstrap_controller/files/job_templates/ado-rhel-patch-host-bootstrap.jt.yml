@@ -4,9 +4,9 @@ controller_templates:
     description: Bootstrap - ADO | Rhel Patch Host
     organization: '{{ bootstrap_controller_organization }}'
     playbook: playbooks/rhel/ado-patch-host-bootstrap.yml
-    inventory: '{{ bootstrap_controller_inventory_name }}'
+    inventory: '{{ bootstrap_controller_rhel_inventory_name }}'
     project: '{{ bootstrap_controller_project_name }}'
-    execution_environment: '{{ bootstrap_controller_execution_environment_name }}'
+    execution_environment: '{{ bootstrap_controller_execution_environment_name }}'  # yamllint disable-line rule:line-length
     credentials:
       - '{{ bootstrap_controller_creds }}'
       # ADO_MACHINE_CREDENTIAL
@@ -55,7 +55,8 @@ controller_templates:
             - "false"
           default: "true"
         - question_name: ADO | Clean up old kernels?
-          question_description: Remove old kernels from /boot while preserving the running kernel
+          question_description: >-
+            Remove old kernels from /boot while preserving the running kernel
           required: true
           type: multiplechoice
           variable: rhel_patching_package_cleanup
@@ -64,7 +65,9 @@ controller_templates:
             - "false"
           default: "true"
         - question_name: ADO | Package list
-          question_description: Packages to patch. Use * for all packages, or enter one package per line.
+          question_description: >-
+            Packages to patch. Use * for all packages, or enter one package
+            per line.
           required: true
           type: textarea
           variable: rhel_patching_package_list
@@ -85,13 +88,15 @@ controller_templates:
           variable: rhel_patching_exclude_list
           default: ""
         - question_name: ADO | Disable repositories
-          question_description: Optional repositories to disable during patching, one per line
+          question_description: >-
+            Optional repositories to disable during patching, one per line
           required: false
           type: textarea
           variable: rhel_patching_disable_repos
           default: ""
         - question_name: ADO | Skip broken dependencies?
-          question_description: Continue when package dependency issues are encountered
+          question_description: >-
+            Continue when package dependency issues are encountered
           required: true
           type: multiplechoice
           variable: rhel_patching_skip_broken

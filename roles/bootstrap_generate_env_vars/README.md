@@ -28,7 +28,7 @@ Automation Development Office
 | `generate_env_vars_force` | Allows generated files to be overwritten. |
 | `generate_env_vars_force_overwrite` | Compatibility overwrite flag mapped to `generate_env_vars_force`. |
 | `bootstrap_generate_env_vars_machine_credential_enabled` | Creates an AAP Machine credential when using CLI vars without `preflight_json`. |
-| `bootstrap_generate_env_vars_machine_credential_name` | AAP Machine credential name. Default `ado-machine`. |
+| `bootstrap_generate_env_vars_machine_credential_name` | AAP Machine credential name. Default `<org>-machine`. Custom names are normalized to the organization prefix. |
 | `bootstrap_generate_env_vars_machine_credential_username` | SSH username for the Machine credential. Default `cloud-user`. |
 | `bootstrap_generate_env_vars_machine_credential_ssh_key_data` | SSH private key data written to `vault_machine_cred.yml`. |
 | `bootstrap_generate_env_vars_machine_credential_ssh_key_unlock` | Optional SSH private key passphrase written to `vault_machine_cred.yml`. |
@@ -52,6 +52,38 @@ Automation Development Office
 | `bootstrap_generate_env_vars_satellite_inventory_update_on_launch` | Update the Satellite inventory source when launched. Default `true`. |
 | `bootstrap_generate_env_vars_satellite_inventory_update_cache_timeout` | Cache timeout for the Satellite inventory source. Default `0`. |
 | `bootstrap_generate_env_vars_satellite_inventory_host_filter` | Optional Satellite inventory source host filter. |
+
+Generated AAP inventories are split by purpose:
+
+- `<org>-inventory` contains only `localhost` for controller-side and local
+  bootstrap jobs.
+- `<org>-RHEL-Inventory` contains RHEL managed hosts supplied through the
+  preflight form or CLI vars. Satellite dynamic inventory sources also attach
+  to this inventory because Satellite-sourced hosts are managed RHEL targets.
+- `<org>-IDM-Inventory` contains IDM server and replica hosts when IDM is
+  selected.
+- `<org>-Satellite-Server-Inventory` contains the Satellite server host when
+  Satellite is selected.
+
+Additional AAP credentials, the primary AAP Vault credential, the primary AAP
+Machine credential, and Satellite dynamic inventory objects are normalized to
+the organization-prefixed name pattern. For example, `IDM-Cred`,
+`test-machine`, and `test-vault` under organization `RH` become `RH-IDM-Cred`,
+`RH-test-machine`, and `RH-test-vault`.
+
+Generated AAP project names are normalized the same way. If the organization is
+`RH` and the project field is `test-project`, the generated AAP project becomes
+`RH-test-project`.
+
+Generated AAP labels include the organization name, for example `ADO`, plus
+organization-prefixed component labels such as `ADO | rhel`,
+`ADO | satellite`, and `ADO | bootstrap`. These labels are attached to the
+generated automation so AAP can group and filter by organization and component.
+
+Satellite dynamic inventory creates an AAP inventory source named like
+`ADO-Satellite-Dynamic-Inventory` on the RHEL inventory. It is not a separate
+inventory named `ADO Satellite Dynamic Inventory`; it is a source attached to
+`ADO-RHEL-Inventory` so synced Satellite hosts become managed RHEL targets.
 
 ## 🚀 Role Usage
 

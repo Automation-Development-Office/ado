@@ -1,0 +1,21 @@
+---
+minor_changes:
+  - >-
+    Added an OpenShift bootstrap workflow that chains admin htpasswd,
+    cert-manager, console banner, RHBK, Grafana, GitLab, Pega, Kafka, AAP, ECK,
+    GitOps, 389ds, OADP, Quay, ACS, and ACM job templates when those templates
+    are generated.
+  - >-
+    Added ACM bootstrap playbook and job template coverage so selected ACM
+    components produce AAP content.
+  - >-
+    Added OpenShift htpasswd, console banner, and cert-manager configuration
+    variables for generated UI and CLI preflight runs.
+bugfixes:
+  - >-
+    Prune generated workflow nodes that reference unselected job templates so
+    partial OpenShift app selections do not create invalid AAP workflows.
+  - >-
+    Load OpenShift htpasswd and console banner jobs from vars_openshift and
+    vault_openshift so selected OpenShift runs do not depend on ungenerated
+    vars_htpasswd or vars_common files.

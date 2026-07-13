@@ -50,6 +50,15 @@ htpasswd_pass: redhat123
 tls_crt:
 tls_key:
 
+{% elif component_name == 'openshift' %}
+htpasswd_users:
+  - name: admin
+    password: redhat123
+    role: cluster-admin
+htpasswd_pass: redhat123
+ocp_awspca_access_key_id: ""
+ocp_awspca_secret_access_key: ""
+
 {% elif component_name == 'gitlab' %}
 gitlab_tls_crt:
 gitlab_tls_key:
