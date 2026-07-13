@@ -67,6 +67,12 @@ The apply path maps generated workflow files to `controller_workflows`, which
 is the dispatcher variable used by `infra.aap_configuration` for workflow job
 templates.
 
+Generated AAP 2.5+ runs create the organization name as a normal org-scoped
+controller label and add component labels to generated templates. The AAP
+Automation Templates "Domains" toolbar is a user interface customization and is
+not managed by the supported controller or gateway configuration objects used by
+this role.
+
 Generated patching workflows are created when RHEL, Satellite, and IDM are
 selected. The workflow chain is `Register Host to Satellite` ->
 `RHEL Patch Host` -> `IdM Manage Client`.

@@ -53,6 +53,11 @@ Automation Development Office
 | `bootstrap_generate_env_vars_satellite_inventory_update_cache_timeout` | Cache timeout for the Satellite inventory source. Default `0`. |
 | `bootstrap_generate_env_vars_satellite_inventory_host_filter` | Optional Satellite inventory source host filter. |
 
+OpenShift preflight JSON can include `component_options.openshift` to opt into
+optional OpenShift configuration. `admin_htpasswd` writes HTPasswd admin user
+vault values, and `console_banner` writes console banner vars. When those
+options are omitted, stale generated HTPasswd and banner values are removed.
+
 Generated AAP inventories are split by purpose:
 
 - `<org>-inventory` contains only `localhost` for controller-side and local

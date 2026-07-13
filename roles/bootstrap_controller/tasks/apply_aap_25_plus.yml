@@ -214,6 +214,44 @@
     root = Path("{{ playbook_dir }}/configs")
     labels = []
 
+    def label_name(label):
+        if isinstance(label, dict):
+            return label.get("name")
+        return label
+
+    def normalize_labels(item):
+        if not isinstance(item, dict):
+            return False
+
+        item_labels = []
+        if organization:
+            item_labels.append(organization)
+
+        item_labels.extend(
+            name for name in (label_name(label) for label in item.get("labels") or [])
+            if name
+        )
+
+        related = item.get("related")
+        if isinstance(related, dict):
+            item_labels.extend(
+                name for name in (label_name(label) for label in related.get("labels") or [])
+                if name
+            )
+            related.pop("labels", None)
+            if not related:
+                item.pop("related", None)
+
+        if not item_labels:
+            return False
+
+        normalized = list(dict.fromkeys(item_labels))
+        if item.get("labels") == normalized:
+            return False
+
+        item["labels"] = normalized
+        return True
+
     def add_label(label):
         if isinstance(label, dict):
             name = label.get("name")
@@ -243,9 +281,20 @@
 
     add_label({"name": organization, "organization": organization})
 
-    for pattern in ("job_templates/*.jt.yml", "workflows/*.wf.yml"):
+    for pattern, key in (
+        ("job_templates/*.jt.yml", "controller_templates"),
+        ("workflows/*.wf.yml", "controller_workflow_job_templates"),
+    ):
         for file_name in sorted(root.glob(pattern)):
-            collect(yaml.safe_load(file_name.read_text()) or {})
+            data = yaml.safe_load(file_name.read_text()) or {}
+            changed = False
+            for item in data.get(key, []) or []:
+                changed = normalize_labels(item) or changed
+            if changed:
+                file_name.write_text(
+                    "---\n" + yaml.safe_dump(data, sort_keys=False, width=1000)
+                )
+            collect(data)
 
     deduped = []
     seen = set()
@@ -287,6 +336,27 @@
         | list
       }}
 
+- name: AAP 2.5+ | Resolve controller API URL for label verification
+  ansible.builtin.set_fact:
+    bootstrap_controller_aap_api_url: >-
+      {{
+        bootstrap_controller_aap_api_url
+        | default(
+            bootstrap_controller_controller_host
+            if (
+              bootstrap_controller_controller_host
+              | regex_search('^https?://')
+            )
+            else 'https://' ~ bootstrap_controller_controller_host,
+            true
+          )
+      }}
+    bootstrap_controller_aap_effective_api_path: >-
+      {{
+        bootstrap_controller_aap_effective_api_path
+        | default('/api/controller/v2', true)
+      }}
+
 - name: AAP 2.5+ | Create labels directly before job templates
   ansible.controller.label:
     name: "{{ item.name }}"
@@ -299,6 +369,97 @@
     validate_certs: "{{ controller_validate_certs | default(false) }}"
   loop: "{{ bootstrap_controller_labels_to_create }}"
   when: bootstrap_controller_labels_to_create | default([]) | length > 0
+  register: bootstrap_controller_created_labels_result
+
+- name: AAP 2.5+ | Verify organization label exists in AAP
+  no_log: "{{ bootstrap_controller_aap_connectivity_no_log | default(true) }}"
+  ansible.builtin.uri:
+    url: >-
+      {{
+        bootstrap_controller_aap_api_url
+        ~ bootstrap_controller_aap_effective_api_path
+        ~ '/labels/?name='
+        ~ (
+          controller_bootstrap_organization
+          | default(bootstrap_controller_organization)
+          | urlencode
+        )
+        ~ '&organization__name='
+        ~ (
+          controller_bootstrap_organization
+          | default(bootstrap_controller_organization)
+          | urlencode
+        )
+      }}
+    method: GET
+    headers: >-
+      {{
+        {
+          'Authorization':
+          'Bearer ' ~ bootstrap_controller_controller_oauthtoken
+        }
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length > 0
+        )
+        else {}
+      }}
+    url_username: >-
+      {{
+        bootstrap_controller_controller_username
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    url_password: >-
+      {{
+        bootstrap_controller_controller_password
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    force_basic_auth: >-
+      {{
+        bootstrap_controller_controller_oauthtoken
+        | default('')
+        | length == 0
+      }}
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+    return_content: true
+    status_code:
+      - 200
+  register: bootstrap_controller_org_label_lookup
+  when:
+    - bootstrap_controller_labels_to_create | default([]) | length > 0
+    - controller_bootstrap_organization | default(bootstrap_controller_organization, true) | length > 0
+
+- name: AAP 2.5+ | Report organization label verification
+  ansible.builtin.debug:
+    msg: >-
+      Verified org label
+      '{{ controller_bootstrap_organization | default(bootstrap_controller_organization) }}'
+      in AAP: count={{
+        bootstrap_controller_org_label_lookup.json.count
+        | default('unknown')
+      }}
+  when: bootstrap_controller_org_label_lookup is defined
+
+- name: AAP 2.5+ | Fail if organization label was not found
+  ansible.builtin.assert:
+    that:
+      - bootstrap_controller_org_label_lookup.json.count | default(0) | int > 0
+    fail_msg: >-
+      AAP accepted the bootstrap run but the organization label
+      '{{ controller_bootstrap_organization | default(bootstrap_controller_organization) }}'
+      was not found in /api/controller/v2/labels after creation.
+  when: bootstrap_controller_org_label_lookup is defined
 
 - name: AAP 2.5+ | Detect Satellite dynamic inventory configuration
   ansible.builtin.set_fact:
@@ -673,3 +834,88 @@
       - role: controller_workflow_job_templates
         var: controller_workflows
         tags: workflow_job_templates
+
+- name: AAP 2.5+ | Verify generated templates exist with organization prefix
+  no_log: "{{ bootstrap_controller_aap_connectivity_no_log | default(true) }}"
+  ansible.builtin.uri:
+    url: >-
+      {{
+        bootstrap_controller_aap_api_url
+        ~ bootstrap_controller_aap_effective_api_path
+        ~ '/unified_job_templates/?name__startswith='
+        ~ (((controller_bootstrap_organization | default(bootstrap_controller_organization)) ~ ' |') | urlencode)
+        ~ '&type=job_template%2Cworkflow_job_template&page_size=10'
+      }}
+    method: GET
+    headers: >-
+      {{
+        {
+          'Authorization':
+          'Bearer ' ~ bootstrap_controller_controller_oauthtoken
+        }
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length > 0
+        )
+        else {}
+      }}
+    url_username: >-
+      {{
+        bootstrap_controller_controller_username
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    url_password: >-
+      {{
+        bootstrap_controller_controller_password
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    force_basic_auth: >-
+      {{
+        bootstrap_controller_controller_oauthtoken
+        | default('')
+        | length == 0
+      }}
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+    return_content: true
+    status_code:
+      - 200
+  register: bootstrap_controller_org_template_lookup
+  when:
+    - >-
+      (controller_templates | default([]) | length > 0)
+      or
+      (controller_workflows | default([]) | length > 0)
+    - controller_bootstrap_organization | default(bootstrap_controller_organization, true) | length > 0
+
+- name: AAP 2.5+ | Report organization template verification
+  ansible.builtin.debug:
+    msg: >-
+      Verified generated AAP templates with prefix
+      '{{ controller_bootstrap_organization | default(bootstrap_controller_organization) }} |':
+      count={{
+        bootstrap_controller_org_template_lookup.json.count
+        | default('unknown')
+      }}
+  when: bootstrap_controller_org_template_lookup is defined
+
+- name: AAP 2.5+ | Fail if generated organization templates were not found
+  ansible.builtin.assert:
+    that:
+      - bootstrap_controller_org_template_lookup.json.count | default(0) | int > 0
+    fail_msg: >-
+      AAP did not return any generated job or workflow templates with the
+      organization prefix
+      '{{ controller_bootstrap_organization | default(bootstrap_controller_organization) }} |'
+      after template creation.
+  when: bootstrap_controller_org_template_lookup is defined

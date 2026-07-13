@@ -798,6 +798,8 @@
 
             write_yaml(vault_path, vault_data, "0600")
 
+    component_options = preflight.get("component_options") or {}
+    openshift_options = set(component_options.get("openshift") or [])
     openshift = preflight.get("openshift") or {}
     if openshift:
         if "openshift" not in selected_components:
@@ -830,7 +832,9 @@
             vault_data["token"] = openshift.get("token")
             vault_data["openshift_token"] = openshift.get("token")
 
-        if openshift.get("admin_username") or openshift.get("admin_password"):
+        if "admin_htpasswd" in openshift_options and (
+            openshift.get("admin_username") or openshift.get("admin_password")
+        ):
             admin_username = openshift.get("admin_username") or "admin"
             admin_password = openshift.get("admin_password") or ""
             vault_data["htpasswd_users"] = [
@@ -841,16 +845,25 @@
                 }
             ]
             vault_data["htpasswd_pass"] = admin_password
+        else:
+            vault_data.pop("htpasswd_users", None)
+            vault_data.pop("htpasswd_pass", None)
 
-        if openshift.get("banner_text"):
+        if "console_banner" in openshift_options and openshift.get("banner_text"):
             vars_data["ocp_console_banner_text"] = openshift.get("banner_text")
             vars_data["console_banner_text"] = openshift.get("banner_text")
-        if openshift.get("banner_location"):
-            vars_data["ocp_console_banner_location"] = openshift.get("banner_location")
-        if openshift.get("banner_background_color"):
-            vars_data["ocp_console_banner_background_color"] = openshift.get("banner_background_color")
-        if openshift.get("banner_text_color"):
-            vars_data["ocp_console_banner_text_color"] = openshift.get("banner_text_color")
+            if openshift.get("banner_location"):
+                vars_data["ocp_console_banner_location"] = openshift.get("banner_location")
+            if openshift.get("banner_background_color"):
+                vars_data["ocp_console_banner_background_color"] = openshift.get("banner_background_color")
+            if openshift.get("banner_text_color"):
+                vars_data["ocp_console_banner_text_color"] = openshift.get("banner_text_color")
+        else:
+            vars_data.pop("ocp_console_banner_text", None)
+            vars_data.pop("console_banner_text", None)
+            vars_data.pop("ocp_console_banner_location", None)
+            vars_data.pop("ocp_console_banner_background_color", None)
+            vars_data.pop("ocp_console_banner_text_color", None)
 
         write_yaml(vars_path, vars_data, "0644")
         write_yaml(vault_path, vault_data, "0600")

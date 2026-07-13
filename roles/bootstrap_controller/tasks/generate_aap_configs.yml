@@ -645,4 +645,75 @@
   args:
     executable: /bin/bash
   changed_when: true
+
+- name: AAP configs | Attach organization label to generated templates
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    from pathlib import Path
+    import yaml
+
+    organization = "{{ controller_bootstrap_organization | default(bootstrap_controller_organization) }}"
+    root = Path("{{ playbook_dir }}/configs")
+    changed = 0
+
+    def label_name(label):
+        if isinstance(label, dict):
+            return label.get("name")
+        return label
+
+    def normalize_labels(item):
+        if not isinstance(item, dict):
+            return False
+
+        labels = []
+        if organization:
+            labels.append(organization)
+
+        labels.extend(
+            name for name in (label_name(label) for label in item.get("labels") or [])
+            if name
+        )
+
+        related = item.get("related")
+        if isinstance(related, dict):
+            labels.extend(
+                name for name in (label_name(label) for label in related.get("labels") or [])
+                if name
+            )
+            related.pop("labels", None)
+            if not related:
+                item.pop("related", None)
+
+        if not labels:
+            return False
+
+        normalized = list(dict.fromkeys(labels))
+        if item.get("labels") == normalized:
+            return False
+
+        item["labels"] = normalized
+        return True
+
+    for pattern, key in (
+        ("job_templates/*.jt.yml", "controller_templates"),
+        ("workflows/*.wf.yml", "controller_workflow_job_templates"),
+    ):
+        for path in sorted(root.glob(pattern)):
+            original = path.read_text()
+            data = yaml.safe_load(original) or {}
+            file_changed = False
+
+            for item in data.get(key, []) or []:
+                file_changed = normalize_labels(item) or file_changed
+
+            if file_changed:
+                path.write_text("---\n" + yaml.safe_dump(data, sort_keys=False, width=1000))
+                changed += 1
+
+    print("Attached organization labels:", changed)
+    PYCODE
+  args:
+    executable: /bin/bash
+  changed_when: true
 # yamllint enable rule:line-length
