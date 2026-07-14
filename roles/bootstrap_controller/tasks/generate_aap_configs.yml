@@ -282,6 +282,8 @@
     python3 <<'PYCODE'
     from pathlib import Path
 
+    import yaml
+
     src_dir = Path("{{ role_path }}/files/job_templates")
     dest_dir = Path("{{ playbook_dir }}/configs/job_templates")
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -297,6 +299,7 @@
     credential = "{{ bootstrap_controller_creds | default(controller_bootstrap_creds, true) }}"
     machine_credential = "{{ bootstrap_controller_machine_credential | default(controller_bootstrap_machine_credential | default('', true), true) }}"
     state_choices_yaml = "present\nabsent"
+    console_banner_state_choices_yaml = "add\nupdate\ndelete"
     default_state = "{{ bootstrap_controller_default_state | default('present', true) }}"
     environment_choices = {{ (
         bootstrap_controller_environment_choices
@@ -337,6 +340,8 @@
         f"{lb} controller_bootstrap_machine_credential {rb}": machine_credential,
         f"{lb} bootstrap_controller_state_choices {rb}": state_choices_yaml,
         f"{lb} controller_bootstrap_state_choices {rb}": state_choices_yaml,
+        f"{lb} bootstrap_controller_console_banner_state_choices {rb}": console_banner_state_choices_yaml,
+        f"{lb} controller_bootstrap_console_banner_state_choices {rb}": console_banner_state_choices_yaml,
         f"{lb} bootstrap_controller_default_state {rb}": default_state,
         f"{lb} controller_bootstrap_default_state {rb}": default_state,
         f"{lb} bootstrap_controller_environment_choices {rb}": environment_choices_yaml,
@@ -355,6 +360,11 @@
     replacements[f"{lb} controller_bootstrap_state_choices {rb}"] = state_choices_yaml
     replacements[f"'{lb} bootstrap_controller_state_choices {rb}'"] = f'"{state_choices_yaml}"'
     replacements[f"'{lb} controller_bootstrap_state_choices {rb}'"] = f'"{state_choices_yaml}"'
+
+    replacements[f"{lb} bootstrap_controller_console_banner_state_choices {rb}"] = console_banner_state_choices_yaml
+    replacements[f"{lb} controller_bootstrap_console_banner_state_choices {rb}"] = console_banner_state_choices_yaml
+    replacements[f"'{lb} bootstrap_controller_console_banner_state_choices {rb}'"] = f'"{console_banner_state_choices_yaml}"'
+    replacements[f"'{lb} controller_bootstrap_console_banner_state_choices {rb}'"] = f'"{console_banner_state_choices_yaml}"'
 
     replacements[f"{lb} bootstrap_controller_default_state {rb}"] = default_state
     replacements[f"{lb} controller_bootstrap_default_state {rb}"] = default_state
@@ -394,6 +404,23 @@
         text = text.replace("- name: bootstrap", f"- name: {organization}")
         text = text.replace("ADO |", f"{organization} |")
         text = text.replace(f"{organization} | ADO ", f"{organization} | ")
+
+        data = yaml.safe_load(text)
+        for template in data.get("controller_templates", []) or []:
+            survey_spec = template.get("survey_spec", {}) or {}
+            for question in survey_spec.get("spec", []) or []:
+                choices = question.get("choices")
+                if question.get("variable") == "state" and choices in (
+                    "add update delete",
+                    console_banner_state_choices_yaml,
+                ):
+                    question["choices"] = console_banner_state_choices_yaml
+                if question.get("variable") == "env" and choices in (
+                    " ".join(environment_choices),
+                    environment_choices_yaml,
+                ):
+                    question["choices"] = environment_choices_yaml
+        text = yaml.safe_dump(data, sort_keys=False)
 
         (dest_dir / name).write_text(text)
         copied.append(name)
