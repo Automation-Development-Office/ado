@@ -1,0 +1,127 @@
+---
+name: Preview changelog from fragments
+description: Build a changelog preview from fragments without modifying the repository
+
+inputs:
+  tag:
+    description: Git tag name (e.g. v1.2.0-rc1)
+    required: true
+
+outputs:
+  version:
+    description: Release version (tag without v prefix)
+    value: ${{ steps.preview.outputs.version }}
+  notes_file:
+    description: Path to generated release notes preview
+    value: ${{ steps.preview.outputs.notes_file }}
+  changelog_file:
+    description: Path to generated full changelog preview
+    value: ${{ steps.preview.outputs.changelog_file }}
+  has_content:
+    description: Whether changelog preview content was generated
+    value: ${{ steps.preview.outputs.has_content }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build changelog preview
+      id: preview
+      shell: bash
+      run: |
+        set -euo pipefail
+        VERSION="${{ inputs.tag }}"
+        VERSION="${VERSION#v}"
+        NOTES_FILE="${GITHUB_WORKSPACE}/changelog-preview-notes.rst"
+        CHANGELOG_FILE="${GITHUB_WORKSPACE}/CHANGELOG-preview.rst"
+        FRAGMENT_SNAPSHOT="$(mktemp)"
+
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
+        echo "changelog_file=$CHANGELOG_FILE" >> "$GITHUB_OUTPUT"
+        echo "has_content=false" >> "$GITHUB_OUTPUT"
+
+        snapshot_fragments() {
+          find changelogs/fragments -maxdepth 1 \( -name '*.yml' -o -name '*.yaml' \) -printf '%f\n' | sort > "$FRAGMENT_SNAPSHOT"
+        }
+
+        verify_fragments_unchanged() {
+          local after_snapshot
+          after_snapshot="$(mktemp)"
+          find changelogs/fragments -maxdepth 1 \( -name '*.yml' -o -name '*.yaml' \) -printf '%f\n' | sort > "$after_snapshot"
+          if ! cmp -s "$FRAGMENT_SNAPSHOT" "$after_snapshot"; then
+            echo "Repository changelog fragments were modified during preview generation."
+            diff -u "$FRAGMENT_SNAPSHOT" "$after_snapshot" || true
+            exit 1
+          fi
+        }
+
+        snapshot_fragments
+
+        pip install antsibull-changelog pyyaml ansible-core
+
+        fragments_present() {
+          shopt -s nullglob
+          local files=(changelogs/fragments/*.yml changelogs/fragments/*.yaml)
+          [ "${#files[@]}" -gt 0 ]
+        }
+
+        release_exists() {
+          CHECK_VERSION="$VERSION" python3 -c '
+        import os
+        import sys
+        import yaml
+
+        version = os.environ["CHECK_VERSION"]
+        with open("changelogs/changelog.yaml", "r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle) or {}
+        releases = data.get("releases") or {}
+        sys.exit(0 if version in releases else 1)
+        '
+        }
+
+        if ! fragments_present && ! release_exists; then
+          cat > "$NOTES_FILE" <<EOF
+        Changelog preview for ${VERSION}
+
+        No changelog fragments are available on this ref.
+        EOF
+          cp "$NOTES_FILE" "$CHANGELOG_FILE"
+          verify_fragments_unchanged
+          echo "has_content=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        PREVIEW_ROOT="$(mktemp -d)"
+        cp -a changelogs galaxy.yml README.md "$PREVIEW_ROOT/"
+        sed -i 's/keep_fragments: false/keep_fragments: true/' "$PREVIEW_ROOT/changelogs/config.yaml"
+
+        cd "$PREVIEW_ROOT"
+
+        if ! release_exists; then
+          antsibull-changelog release --version "$VERSION"
+        fi
+
+        antsibull-changelog generate "$VERSION" \
+          --output "$NOTES_FILE" \
+          --output-format rst \
+          --only-latest
+        antsibull-changelog generate \
+          --output "$CHANGELOG_FILE" \
+          --output-format rst
+
+        cd "$GITHUB_WORKSPACE"
+        verify_fragments_unchanged
+
+        echo "has_content=true" >> "$GITHUB_OUTPUT"
+
+    - name: Add changelog preview summary
+      if: steps.preview.outputs.has_content == 'true'
+      shell: bash
+      run: |
+        {
+          echo "## Changelog Preview (${{ steps.preview.outputs.version }})"
+          echo
+          echo '```text'
+          cat "${{ steps.preview.outputs.notes_file }}"
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"

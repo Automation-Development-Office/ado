@@ -10,6 +10,10 @@ inputs:
     description: Commit generated changelog files back to the main branch
     required: false
     default: "true"
+  consume_fragments:
+    description: Consume changelog fragments with antsibull-changelog release (official releases only)
+    required: false
+    default: "true"
 
 outputs:
   version:
@@ -18,6 +22,12 @@ outputs:
   generated:
     description: Whether a new changelog release was generated
     value: ${{ steps.release.outputs.generated }}
+  notes_file:
+    description: Path to generated release notes for this version
+    value: ${{ steps.release.outputs.notes_file }}
+  changelog_file:
+    description: Path to generated CHANGELOG.rst
+    value: ${{ steps.release.outputs.changelog_file }}
 
 runs:
   using: composite
@@ -29,9 +39,15 @@ runs:
         set -euo pipefail
         VERSION="${{ inputs.tag }}"
         VERSION="${VERSION#v}"
-        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        CONSUME_FRAGMENTS="${{ inputs.consume_fragments }}"
+        NOTES_FILE="${GITHUB_WORKSPACE}/changelog-release-notes.rst"
+        CHANGELOG_FILE="${GITHUB_WORKSPACE}/CHANGELOG.rst"
 
-        pip install antsibull-changelog pyyaml
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
+        echo "changelog_file=$CHANGELOG_FILE" >> "$GITHUB_OUTPUT"
+
+        pip install antsibull-changelog pyyaml ansible-core
 
         release_exists() {
           CHECK_VERSION="$VERSION" python3 -c '
@@ -76,28 +92,54 @@ runs:
           git checkout "${ref}" -- CHANGELOG.rst changelogs/changelog.yaml changelogs/fragments/
         }
 
+        write_changelog_outputs() {
+          antsibull-changelog generate \
+            --output "$CHANGELOG_FILE" \
+            --output-format rst
+          antsibull-changelog generate "$VERSION" \
+            --output "$NOTES_FILE" \
+            --output-format rst \
+            --only-latest
+        }
+
         GENERATED=false
 
-        if release_exists; then
+        if [ "$CONSUME_FRAGMENTS" != "true" ]; then
+          echo "Fragment consumption disabled; syncing or rendering existing changelog only."
+          git fetch origin main
+          if release_exists_on_ref "origin/main"; then
+            sync_changelog_from_ref "origin/main"
+            write_changelog_outputs
+          elif release_exists; then
+            write_changelog_outputs
+          else
+            echo "No compiled changelog found for ${VERSION}; skipping generation."
+            exit 0
+          fi
+        elif release_exists; then
           echo "Changelog release ${VERSION} already exists in the current checkout."
+          write_changelog_outputs
         else
           git fetch origin main
           if release_exists_on_ref "origin/main"; then
             sync_changelog_from_ref "origin/main"
+            write_changelog_outputs
           elif fragments_present; then
             echo "Generating changelog release ${VERSION} from fragments."
-            antsibull-changelog release "$VERSION"
+            antsibull-changelog release --version "$VERSION"
+            write_changelog_outputs
             GENERATED=true
           else
             echo "No changelog fragments found and release ${VERSION} is not recorded in changelogs/changelog.yaml."
             echo "Skipping changelog generation."
+            exit 0
           fi
         fi
 
         echo "generated=$GENERATED" >> "$GITHUB_OUTPUT"
 
     - name: Commit changelog to main
-      if: inputs.commit_to_main == 'true' && steps.release.outputs.generated == 'true'
+      if: inputs.commit_to_main == 'true' && inputs.consume_fragments == 'true' && steps.release.outputs.generated == 'true'
       shell: bash
       run: |
         set -euo pipefail

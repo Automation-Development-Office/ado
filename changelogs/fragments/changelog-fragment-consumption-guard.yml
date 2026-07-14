@@ -1,0 +1,6 @@
+bugfixes:
+  - >-
+    ci - Ensure changelog fragments are only consumed and deleted when an official
+    GitHub Release is published. Dev tag pushes and pre-releases now use preview-only
+    changelog generation with a post-run verification that repository fragments are
+    unchanged.

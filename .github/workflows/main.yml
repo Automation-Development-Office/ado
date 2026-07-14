@@ -605,6 +605,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Preview changelog from fragments
+        id: changelog_preview
+        uses: ./.github/actions/preview-changelog
+        with:
+          tag: ${{ github.ref_name }}
+
       - name: Build collection
         id: build
         uses: ./.github/actions/build-collection
@@ -616,10 +622,22 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
           TARBALL: ${{ steps.build.outputs.tarball }}
+          NOTES_FILE: ${{ steps.changelog_preview.outputs.notes_file }}
+          CHANGELOG_FILE: ${{ steps.changelog_preview.outputs.changelog_file }}
         run: |
           set -euo pipefail
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$TARBALL" --clobber
+            if [ -f "$CHANGELOG_FILE" ]; then
+              gh release upload "$TAG" "$CHANGELOG_FILE" --clobber
+            fi
+            gh release edit "$TAG" --notes-file "$NOTES_FILE"
           else
-            gh release create "$TAG" "$TARBALL" --prerelease --title "$TAG"
+            if [ -f "$CHANGELOG_FILE" ]; then
+              gh release create "$TAG" "$TARBALL" "$CHANGELOG_FILE" \
+                --prerelease --title "$TAG" --notes-file "$NOTES_FILE"
+            else
+              gh release create "$TAG" "$TARBALL" \
+                --prerelease --title "$TAG" --notes-file "$NOTES_FILE"
+            fi
           fi

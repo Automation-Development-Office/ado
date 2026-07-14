@@ -26,10 +26,21 @@ jobs:
           ref: ${{ github.event.release.tag_name }}
           fetch-depth: 0
 
-      - name: Generate changelog from fragments
+      - name: Preview changelog from fragments (pre-release)
+        if: github.event.release.prerelease
+        id: changelog_preview
+        uses: ./.github/actions/preview-changelog
+        with:
+          tag: ${{ github.event.release.tag_name }}
+
+      - name: Generate changelog from fragments (official release)
+        if: ${{ !github.event.release.prerelease }}
+        id: changelog
         uses: ./.github/actions/generate-changelog
         with:
           tag: ${{ github.event.release.tag_name }}
+          consume_fragments: "true"
+          commit_to_main: "true"
 
       - name: Build collection
         id: build
@@ -37,14 +48,35 @@ jobs:
         with:
           tag: ${{ github.event.release.tag_name }}
 
+      - name: Resolve changelog artifacts
+        id: changelog_artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+            echo "notes_file=${{ steps.changelog_preview.outputs.notes_file }}" >> "$GITHUB_OUTPUT"
+            echo "changelog_file=${{ steps.changelog_preview.outputs.changelog_file }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "notes_file=${{ steps.changelog.outputs.notes_file }}" >> "$GITHUB_OUTPUT"
+            echo "changelog_file=${{ steps.changelog.outputs.changelog_file }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload collection to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
           TARBALL: ${{ steps.build.outputs.tarball }}
+          NOTES_FILE: ${{ steps.changelog_artifacts.outputs.notes_file }}
+          CHANGELOG_FILE: ${{ steps.changelog_artifacts.outputs.changelog_file }}
         run: |
           set -euo pipefail
           gh release upload "$TAG" "$TARBALL" --clobber
+          if [ -f "$CHANGELOG_FILE" ]; then
+            gh release upload "$TAG" "$CHANGELOG_FILE" --clobber
+          fi
+          if [ -f "$NOTES_FILE" ]; then
+            gh release edit "$TAG" --notes-file "$NOTES_FILE"
+          fi
 
   publish_galaxy:
     if: github.event_name == 'workflow_dispatch'
@@ -58,11 +90,12 @@ jobs:
           ref: ${{ github.event.inputs.tag }}
           fetch-depth: 0
 
-      - name: Generate changelog from fragments
+      - name: Sync compiled changelog
         uses: ./.github/actions/generate-changelog
         with:
           tag: ${{ github.event.inputs.tag }}
           commit_to_main: "false"
+          consume_fragments: "false"
 
       - name: Build collection
         id: build

@@ -449,8 +449,9 @@ Triggered by any tag push. Uses the shared build action and:
 2. Creates a GitHub **pre-release** if one does not exist
 3. Uploads or replaces the tarball on that release
 
-Dev pre-releases do **not** consume changelog fragments. Fragment compilation happens when
-a GitHub Release is published.
+Dev pre-releases compile a **changelog preview** from fragments without consuming them.
+The GitHub pre-release notes and a `CHANGELOG-preview.rst` asset show what the official
+release changelog will look like.
 
 ## Shared build action
 
@@ -496,17 +497,39 @@ accumulated changelog fragments into release notes before the collection tarball
 
 **Behavior:**
 
-1. If the release version is already recorded in `changelogs/changelog.yaml`, do nothing
+1. If the release version is already recorded in `changelogs/changelog.yaml`, render outputs only
 2. Otherwise, if `origin/main` already contains the release entry, sync those changelog files into the build workspace
-3. Otherwise, if fragments exist under `changelogs/fragments/`, run `antsibull-changelog release <version>`
-4. Consumed fragments are removed (`keep_fragments: false` in [`changelogs/config.yaml`](../changelogs/config.yaml))
-5. `CHANGELOG.rst` is regenerated and included in the collection build that follows
+3. Otherwise, if fragments exist under `changelogs/fragments/`, run `antsibull-changelog release --version <version>`
+4. Render `CHANGELOG.rst` and per-release notes with `antsibull-changelog generate`
+5. Consumed fragments are removed (`keep_fragments: false` in [`changelogs/config.yaml`](../changelogs/config.yaml))
 6. When `commit_to_main` is `true`, the generated changelog is committed and pushed to `main`
+
+Set `consume_fragments: false` to sync an already-compiled changelog without deleting fragments.
 
 Used by:
 
-- `release.yml` → `release_assets` (generates and commits)
-- `release.yml` → `publish_galaxy` (syncs from `main` if already generated)
+- `release.yml` → `release_assets` when `prerelease: false`
+- `release.yml` → `publish_galaxy` with `consume_fragments: false`
+
+## Preview changelog action
+
+[`actions/preview-changelog/action.yml`](actions/preview-changelog/action.yml) builds a
+read-only changelog preview for dev pre-releases.
+
+**Behavior:**
+
+1. Copies changelog data into a temporary workspace with `keep_fragments: true`
+2. Runs `antsibull-changelog release --version` and `generate` without modifying the repository
+3. Writes `changelog-preview-notes.rst` (release notes) and `CHANGELOG-preview.rst`
+4. `release_dev` uses these files for GitHub pre-release notes and uploads the preview asset
+5. Verifies repository fragment files are unchanged after the preview run
+
+Fragments are **never** deleted by this action.
+
+Used by:
+
+- `main.yml` → `release_dev`
+- `release.yml` → `release_assets` when `prerelease: true`
 
 ## Release pipeline
 
@@ -530,10 +553,11 @@ flowchart TD
 
 ### Automatic steps
 
-| Event | Workflow | Result |
-| --- | --- | --- |
-| Push a git tag | `main.yml` | Pre-release created or updated with tarball attached |
-| Publish a GitHub Release | `release.yml` | Changelog compiled from fragments, committed to `main`, tarball built and attached |
+| Event | Workflow | Fragments consumed? | Result |
+| --- | --- | --- | --- |
+| Push a dev tag | `main.yml` | **No** | Pre-release with changelog preview only |
+| Publish a GitHub pre-release | `release.yml` | **No** | Changelog preview attached; fragments remain |
+| Publish an official GitHub Release | `release.yml` | **Yes** | Fragments compiled, deleted, and committed to `main` |
 
 ### Manual steps
 
