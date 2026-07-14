@@ -655,9 +655,23 @@ changelog from `main` before building the collection tarball.
 | Dev tags | Use pre-release identifiers, for example `v1.2.0-rc1` or `v249.0.0-rc1` |
 | Official tags | Use clean semver, for example `v1.2.0` |
 | Invalid examples | `v249.0.0.1-rc1` (extra numeric segment before `-rc1` is rejected by antsibull-changelog) |
-| Pipeline actions | Release jobs sync `.github/actions/` from `main` so tags use current action code |
 | Namespace and name | Always from [`galaxy.yml`](../galaxy.yml); only `version` is overridden at build time |
 | Artifact name | `infra-ado-<version>.tar.gz` |
+
+### Which git ref is used
+
+| Trigger | Workflow definition | Collection source | Actions and scripts |
+| --- | --- | --- | --- |
+| Push a tag | Commit the tag points to | That tag | That tag |
+| `workflow_dispatch` | Branch you select in GitHub Actions | Tag input you provide | That tag |
+| Publish GitHub Release | **`main` (default branch)** | Release tag | **`main` until your PR merges** |
+
+Tag pushes and manual workflow runs use the pipeline from the checked-out ref. **GitHub
+Release publish events always load the workflow file from `main`**, even if the release
+tag was created from your feature branch. Merge your pipeline changes to `main` before
+depending on the new release workflow for publish events.
+
+Official release changelog commits are still pushed to `main` after fragment consumption.
 
 ## Secrets, environments, and permissions
 
