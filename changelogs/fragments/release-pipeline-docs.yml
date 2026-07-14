@@ -1,0 +1,4 @@
+doc_changes:
+  - >-
+    ci - Added ``.github/README.md`` documenting the GitHub Actions pipeline, dev
+    pre-releases, official GitHub Releases, and manual Ansible Galaxy publish steps.
