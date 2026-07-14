@@ -1,5 +1,5 @@
 ---
-- name: ADO | Manage RHBK groups
+- name: ADO | Manage RHBK Entra ID identity provider
   hosts: localhost
   vars:
     component: rhbk

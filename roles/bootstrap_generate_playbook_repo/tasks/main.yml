@@ -54,9 +54,24 @@
   ansible.builtin.set_fact:
     bootstrap_generate_playbook_repo_selected_apps: >-
       {{
-        bootstrap_generate_playbook_repo_component_map[
-          bootstrap_generate_playbook_repo_component_effective
-        ] | default([])
+        (
+          bootstrap_generate_playbook_repo_selected_components
+          + (
+              ['rhel']
+              if 'patching' in bootstrap_generate_playbook_repo_selected_components
+              else []
+            )
+          if (
+            bootstrap_generate_playbook_repo_selected_components is defined
+            and bootstrap_generate_playbook_repo_selected_components | length > 0
+          )
+          else
+          bootstrap_generate_playbook_repo_component_map[
+            bootstrap_generate_playbook_repo_component_effective
+          ] | default([])
+        )
+        | unique
+        | list
       }}
 
 - name: Generate playbook repo | Validate component selector
@@ -76,7 +91,14 @@
     bootstrap_generate_playbook_repo_selected_playbooks: >-
       {{
         bootstrap_generate_playbook_repo_generated_playbooks
-        if bootstrap_generate_playbook_repo_component_effective == 'all'
+        if (
+          bootstrap_generate_playbook_repo_component_effective == 'all'
+          and (
+            bootstrap_generate_playbook_repo_selected_components
+            is not defined
+            or bootstrap_generate_playbook_repo_selected_components | length == 0
+          )
+        )
         else
         bootstrap_generate_playbook_repo_generated_playbooks
         | selectattr(
@@ -86,6 +108,33 @@
           )
         | list
       }}
+
+- name: Generate playbook repo | Build selected playbook directories
+  ansible.builtin.set_fact:
+    bootstrap_generate_playbook_repo_selected_dirs: >-
+      {{
+        bootstrap_generate_playbook_repo_selected_playbooks
+        | map(attribute='dest')
+        | map('dirname')
+        | map('basename')
+        | unique
+        | list
+      }}
+
+- name: Generate playbook repo | Find existing playbook component directories
+  ansible.builtin.find:
+    paths: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/playbooks"
+    file_type: directory
+    recurse: false
+  register: bootstrap_generate_playbook_repo_existing_dirs
+
+- name: Generate playbook repo | Remove stale playbook component directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ bootstrap_generate_playbook_repo_existing_dirs.files | default([]) }}"
+  when:
+    - item.path | basename not in bootstrap_generate_playbook_repo_selected_dirs
 
 - name: Generate playbook repo | Ensure playbook component directories exist
   ansible.builtin.file:
@@ -241,6 +290,43 @@
   changed_when: true
   when:
     - bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
+
+- name: Generate playbook repo | Sync remote branch before push
+  ansible.builtin.shell: |
+    set -euo pipefail
+    remote_name={{
+      bootstrap_generate_playbook_repo_git_remote
+      | default('origin')
+      | quote
+    }}
+    branch_name={{
+      bootstrap_generate_playbook_repo_git_branch
+      | default('main')
+      | quote
+    }}
+
+    if git ls-remote --exit-code --heads "$remote_name" "$branch_name" >/dev/null; then
+      git fetch "$remote_name" "$branch_name"
+      git rebase FETCH_HEAD
+    else
+      rc=$?
+      if [ "$rc" -eq 2 ]; then
+        echo "Remote branch $remote_name/$branch_name does not exist yet; skipping sync."
+      else
+        exit "$rc"
+      fi
+    fi
+  args:
+    chdir: "{{ bootstrap_generate_playbook_repo_dest_resolved }}"
+    executable: /bin/bash
+  changed_when: >-
+    'Current branch'
+    not in bootstrap_generate_playbook_repo_git_sync_result.stdout
+  register: bootstrap_generate_playbook_repo_git_sync_result
+  when:
+    - bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
+    - bootstrap_generate_playbook_repo_git_url | default('') | length > 0
+    - bootstrap_generate_playbook_repo_git_sync_before_push | default(true) | bool
 
 - name: Generate playbook repo | Push generated repo
   ansible.builtin.shell: |

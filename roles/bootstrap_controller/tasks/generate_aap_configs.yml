@@ -1,4 +1,70 @@
 ---
+- name: AAP configs | Load generated AAP config vars
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/group_vars/all/{{ env }}/aap_config_vars.yml"
+  when:
+    - env is defined
+    - (playbook_dir ~ '/group_vars/all/' ~ env ~ '/aap_config_vars.yml') is file
+
+- name: AAP configs | Load generated AAP vault vars
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/group_vars/all/{{ env }}/aap_vault.yml"
+  when:
+    - env is defined
+    - (playbook_dir ~ '/group_vars/all/' ~ env ~ '/aap_vault.yml') is file
+
+- name: AAP configs | Find generated component vault files
+  ansible.builtin.find:
+    paths: "{{ playbook_dir }}/group_vars/all/{{ env }}"
+    patterns:
+      - "vault_*.yml"
+    file_type: file
+  register: bootstrap_controller_generated_component_vault_files
+  when:
+    - env is defined
+    - (playbook_dir ~ '/group_vars/all/' ~ env) is directory
+
+- name: AAP configs | Load generated component vault files
+  ansible.builtin.include_vars:
+    file: "{{ item.path }}"
+  loop: >-
+    {{
+      bootstrap_controller_generated_component_vault_files.files
+      | default([])
+      | sort(attribute='path')
+    }}
+  no_log: true
+
+- name: AAP configs | Validate Satellite dynamic inventory credential inputs
+  ansible.builtin.assert:
+    that:
+      - >-
+        vault_satellite_service_account_username
+        | default('', true)
+        | length > 0
+      - >-
+        vault_satellite_service_account_password
+        | default('', true)
+        | length > 0
+      - >-
+        controller_bootstrap_controller_credentials
+        | default([])
+        | selectattr('credential_type', 'match', '^Red Hat Satellite 6$')
+        | selectattr('inputs.host', 'defined')
+        | list
+        | length > 0
+    fail_msg: >-
+      Satellite dynamic inventory is enabled, but the generated Satellite
+      service account username, password, or server URL is missing. Confirm the
+      Satellite service account fields are present in the preflight JSON.
+  when:
+    - >-
+      controller_bootstrap_controller_inventory_sources
+      | default([])
+      | selectattr('source', 'match', '^satellite6$')
+      | list
+      | length > 0
+
 - name: AAP configs | Ensure config directories exist
   ansible.builtin.file:
     path: "{{ playbook_dir }}/configs/{{ item }}"
@@ -49,6 +115,9 @@
     - var_name: controller_bootstrap_controller_inventories
       dest: controller/inventories.yml
 
+    - var_name: controller_bootstrap_controller_inventory_sources
+      dest: controller/inventory_sources.yml
+
     - var_name: controller_bootstrap_controller_execution_environments
       dest: controller/execution_environments.yml
 
@@ -64,55 +133,134 @@
 - name: AAP configs | Define job template component map
   ansible.builtin.set_fact:
     bootstrap_controller_job_template_component_map:
-      openshift:
-        - cert-manager-bootstrap.yml
-        - create-admin-htpasswd-user-bootstrap.yml
-        - deploy-aap-24-bootstrap.yml
-        - deploy-aap-26-bootstrap.yml
-        - deploy-acs-bootstrap.yml
-        - deploy-awspca-cert-manager-bootstrap.yml
-        - deploy-devspaces-bootstrap.yml
-        - deploy-discover-routes-and-add-alternative-route-bootstrap.yml
-        - deploy-discover-routes-and-print-bootstrap.yml
-        - deploy-eck-bootstrap.yml
-        - deploy-gitlab-bootstrap.yml
-        - deploy-gitops-bootstrap.yml
-        - deploy-kafka-bootstrap.yml
-        - deploy-oadp-bootstrap.yml
-        - deploy-pega-bootstrap.yml
-        - deploy-quay-bootstrap.yml
-        - update-pull-secret-bootstrap.yml
+      aap:
+        - ado-aap-aap24-deploy-and-configure-bootstrap.jt.yml
+        - ado-aap-aap25-deploy-and-configure-bootstrap.jt.yml
+        - ado-aap-aap26-deploy-and-configure-bootstrap.jt.yml
+        - ado-aap-aap27-deploy-and-configure-bootstrap.jt.yml
+
+      acs:
+        - ado-acs-deploy-and-configure-bootstrap.jt.yml
+
+      acm:
+        - ado-acm-deploy-and-configure-bootstrap.jt.yml
+
+      cert_manager:
+        - ado-cert-manager-configure-idm-acme-clusterissuer.jt.yml
+        - ado-cert-manager-deploy-and-configure-bootstrap.jt.yml
+        - ado-cert-manager-install-and-configure-awspca-bootstrap.jt.yml
+
+      console:
+        - ado-console-configure-bootstrap.jt.yml
+
+      devspaces:
+        - ado-devspaces-deploy-and-configure-bootstrap.jt.yml
+
+      dirsrv:
+        - ado-dirsrv-deploy-and-configure-bootstrap.jt.yml
+        - ado-dirsrv-ldap-modify-bootstrap.jt.yml
+        - ado-dirsrv-search-user-bootstrap.jt.yml
+        - ado-dirsrv-search-users-groups-bootstrap.jt.yml
+
+      eck:
+        - ado-eck-deploy-and-configure-bootstrap.jt.yml
+
+      gitlab:
+        - ado-gitlab-deploy-and-configure-bootstrap.jt.yml
+
+      gitops:
+        - ado-gitops-deploy-bootstrap.jt.yml
 
       grafana:
-        - deploy-grafana-bootstrap.yml
-        - deploy-grafana-dashboards-bootstrap.yml
-        - deploy-grafana-route-bootstrap.yml
+        - ado-grafana-create-custom-route.jt.yml
+        - ado-grafana-deploy-bootstrap.jt.yml
+        - ado-grafana-deploy-dashboards-bootstrap.jt.yml
 
-      keycloak:
-        - deploy-rhbk-bootstrap.yml
-        - deploy-rhbk-client-bootstrap.yml
-        - deploy-rhbk-realm-bootstrap.yml
-        - configure-oauth-rhbk-in-openshift-bootstrap.yml
-        - configure-ldap-in-openshift-bootstrap.yml
-        - rhbk-389ds-federation-bootstrap.yml
-        - rhbk-entraid-bootstrap.yml
-        - deploy-389ds-bootstrap.yml
-        - search-389ds-bootstrap.yml
-        - ldap-modify-bootstrap.yml
-        - search-user-bootstrap.yml
+      idm:
+        - ado-idm-install-replica-bootstrap.jt.yml
+        - ado-idm-install-server-bootstrap.jt.yml
+        - ado-idm-manage-client-bootstrap.jt.yml
+        - ado-idm-manage-dns-bootstrap.jt.yml
+        - ado-idm-manage-server-settings-bootstrap.jt.yml
+        - ado-idm-manage-sudo-bootstrap.jt.yml
+        - ado-idm-manage-topology-bootstrap.jt.yml
 
       jira:
-        - jira-stories-bugfix-bootstrap.yml
-        - jira-stories-collections-delivery-bootstrap.yml
-        - jira-stories-day2-bootstrap.yml
-        - jira-stories-feature-request-bootstrap.yml
-        - jira-stories-mfa-delivery-bootstrap.yml
-        - jira-stories-product-delivery-bootstrap.yml
-        - jira-stories-spike-bootstrap.yml
+        - ado-jira-create-stories-bootstrap.jt.yml
+        - ado-jira-jira-stories-collections-delivery-bootstrap.jt.yml
+        - ado-jira-jira-stories-day2-bootstrap.jt.yml
+        - ado-jira-jira-stories-feature-request-bootstrap.jt.yml
+        - ado-jira-jira-stories-mfa-delivery-bootstrap.jt.yml
+        - ado-jira-jira-stories-product-delivery-bootstrap.jt.yml
+        - ado-jira-jira-stories-spike-bootstrap.jt.yml
 
-      satellite: []
+      kafka:
+        - ado-kafka-deploy-and-configure-bootstrap.jt.yml
+        - ado-kafka-setup-alerting-bootstrap.jt.yml
 
-      patching: []
+      oadp:
+        - ado-oadp-deploy-bootstrap.jt.yml
+
+      admin_htpasswd:
+        - ado-openshift-create-htpass-user-bootstrap.jt.yml
+
+      openshift_ldap_auth:
+        - ado-openshift-configure-ldap-auth-bootstrap.jt.yml
+
+      openshift_oauth_rhbk:
+        - ado-openshift-configure-oauth-with-rhbk-bootstrap.jt.yml
+
+      openshift_discover_routes_print:
+        - ado-openshift-deploy-discover-routes-and-print-bootstrap.jt.yml
+
+      openshift_discover_routes_alt:
+        - ado-openshift-discover-routes-bootstrap.jt.yml
+
+      openshift_update_pull_secret:
+        - ado-openshift-update-pull-secret-bootstrap.jt.yml
+
+      openshift: []
+
+      pega:
+        - ado-pega-install-and-configure-bootstrap.jt.yml
+
+      quay:
+        - ado-quay-deploy-and-configure-bootstrap.jt.yml
+
+      rhbk:
+        - ado-rhbk-deploy-and-configure-bootstrap.jt.yml
+
+      rhbk_client:
+        - ado-rhbk-manage-client-bootstrap.jt.yml
+
+      rhbk_idp:
+        - ado-rhbk-manage-entraid-idp.jt.yml
+
+      rhbk_realm:
+        - ado-rhbk-manage-realm-bootstrap.jt.yml
+
+      rhbk_federation:
+        - ado-rhbk-realm-bootstrap.jt.yml
+
+      rhel:
+        - ado-rhel-compliance-bootstrap.jt.yml
+        - ado-rhel-patch-host-bootstrap.jt.yml
+        - ado-rhel-stig-hardening-bootstrap.jt.yml
+
+      satellite:
+        - ado-satellite-install-bootstrap.jt.yml
+        - ado-satellite-configure-bootstrap.jt.yml
+        - ado-satellite-content-view-bootstrap.jt.yml
+        - ado-satellite-register-host-bootstrap.jt.yml
+
+      patching:
+        - ado-rhel-patch-host-bootstrap.jt.yml
+
+      compliance:
+        - ado-rhel-compliance-bootstrap.jt.yml
+
+      stig:
+        - ado-rhel-stig-hardening-bootstrap.jt.yml
 
 - name: AAP configs | Build selected job template file list
   ansible.builtin.set_fact:
@@ -134,21 +282,35 @@
     python3 <<'PYCODE'
     from pathlib import Path
 
+    import yaml
+
     src_dir = Path("{{ role_path }}/files/job_templates")
     dest_dir = Path("{{ playbook_dir }}/configs/job_templates")
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     organization = "{{ bootstrap_controller_organization | default(controller_bootstrap_organization, true) }}"
     inventory = "{{ bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true) }}"
+    local_inventory = "{{ bootstrap_controller_local_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+    rhel_inventory = "{{ bootstrap_controller_rhel_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+    idm_inventory = "{{ bootstrap_controller_idm_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+    satellite_inventory = "{{ bootstrap_controller_satellite_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
     project = "{{ bootstrap_controller_project_name | default(controller_bootstrap_project_name, true) }}"
     execution_environment = "{{ bootstrap_controller_execution_environment_name | default(controller_bootstrap_execution_environment_name, true) }}"
     credential = "{{ bootstrap_controller_creds | default(controller_bootstrap_creds, true) }}"
+    machine_credential = "{{ bootstrap_controller_machine_credential | default(controller_bootstrap_machine_credential | default('', true), true) }}"
     state_choices_yaml = "present\nabsent"
+    console_banner_state_choices_yaml = "add\nupdate\ndelete"
     default_state = "{{ bootstrap_controller_default_state | default('present', true) }}"
-    environment_choices_yaml = "{{ env | default('prod') }}"
-    default_environment = "{{ bootstrap_controller_default_environment | default(env | default('prod'), true) }}"
+    environment_choices = {{ (
+        bootstrap_controller_environment_choices
+        | default(controller_bootstrap_environment_choices
+        | default(['dev', 'test', 'preprod', 'prod']))
+        + [env | default('prod')]
+      ) | unique | list | to_json }}
+    environment_choices_yaml = "\n".join(environment_choices)
+    default_environment = "{{ env | default(bootstrap_controller_default_environment | default('prod'), true) }}"
 
-    selected = {{ bootstrap_controller_selected_job_template_files | default([]) | to_json }}
+    selected = {{ bootstrap_controller_job_template_files_selected | default([]) | to_json }}
     if not selected:
         selected = [p.name for p in sorted(src_dir.glob("*.jt.yml"))]
 
@@ -160,14 +322,26 @@
         f"{lb} controller_bootstrap_organization {rb}": organization,
         f"{lb} bootstrap_controller_inventory_name {rb}": inventory,
         f"{lb} controller_bootstrap_inventory_name {rb}": inventory,
+        f"{lb} bootstrap_controller_local_inventory_name {rb}": local_inventory,
+        f"{lb} controller_bootstrap_local_inventory_name {rb}": local_inventory,
+        f"{lb} bootstrap_controller_rhel_inventory_name {rb}": rhel_inventory,
+        f"{lb} controller_bootstrap_rhel_inventory_name {rb}": rhel_inventory,
+        f"{lb} bootstrap_controller_idm_inventory_name {rb}": idm_inventory,
+        f"{lb} controller_bootstrap_idm_inventory_name {rb}": idm_inventory,
+        f"{lb} bootstrap_controller_satellite_inventory_name {rb}": satellite_inventory,
+        f"{lb} controller_bootstrap_satellite_inventory_name {rb}": satellite_inventory,
         f"{lb} bootstrap_controller_project_name {rb}": project,
         f"{lb} controller_bootstrap_project_name {rb}": project,
         f"{lb} bootstrap_controller_execution_environment_name {rb}": execution_environment,
         f"{lb} controller_bootstrap_execution_environment_name {rb}": execution_environment,
         f"{lb} bootstrap_controller_creds {rb}": credential,
         f"{lb} controller_bootstrap_creds {rb}": credential,
+        f"{lb} bootstrap_controller_machine_credential {rb}": machine_credential,
+        f"{lb} controller_bootstrap_machine_credential {rb}": machine_credential,
         f"{lb} bootstrap_controller_state_choices {rb}": state_choices_yaml,
         f"{lb} controller_bootstrap_state_choices {rb}": state_choices_yaml,
+        f"{lb} bootstrap_controller_console_banner_state_choices {rb}": console_banner_state_choices_yaml,
+        f"{lb} controller_bootstrap_console_banner_state_choices {rb}": console_banner_state_choices_yaml,
         f"{lb} bootstrap_controller_default_state {rb}": default_state,
         f"{lb} controller_bootstrap_default_state {rb}": default_state,
         f"{lb} bootstrap_controller_environment_choices {rb}": environment_choices_yaml,
@@ -186,6 +360,11 @@
     replacements[f"{lb} controller_bootstrap_state_choices {rb}"] = state_choices_yaml
     replacements[f"'{lb} bootstrap_controller_state_choices {rb}'"] = f'"{state_choices_yaml}"'
     replacements[f"'{lb} controller_bootstrap_state_choices {rb}'"] = f'"{state_choices_yaml}"'
+
+    replacements[f"{lb} bootstrap_controller_console_banner_state_choices {rb}"] = console_banner_state_choices_yaml
+    replacements[f"{lb} controller_bootstrap_console_banner_state_choices {rb}"] = console_banner_state_choices_yaml
+    replacements[f"'{lb} bootstrap_controller_console_banner_state_choices {rb}'"] = f'"{console_banner_state_choices_yaml}"'
+    replacements[f"'{lb} controller_bootstrap_console_banner_state_choices {rb}'"] = f'"{console_banner_state_choices_yaml}"'
 
     replacements[f"{lb} bootstrap_controller_default_state {rb}"] = default_state
     replacements[f"{lb} controller_bootstrap_default_state {rb}"] = default_state
@@ -214,10 +393,42 @@
             if old:
                 text = text.replace(old, new)
 
-        text = text.replace("- name: bootstrap", "- name: ado")
+        if machine_credential:
+            text = text.replace(
+                "      # ADO_MACHINE_CREDENTIAL",
+                f"      - '{machine_credential}'",
+            )
+        else:
+            text = text.replace("      # ADO_MACHINE_CREDENTIAL\n", "")
+
+        text = text.replace("- name: bootstrap", f"- name: {organization}")
+        text = text.replace("ADO |", f"{organization} |")
+        text = text.replace(f"{organization} | ADO ", f"{organization} | ")
+
+        data = yaml.safe_load(text)
+        for template in data.get("controller_templates", []) or []:
+            survey_spec = template.get("survey_spec", {}) or {}
+            for question in survey_spec.get("spec", []) or []:
+                choices = question.get("choices")
+                if question.get("variable") == "state" and choices in (
+                    "add update delete",
+                    console_banner_state_choices_yaml,
+                ):
+                    question["choices"] = console_banner_state_choices_yaml
+                if question.get("variable") == "env" and choices in (
+                    " ".join(environment_choices),
+                    environment_choices_yaml,
+                ):
+                    question["choices"] = environment_choices_yaml
+        text = yaml.safe_dump(data, sort_keys=False)
 
         (dest_dir / name).write_text(text)
         copied.append(name)
+
+    selected_set = set(selected)
+    for existing in dest_dir.glob("*.jt.yml"):
+        if existing.name not in selected_set:
+            existing.unlink()
 
     print("Copied job templates:", len(copied))
     PYCODE
@@ -243,6 +454,313 @@
     mode: "0644"
   when:
     - >-
-        bootstrap_generate_env_vars_component
-        | default(component | default('all'))
-        in ['all', 'rhel', 'patching']
+        'rhel' in bootstrap_controller_effective_components
+        and 'satellite' in bootstrap_controller_effective_components
+        and 'idm' in bootstrap_controller_effective_components
+        and (
+          'patching' in bootstrap_controller_effective_components
+          or 'rhel' in bootstrap_controller_effective_components
+        )
+
+- name: AAP configs | Copy RHEL workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-rhel-workflow-bootstrap.wf.yml
+    dest: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-rhel-workflow-bootstrap.wf.yml
+    mode: "0644"
+  when:
+    - >-
+        'rhel' in bootstrap_controller_effective_components
+        and 'satellite' in bootstrap_controller_effective_components
+        and 'idm' in bootstrap_controller_effective_components
+        and 'compliance' in bootstrap_controller_effective_components
+        and 'stig' in bootstrap_controller_effective_components
+
+- name: AAP configs | Copy Satellite workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-satellite-workflow-bootstrap.wf.yml
+    dest: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-satellite-workflow-bootstrap.wf.yml
+    mode: "0644"
+  when:
+    - "'satellite' in bootstrap_controller_effective_components"
+
+- name: AAP configs | Copy OpenShift workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-openshift-workflow-bootstrap.wf.yml
+    dest: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-openshift-workflow-bootstrap.wf.yml
+    mode: "0644"
+  when:
+    - "'openshift' in bootstrap_controller_effective_components"
+
+- name: AAP configs | Remove patching workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-patching-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - >-
+        'rhel' not in bootstrap_controller_effective_components
+        or 'satellite' not in bootstrap_controller_effective_components
+        or 'idm' not in bootstrap_controller_effective_components
+
+- name: AAP configs | Remove RHEL workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-rhel-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - >-
+        'rhel' not in bootstrap_controller_effective_components
+        or 'satellite' not in bootstrap_controller_effective_components
+        or 'idm' not in bootstrap_controller_effective_components
+        or 'compliance' not in bootstrap_controller_effective_components
+        or 'stig' not in bootstrap_controller_effective_components
+
+- name: AAP configs | Remove Satellite workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-satellite-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - "'satellite' not in bootstrap_controller_effective_components"
+
+- name: AAP configs | Remove OpenShift workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-openshift-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - "'openshift' not in bootstrap_controller_effective_components"
+
+- name: AAP configs | Apply organization prefix to workflow templates
+  ansible.builtin.replace:
+    path: "{{ item }}"
+    regexp: "ADO \\|"
+    replace: >-
+      {{
+        bootstrap_controller_organization
+        | default(controller_bootstrap_organization, true)
+      }} |
+  loop: >-
+    {{
+      query(
+        'ansible.builtin.fileglob',
+        playbook_dir ~ '/configs/workflows/*.wf.yml'
+      )
+    }}
+
+# yamllint disable rule:line-length
+- name: AAP configs | Apply generated values to workflow templates
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    from pathlib import Path
+
+    workflow_dir = Path("{{ playbook_dir }}/configs/workflows")
+    organization = "{{ bootstrap_controller_organization | default(controller_bootstrap_organization, true) }}"
+    inventory = "{{ bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true) }}"
+    rhel_inventory = "{{ bootstrap_controller_rhel_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+    idm_inventory = "{{ bootstrap_controller_idm_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+    satellite_inventory = "{{ bootstrap_controller_satellite_inventory_name | default(bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true), true) }}"
+
+    lb = "{" * 2
+    rb = "}" * 2
+    replacements = {
+        f"{lb} bootstrap_controller_organization {rb}": organization,
+        f"{lb} controller_bootstrap_organization {rb}": organization,
+        f"{lb} bootstrap_controller_inventory_name {rb}": inventory,
+        f"{lb} controller_bootstrap_inventory_name {rb}": inventory,
+        f"{lb} bootstrap_controller_rhel_inventory_name {rb}": rhel_inventory,
+        f"{lb} controller_bootstrap_rhel_inventory_name {rb}": rhel_inventory,
+        f"{lb} bootstrap_controller_idm_inventory_name {rb}": idm_inventory,
+        f"{lb} controller_bootstrap_idm_inventory_name {rb}": idm_inventory,
+        f"{lb} bootstrap_controller_satellite_inventory_name {rb}": satellite_inventory,
+        f"{lb} controller_bootstrap_satellite_inventory_name {rb}": satellite_inventory,
+    }
+
+    changed = 0
+    for path in sorted(workflow_dir.glob("*.wf.yml")):
+        text = path.read_text()
+        updated = text
+        for old, new in replacements.items():
+            updated = updated.replace(old, new)
+        if updated != text:
+            path.write_text(updated)
+            changed += 1
+
+    print("Rendered workflow templates:", changed)
+    PYCODE
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: AAP configs | Prune workflow nodes without generated job templates
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    from pathlib import Path
+    import yaml
+
+    playbook_dir = Path("{{ playbook_dir }}")
+    workflow_dir = playbook_dir / "configs" / "workflows"
+    job_template_dir = playbook_dir / "configs" / "job_templates"
+    cert_manager_mode = "{{ bootstrap_controller_cert_manager_mode | default('cert', true) }}"
+
+    available_templates = set()
+    for path in sorted(job_template_dir.glob("*.jt.yml")):
+        data = yaml.safe_load(path.read_text()) or {}
+        for item in data.get("controller_templates", []) or []:
+            name = item.get("name")
+            if name:
+                available_templates.add(name)
+
+    edge_keys = ("success_nodes", "failure_nodes", "always_nodes")
+    changed = 0
+    for path in sorted(workflow_dir.glob("*.wf.yml")):
+        data = yaml.safe_load(path.read_text()) or {}
+        workflows = data.get("controller_workflow_job_templates", []) or []
+        keep_file = False
+
+        for workflow in workflows:
+            nodes = workflow.get("simplified_workflow_nodes", []) or []
+            kept_nodes = [
+                node for node in nodes
+                if node.get("unified_job_template") in available_templates
+            ]
+            if cert_manager_mode == "cert":
+                kept_nodes = [
+                    node for node in kept_nodes
+                    if node.get("identifier") not in (
+                        "Configure IDM ACME ClusterIssuer",
+                        "Deploy AWSPCA Cert Manager",
+                    )
+                ]
+            elif cert_manager_mode == "idm_acme":
+                kept_nodes = [
+                    node for node in kept_nodes
+                    if node.get("identifier") != "Deploy AWSPCA Cert Manager"
+                ]
+            elif cert_manager_mode == "aws_pca":
+                kept_nodes = [
+                    node for node in kept_nodes
+                    if node.get("identifier") != "Configure IDM ACME ClusterIssuer"
+                ]
+            kept_ids = {node.get("identifier") for node in kept_nodes}
+
+            for node in kept_nodes:
+                for edge_key in edge_keys:
+                    if edge_key in node:
+                        node[edge_key] = [
+                            item for item in (node.get(edge_key) or [])
+                            if item in kept_ids
+                        ]
+                        if not node[edge_key]:
+                            node.pop(edge_key, None)
+
+            workflow["simplified_workflow_nodes"] = kept_nodes
+            if kept_nodes:
+                keep_file = True
+
+        if not keep_file:
+            path.unlink()
+            changed += 1
+            continue
+
+        updated = "---\n" + yaml.safe_dump(data, sort_keys=False, width=1000)
+        if updated != path.read_text():
+            path.write_text(updated)
+            changed += 1
+
+    print("Pruned workflow templates:", changed)
+    PYCODE
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: AAP configs | Attach organization label to generated templates
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    from pathlib import Path
+    import yaml
+
+    organization = "{{ controller_bootstrap_organization | default(bootstrap_controller_organization) }}"
+    root = Path("{{ playbook_dir }}/configs")
+    changed = 0
+
+    def label_name(label):
+        if isinstance(label, dict):
+            return label.get("name")
+        return label
+
+    def normalize_labels(item):
+        if not isinstance(item, dict):
+            return False
+
+        labels = []
+        if organization:
+            labels.append(organization)
+
+        labels.extend(
+            name for name in (label_name(label) for label in item.get("labels") or [])
+            if name
+        )
+
+        related = item.get("related")
+        if isinstance(related, dict):
+            labels.extend(
+                name for name in (label_name(label) for label in related.get("labels") or [])
+                if name
+            )
+            related.pop("labels", None)
+            if not related:
+                item.pop("related", None)
+
+        if not labels:
+            return False
+
+        normalized = list(dict.fromkeys(labels))
+        if item.get("labels") == normalized:
+            return False
+
+        item["labels"] = normalized
+        return True
+
+    for pattern, key in (
+        ("job_templates/*.jt.yml", "controller_templates"),
+        ("workflows/*.wf.yml", "controller_workflow_job_templates"),
+    ):
+        for path in sorted(root.glob(pattern)):
+            original = path.read_text()
+            data = yaml.safe_load(original) or {}
+            file_changed = False
+
+            for item in data.get(key, []) or []:
+                file_changed = normalize_labels(item) or file_changed
+
+            if file_changed:
+                path.write_text("---\n" + yaml.safe_dump(data, sort_keys=False, width=1000))
+                changed += 1
+
+    print("Attached organization labels:", changed)
+    PYCODE
+  args:
+    executable: /bin/bash
+  changed_when: true
+# yamllint enable rule:line-length

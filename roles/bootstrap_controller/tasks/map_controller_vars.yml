@@ -17,6 +17,11 @@
         controller_bootstrap_controller_inventories
         | default(bootstrap_controller_controller_inventories | default([]))
       }}
+    controller_inventory_sources: >-
+      {{
+        controller_bootstrap_controller_inventory_sources
+        | default(bootstrap_controller_controller_inventory_sources | default([]))
+      }}
     controller_hosts: >-
       {{ bootstrap_controller_controller_hosts | default([]) }}
     controller_labels: >-

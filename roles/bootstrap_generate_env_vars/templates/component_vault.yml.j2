@@ -27,6 +27,11 @@ components_vault:
 grafana_admin_user: admin
 grafana_admin_password: redhat123
 
+{% elif component_name == 'satellite' %}
+vault_satellite_service_account_username: "{{ bootstrap_generate_env_vars_satellite_service_account_username | default('') }}"
+vault_satellite_service_account_password: "{{ bootstrap_generate_env_vars_satellite_service_account_password | default('') }}"
+vault_satellite_admin_password: "{{ bootstrap_generate_env_vars_satellite_admin_password | default(bootstrap_generate_env_vars_satellite_service_account_password | default('')) }}"
+
 {% elif component_name == 'htpasswd' %}
 htpasswd_users:
   - name: admin
@@ -44,6 +49,15 @@ htpasswd_pass: redhat123
 {% elif component_name == 'cert_manager' %}
 tls_crt:
 tls_key:
+
+{% elif component_name == 'openshift' %}
+htpasswd_users:
+  - name: admin
+    password: redhat123
+    role: cluster-admin
+htpasswd_pass: redhat123
+ocp_awspca_access_key_id: ""
+ocp_awspca_secret_access_key: ""
 
 {% elif component_name == 'gitlab' %}
 gitlab_tls_crt:

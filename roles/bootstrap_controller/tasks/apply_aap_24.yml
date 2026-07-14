@@ -28,6 +28,11 @@
     name: infra.controller_configuration.inventories
   when: controller_inventories | default([]) | length > 0
 
+- name: AAP 2.4 | Inventory sources
+  ansible.builtin.include_role:
+    name: infra.controller_configuration.inventory_sources
+  when: controller_inventory_sources | default([]) | length > 0
+
 - name: AAP 2.4 | Hosts
   ansible.builtin.include_role:
     name: infra.controller_configuration.hosts

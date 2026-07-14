@@ -1,0 +1,62 @@
+---
+- name: Apply RHEL STIG hardening
+  hosts: rhel_servers
+  become: true
+  gather_facts: true
+
+  vars:
+    rhel_stig_env: "{{ env | default('prod') }}"
+    rhel_stig_env_dir: >-
+      {{ playbook_dir }}/../../group_vars/all/{{ rhel_stig_env }}
+    rhel_stig_vars_files:
+      - "{{ rhel_stig_env_dir }}/vars_rhel.yml"
+      - "{{ rhel_stig_env_dir }}/vars_stig.yml"
+    rhel_stig_profile_map:
+      RHEL 8 STIG: stig
+      RHEL 9 STIG: stig
+    rhel_stig_compliance_profile: >-
+      {{
+        compliance_profile
+        | default(components_env.rhel.compliance_profile | default('STIG'))
+      }}
+    rhel_stig_profile_label: >-
+      {{
+        stig_profile
+        | default(components_env.rhel.stig_profile | default('RHEL 9 STIG'))
+      }}
+    rhel_stig_profile_value: >-
+      {{
+        rhel_stig_profile_map[rhel_stig_profile_label]
+        | default(rhel_stig_profile_label)
+      }}
+
+  pre_tasks:
+    - name: Check for generated RHEL STIG vars
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop: "{{ rhel_stig_vars_files }}"
+      register: rhel_stig_vars_file_stats
+      delegate_to: localhost
+      run_once: true
+
+    - name: Load generated RHEL STIG profile vars
+      ansible.builtin.include_vars:
+        file: "{{ item.stat.path }}"
+      loop: "{{ rhel_stig_vars_file_stats.results }}"
+      when: item.stat.exists
+
+    - name: Confirm STIG hardening profile
+      ansible.builtin.debug:
+        msg:
+          - "Compliance profile: {{ rhel_stig_compliance_profile }}"
+          - "STIG profile: {{ rhel_stig_profile_label }}"
+          - "RHEL system role profile: {{ rhel_stig_profile_value }}"
+
+  roles:
+    - role: infra.ado.rhel_ext_system_roles
+      vars:
+        sr_apply:
+          - stig
+        sr_vars:
+          stig:
+            stig_profile: "{{ rhel_stig_profile_value }}"

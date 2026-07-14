@@ -1,0 +1,129 @@
+---
+- name: AAP connectivity | Resolve controller API URL
+  ansible.builtin.set_fact:
+    bootstrap_controller_aap_api_url: >-
+      {{
+        bootstrap_controller_controller_host
+        if (bootstrap_controller_controller_host | regex_search('^https?://'))
+        else 'https://' ~ bootstrap_controller_controller_host
+      }}
+    bootstrap_controller_aap_effective_api_path: >-
+      {{
+        bootstrap_controller_aap_api_path
+        | default(
+            (
+              bootstrap_controller_is_aap_25_plus
+              | default(false)
+              | bool
+            )
+            | ternary('/api/controller/v2', '/api/v2'),
+            true
+          )
+      }}
+    bootstrap_controller_aap_effective_ping_endpoint: >-
+      {{
+        bootstrap_controller_aap_connectivity_endpoint
+        | default(
+            (
+              (
+                bootstrap_controller_is_aap_25_plus
+                | default(false)
+                | bool
+              )
+              | ternary('/api/controller/v2', '/api/v2')
+            )
+            ~ '/ping/',
+            true
+          )
+      }}
+
+- name: AAP connectivity | Call controller ping endpoint
+  no_log: "{{ bootstrap_controller_aap_connectivity_no_log | default(true) }}"
+  ansible.builtin.uri:
+    url: >-
+      {{
+        bootstrap_controller_aap_api_url
+        ~ bootstrap_controller_aap_effective_ping_endpoint
+      }}
+    method: GET
+    headers: >-
+      {{
+        {
+          'Authorization':
+          'Bearer ' ~ bootstrap_controller_controller_oauthtoken
+        }
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length > 0
+        )
+        else {}
+      }}
+    url_username: >-
+      {{
+        bootstrap_controller_controller_username
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    url_password: >-
+      {{
+        bootstrap_controller_controller_password
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    force_basic_auth: >-
+      {{
+        bootstrap_controller_controller_oauthtoken
+        | default('')
+        | length == 0
+      }}
+    validate_certs: >-
+      {{
+        bootstrap_controller_controller_validate_certs
+        | default(controller_validate_certs | default(false))
+        | bool
+      }}
+    return_content: true
+    status_code: 200
+  register: bootstrap_controller_aap_ping
+  failed_when: false
+
+- name: AAP connectivity | Fail with safe controller ping details
+  ansible.builtin.fail:
+    msg:
+      - >-
+        AAP controller connectivity check failed for
+        {{ bootstrap_controller_aap_api_url
+        ~ bootstrap_controller_aap_effective_ping_endpoint }}.
+      - >-
+        Authentication method:
+        {{ 'OAuth token'
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length > 0
+        )
+        else 'username/password' }}.
+      - >-
+        TLS certificate validation:
+        {{ bootstrap_controller_controller_validate_certs
+        | default(controller_validate_certs | default(false)) | bool }}.
+      - >-
+        HTTP status:
+        {{ bootstrap_controller_aap_ping.status | default('unknown') }}.
+      - "Error: {{ bootstrap_controller_aap_ping.msg | default('unknown') }}."
+  when: >-
+    bootstrap_controller_aap_ping.status | default(0) | int != 200
+
+- name: AAP connectivity | Show controller ping success
+  ansible.builtin.debug:
+    msg: >-
+      Connected to AAP controller at {{ bootstrap_controller_aap_api_url }}.
