@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Validate a release version string for antsibull-changelog."""
 
 import os
