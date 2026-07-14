@@ -1,15 +1,11 @@
 ---
 name: Generate changelog from fragments
-description: Run antsibull-changelog release for a tag version and optionally commit to main
+description: Run antsibull-changelog release for a tag version
 
 inputs:
   tag:
     description: Git tag name (e.g. v1.2.0)
     required: true
-  commit_to_main:
-    description: Commit generated changelog files back to the main branch
-    required: false
-    default: "true"
   consume_fragments:
     description: Consume changelog fragments with antsibull-changelog release (official releases only)
     required: false
@@ -139,22 +135,3 @@ runs:
         fi
 
         echo "generated=$GENERATED" >> "$GITHUB_OUTPUT"
-
-    - name: Commit changelog to main
-      if: inputs.commit_to_main == 'true' && inputs.consume_fragments == 'true' && steps.release.outputs.generated == 'true'
-      shell: bash
-      run: |
-        set -euo pipefail
-        VERSION="${{ steps.release.outputs.version }}"
-
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-        git add CHANGELOG.rst changelogs/changelog.yaml changelogs/fragments/
-        if git diff --cached --quiet; then
-          echo "No changelog changes to commit."
-          exit 0
-        fi
-
-        git commit -m "Changelog for release ${VERSION}"
-        git push origin HEAD:main

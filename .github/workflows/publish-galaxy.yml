@@ -28,7 +28,6 @@ jobs:
         uses: ./.github/actions/generate-changelog
         with:
           tag: ${{ github.event.inputs.tag }}
-          commit_to_main: "false"
           consume_fragments: "false"
 
       - name: Build collection
