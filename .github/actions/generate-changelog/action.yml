@@ -1,0 +1,116 @@
+---
+name: Generate changelog from fragments
+description: Run antsibull-changelog release for a tag version and optionally commit to main
+
+inputs:
+  tag:
+    description: Git tag name (e.g. v1.2.0)
+    required: true
+  commit_to_main:
+    description: Commit generated changelog files back to the main branch
+    required: false
+    default: "true"
+
+outputs:
+  version:
+    description: Release version (tag without v prefix)
+    value: ${{ steps.release.outputs.version }}
+  generated:
+    description: Whether a new changelog release was generated
+    value: ${{ steps.release.outputs.generated }}
+
+runs:
+  using: composite
+  steps:
+    - name: Generate release changelog
+      id: release
+      shell: bash
+      run: |
+        set -euo pipefail
+        VERSION="${{ inputs.tag }}"
+        VERSION="${VERSION#v}"
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+        pip install antsibull-changelog pyyaml
+
+        release_exists() {
+          CHECK_VERSION="$VERSION" python3 -c '
+        import os
+        import sys
+        import yaml
+
+        version = os.environ["CHECK_VERSION"]
+        with open("changelogs/changelog.yaml", "r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle) or {}
+        releases = data.get("releases") or {}
+        sys.exit(0 if version in releases else 1)
+        '
+        }
+
+        release_exists_on_ref() {
+          local ref="$1"
+          CHECK_VERSION="$VERSION" CHECK_REF="$ref" python3 -c '
+        import os
+        import subprocess
+        import sys
+        import yaml
+
+        version = os.environ["CHECK_VERSION"]
+        ref = os.environ["CHECK_REF"]
+        payload = subprocess.check_output(["git", "show", f"{ref}:changelogs/changelog.yaml"])
+        data = yaml.safe_load(payload) or {}
+        releases = data.get("releases") or {}
+        sys.exit(0 if version in releases else 1)
+        '
+        }
+
+        fragments_present() {
+          shopt -s nullglob
+          local files=(changelogs/fragments/*.yml changelogs/fragments/*.yaml)
+          [ "${#files[@]}" -gt 0 ]
+        }
+
+        sync_changelog_from_ref() {
+          local ref="$1"
+          echo "Syncing changelog files from ${ref}."
+          git checkout "${ref}" -- CHANGELOG.rst changelogs/changelog.yaml changelogs/fragments/
+        }
+
+        GENERATED=false
+
+        if release_exists; then
+          echo "Changelog release ${VERSION} already exists in the current checkout."
+        else
+          git fetch origin main
+          if release_exists_on_ref "origin/main"; then
+            sync_changelog_from_ref "origin/main"
+          elif fragments_present; then
+            echo "Generating changelog release ${VERSION} from fragments."
+            antsibull-changelog release "$VERSION"
+            GENERATED=true
+          else
+            echo "No changelog fragments found and release ${VERSION} is not recorded in changelogs/changelog.yaml."
+            echo "Skipping changelog generation."
+          fi
+        fi
+
+        echo "generated=$GENERATED" >> "$GITHUB_OUTPUT"
+
+    - name: Commit changelog to main
+      if: inputs.commit_to_main == 'true' && steps.release.outputs.generated == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        VERSION="${{ steps.release.outputs.version }}"
+
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        git add CHANGELOG.rst changelogs/changelog.yaml changelogs/fragments/
+        if git diff --cached --quiet; then
+          echo "No changelog changes to commit."
+          exit 0
+        fi
+
+        git commit -m "Changelog for release ${VERSION}"
+        git push origin HEAD:main

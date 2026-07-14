@@ -54,6 +54,7 @@ Paths most relevant to the pipeline:
 | [`.github/workflows/security-check.yml`](workflows/security-check.yml) | Standalone security scans |
 | [`.github/workflows/release.yml`](workflows/release.yml) | Release asset and Galaxy publish |
 | [`.github/actions/build-collection/`](actions/build-collection/) | Shared tag-versioned collection build |
+| [`.github/actions/generate-changelog/`](actions/generate-changelog/) | Compile changelog fragments into `CHANGELOG.rst` |
 | [`extensions/molecule/`](../extensions/molecule/) | Integration test scenarios |
 | [`extensions/molecule/pr_exclude.txt`](../extensions/molecule/pr_exclude.txt) | Scenarios skipped on PR CI |
 | [`changelogs/fragments/`](../changelogs/fragments/) | Per-PR changelog fragments |
@@ -73,7 +74,7 @@ Paths most relevant to the pipeline:
 | Ansible Collection CI/CD | [`main.yml`](workflows/main.yml) | `push`, `pull_request`, `workflow_dispatch` | Changelog, lint, README check, security (manual), Molecule, PR gate, build, dev release |
 | CI | [`tests.yml`](workflows/tests.yml) | PR to `main`, `workflow_dispatch` | Changelog, build-import, lint, README, sanity, unit, all_green |
 | Security Check | [`security-check.yml`](workflows/security-check.yml) | `pull_request`, `workflow_dispatch` | Security and data-exposure scans |
-| Release infra.ado | [`release.yml`](workflows/release.yml) | Release published, `workflow_dispatch` | Build and attach asset, publish to Galaxy |
+| Release infra.ado | [`release.yml`](workflows/release.yml) | Release published, `workflow_dispatch` | Generate changelog, build and attach asset, publish to Galaxy |
 
 Status badges:
 
@@ -105,7 +106,9 @@ flowchart TD
   end
 
   subgraph releaseFlow [Release]
-    publishGH[Publish GitHub Release] --> attachAsset[Attach tarball]
+    publishGH[Publish GitHub Release] --> generateChangelog[Generate changelog from fragments]
+    generateChangelog --> commitMain[Commit CHANGELOG.rst to main]
+    commitMain --> attachAsset[Attach tarball]
     manualGalaxy[Manual workflow_dispatch] --> galaxyPublish[Publish to Galaxy]
   end
 ```
@@ -183,15 +186,14 @@ Prefix entries with the affected component (`role_name`, `ci`, FQCN, etc.).
 python3 scripts/validate_changelog.py --ref main
 ```
 
-### Release PRs
+### Release PRs (optional)
 
-A dedicated release PR may only modify:
+You no longer need a dedicated release PR to compile changelog fragments. When a GitHub
+Release is published, the pipeline runs `antsibull-changelog release` automatically.
 
-- `CHANGELOG.rst`
-- `changelogs/changelog.yaml`
-- `galaxy.yml`
-
-and delete consumed fragment files. No new fragment is needed in that PR.
+A manual release PR is still valid if you prefer to review `CHANGELOG.rst` before
+tagging. That PR should only modify `CHANGELOG.rst`, `changelogs/changelog.yaml`, and
+`galaxy.yml`, and delete consumed fragment files.
 
 ## Ansible Collection CI/CD (`main.yml`)
 
@@ -447,6 +449,9 @@ Triggered by any tag push. Uses the shared build action and:
 2. Creates a GitHub **pre-release** if one does not exist
 3. Uploads or replaces the tarball on that release
 
+Dev pre-releases do **not** consume changelog fragments. Fragment compilation happens when
+a GitHub Release is published.
+
 ## Shared build action
 
 [`actions/build-collection/action.yml`](actions/build-collection/action.yml) centralizes
@@ -477,6 +482,32 @@ Used by:
 - `release.yml` → `release_assets`
 - `release.yml` → `publish_galaxy`
 
+## Generate changelog action
+
+[`actions/generate-changelog/action.yml`](actions/generate-changelog/action.yml) compiles
+accumulated changelog fragments into release notes before the collection tarball is built.
+
+**Inputs:**
+
+| Input | Description |
+| --- | --- |
+| `tag` | Git tag name, for example `v1.2.0` |
+| `commit_to_main` | Push generated `CHANGELOG.rst` and `changelogs/changelog.yaml` to `main` (default: `true`) |
+
+**Behavior:**
+
+1. If the release version is already recorded in `changelogs/changelog.yaml`, do nothing
+2. Otherwise, if `origin/main` already contains the release entry, sync those changelog files into the build workspace
+3. Otherwise, if fragments exist under `changelogs/fragments/`, run `antsibull-changelog release <version>`
+4. Consumed fragments are removed (`keep_fragments: false` in [`changelogs/config.yaml`](../changelogs/config.yaml))
+5. `CHANGELOG.rst` is regenerated and included in the collection build that follows
+6. When `commit_to_main` is `true`, the generated changelog is committed and pushed to `main`
+
+Used by:
+
+- `release.yml` → `release_assets` (generates and commits)
+- `release.yml` → `publish_galaxy` (syncs from `main` if already generated)
+
 ## Release pipeline
 
 Collection releases are versioned from git tags. The version inside the tarball always
@@ -488,8 +519,10 @@ flowchart TD
   devJob --> preRelease[Create or update GitHub pre-release]
   preRelease --> devAsset[Attach infra-ado-VERSION.tar.gz]
 
-  publishRelease[Publish GitHub Release] --> assetJob[release.yml: Build and Attach Collection]
-  assetJob --> officialAsset[Attach or refresh tarball]
+  publishRelease[Publish GitHub Release] --> changelogJob[release.yml: Generate changelog]
+  changelogJob --> commitMain[Commit CHANGELOG.rst to main]
+  commitMain --> assetJob[release.yml: Build and Attach Collection]
+  assetJob --> officialAsset[Attach tarball with changelog]
 
   manualGalaxy[Maintainer runs workflow manually] --> galaxyJob[release.yml: Publish to Ansible Galaxy]
   galaxyJob --> galaxy[Upload to Galaxy]
@@ -500,7 +533,7 @@ flowchart TD
 | Event | Workflow | Result |
 | --- | --- | --- |
 | Push a git tag | `main.yml` | Pre-release created or updated with tarball attached |
-| Publish a GitHub Release | `release.yml` | Tarball built and attached or refreshed on the release |
+| Publish a GitHub Release | `release.yml` | Changelog compiled from fragments, committed to `main`, tarball built and attached |
 
 ### Manual steps
 
@@ -515,19 +548,13 @@ Galaxy publish does **not** run automatically when a GitHub Release is published
 ### 1. Land changes through normal PRs
 
 1. Merge feature PRs with changelog fragments as needed
-2. Ensure CI is green on `main` or your release branch
+2. Ensure CI is green on `main`
 
-### 2. Prepare the release PR
+Fragments accumulate under `changelogs/fragments/` until a GitHub Release is published.
+You do **not** need to manually run `antsibull-changelog release` before tagging unless
+you want to preview the compiled changelog in a PR.
 
-Open a release PR that:
-
-- Runs `antsibull-changelog release` (or equivalent) to generate `CHANGELOG.rst` and `changelogs/changelog.yaml`
-- Updates `galaxy.yml` version if you maintain it there between releases
-- Removes consumed fragment files
-
-This PR type does not require a new changelog fragment.
-
-### 3. Create a dev pre-release
+### 2. Create a dev pre-release (optional)
 
 Tag and push a pre-release version:
 
@@ -551,7 +578,10 @@ ansible-galaxy collection install \
 
 Re-pushing a tag or re-running the workflow replaces the asset with `--clobber`.
 
-### 4. Publish an official GitHub Release
+Dev pre-releases do not compile changelog fragments. Fragments remain for the official
+release.
+
+### 3. Publish an official GitHub Release
 
 When the dev build is validated:
 
@@ -560,9 +590,14 @@ When the dev build is validated:
 3. Uncheck **Set as a pre-release** for an official release
 4. Publish the release
 
-`release.yml` automatically builds and attaches `infra-ado-<version>.tar.gz`.
+`release.yml` will automatically:
 
-### 5. Publish to Ansible Galaxy (manual)
+1. Run `antsibull-changelog release` against the accumulated fragments
+2. Commit `CHANGELOG.rst` and `changelogs/changelog.yaml` to `main`
+3. Build `infra-ado-<version>.tar.gz` (including the generated changelog)
+4. Attach the tarball to the GitHub Release
+
+### 4. Publish to Ansible Galaxy (manual)
 
 When the GitHub Release is ready for public distribution:
 
@@ -573,8 +608,13 @@ When the GitHub Release is ready for public distribution:
 
 Requires the `release` GitHub Environment and `ANSIBLE_GALAXY_API_KEY` secret.
 
-### 6. Verify
+If the GitHub Release workflow already ran, the manual Galaxy job syncs the generated
+changelog from `main` before building the collection tarball.
 
+### 5. Verify
+
+- [ ] `CHANGELOG.rst` on `main` contains the release version
+- [ ] Consumed fragment files were removed from `changelogs/fragments/`
 - [ ] GitHub Release contains `infra-ado-<version>.tar.gz`
 - [ ] `ansible-galaxy collection install <release-url>` succeeds
 - [ ] After Galaxy publish, version appears at [galaxy.ansible.com/infra/ado](https://galaxy.ansible.com/infra/ado)
