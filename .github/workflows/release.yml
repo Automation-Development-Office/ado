@@ -4,19 +4,12 @@ name: Release infra.ado
 on: # yamllint disable-line rule:truthy
   release:
     types: [published]
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Git tag to publish to Ansible Galaxy (e.g. v1.2.0)"
-        required: true
-        type: string
 
 permissions:
   contents: write
 
 jobs:
   release_assets:
-    if: github.event_name == 'release'
     name: Build and Attach Collection
     runs-on: ubuntu-latest
     steps:
@@ -83,46 +76,3 @@ jobs:
           if [ -f "$NOTES_FILE" ]; then
             gh release edit "$TAG" --notes-file "$NOTES_FILE"
           fi
-
-  publish_galaxy:
-    if: github.event_name == 'workflow_dispatch'
-    name: Publish to Ansible Galaxy
-    runs-on: ubuntu-latest
-    environment: release
-    steps:
-      - name: Checkout release tag
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag }}
-          fetch-depth: 0
-
-      - name: Sync pipeline actions from main
-        run: |
-          set -euo pipefail
-          git fetch origin main
-          git checkout origin/main -- .github/actions/ scripts/validate_release_version.py
-
-      - name: Sync compiled changelog
-        uses: ./.github/actions/generate-changelog
-        with:
-          tag: ${{ github.event.inputs.tag }}
-          commit_to_main: "false"
-          consume_fragments: "false"
-
-      - name: Build collection
-        id: build
-        uses: ./.github/actions/build-collection
-        with:
-          tag: ${{ github.event.inputs.tag }}
-
-      - name: Publish collection to Galaxy
-        env:
-          ANSIBLE_GALAXY_API_KEY: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
-          TARBALL: ${{ steps.build.outputs.tarball }}
-        run: |
-          set -euo pipefail
-          if [ -z "${ANSIBLE_GALAXY_API_KEY}" ]; then
-            echo "ANSIBLE_GALAXY_API_KEY is required to publish on Galaxy."
-            exit 1
-          fi
-          ansible-galaxy collection publish "${TARBALL}" --api-key "${ANSIBLE_GALAXY_API_KEY}"

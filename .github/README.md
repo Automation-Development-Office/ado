@@ -37,7 +37,8 @@ The repository uses four GitHub Actions workflows:
 | **Ansible Collection CI/CD** | Contributors and maintainers | Primary integration pipeline: changelog, lint, Molecule, build, dev pre-releases |
 | **CI** | Contributors | Upstream Ansible collection checks: sanity, unit, build-import, lint |
 | **Security Check** | Contributors | Role security and data-exposure scans |
-| **Release infra.ado** | Maintainers | Attach tarballs to GitHub Releases; manual Galaxy publish |
+| **Release infra.ado** | Maintainers | Attach tarballs to GitHub Releases; compile changelog |
+| **Publish to Ansible Galaxy** | Maintainers | Manual Galaxy publish only (`workflow_dispatch`) |
 
 Most day-to-day development is validated by **Ansible Collection CI/CD** on pull
 requests. The **CI** workflow runs in parallel with overlapping checks. Treat both as
@@ -52,7 +53,8 @@ Paths most relevant to the pipeline:
 | [`.github/workflows/main.yml`](workflows/main.yml) | Primary CI/CD workflow |
 | [`.github/workflows/tests.yml`](workflows/tests.yml) | Upstream collection CI workflow |
 | [`.github/workflows/security-check.yml`](workflows/security-check.yml) | Standalone security scans |
-| [`.github/workflows/release.yml`](workflows/release.yml) | Release asset and Galaxy publish |
+| [`.github/workflows/release.yml`](workflows/release.yml) | GitHub Release build and attach |
+| [`.github/workflows/publish-galaxy.yml`](workflows/publish-galaxy.yml) | Manual Ansible Galaxy publish |
 | [`.github/actions/build-collection/`](actions/build-collection/) | Shared tag-versioned collection build |
 | [`.github/actions/generate-changelog/`](actions/generate-changelog/) | Compile changelog fragments into `CHANGELOG.rst` |
 | [`extensions/molecule/`](../extensions/molecule/) | Integration test scenarios |
@@ -74,7 +76,8 @@ Paths most relevant to the pipeline:
 | Ansible Collection CI/CD | [`main.yml`](workflows/main.yml) | `push`, `pull_request`, `workflow_dispatch` | Changelog, lint, README check, security (manual), Molecule, PR gate, build, dev release |
 | CI | [`tests.yml`](workflows/tests.yml) | PR to `main`, `workflow_dispatch` | Changelog, build-import, lint, README, sanity, unit, all_green |
 | Security Check | [`security-check.yml`](workflows/security-check.yml) | `pull_request`, `workflow_dispatch` | Security and data-exposure scans |
-| Release infra.ado | [`release.yml`](workflows/release.yml) | Release published, `workflow_dispatch` | Generate changelog, build and attach asset, publish to Galaxy |
+| Release infra.ado | [`release.yml`](workflows/release.yml) | GitHub Release published | Build, changelog, attach tarball |
+| Publish to Ansible Galaxy | [`publish-galaxy.yml`](workflows/publish-galaxy.yml) | Manual `workflow_dispatch` only | Publish to Galaxy |
 
 Status badges:
 
@@ -481,7 +484,7 @@ Used by:
 
 - `main.yml` → `release_dev`
 - `release.yml` → `release_assets`
-- `release.yml` → `publish_galaxy`
+- `publish-galaxy.yml` → manual Galaxy publish
 
 ## Generate changelog action
 
@@ -509,7 +512,7 @@ Set `consume_fragments: false` to sync an already-compiled changelog without del
 Used by:
 
 - `release.yml` → `release_assets` when `prerelease: false`
-- `release.yml` → `publish_galaxy` with `consume_fragments: false`
+- `publish-galaxy.yml` → manual Galaxy publish with `consume_fragments: false`
 
 ## Preview changelog action
 
@@ -563,7 +566,7 @@ flowchart TD
 
 | Step | How |
 | --- | --- |
-| Publish to Ansible Galaxy | **Actions → Release infra.ado → Run workflow** with tag input |
+| Publish to Ansible Galaxy | **Actions → Publish to Ansible Galaxy → Run workflow** with tag input |
 
 Galaxy publish does **not** run automatically when a GitHub Release is published.
 
@@ -625,7 +628,7 @@ When the dev build is validated:
 
 When the GitHub Release is ready for public distribution:
 
-1. Open **Actions → Release infra.ado**
+1. Open **Actions → Publish to Ansible Galaxy**
 2. Click **Run workflow**
 3. Enter the tag, for example `v1.2.0`
 4. Start the run
@@ -672,7 +675,7 @@ changelog from `main` before building the collection tarball.
 
 | Environment | Used by | Purpose |
 | --- | --- | --- |
-| `release` | `publish_galaxy` job | Gates access to `ANSIBLE_GALAXY_API_KEY` |
+| `release` | `publish-galaxy.yml` job | Gates access to `ANSIBLE_GALAXY_API_KEY` |
 
 ### Permissions
 
@@ -732,7 +735,7 @@ Both workflows run `ansible-lint` with different configurations (container image
 
 ### Galaxy publish failed
 
-- Confirm you ran **Release infra.ado** manually with the correct tag
+- Confirm you ran **Publish to Ansible Galaxy** manually with the correct tag
 - Verify `ANSIBLE_GALAXY_API_KEY` is set in the `release` environment
 - Ensure the tag exists and the collection version has not already been published
 
