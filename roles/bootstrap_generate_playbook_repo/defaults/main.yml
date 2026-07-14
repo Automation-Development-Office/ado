@@ -152,8 +152,8 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     category: platform
     app: cert_manager
 
-  - src: console/ado-configure-bootstrap.yml
-    dest: playbooks/console/ado-configure-bootstrap.yml
+  - src: openshift/ado-configure-console-banner-bootstrap.yml
+    dest: playbooks/openshift/ado-configure-console-banner-bootstrap.yml
     target_platform: openshift
     category: platform
     app: console
@@ -288,31 +288,37 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     dest: playbooks/openshift/ado-configure-ldap-auth-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: openshift
+    app: openshift_ldap_auth
 
   - src: openshift/ado-configure-oauth-with-rhbk-bootstrap.yml
     dest: playbooks/openshift/ado-configure-oauth-with-rhbk-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: openshift
+    app: openshift_oauth_rhbk
 
   - src: openshift/ado-create-htpass-user-bootstrap.yml
     dest: playbooks/openshift/ado-create-htpass-user-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: openshift
+    app: admin_htpasswd
 
   - src: openshift/ado-discover-routes-bootstrap.yml
     dest: playbooks/openshift/ado-discover-routes-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: openshift
+    app: openshift_discover_routes_print
+
+  - src: openshift/ado-discover-routes-bootstrap.yml
+    dest: playbooks/openshift/ado-discover-routes-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: openshift_discover_routes_alt
 
   - src: openshift/ado-update-pull-secret-bootstrap.yml
     dest: playbooks/openshift/ado-update-pull-secret-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: openshift
+    app: openshift_update_pull_secret
 
   - src: pega/ado-install-and-configure-bootstrap.yml
     dest: playbooks/pega/ado-install-and-configure-bootstrap.yml
@@ -336,25 +342,25 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     dest: playbooks/rhbk/ado-manage-client-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: rhbk
+    app: rhbk_client
 
   - src: rhbk/ado-manage-entraid-idp.yml
     dest: playbooks/rhbk/ado-manage-entraid-idp.yml
     target_platform: openshift
     category: platform
-    app: rhbk
+    app: rhbk_idp
 
   - src: rhbk/ado-manage-realm-bootstrap.yml
     dest: playbooks/rhbk/ado-manage-realm-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: rhbk
+    app: rhbk_realm
 
   - src: rhbk/ado-realm-bootstrap.yml
     dest: playbooks/rhbk/ado-realm-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: rhbk
+    app: rhbk_federation
 
   - src: rhel/ado-patch-host-bootstrap.yml
     dest: playbooks/rhel/ado-patch-host-bootstrap.yml

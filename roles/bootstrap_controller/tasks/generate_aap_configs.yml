@@ -201,13 +201,25 @@
       oadp:
         - ado-oadp-deploy-bootstrap.jt.yml
 
-      openshift:
-        - ado-openshift-configure-ldap-auth-bootstrap.jt.yml
-        - ado-openshift-configure-oauth-with-rhbk-bootstrap.jt.yml
+      admin_htpasswd:
         - ado-openshift-create-htpass-user-bootstrap.jt.yml
+
+      openshift_ldap_auth:
+        - ado-openshift-configure-ldap-auth-bootstrap.jt.yml
+
+      openshift_oauth_rhbk:
+        - ado-openshift-configure-oauth-with-rhbk-bootstrap.jt.yml
+
+      openshift_discover_routes_print:
         - ado-openshift-deploy-discover-routes-and-print-bootstrap.jt.yml
+
+      openshift_discover_routes_alt:
         - ado-openshift-discover-routes-bootstrap.jt.yml
+
+      openshift_update_pull_secret:
         - ado-openshift-update-pull-secret-bootstrap.jt.yml
+
+      openshift: []
 
       pega:
         - ado-pega-install-and-configure-bootstrap.jt.yml
@@ -217,9 +229,17 @@
 
       rhbk:
         - ado-rhbk-deploy-and-configure-bootstrap.jt.yml
+
+      rhbk_client:
         - ado-rhbk-manage-client-bootstrap.jt.yml
+
+      rhbk_idp:
         - ado-rhbk-manage-entraid-idp.jt.yml
+
+      rhbk_realm:
         - ado-rhbk-manage-realm-bootstrap.jt.yml
+
+      rhbk_federation:
         - ado-rhbk-realm-bootstrap.jt.yml
 
       rhel:

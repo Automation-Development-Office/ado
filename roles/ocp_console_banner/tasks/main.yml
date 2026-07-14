@@ -1,19 +1,30 @@
 ---
 # ocp_console_banner role
 #
-# state=present -> add ONE new banner (separate ConsoleNotification) for this text (deduped)
-# state=new     -> delete ALL ADO banners (by label OR name prefix), then create ONE banner
-# state=absent  -> delete ALL ADO banners (by label OR name prefix)
+# state=add/present    -> add ONE new banner for this text (deduped)
+# state=update/new     -> delete ALL ADO banners, then create ONE banner
+# state=delete/absent  -> delete ALL ADO banners
 #
 # We NEVER touch vendor/ROSA banners because we only match by:
 #   - label app.kubernetes.io/managed-by=ado   OR
 #   - name starts with ocp_console_banner_name_prefix (default: ado-banner)
 
+- name: Normalize state aliases
+  ansible.builtin.set_fact:
+    ocp_console_banner_state: >-
+      {{
+        {
+          'add': 'present',
+          'update': 'new',
+          'delete': 'absent'
+        }.get(state | default('present'), state | default('present'))
+      }}
+
 - name: Guard state
   ansible.builtin.assert:
     that:
-      - (state | default('present')) in ['present', 'new', 'absent']
-    fail_msg: "state must be one of: present, new, absent"
+      - ocp_console_banner_state in ['present', 'new', 'absent']
+    fail_msg: "state must be one of: add, update, delete, present, new, absent"
 
 - name: Guard required vars for present/new
   ansible.builtin.assert:
@@ -21,15 +32,20 @@
       - ocp_console_banner_text is defined
       - (ocp_console_banner_text | string | trim | length) > 0
     fail_msg: "ocp_console_banner_text must be set for state=present/new"
-  when: (state | default('present')) in ['present', 'new']
+  when: ocp_console_banner_state in ['present', 'new']
 
 - name: Set defaults
   ansible.builtin.set_fact:
-    ocp_console_banner_prefix: "{{ ocp_console_banner_name_prefix | default('ado-banner') }}"
-    ocp_console_banner_single_name: "{{ ocp_console_banner_name | default('ado-banner') }}"
-    ocp_console_banner_location: "{{ ocp_console_banner_location | default('BannerTop') }}"
-    ocp_console_banner_background_color: "{{ ocp_console_banner_background_color | default('#1f7a1f') }}"
-    ocp_console_banner_text_color: "{{ ocp_console_banner_text_color | default('#ffffff') }}"
+    ocp_console_banner_prefix: >-
+      {{ ocp_console_banner_name_prefix | default('ado-banner') }}
+    ocp_console_banner_single_name: >-
+      {{ ocp_console_banner_name | default('ado-banner') }}
+    ocp_console_banner_location: >-
+      {{ ocp_console_banner_location | default('BannerTop') }}
+    ocp_console_banner_background_color: >-
+      {{ ocp_console_banner_background_color | default('#1f7a1f') }}
+    ocp_console_banner_text_color: >-
+      {{ ocp_console_banner_text_color | default('#ffffff') }}
 
 - name: Read all ConsoleNotifications
   kubernetes.core.k8s_info:
@@ -37,20 +53,31 @@
     kind: ConsoleNotification
   register: ocp_console_banner_cn_all
 
-# "ours" = labeled OR name startswith prefix
-- name: Build list of ADO-managed ConsoleNotifications (label OR prefix)
+# "ours" = labeled OR name starts with prefix.
+- name: Build list of ADO-managed ConsoleNotifications
   ansible.builtin.set_fact:
     ocp_console_banner_ado_cn: >-
       {{
         (ocp_console_banner_cn_all.resources | default([]))
         | selectattr('metadata.name', 'defined')
-        | selectattr('metadata.name', 'match', '^' ~ (ocp_console_banner_prefix | regex_escape) )
+        | selectattr(
+            'metadata.name',
+            'match',
+            '^' ~ (ocp_console_banner_prefix | regex_escape)
+          )
         | list
         +
         (
           (ocp_console_banner_cn_all.resources | default([]))
-          | selectattr('metadata.labels.app.kubernetes.io/managed-by', 'defined')
-          | selectattr('metadata.labels.app.kubernetes.io/managed-by', 'equalto', 'ado')
+          | selectattr(
+              'metadata.labels.app.kubernetes.io/managed-by',
+              'defined'
+            )
+          | selectattr(
+              'metadata.labels.app.kubernetes.io/managed-by',
+              'equalto',
+              'ado'
+            )
           | list
         )
         | unique(attribute='metadata.name')
@@ -66,7 +93,7 @@
     kind: ConsoleNotification
     name: "{{ item.metadata.name }}"
   loop: "{{ ocp_console_banner_ado_cn }}"
-  when: (state | default('present')) == 'absent'
+  when: ocp_console_banner_state == 'absent'
 
 # --------------------------------------------
 # state=new -> remove ours, then create one
@@ -78,7 +105,7 @@
     kind: ConsoleNotification
     name: "{{ item.metadata.name }}"
   loop: "{{ ocp_console_banner_ado_cn }}"
-  when: (state | default('present')) == 'new'
+  when: ocp_console_banner_state == 'new'
 
 - name: Create single fresh ADO banner (state=new)
   kubernetes.core.k8s:
@@ -96,17 +123,21 @@
         location: "{{ ocp_console_banner_location }}"
         backgroundColor: "{{ ocp_console_banner_background_color }}"
         color: "{{ ocp_console_banner_text_color }}"
-  when: (state | default('present')) == 'new'
+  when: ocp_console_banner_state == 'new'
 
 # ---------------------------------------------------------
 # state=present -> add a NEW banner (separate CR) if missing
 # ---------------------------------------------------------
 - name: Compute deterministic banner name for this message (state=present)
   ansible.builtin.set_fact:
-    ocp_console_banner_msg_hash: "{{ (ocp_console_banner_text | string) | hash('sha1') }}"
+    ocp_console_banner_msg_hash: >-
+      {{ (ocp_console_banner_text | string) | hash('sha1') }}
     ocp_console_banner_msg_name: >-
-      {{ ocp_console_banner_prefix ~ '-' ~ ((ocp_console_banner_text | string) | hash('sha1'))[0:10] }}
-  when: (state | default('present')) == 'present'
+      {{
+        ocp_console_banner_prefix ~ '-' ~
+        ((ocp_console_banner_text | string) | hash('sha1'))[0:10]
+      }}
+  when: ocp_console_banner_state == 'present'
 
 - name: Determine if this exact message banner already exists
   ansible.builtin.set_fact:
@@ -117,7 +148,7 @@
         | list
         | length > 0
       }}
-  when: (state | default('present')) == 'present'
+  when: ocp_console_banner_state == 'present'
 
 - name: Create a new ADO banner for this message (state=present)
   kubernetes.core.k8s:
@@ -137,5 +168,5 @@
         backgroundColor: "{{ ocp_console_banner_background_color }}"
         color: "{{ ocp_console_banner_text_color }}"
   when:
-    - (state | default('present')) == 'present'
+    - ocp_console_banner_state == 'present'
     - not ocp_console_banner_already_exists

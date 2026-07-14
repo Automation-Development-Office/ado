@@ -15,9 +15,6 @@ controller_workflow_job_templates:
       - identifier: Create Admin HTPasswd User
         unified_job_template: ADO | Create Admin HTPasswd User
         lookup_organization: "{{ bootstrap_controller_organization }}"
-        success_nodes:
-          - Deploy cert-manager
-          - Configure Console Banner
 
       - identifier: Deploy cert-manager
         unified_job_template: ADO | Deploy cert-manager
@@ -37,20 +34,6 @@ controller_workflow_job_templates:
       - identifier: Configure Console Banner
         unified_job_template: ADO | Configure Console Banner
         lookup_organization: "{{ bootstrap_controller_organization }}"
-        success_nodes:
-          - Deploy RHBK
-          - Deploy Grafana
-          - Deploy GitLab
-          - Deploy Pega
-          - Deploy Kafka
-          - Deploy AAP 26
-          - Deploy ECK
-          - Deploy GitOps
-          - Deploy 389ds
-          - Deploy OADP
-          - Deploy Quay
-          - Deploy ACS
-          - Deploy ACM
 
       - identifier: Deploy RHBK
         unified_job_template: ADO | Deploy RHBK

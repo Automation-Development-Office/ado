@@ -15,7 +15,7 @@ Chad Elliott
 
 | Variable | Description | Required | Default |
 | -------- | ----------- | -------- | ------- |
-| `state` | Desired state: `present`, `new`, or `absent`. | No | `present` |
+| `state` | Desired state. Use `add`, `update`, or `delete`; legacy `present`, `new`, and `absent` are also accepted. | No | `present` |
 | `ocp_console_banner_text` | Banner text content. | Yes* | N/A |
 | `ocp_console_banner_name` | Fixed banner name used by the `new` workflow. | No | `ado-banner` |
 | `ocp_console_banner_name_prefix` | Prefix used to identify ADO-managed banners. | No | `ado-banner` |
@@ -24,7 +24,7 @@ Chad Elliott
 | `ocp_console_banner_text_color` | Banner text color. | No | `#ffffff` |
 
 > **Notes:**
-> \* Required when `state` is `present` or `new`.
+> \* Required when `state` is `add`, `update`, `present`, or `new`.
 
 ## 🚀 Role Usage
 
@@ -58,9 +58,9 @@ Chad Elliott
 
 ## Behavior Notes
 
-- The `present` path creates a deterministic per-message banner if one does not already exist.
-- The `new` path deletes existing ADO-managed banners before creating a single replacement banner.
-- The `absent` path only removes ADO-managed banners matched by label or prefix.
+- The `add`/`present` path creates a deterministic per-message banner if one does not already exist.
+- The `update`/`new` path deletes existing ADO-managed banners before creating a single replacement banner.
+- The `delete`/`absent` path only removes ADO-managed banners matched by label or prefix.
 
 ## 🧪 Role Molecule Testing
 

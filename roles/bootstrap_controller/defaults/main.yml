@@ -46,9 +46,9 @@ bootstrap_controller_state_choices:
   - present
   - absent
 bootstrap_controller_console_banner_state_choices:
-  - present
-  - new
-  - absent
+  - add
+  - update
+  - delete
 bootstrap_controller_default_state: present
 
 # Job Template Defaults

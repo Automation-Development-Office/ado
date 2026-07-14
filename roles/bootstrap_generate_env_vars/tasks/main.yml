@@ -34,92 +34,31 @@
       }}
     bootstrap_generate_env_vars_components: >-
       {{
-        bootstrap_generate_env_vars_preflight.selected_component_apps
+        (
+          bootstrap_generate_env_vars_preflight.components
+          | default(bootstrap_generate_env_vars_preflight.platform | default([]))
+          | map('lower')
+          | list
+        )
         if (
-          bootstrap_generate_env_vars_preflight.selected_component_apps
-          is defined
-          and bootstrap_generate_env_vars_preflight.selected_component_apps
-          | length > 0
+          bootstrap_generate_env_vars_preflight.components is defined
+          or bootstrap_generate_env_vars_preflight.component_apps is defined
         )
         else (
-          ['openshift', 'keycloak', 'satellite', 'grafana', 'jira', 'patching']
+          bootstrap_generate_env_vars_preflight.selected_component_apps
           if (
-            'all' in (
-              bootstrap_generate_env_vars_preflight.components
-              | default(bootstrap_generate_env_vars_preflight.platform | default(['all']))
-              | map('lower')
-              | list
-            )
+            bootstrap_generate_env_vars_preflight.selected_component_apps
+            is defined
+            and bootstrap_generate_env_vars_preflight.selected_component_apps
+            | length > 0
           )
           else (
-            (
-              (
-                bootstrap_generate_env_vars_preflight.component_apps.openshift
-                | default([])
-              )
-              if 'openshift' in (
-                bootstrap_generate_env_vars_preflight.components
-                | default(bootstrap_generate_env_vars_preflight.platform | default([]))
-                | map('lower')
-                | list
-              )
-              else []
-            )
-            +
-            (
-              (
-                bootstrap_generate_env_vars_preflight.component_apps.rhel
-                | default([])
-              )
-              if 'rhel' in (
-                bootstrap_generate_env_vars_preflight.components
-                | default(bootstrap_generate_env_vars_preflight.platform | default([]))
-                | map('lower')
-                | list
-              )
-              else []
-            )
-            +
-            (
-              (
-                bootstrap_generate_env_vars_preflight.component_apps.patching
-                | default([])
-              )
-              if 'patching' in (
-                bootstrap_generate_env_vars_preflight.components
-                | default(bootstrap_generate_env_vars_preflight.platform | default([]))
-                | map('lower')
-                | list
-              )
-              else []
-            )
-            +
-            (
-              (
-                bootstrap_generate_env_vars_preflight.component_apps.provision
-                | default([])
-              )
-              if 'provision' in (
-                bootstrap_generate_env_vars_preflight.components
-                | default(bootstrap_generate_env_vars_preflight.platform | default([]))
-                | map('lower')
-                | list
-              )
-              else []
-            )
-            +
-            (
-              bootstrap_generate_env_vars_preflight.components
-              | default(bootstrap_generate_env_vars_preflight.platform | default([]))
-              | map('lower')
-              | difference(['openshift', 'rhel', 'patching', 'provision'])
-              | list
-            )
+            bootstrap_generate_env_vars_preflight.platform | default(['all'])
           )
         )
         | reject('equalto', '')
         | unique
-      | list
+        | list
       }}
     bootstrap_generate_env_vars_use_aap: >-
       {{
@@ -151,6 +90,12 @@
           ['openshift', 'keycloak', 'satellite', 'grafana', 'jira', 'patching']
           if 'all' in bootstrap_generate_env_vars_preflight_components
           else (
+            (
+              ['openshift']
+              if 'openshift' in bootstrap_generate_env_vars_preflight_components
+              else []
+            )
+            +
             (
               (
                 bootstrap_generate_env_vars_preflight.component_apps.openshift
@@ -188,6 +133,154 @@
             )
             +
             (
+              ['admin_htpasswd']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and (
+                  'admin_htpasswd' in (
+                    bootstrap_generate_env_vars_preflight.component_options.openshift
+                    | default([])
+                  )
+                  or (
+                    bootstrap_generate_env_vars_preflight_openshift.admin_username
+                    is defined
+                  )
+                  or (
+                    bootstrap_generate_env_vars_preflight_openshift.admin_password
+                    is defined
+                  )
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['console']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and (
+                  'console_banner' in (
+                    bootstrap_generate_env_vars_preflight.component_options.openshift
+                    | default([])
+                  )
+                  or (
+                    bootstrap_generate_env_vars_preflight_openshift.banner_text
+                    is defined
+                  )
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['openshift_ldap_auth']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and 'ldap_auth' in (
+                  bootstrap_generate_env_vars_preflight.component_options.openshift
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['openshift_oauth_rhbk']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and 'oauth_rhbk' in (
+                  bootstrap_generate_env_vars_preflight.component_options.openshift
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['openshift_discover_routes_print']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and 'discover_routes_print' in (
+                  bootstrap_generate_env_vars_preflight.component_options.openshift
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['openshift_discover_routes_alt']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and 'discover_routes_alt' in (
+                  bootstrap_generate_env_vars_preflight.component_options.openshift
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['openshift_update_pull_secret']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and 'update_pull_secret' in (
+                  bootstrap_generate_env_vars_preflight.component_options.openshift
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['rhbk_realm']
+              if (
+                bootstrap_generate_env_vars_preflight_rhbk_selected
+                and 'realm' in (
+                  bootstrap_generate_env_vars_preflight.component_options.rhbk
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['rhbk_client']
+              if (
+                bootstrap_generate_env_vars_preflight_rhbk_selected
+                and 'client' in (
+                  bootstrap_generate_env_vars_preflight.component_options.rhbk
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['rhbk_idp']
+              if (
+                bootstrap_generate_env_vars_preflight_rhbk_selected
+                and 'idp' in (
+                  bootstrap_generate_env_vars_preflight.component_options.rhbk
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['rhbk_federation']
+              if (
+                bootstrap_generate_env_vars_preflight_rhbk_selected
+                and 'federation' in (
+                  bootstrap_generate_env_vars_preflight.component_options.rhbk
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
               bootstrap_generate_env_vars_preflight_components
               | difference(['openshift', 'rhel', 'patching', 'provision'])
               | list
@@ -208,6 +301,21 @@
       }}
     bootstrap_generate_env_vars_preflight_component_apps: >-
       {{ bootstrap_generate_env_vars_preflight.component_apps | default({}) }}
+    bootstrap_generate_env_vars_preflight_component_options: >-
+      {{
+        bootstrap_generate_env_vars_preflight.component_options
+        | default({})
+      }}
+    bootstrap_generate_env_vars_preflight_openshift: >-
+      {{ bootstrap_generate_env_vars_preflight.openshift | default({}) }}
+    bootstrap_generate_env_vars_preflight_rhbk_selected: >-
+      {{
+        'rhbk' in bootstrap_generate_env_vars_preflight_components
+        or 'rhbk' in (
+          bootstrap_generate_env_vars_preflight_component_apps.openshift
+          | default([])
+        )
+      }}
   when:
     - bootstrap_generate_env_vars_preflight is defined
     - >-
@@ -228,6 +336,16 @@
       )
       or (
         bootstrap_generate_env_vars_preflight_component_apps.provision
+        | default([])
+        | length > 0
+      )
+      or (
+        bootstrap_generate_env_vars_preflight_component_options.openshift
+        | default([])
+        | length > 0
+      )
+      or (
+        bootstrap_generate_env_vars_preflight_component_options.rhbk
         | default([])
         | length > 0
       )

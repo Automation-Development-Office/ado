@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - >-
+    bootstrap_generate_env_vars - prefer modern `components` and
+    `component_apps` preflight fields over the legacy `selected_component_apps`
+    list so OpenShift option changes are not collapsed to a selected child app
+    such as RHBK.

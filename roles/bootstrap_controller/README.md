@@ -86,12 +86,15 @@ Generated Satellite workflows are created when Satellite is selected and run
 `Satellite Server Install` -> `Satellite Server Configure`.
 
 Generated OpenShift workflows are created when OpenShift is selected. The
-workflow starts with `Create Admin HTPasswd User`, then runs selected
-cert-manager and console banner jobs, and fans out to selected platform
-services such as RHBK, Grafana, GitLab, Pega, Kafka, AAP, ECK, GitOps, 389ds,
-OADP, Quay, ACS, and ACM. Workflow nodes are pruned when their job templates
-were not generated, so single-app and partial OpenShift selections remain
-valid.
+workflow starts with generated OpenShift prep jobs, runs selected cert-manager
+and console banner jobs, and fans out to selected platform services such as
+RHBK, Grafana, GitLab, Pega, Kafka, AAP, ECK, GitOps, 389ds, OADP, Quay, ACS,
+and ACM. The console banner job uses
+`playbooks/openshift/ado-configure-console-banner-bootstrap.yml` and its survey
+offers `add`, `update`, and `delete`; `update` removes ADO-managed banners and
+creates one replacement banner. Workflow nodes are pruned when their job
+templates were not generated, so single-app and partial OpenShift selections
+remain valid.
 
 ```bash
 ansible-lint --offline roles/bootstrap_controller
