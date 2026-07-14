@@ -1,0 +1,48 @@
+---
+name: Build Ansible collection
+description: Sync galaxy.yml version from a git tag and build the collection tarball
+
+inputs:
+  tag:
+    description: Git tag name (e.g. v1.2.0-beta1)
+    required: true
+
+outputs:
+  tarball:
+    description: Filename of the built collection tarball
+    value: ${{ steps.build.outputs.tarball }}
+  version:
+    description: Collection version (tag without v prefix)
+    value: ${{ steps.version.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Sync galaxy.yml version from tag
+      id: version
+      shell: bash
+      run: |
+        set -euo pipefail
+        VERSION="${{ inputs.tag }}"
+        VERSION="${VERSION#v}"
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        YQ_VERSION="v4.44.6"
+        curl -fsSL -o /usr/local/bin/yq \
+          "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+        chmod +x /usr/local/bin/yq
+        yq -i ".version = \"$VERSION\"" galaxy.yml
+
+    - name: Install Ansible and build collection
+      id: build
+      shell: bash
+      run: |
+        set -euo pipefail
+        pip install ansible-core
+        ansible-galaxy collection build --force --output-path .
+        TARBALL=$(ls -1 ./*.tar.gz | head -1)
+        echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
