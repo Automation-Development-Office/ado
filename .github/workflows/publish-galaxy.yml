@@ -1,0 +1,50 @@
+---
+name: Publish to Ansible Galaxy
+
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to publish to Ansible Galaxy (e.g. v1.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish_galaxy:
+    name: Publish to Ansible Galaxy
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+          fetch-depth: 0
+
+      - name: Sync compiled changelog
+        uses: ./.github/actions/generate-changelog
+        with:
+          tag: ${{ github.event.inputs.tag }}
+          commit_to_main: "false"
+          consume_fragments: "false"
+
+      - name: Build collection
+        id: build
+        uses: ./.github/actions/build-collection
+        with:
+          tag: ${{ github.event.inputs.tag }}
+
+      - name: Publish collection to Galaxy
+        env:
+          ANSIBLE_GALAXY_API_KEY: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
+          TARBALL: ${{ steps.build.outputs.tarball }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANSIBLE_GALAXY_API_KEY}" ]; then
+            echo "ANSIBLE_GALAXY_API_KEY is required to publish on Galaxy."
+            exit 1
+          fi
+          ansible-galaxy collection publish "${TARBALL}" --api-key "${ANSIBLE_GALAXY_API_KEY}"
