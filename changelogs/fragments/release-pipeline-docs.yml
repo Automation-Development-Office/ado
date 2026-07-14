@@ -1,4 +1,6 @@
 doc_changes:
   - >-
-    ci - Added ``.github/README.md`` documenting the GitHub Actions pipeline, dev
-    pre-releases, official GitHub Releases, and manual Ansible Galaxy publish steps.
+    ci - Expanded ``.github/README.md`` into a full developer and maintainer guide
+    covering all GitHub Actions workflows, PR requirements, Molecule testing, local
+    validation, collection builds, dev pre-releases, official releases, and
+    troubleshooting.
