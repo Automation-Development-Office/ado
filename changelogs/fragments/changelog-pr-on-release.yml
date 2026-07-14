@@ -1,0 +1,4 @@
+bugfixes:
+  - >-
+    ci - Open a changelog pull request to ``main`` after official releases instead of
+    pushing directly, so branch protection rules are respected.

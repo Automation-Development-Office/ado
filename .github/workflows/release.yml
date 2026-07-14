@@ -7,6 +7,7 @@ on: # yamllint disable-line rule:truthy
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   release_assets:
@@ -33,7 +34,6 @@ jobs:
         with:
           tag: ${{ github.event.release.tag_name }}
           consume_fragments: "true"
-          commit_to_main: "true"
 
       - name: Build collection
         id: build
@@ -70,3 +70,13 @@ jobs:
           if [ -f "$NOTES_FILE" ]; then
             gh release edit "$TAG" --notes-file "$NOTES_FILE"
           fi
+
+      - name: Open changelog pull request
+        if: ${{ !github.event.release.prerelease && steps.changelog.outputs.generated == 'true' }}
+        continue-on-error: true
+        uses: ./.github/actions/open-changelog-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          version: ${{ steps.changelog.outputs.version }}
+          tag: ${{ github.event.release.tag_name }}

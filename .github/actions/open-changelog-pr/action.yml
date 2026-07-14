@@ -1,0 +1,71 @@
+---
+name: Open changelog pull request
+description: Commit generated changelog files and open a PR to main
+
+inputs:
+  version:
+    description: Release version (tag without v prefix)
+    required: true
+  tag:
+    description: Git tag name (e.g. v1.2.0)
+    required: true
+
+outputs:
+  pr_url:
+    description: URL of the opened changelog pull request, if created
+    value: ${{ steps.open_pr.outputs.pr_url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Open changelog pull request to main
+      id: open_pr
+      shell: bash
+      run: |
+        set -euo pipefail
+        VERSION="${{ inputs.version }}"
+        TAG="${{ inputs.tag }}"
+        BRANCH="changelog/release-${VERSION}"
+
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        git add CHANGELOG.rst changelogs/changelog.yaml changelogs/fragments/
+        if git diff --cached --quiet; then
+          echo "No changelog changes to commit."
+          exit 0
+        fi
+
+        git commit -m "Changelog for release ${VERSION}"
+
+        if git ls-remote --exit-code --heads origin "${BRANCH}" >/dev/null 2>&1; then
+          echo "Branch ${BRANCH} already exists; updating it."
+          git push origin "HEAD:${BRANCH}" --force
+        else
+          git push origin "HEAD:${BRANCH}"
+        fi
+
+        EXISTING_PR="$(gh pr list \
+          --repo "${GITHUB_REPOSITORY}" \
+          --head "${BRANCH}" \
+          --base main \
+          --json url \
+          --jq '.[0].url' || true)"
+        if [ -n "${EXISTING_PR}" ]; then
+          echo "Changelog PR already exists: ${EXISTING_PR}"
+          echo "pr_url=${EXISTING_PR}" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        PR_BODY="Auto-generated changelog for GitHub Release **${TAG}**.
+
+        Merge this PR to update \`CHANGELOG.rst\` on \`main\` and remove consumed changelog fragments."
+
+        PR_URL="$(gh pr create \
+          --repo "${GITHUB_REPOSITORY}" \
+          --base main \
+          --head "${BRANCH}" \
+          --title "Changelog for release ${VERSION}" \
+          --body "${PR_BODY}")"
+        echo "Opened changelog PR: ${PR_URL}"
+        echo "pr_url=${PR_URL}" >> "$GITHUB_OUTPUT"

@@ -57,6 +57,7 @@ Paths most relevant to the pipeline:
 | [`.github/workflows/publish-galaxy.yml`](workflows/publish-galaxy.yml) | Manual Ansible Galaxy publish |
 | [`.github/actions/build-collection/`](actions/build-collection/) | Shared tag-versioned collection build |
 | [`.github/actions/generate-changelog/`](actions/generate-changelog/) | Compile changelog fragments into `CHANGELOG.rst` |
+| [`.github/actions/open-changelog-pr/`](actions/open-changelog-pr/) | Open a PR to land consumed changelog on `main` |
 | [`extensions/molecule/`](../extensions/molecule/) | Integration test scenarios |
 | [`extensions/molecule/pr_exclude.txt`](../extensions/molecule/pr_exclude.txt) | Scenarios skipped on PR CI |
 | [`changelogs/fragments/`](../changelogs/fragments/) | Per-PR changelog fragments |
@@ -496,7 +497,7 @@ accumulated changelog fragments into release notes before the collection tarball
 | Input | Description |
 | --- | --- |
 | `tag` | Git tag name, for example `v1.2.0` |
-| `commit_to_main` | Push generated `CHANGELOG.rst` and `changelogs/changelog.yaml` to `main` (default: `true`) |
+| `consume_fragments` | Consume changelog fragments with `antsibull-changelog release` (default: `true`) |
 
 **Behavior:**
 
@@ -504,8 +505,7 @@ accumulated changelog fragments into release notes before the collection tarball
 2. Otherwise, if `origin/main` already contains the release entry, sync those changelog files into the build workspace
 3. Otherwise, if fragments exist under `changelogs/fragments/`, run `antsibull-changelog release --version <version>`
 4. Render `CHANGELOG.rst` and per-release notes with `antsibull-changelog generate`
-5. Consumed fragments are removed (`keep_fragments: false` in [`changelogs/config.yaml`](../changelogs/config.yaml))
-6. When `commit_to_main` is `true`, the generated changelog is committed and pushed to `main`
+5. Consumed fragments are removed in the runner workspace (`keep_fragments: false` in [`changelogs/config.yaml`](../changelogs/config.yaml))
 
 Set `consume_fragments: false` to sync an already-compiled changelog without deleting fragments.
 
@@ -513,6 +513,30 @@ Used by:
 
 - `release.yml` → `release_assets` when `prerelease: false`
 - `publish-galaxy.yml` → manual Galaxy publish with `consume_fragments: false`
+
+## Open changelog PR action
+
+[`actions/open-changelog-pr/action.yml`](actions/open-changelog-pr/action.yml) commits the
+generated changelog from the release workspace and opens a pull request to `main`.
+
+**Inputs:**
+
+| Input | Description |
+| --- | --- |
+| `version` | Release version (tag without `v` prefix) |
+| `tag` | Git tag name, for example `v1.2.0` |
+
+**Behavior:**
+
+1. Commit `CHANGELOG.rst`, `changelogs/changelog.yaml`, and consumed `changelogs/fragments/` changes
+2. Push to `changelog/release-<version>`
+3. Open a PR to `main` (or reuse an existing PR for that branch)
+
+Used by:
+
+- `release.yml` → after the tarball is uploaded; `continue-on-error: true` so release assets are not blocked
+
+Merge the changelog PR to update `main` and permanently remove consumed fragment files.
 
 ## Preview changelog action
 
@@ -546,11 +570,12 @@ flowchart TD
   preRelease --> devAsset[Attach infra-ado-VERSION.tar.gz]
 
   publishRelease[Publish GitHub Release] --> changelogJob[release.yml: Generate changelog]
-  changelogJob --> commitMain[Commit CHANGELOG.rst to main]
-  commitMain --> assetJob[release.yml: Build and Attach Collection]
+  changelogJob --> assetJob[release.yml: Build and Attach Collection]
   assetJob --> officialAsset[Attach tarball with changelog]
+  assetJob --> changelogPR[Open changelog PR to main]
+  changelogPR --> mergePR[Maintainer merges changelog PR]
 
-  manualGalaxy[Maintainer runs workflow manually] --> galaxyJob[release.yml: Publish to Ansible Galaxy]
+  manualGalaxy[Maintainer runs workflow manually] --> galaxyJob[publish-galaxy.yml]
   galaxyJob --> galaxy[Upload to Galaxy]
 ```
 
@@ -560,12 +585,13 @@ flowchart TD
 | --- | --- | --- | --- |
 | Push a dev tag | `main.yml` | **No** | Pre-release with changelog preview only |
 | Publish a GitHub pre-release | `release.yml` | **No** | Changelog preview attached; fragments remain |
-| Publish an official GitHub Release | `release.yml` | **Yes** | Fragments compiled, deleted, and committed to `main` |
+| Publish an official GitHub Release | `release.yml` | **In workspace** | Tarball attached; changelog PR opened to `main` |
 
 ### Manual steps
 
 | Step | How |
 | --- | --- |
+| Merge changelog PR to `main` | Merge the bot-opened `changelog/release-<version>` PR after the release workflow runs |
 | Publish to Ansible Galaxy | **Actions → Publish to Ansible Galaxy → Run workflow** with tag input |
 
 Galaxy publish does **not** run automatically when a GitHub Release is published.
@@ -620,9 +646,11 @@ When the dev build is validated:
 `release.yml` will automatically:
 
 1. Run `antsibull-changelog release` against the accumulated fragments
-2. Commit `CHANGELOG.rst` and `changelogs/changelog.yaml` to `main`
-3. Build `infra-ado-<version>.tar.gz` (including the generated changelog)
-4. Attach the tarball to the GitHub Release
+2. Build `infra-ado-<version>.tar.gz` (including the generated changelog)
+3. Attach the tarball to the GitHub Release
+4. Open a pull request to `main` with the consumed changelog
+
+Merge the changelog PR to update `CHANGELOG.rst` on `main` and remove consumed fragment files.
 
 ### 4. Publish to Ansible Galaxy (manual)
 
@@ -640,6 +668,7 @@ changelog from `main` before building the collection tarball.
 
 ### 5. Verify
 
+- [ ] Changelog PR merged to `main`
 - [ ] `CHANGELOG.rst` on `main` contains the release version
 - [ ] Consumed fragment files were removed from `changelogs/fragments/`
 - [ ] GitHub Release contains `infra-ado-<version>.tar.gz`
@@ -671,7 +700,7 @@ Release publish events always load the workflow file from `main`**, even if the 
 tag was created from your feature branch. Merge your pipeline changes to `main` before
 depending on the new release workflow for publish events.
 
-Official release changelog commits are still pushed to `main` after fragment consumption.
+Official releases open a changelog PR to `main`; merge it to land consumed fragments.
 
 ## Secrets, environments, and permissions
 
