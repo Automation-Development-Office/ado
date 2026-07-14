@@ -26,6 +26,12 @@ jobs:
           ref: ${{ github.event.release.tag_name }}
           fetch-depth: 0
 
+      - name: Sync pipeline actions from main
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout origin/main -- .github/actions/ scripts/validate_release_version.py
+
       - name: Preview changelog from fragments (pre-release)
         if: github.event.release.prerelease
         id: changelog_preview
@@ -89,6 +95,12 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag }}
           fetch-depth: 0
+
+      - name: Sync pipeline actions from main
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout origin/main -- .github/actions/ scripts/validate_release_version.py
 
       - name: Sync compiled changelog
         uses: ./.github/actions/generate-changelog

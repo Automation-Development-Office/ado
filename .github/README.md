@@ -649,8 +649,10 @@ changelog from `main` before building the collection tarball.
 | --- | --- |
 | Tag format | `v1.2.0` or `1.2.0` (leading `v` is optional) |
 | Built version | Tag name with leading `v` removed |
-| Dev tags | Use pre-release identifiers, for example `v1.2.0-beta1`, `v1.2.0-rc1` |
+| Dev tags | Use pre-release identifiers, for example `v1.2.0-rc1` or `v249.0.0-rc1` |
 | Official tags | Use clean semver, for example `v1.2.0` |
+| Invalid examples | `v249.0.0.1-rc1` (extra numeric segment before `-rc1` is rejected by antsibull-changelog) |
+| Pipeline actions | Release jobs sync `.github/actions/` from `main` so tags use current action code |
 | Namespace and name | Always from [`galaxy.yml`](../galaxy.yml); only `version` is overridden at build time |
 | Artifact name | `infra-ado-<version>.tar.gz` |
 

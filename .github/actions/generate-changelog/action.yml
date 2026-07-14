@@ -46,8 +46,10 @@ runs:
         echo "version=$VERSION" >> "$GITHUB_OUTPUT"
         echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
         echo "changelog_file=$CHANGELOG_FILE" >> "$GITHUB_OUTPUT"
+        echo "generated=false" >> "$GITHUB_OUTPUT"
 
-        pip install antsibull-changelog pyyaml ansible-core
+        pip install antsibull-changelog pyyaml ansible-core semantic-version
+        CHECK_VERSION="$VERSION" python3 "${GITHUB_WORKSPACE}/scripts/validate_release_version.py"
 
         release_exists() {
           CHECK_VERSION="$VERSION" python3 -c '
