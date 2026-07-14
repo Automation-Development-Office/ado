@@ -31,8 +31,10 @@ runs:
         VERSION="${{ inputs.tag }}"
         VERSION="${VERSION#v}"
         echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-        sudo apt-get update -qq
-        sudo apt-get install -y -qq yq
+        YQ_VERSION="v4.44.6"
+        curl -fsSL -o /usr/local/bin/yq \
+          "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+        chmod +x /usr/local/bin/yq
         yq -i ".version = \"$VERSION\"" galaxy.yml
 
     - name: Install Ansible and build collection
