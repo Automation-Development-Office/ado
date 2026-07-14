@@ -4,10 +4,67 @@ name: Release infra.ado
 on: # yamllint disable-line rule:truthy
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to publish to Ansible Galaxy (e.g. v1.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
 jobs:
-  release_automation_hub:
-    uses: ansible/ansible-content-actions/.github/workflows/release_galaxy.yaml@main
-    with:
-      environment: release
-    secrets:
-      ansible_galaxy_api_key: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
+  release_assets:
+    if: github.event_name == 'release'
+    name: Build and Attach Collection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Build collection
+        id: build
+        uses: ./.github/actions/build-collection
+        with:
+          tag: ${{ github.event.release.tag_name }}
+
+      - name: Upload collection to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          TARBALL: ${{ steps.build.outputs.tarball }}
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" "$TARBALL" --clobber
+
+  publish_galaxy:
+    if: github.event_name == 'workflow_dispatch'
+    name: Publish to Ansible Galaxy
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+
+      - name: Build collection
+        id: build
+        uses: ./.github/actions/build-collection
+        with:
+          tag: ${{ github.event.inputs.tag }}
+
+      - name: Publish collection to Galaxy
+        env:
+          ANSIBLE_GALAXY_API_KEY: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
+          TARBALL: ${{ steps.build.outputs.tarball }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANSIBLE_GALAXY_API_KEY}" ]; then
+            echo "ANSIBLE_GALAXY_API_KEY is required to publish on Galaxy."
+            exit 1
+          fi
+          ansible-galaxy collection publish "${TARBALL}" --api-key "${ANSIBLE_GALAXY_API_KEY}"

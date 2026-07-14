@@ -1,0 +1,35 @@
+---
+description: Require antsibull-changelog fragments for user-facing changes
+alwaysApply: true
+---
+
+# Changelog Fragments
+
+When making changes to this repository, add an antsibull-changelog fragment under `changelogs/fragments/` unless the change is truly trivial (e.g. typo in a comment with no user impact).
+
+## When to add a fragment
+
+- New or changed roles, plugins, modules, or playbooks
+- Bug fixes, breaking changes, deprecations, security fixes
+- CI/CD, release, or workflow changes that affect maintainers or consumers
+- Documentation changes worth noting in the release notes
+
+## Fragment format
+
+- Create a new `.yml` file in `changelogs/fragments/` (do not edit `CHANGELOG.rst` or `changelogs/changelog.yaml` directly)
+- Use sections from `changelogs/config.yaml`: `major_changes`, `minor_changes`, `breaking_changes`, `bugfixes`, `doc_changes`, etc.
+- Prefix entries with the affected component (role name, `ci`, etc.)
+- Use FQCN style where applicable (`infra.ado.role_name`)
+
+## Example
+
+```yaml
+minor_changes:
+  - ci - Added automatic collection tarball attachment to GitHub Releases.
+bugfixes:
+  - rhel_repos - Fixed RHSM registration when ``rhel_repos_rhsm_org`` is unset.
+```
+
+## Release PR exception
+
+A dedicated release PR may only update `CHANGELOG.rst`, `changelogs/changelog.yaml`, and `galaxy.yml` without a new fragment.
