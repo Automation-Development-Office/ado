@@ -36,6 +36,69 @@
     rhel_patching_pre_kernel: "{{ ansible_kernel }}"
     rhel_patching_pre_uptime: "{{ (ansible_facts.uptime_seconds / 86400) | round }}"
 
+- name: Normalize patching package inputs
+  ansible.builtin.set_fact:
+    rhel_patching_package_list_effective: >-
+      {{
+        (
+          rhel_patching_package_list
+          if rhel_patching_package_list is not string
+          else (
+            rhel_patching_package_list
+            | regex_replace('\r', '')
+            | split('\n')
+            | map('trim')
+            | reject('equalto', '')
+            | map('split', ',')
+            | flatten
+            | map('trim')
+            | reject('equalto', '')
+            | list
+          )
+        )
+        | default(['*'], true)
+      }}
+    rhel_patching_exclude_list_effective: >-
+      {{
+        (
+          rhel_patching_exclude_list
+          if rhel_patching_exclude_list is not string
+          else (
+            rhel_patching_exclude_list
+            | regex_replace('\r', '')
+            | split('\n')
+            | map('trim')
+            | reject('equalto', '')
+            | map('split', ',')
+            | flatten
+            | map('trim')
+            | reject('equalto', '')
+            | list
+          )
+        )
+        | default([], true)
+      }}
+    rhel_patching_disable_repos_effective: >-
+      {{
+        (
+          rhel_patching_disable_repos
+          if rhel_patching_disable_repos is not string
+          else (
+            rhel_patching_disable_repos
+            | regex_replace('\r', '')
+            | split('\n')
+            | map('trim')
+            | reject('equalto', '')
+            | map('split', ',')
+            | flatten
+            | map('trim')
+            | reject('equalto', '')
+            | list
+          )
+        )
+        | default([], true)
+      }}
+
 - name: Cleanup package cache
   ansible.builtin.dnf:
     update_cache: "{{ rhel_patching_update_cache | bool }}"
@@ -57,13 +120,15 @@
 
 - name: Updating packages with dnf
   ansible.builtin.dnf:
-    name: "{{ rhel_patching_package_list | default(['*']) }}"
+    name: "{{ rhel_patching_package_list_effective | default(['*']) }}"
     state: "{{ rhel_patching_versions }}"
-    exclude: "{{ rhel_patching_exclude_list }}"
-    disablerepo: "{{ rhel_patching_disable_repos }}"
+    exclude: "{{ rhel_patching_exclude_list_effective }}"
+    disablerepo: "{{ rhel_patching_disable_repos_effective }}"
     skip_broken: "{{ rhel_patching_skip_broken }}"
   register: rhel_patching_yum_patch
-  when: rhel_patching_package_list is defined and rhel_patching_package_list | length > 0
+  when:
+    - rhel_patching_package_list_effective is defined
+    - rhel_patching_package_list_effective | length > 0
 
 - name: (debug) Show rhel_patching_yum_patch
   ansible.builtin.debug:

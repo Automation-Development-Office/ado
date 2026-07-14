@@ -1,0 +1,247 @@
+---
+- name: AAP smoke test | Resolve controller API URL
+  ansible.builtin.set_fact:
+    bootstrap_controller_aap_api_url: >-
+      {{
+        bootstrap_controller_aap_api_url
+        | default(
+            bootstrap_controller_controller_host
+            if (
+              bootstrap_controller_controller_host
+              | regex_search('^https?://')
+            )
+            else 'https://' ~ bootstrap_controller_controller_host,
+            true
+          )
+      }}
+    bootstrap_controller_aap_effective_api_path: >-
+      {{
+        bootstrap_controller_aap_api_path
+        | default(
+            (
+              bootstrap_controller_is_aap_25_plus
+              | default(false)
+              | bool
+            )
+            | ternary('/api/controller/v2', '/api/v2'),
+            true
+          )
+      }}
+
+- name: AAP smoke test | Look up demo job template
+  no_log: "{{ bootstrap_controller_aap_connectivity_no_log | default(true) }}"
+  ansible.builtin.uri:
+    url: >-
+      {{
+        bootstrap_controller_aap_api_url
+        ~ bootstrap_controller_aap_effective_api_path
+        ~ '/job_templates/?name='
+        ~ (bootstrap_controller_aap_smoke_test_job_template | urlencode)
+      }}
+    method: GET
+    headers: >-
+      {{
+        {
+          'Authorization':
+          'Bearer ' ~ bootstrap_controller_controller_oauthtoken
+        }
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length > 0
+        )
+        else {}
+      }}
+    url_username: >-
+      {{
+        bootstrap_controller_controller_username
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    url_password: >-
+      {{
+        bootstrap_controller_controller_password
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    force_basic_auth: >-
+      {{
+        bootstrap_controller_controller_oauthtoken
+        | default('')
+        | length == 0
+      }}
+    validate_certs: >-
+      {{ bootstrap_controller_controller_validate_certs | bool }}
+    return_content: true
+    status_code: 200
+  register: bootstrap_controller_aap_smoke_template_lookup
+
+- name: AAP smoke test | Resolve demo job template presence
+  ansible.builtin.set_fact:
+    bootstrap_controller_aap_smoke_template_found: >-
+      {{
+        bootstrap_controller_aap_smoke_template_lookup.json.count
+        | int > 0
+      }}
+
+- name: AAP smoke test | Skip missing demo job template
+  ansible.builtin.debug:
+    msg: >-
+      AAP smoke test job template
+      '{{ bootstrap_controller_aap_smoke_test_job_template }}' was not found.
+      AAP connectivity already passed, so bootstrap will continue without
+      launching a smoke test job.
+  when: not bootstrap_controller_aap_smoke_template_found | bool
+
+- name: AAP smoke test | Resolve demo job template id
+  ansible.builtin.set_fact:
+    bootstrap_controller_aap_smoke_template_id: >-
+      {{ bootstrap_controller_aap_smoke_template_lookup.json.results[0].id }}
+  when: bootstrap_controller_aap_smoke_template_found | bool
+
+- name: AAP smoke test | Launch demo job template
+  no_log: "{{ bootstrap_controller_aap_connectivity_no_log | default(true) }}"
+  ansible.builtin.uri:
+    url: >-
+      {{
+        bootstrap_controller_aap_api_url
+        ~ bootstrap_controller_aap_effective_api_path
+        ~ '/job_templates/'
+        ~ bootstrap_controller_aap_smoke_template_id
+        ~ '/launch/'
+      }}
+    method: POST
+    headers: >-
+      {{
+        {
+          'Authorization':
+          'Bearer ' ~ bootstrap_controller_controller_oauthtoken
+        }
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length > 0
+        )
+        else {}
+      }}
+    url_username: >-
+      {{
+        bootstrap_controller_controller_username
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    url_password: >-
+      {{
+        bootstrap_controller_controller_password
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    force_basic_auth: >-
+      {{
+        bootstrap_controller_controller_oauthtoken
+        | default('')
+        | length == 0
+      }}
+    validate_certs: >-
+      {{ bootstrap_controller_controller_validate_certs | bool }}
+    body_format: json
+    body:
+      extra_vars: "{{ bootstrap_controller_aap_smoke_test_extra_vars }}"
+    return_content: true
+    status_code: 201
+  register: bootstrap_controller_aap_smoke_launch
+  when: bootstrap_controller_aap_smoke_template_found | bool
+
+- name: AAP smoke test | Wait for demo job to finish
+  no_log: "{{ bootstrap_controller_aap_connectivity_no_log | default(true) }}"
+  ansible.builtin.uri:
+    url: >-
+      {{
+        bootstrap_controller_aap_api_url
+        ~ bootstrap_controller_aap_effective_api_path
+        ~ '/jobs/'
+        ~ bootstrap_controller_aap_smoke_launch.json.id
+        ~ '/'
+      }}
+    method: GET
+    headers: >-
+      {{
+        {
+          'Authorization':
+          'Bearer ' ~ bootstrap_controller_controller_oauthtoken
+        }
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length > 0
+        )
+        else {}
+      }}
+    url_username: >-
+      {{
+        bootstrap_controller_controller_username
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    url_password: >-
+      {{
+        bootstrap_controller_controller_password
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    force_basic_auth: >-
+      {{
+        bootstrap_controller_controller_oauthtoken
+        | default('')
+        | length == 0
+      }}
+    validate_certs: >-
+      {{ bootstrap_controller_controller_validate_certs | bool }}
+    return_content: true
+    status_code: 200
+  register: bootstrap_controller_aap_smoke_job
+  until: >-
+    bootstrap_controller_aap_smoke_job.json.status
+    in ['successful', 'failed', 'error', 'canceled']
+  retries: "{{ bootstrap_controller_aap_smoke_test_poll_retries }}"
+  delay: "{{ bootstrap_controller_aap_smoke_test_poll_delay }}"
+  when: bootstrap_controller_aap_smoke_template_found | bool
+
+- name: AAP smoke test | Validate demo job success
+  ansible.builtin.assert:
+    that:
+      - bootstrap_controller_aap_smoke_job.json.status == 'successful'
+    fail_msg: >-
+      AAP smoke test job
+      {{ bootstrap_controller_aap_smoke_launch.json.id }}
+      finished with status
+      {{ bootstrap_controller_aap_smoke_job.json.status }}.
+    success_msg: >-
+      AAP smoke test job
+      {{ bootstrap_controller_aap_smoke_launch.json.id }}
+      completed successfully.
+  when: bootstrap_controller_aap_smoke_template_found | bool

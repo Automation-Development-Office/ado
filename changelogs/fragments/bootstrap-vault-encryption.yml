@@ -1,0 +1,5 @@
+---
+bugfixes:
+  - >-
+    Restore generated vault file encryption for preflight/UI runs and allow
+    noninteractive CLI runs to provide a vault password file.

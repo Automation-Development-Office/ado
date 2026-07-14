@@ -1,5 +1,5 @@
 ---
-- name: Deploy and Configure Quay
+- name: ADO | Configure OpenShift OAuth with RHBK
   hosts: localhost
   gather_facts: false
   vars:

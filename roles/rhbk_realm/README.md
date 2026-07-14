@@ -20,10 +20,54 @@ Automation Development Office
 
 ## 🚀 Role Usage
 
+### Bootstrap Usage
+
+#### ado-manage-realm-bootstrap.yml
+
 ```yaml
-- name: Run rhbk_realm
+- name: ADO | Manage RHBK realm
   hosts: localhost
   gather_facts: false
+  vars:
+    component: rhbk
+  vars_files:
+    - group_vars/all/{{ env }}/infra_config_vars.yml
+    - group_vars/all/{{ env }}/vault_{{ component }}.yml
+    - group_vars/all/{{ env }}/vars_{{ component }}.yml
+  no_log: false
+  environment:
+    K8S_AUTH_HOST: '{{ host }}'
+    K8S_AUTH_API_KEY: '{{ token }}'
+    K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'',''no'') }}'
+  pre_tasks:
+    - name: ADO | Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: infra.ado.bootstrap_resolve_component
+  roles:
+    - role: infra.ado.rhbk_realm
+```
+
+#### ado-realm-bootstrap.yml
+
+```yaml
+- name: ADO | Configure RHBK realm
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: rhbk
+  vars_files:
+    - group_vars/all/{{ env }}/infra_config_vars.yml
+    - group_vars/all/{{ env }}/vault_{{ component }}.yml
+    - group_vars/all/{{ env }}/vars_{{ component }}.yml
+  no_log: false
+  environment:
+    K8S_AUTH_HOST: '{{ host }}'
+    K8S_AUTH_API_KEY: '{{ token }}'
+    K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'',''no'') }}'
+  pre_tasks:
+    - name: ADO | Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: infra.ado.bootstrap_resolve_component
   roles:
     - role: infra.ado.rhbk_realm
 ```

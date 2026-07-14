@@ -62,6 +62,16 @@ defined.
 
 ## 🚀 Role Usage
 
+### Bootstrap Usage
+
+```yaml
+- name: ADO | Manage Satellite content views
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: infra.ado.satellite_content_view
+```
+
 ### Create Content View
 
 ```yaml

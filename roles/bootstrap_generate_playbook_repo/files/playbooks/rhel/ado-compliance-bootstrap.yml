@@ -1,0 +1,40 @@
+---
+- name: ADO | Run RHEL compliance profile
+  hosts: rhel_servers
+  become: true
+  gather_facts: true
+
+  vars:
+    rhel_compliance_env: "{{ env | default('prod') }}"
+    rhel_compliance_env_dir: >-
+      {{ playbook_dir }}/../../group_vars/all/{{ rhel_compliance_env }}
+    rhel_compliance_vars_files:
+      - "{{ rhel_compliance_env_dir }}/vars_rhel.yml"
+      - "{{ rhel_compliance_env_dir }}/vars_compliance.yml"
+    rhel_compliance_profile: >-
+      {{
+        compliance_profile
+        | default(components_env.rhel.compliance_profile | default('PCI-DSS'))
+      }}
+
+  pre_tasks:
+    - name: ADO | Check for generated compliance vars
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop: "{{ rhel_compliance_vars_files }}"
+      register: rhel_compliance_vars_file_stats
+      delegate_to: localhost
+      run_once: true
+
+    - name: ADO | Load generated compliance profile vars
+      ansible.builtin.include_vars:
+        file: "{{ item.stat.path }}"
+      loop: "{{ rhel_compliance_vars_file_stats.results }}"
+      when: item.stat.exists
+
+    - name: ADO | Confirm compliance profile
+      ansible.builtin.debug:
+        msg:
+          - "Compliance profile: {{ rhel_compliance_profile }}"
+          - >-
+            Compliance execution is a profile checkpoint before STIG hardening.
