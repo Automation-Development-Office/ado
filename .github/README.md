@@ -54,7 +54,7 @@ Paths most relevant to the pipeline:
 | [`.github/workflows/tests.yml`](workflows/tests.yml) | Upstream collection CI workflow |
 | [`.github/workflows/security-check.yml`](workflows/security-check.yml) | Standalone security scans |
 | [`.github/workflows/release.yml`](workflows/release.yml) | GitHub Release build and attach |
-| [`.github/workflows/publish-galaxy.yml`](workflows/publish-galaxy.yml) | Manual Ansible Galaxy publish |
+| [`.github/workflows/open-changelog-pr.yml`](workflows/open-changelog-pr.yml) | Manual recovery to open a changelog PR for a release tag |
 | [`.github/actions/build-collection/`](actions/build-collection/) | Shared tag-versioned collection build |
 | [`.github/actions/generate-changelog/`](actions/generate-changelog/) | Compile changelog fragments into `CHANGELOG.rst` |
 | [`.github/actions/open-changelog-pr/`](actions/open-changelog-pr/) | Open a PR to land consumed changelog on `main` |

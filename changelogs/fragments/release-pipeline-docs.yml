@@ -1,6 +1,0 @@
-doc_changes:
-  - >-
-    ci - Expanded ``.github/README.md`` into a full developer and maintainer guide
-    covering all GitHub Actions workflows, PR requirements, Molecule testing, local
-    validation, collection builds, dev pre-releases, official releases, and
-    troubleshooting.

@@ -1,5 +1,0 @@
-bugfixes:
-  - >-
-    ci - Sync ``.github/actions`` from ``main`` during release jobs so tags use the
-    current changelog tooling, validate release versions for antsibull-changelog
-    compatibility, and fail early on invalid tags such as ``249.0.0.1-rc1``.

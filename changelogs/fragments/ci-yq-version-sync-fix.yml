@@ -1,5 +1,0 @@
-bugfixes:
-  - >-
-    ci - Install mikefarah/yq in collection build jobs instead of the Ubuntu
-    ``yq`` package, which does not support ``yq -i`` for updating
-    ``galaxy.yml`` version on tag builds.

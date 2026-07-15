@@ -1,4 +1,0 @@
-bugfixes:
-  - >-
-    ci - Remove the non-compliant shebang from ``scripts/validate_release_version.py``
-    so ansible-test sanity shebang checks pass.
