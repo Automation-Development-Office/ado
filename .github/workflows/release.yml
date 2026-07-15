@@ -19,6 +19,7 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name }}
           fetch-depth: 0
+          token: ${{ github.token }}
 
       - name: Preview changelog from fragments (pre-release)
         if: github.event.release.prerelease
@@ -72,11 +73,24 @@ jobs:
           fi
 
       - name: Open changelog pull request
-        if: ${{ !github.event.release.prerelease && steps.changelog.outputs.generated == 'true' }}
-        continue-on-error: true
+        if: ${{ !github.event.release.prerelease && steps.changelog.outcome == 'success' }}
+        id: changelog_pr
         uses: ./.github/actions/open-changelog-pr
         env:
           GH_TOKEN: ${{ github.token }}
         with:
           version: ${{ steps.changelog.outputs.version }}
           tag: ${{ github.event.release.tag_name }}
+
+      - name: Changelog PR summary
+        if: ${{ !github.event.release.prerelease && steps.changelog_pr.outcome != 'skipped' }}
+        shell: bash
+        run: |
+          if [ "${{ steps.changelog_pr.outputs.pr_opened }}" = "true" ]; then
+            echo "::notice title=Changelog PR::${{ steps.changelog_pr.outputs.pr_url }}"
+          elif [ "${{ steps.changelog_pr.outcome }}" = "success" ]; then
+            echo "::notice title=Changelog PR::No changelog PR was needed (main already matches the release changelog)."
+          else
+            echo "::error title=Changelog PR::Failed to open changelog PR. Re-run the release workflow or use Actions → Open changelog PR."
+            exit 1
+          fi

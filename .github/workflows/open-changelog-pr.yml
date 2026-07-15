@@ -1,0 +1,53 @@
+---
+name: Open changelog PR
+
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to open a changelog PR for (e.g. v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  open_changelog_pr:
+    name: Open changelog PR for release tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag }}
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Generate changelog from fragments
+        id: changelog
+        uses: ./.github/actions/generate-changelog
+        with:
+          tag: ${{ github.event.inputs.tag }}
+          consume_fragments: "true"
+
+      - name: Open changelog pull request
+        id: changelog_pr
+        uses: ./.github/actions/open-changelog-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          version: ${{ steps.changelog.outputs.version }}
+          tag: ${{ github.event.inputs.tag }}
+
+      - name: Changelog PR summary
+        if: always()
+        shell: bash
+        run: |
+          if [ "${{ steps.changelog_pr.outputs.pr_opened }}" = "true" ]; then
+            echo "::notice title=Changelog PR::${{ steps.changelog_pr.outputs.pr_url }}"
+          else
+            echo "::error title=Changelog PR::No changelog PR was opened."
+            exit 1
+          fi
