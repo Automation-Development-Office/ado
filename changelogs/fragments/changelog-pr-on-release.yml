@@ -1,4 +1,0 @@
-bugfixes:
-  - >-
-    ci - Fix changelog PR creation after releases by removing the generated-only
-    guard, staging fragment deletions correctly, and improving PR branch handling.

@@ -1,5 +1,0 @@
----
-minor_changes:
-  - >-
-    Bootstrap generation now removes playbook, environment variable, vault,
-    and AAP job template artifacts for components that are no longer selected.

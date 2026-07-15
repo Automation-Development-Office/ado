@@ -1,9 +1,0 @@
-minor_changes:
-  - >-
-    ci - Added automatic collection build and GitHub Release asset attachment for
-    dev tag pre-releases and published releases. Ansible Galaxy publish is now
-    manual via the Release infra.ado workflow_dispatch job.
-bugfixes:
-  - >-
-    ci - Stop overwriting ``galaxy.yml`` namespace during tag builds so release
-    tarballs are built as ``infra.ado`` instead of ``ado.ado``.

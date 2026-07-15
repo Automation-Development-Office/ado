@@ -1,4 +1,0 @@
-bugfixes:
-  - >-
-    ci - Stop syncing ``.github/actions`` from ``main`` during release jobs so tag
-    builds use the pipeline from the checked-out branch or tag ref.

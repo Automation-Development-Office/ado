@@ -1,6 +1,0 @@
----
-minor_changes:
-  - >-
-    Add optional Satellite 6 dynamic inventory source generation for AAP,
-    including a Satellite credential and inventory source settings for UI and
-    CLI preflight runs.

@@ -1,5 +1,0 @@
-minor_changes:
-  - >-
-    ci - Generate ``CHANGELOG.rst`` from accumulated changelog fragments automatically
-    when a GitHub Release is published, commit the result to ``main``, and include the
-    changelog in the release collection tarball.
