@@ -1,4 +1,21 @@
 ---
-- name: Importing namespace
-  ansible.builtin.import_tasks: wait_for_pods.yml
-  when: state == "present"
+- name: Set default values for pod wait retries and delay (if not set)
+  ansible.builtin.set_fact:
+    ocp_wait_pods_pod_wait_retries: "{{ ocp_wait_pods_pod_wait_retries | default(20) }}"
+    ocp_wait_pods_pod_wait_delay: "{{ ocp_wait_pods_pod_wait_delay | default(10) }}"
+
+- name: Wait for all pods in namespace to be running
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ name_space }}"
+  register: ocp_wait_pods_pods
+  until: >-
+    ocp_wait_pods_pods.resources | length > 0 and
+    (
+      ocp_wait_pods_pods.resources
+      | selectattr('status.phase', 'equalto', 'Running')
+      | list | length
+      == ocp_wait_pods_pods.resources | length
+    )
+  retries: "{{ ocp_wait_pods_pod_wait_retries }}"
+  delay: "{{ ocp_wait_pods_pod_wait_delay }}"

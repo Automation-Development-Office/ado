@@ -1,4 +1,17 @@
 ---
-- name: Install ACM operator
-  ansible.builtin.import_tasks: install-acm.yml
-  when: state == "present"
+- name: Deploy MultiClusterHub CR
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: operator.open-cluster-management.io/v1
+      kind: MultiClusterHub
+      metadata:
+        name: multiclusterhub
+        namespace: "{{ name_space }}"
+      spec:
+        availabilityConfig: High
+        # nodeSelector:
+        #   node-role.kubernetes.io/infra: ""
+        # tolerations:
+        #   - key: "node-role.kubernetes.io/infra"
+        #     operator: "Exists"
+        #     effect: "NoSchedule"

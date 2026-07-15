@@ -1,2 +1,5 @@
-- name: Register IDM Client
-  ansible.builtin.import_tasks: idm_register_client.yml
+---
+- name: Register IPA client
+  redhat.rhel_idm.ipaclient:
+    state: "{{ state }}"
+    force: true
