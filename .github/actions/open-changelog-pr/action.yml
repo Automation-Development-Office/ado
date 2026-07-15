@@ -31,6 +31,7 @@ runs:
         VERSION="${{ inputs.version }}"
         TAG="${{ inputs.tag }}"
         BRANCH="changelog/release-${VERSION}"
+        REMOTE_REF="refs/heads/${BRANCH}"
         HEAD_REF="${GITHUB_REPOSITORY_OWNER}:${BRANCH}"
 
         echo "pr_opened=false" >> "$GITHUB_OUTPUT"
@@ -58,9 +59,9 @@ runs:
 
         if git ls-remote --exit-code --heads origin "${BRANCH}" >/dev/null 2>&1; then
           echo "Branch ${BRANCH} already exists; updating it."
-          git push origin "HEAD:${BRANCH}" --force
+          git push origin "HEAD:${REMOTE_REF}" --force
         else
-          git push origin "HEAD:${BRANCH}"
+          git push origin "HEAD:${REMOTE_REF}"
         fi
 
         for attempt in 1 2 3 4 5; do

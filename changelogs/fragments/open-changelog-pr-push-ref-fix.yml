@@ -1,0 +1,4 @@
+bugfixes:
+  - >-
+    ci - Use fully qualified ``refs/heads/`` refspec when pushing changelog
+    release branches from detached HEAD checkouts in Actions.
