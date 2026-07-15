@@ -73,15 +73,9 @@ Define the Satellite installation configuration in your playbook or inventory us
 
 ### Example 1: Run validation checks only
 ```yaml
-- hosts: satellite_hosts
-  become: true
-  vars:
-    satellite_install_pre_check: true
-    satellite_install_satellite_deployment_version: "6.16"
-    satellite_install_satellite_location: lab-dc1
-    satellite_install_satellite_rhn_connected: false
-    satellite_install_satellite_min_memory_size: 20480
-    satellite_install_satellite_min_cpu_count: 4
+- name: ADO | Install Satellite
+  hosts: all
+  gather_facts: true
   roles:
     - role: infra.ado.satellite_install
 ```

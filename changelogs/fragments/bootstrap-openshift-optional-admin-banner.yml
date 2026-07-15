@@ -1,0 +1,5 @@
+---
+bugfixes:
+  - bootstrap_generate_env_vars - gate OpenShift HTPasswd admin and console
+    banner values behind `component_options.openshift` entries so UI and CLI
+    preflight runs only generate those optional settings when selected.

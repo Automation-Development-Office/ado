@@ -10,6 +10,7 @@ bootstrap_generate_playbook_repo_git_branch: main
 bootstrap_generate_playbook_repo_git_message: "Generate bootstrap playbook repo"
 bootstrap_generate_playbook_repo_git_username: oauth2
 bootstrap_generate_playbook_repo_git_token: ""
+bootstrap_generate_playbook_repo_git_sync_before_push: true
 bootstrap_generate_playbook_repo_pause_after_generate: false
 
 bootstrap_generate_playbook_repo_component: all
@@ -48,6 +49,8 @@ bootstrap_generate_playbook_repo_component_map:
     - grafana
     - kafka
     - rhbk
+    - compliance
+    - stig
 
   patching:
     - rhel
@@ -77,6 +80,15 @@ bootstrap_generate_playbook_repo_component_map:
 
   rhel-patching:
     - rhel
+
+  stig:
+    - stig
+
+  rhel-stig:
+    - stig
+
+  compliance:
+    - compliance
 
   pega:
     - pega
@@ -116,6 +128,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     category: platform
     app: acs
 
+  - src: acm/ado-deploy-and-configure-bootstrap.yml
+    dest: playbooks/acm/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: acm
+
   - src: cert-manager/ado-configure-idm-acme-clusterissuer.yml
     dest: playbooks/cert-manager/ado-configure-idm-acme-clusterissuer.yml
     target_platform: openshift
@@ -134,8 +152,8 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     category: platform
     app: cert_manager
 
-  - src: console/ado-configure-bootstrap.yml
-    dest: playbooks/console/ado-configure-bootstrap.yml
+  - src: openshift/ado-configure-console-banner-bootstrap.yml
+    dest: playbooks/openshift/ado-configure-console-banner-bootstrap.yml
     target_platform: openshift
     category: platform
     app: console
@@ -270,31 +288,37 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     dest: playbooks/openshift/ado-configure-ldap-auth-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: openshift
+    app: openshift_ldap_auth
 
   - src: openshift/ado-configure-oauth-with-rhbk-bootstrap.yml
     dest: playbooks/openshift/ado-configure-oauth-with-rhbk-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: openshift
+    app: openshift_oauth_rhbk
 
   - src: openshift/ado-create-htpass-user-bootstrap.yml
     dest: playbooks/openshift/ado-create-htpass-user-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: openshift
+    app: admin_htpasswd
 
   - src: openshift/ado-discover-routes-bootstrap.yml
     dest: playbooks/openshift/ado-discover-routes-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: openshift
+    app: openshift_discover_routes_print
+
+  - src: openshift/ado-discover-routes-bootstrap.yml
+    dest: playbooks/openshift/ado-discover-routes-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: openshift_discover_routes_alt
 
   - src: openshift/ado-update-pull-secret-bootstrap.yml
     dest: playbooks/openshift/ado-update-pull-secret-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: openshift
+    app: openshift_update_pull_secret
 
   - src: pega/ado-install-and-configure-bootstrap.yml
     dest: playbooks/pega/ado-install-and-configure-bootstrap.yml
@@ -318,31 +342,61 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     dest: playbooks/rhbk/ado-manage-client-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: rhbk
+    app: rhbk_client
 
   - src: rhbk/ado-manage-entraid-idp.yml
     dest: playbooks/rhbk/ado-manage-entraid-idp.yml
     target_platform: openshift
     category: platform
-    app: rhbk
+    app: rhbk_idp
 
   - src: rhbk/ado-manage-realm-bootstrap.yml
     dest: playbooks/rhbk/ado-manage-realm-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: rhbk
+    app: rhbk_realm
 
   - src: rhbk/ado-realm-bootstrap.yml
     dest: playbooks/rhbk/ado-realm-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: rhbk
+    app: rhbk_federation
 
   - src: rhel/ado-patch-host-bootstrap.yml
     dest: playbooks/rhel/ado-patch-host-bootstrap.yml
     target_platform: linux
     category: patching
     app: rhel
+
+  - src: rhel/ado-compliance-bootstrap.yml
+    dest: playbooks/rhel/ado-compliance-bootstrap.yml
+    target_platform: linux
+    category: compliance
+    app: compliance
+
+  - src: rhel/ado-stig-hardening-bootstrap.yml
+    dest: playbooks/rhel/ado-stig-hardening-bootstrap.yml
+    target_platform: linux
+    category: compliance
+    app: stig
+
+  - src: satellite/ado-install-satellite-bootstrap.yml
+    dest: playbooks/satellite/ado-install-satellite-bootstrap.yml
+    target_platform: linux
+    category: satellite
+    app: satellite
+
+  - src: satellite/ado-configure-satellite-bootstrap.yml
+    dest: playbooks/satellite/ado-configure-satellite-bootstrap.yml
+    target_platform: linux
+    category: satellite
+    app: satellite
+
+  - src: satellite/ado-manage-content-view-bootstrap.yml
+    dest: playbooks/satellite/ado-manage-content-view-bootstrap.yml
+    target_platform: linux
+    category: satellite
+    app: satellite
 
   - src: satellite/ado-register-to-satellite-bootstrap.yml
     dest: playbooks/satellite/ado-register-to-satellite-bootstrap.yml

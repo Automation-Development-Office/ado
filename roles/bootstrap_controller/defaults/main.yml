@@ -9,12 +9,23 @@ bootstrap_controller_enabled_objects:
   - execution_environments
   - projects
   - inventories
+  - inventory_sources
   - hosts
   - labels
   - job_templates
   - workflow_job_templates
 
 bootstrap_controller_generate_job_templates_from_manifest: true
+
+bootstrap_controller_aap_connectivity_check_enabled: true
+bootstrap_controller_aap_connectivity_no_log: true
+bootstrap_controller_aap_api_path: ""
+bootstrap_controller_aap_connectivity_endpoint: ""
+bootstrap_controller_aap_smoke_test_enabled: true
+bootstrap_controller_aap_smoke_test_job_template: "Demo Job Template"
+bootstrap_controller_aap_smoke_test_extra_vars: {}
+bootstrap_controller_aap_smoke_test_poll_delay: 5
+bootstrap_controller_aap_smoke_test_poll_retries: 60
 
 # Common placeholders. Real values belong in group_vars/all/vars_<env>.yml
 bootstrap_controller_organization: ""
@@ -35,9 +46,9 @@ bootstrap_controller_state_choices:
   - present
   - absent
 bootstrap_controller_console_banner_state_choices:
-  - present
-  - new
-  - absent
+  - add
+  - update
+  - delete
 bootstrap_controller_default_state: present
 
 # Job Template Defaults
@@ -67,15 +78,19 @@ bootstrap_controller_job_templates_defaults:
 # Define these in group_vars/all/vars_<env>.yml.
 bootstrap_controller_controller_organizations: []
 bootstrap_controller_controller_inventories: []
+bootstrap_controller_controller_inventory_sources: []
 bootstrap_controller_controller_hosts: []
 bootstrap_controller_controller_execution_environments: []
 bootstrap_controller_controller_credentials: []
 bootstrap_controller_controller_projects: []
 bootstrap_controller_controller_labels:
-  - name: "bootstrap"
+  - name: "{{ bootstrap_controller_organization }}"
     organization: "{{ bootstrap_controller_organization }}"
 
-  - name: "jira"
+  - name: "{{ bootstrap_controller_organization }} | bootstrap"
+    organization: "{{ bootstrap_controller_organization }}"
+
+  - name: "{{ bootstrap_controller_organization }} | jira"
     organization: "{{ bootstrap_controller_organization }}"
 bootstrap_controller_workflow_job_templates: []
 bootstrap_controller_templates: []

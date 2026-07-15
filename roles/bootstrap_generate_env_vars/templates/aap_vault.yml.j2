@@ -1,5 +1,7 @@
 {% set preflight_aap = bootstrap_generate_env_vars_preflight.aap | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
 {% set preflight_git = bootstrap_generate_env_vars_preflight.git | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set preflight_aap_org = preflight_aap.organization | default('ADO', true) %}
+{% set preflight_aap_additional_credentials = preflight_aap.additional_credentials | default(bootstrap_generate_env_vars_aap_additional_credentials | default([]), true) %}
 ---
 vault_controller_hostname: "{{ preflight_aap.hostname | default(preflight_aap.controller_hostname | default(preflight_aap.url | default(''), true), true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_hostname.user_input }}"
 vault_controller_oauthtoken: "{{ preflight_aap.oauth_token | default('', true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_token.user_input }}"
@@ -7,3 +9,31 @@ vault_controller_username: "{{ preflight_aap.admin_username | default('admin', t
 vault_controller_password: "{{ preflight_aap.admin_password | default('', true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_password.user_input }}"
 vault_controller_vault_password: "{{ preflight_aap.vault_password | default(preflight_aap.admin_password | default('', true), true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_password.user_input }}"
 vault_controller_git_token: "{{ preflight_git.token | default('', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project_scm_token.user_input | default('', true)) }}"
+{% if preflight_aap_additional_credentials | length > 0 %}
+vault_aap_additional_credentials:
+{% for extra_credential in preflight_aap_additional_credentials %}
+{% set extra_credential_raw_name = extra_credential.name | default('', true) | replace(' ', '-') %}
+{% set extra_credential_name =
+    extra_credential_raw_name
+    if extra_credential_raw_name.startswith(preflight_aap_org ~ '-')
+    else preflight_aap_org ~ '-' ~ extra_credential_raw_name
+%}
+  - name: "{{ extra_credential_name }}"
+    host: "{{ extra_credential.host | default('', true) }}"
+    username: "{{ extra_credential.username | default('', true) }}"
+    password: "{{ extra_credential.password | default('', true) }}"
+    token: "{{ extra_credential.token | default('', true) }}"
+{% if extra_credential.ssh_key_data | default('', true) | length > 0 %}
+    ssh_key_data: |
+{{ extra_credential.ssh_key_data | default('', true) | indent(6, true) }}
+{% else %}
+    ssh_key_data: ""
+{% endif %}
+    ssh_key_unlock: "{{ extra_credential.ssh_key_unlock | default('', true) }}"
+    become_method: "{{ extra_credential.become_method | default('', true) }}"
+    become_username: "{{ extra_credential.become_username | default('', true) }}"
+    vault_password: "{{ extra_credential.vault_password | default('', true) }}"
+{% endfor %}
+{% else %}
+vault_aap_additional_credentials: []
+{% endif %}

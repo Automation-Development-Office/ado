@@ -53,6 +53,103 @@ Name | Description
 
 <!--end collection content-->
 
+## Role documentation
+
+Each role keeps its detailed usage, variables, and examples in its own README.
+When a role is added, add it to this index so the collection README remains the
+starting point for operators and automation users.
+
+| Role | README |
+| --- | --- |
+| `aap_build_ee` | [roles/aap_build_ee/README.md](roles/aap_build_ee/README.md) |
+| `aap_configuration` | [roles/aap_configuration/README.md](roles/aap_configuration/README.md) |
+| `bootstrap_controller` | [roles/bootstrap_controller/README.md](roles/bootstrap_controller/README.md) |
+| `bootstrap_flatten_vars` | [roles/bootstrap_flatten_vars/README.md](roles/bootstrap_flatten_vars/README.md) |
+| `bootstrap_framework_defaults` | [roles/bootstrap_framework_defaults/README.md](roles/bootstrap_framework_defaults/README.md) |
+| `bootstrap_generate_env_vars` | [roles/bootstrap_generate_env_vars/README.md](roles/bootstrap_generate_env_vars/README.md) |
+| `bootstrap_generate_playbook_repo` | [roles/bootstrap_generate_playbook_repo/README.md](roles/bootstrap_generate_playbook_repo/README.md) |
+| `bootstrap_resolve_component` | [roles/bootstrap_resolve_component/README.md](roles/bootstrap_resolve_component/README.md) |
+| `elastic` | [roles/elastic/README.md](roles/elastic/README.md) |
+| `gitlab_install` | [roles/gitlab_install/README.md](roles/gitlab_install/README.md) |
+| `grafana_create_datasource` | [roles/grafana_create_datasource/README.md](roles/grafana_create_datasource/README.md) |
+| `grafana_install` | [roles/grafana_install/README.md](roles/grafana_install/README.md) |
+| `grafana_manage_folders` | [roles/grafana_manage_folders/README.md](roles/grafana_manage_folders/README.md) |
+| `grafana_upload_dashboards` | [roles/grafana_upload_dashboards/README.md](roles/grafana_upload_dashboards/README.md) |
+| `idm_client` | [roles/idm_client/README.md](roles/idm_client/README.md) |
+| `idm_configure_replica` | [roles/idm_configure_replica/README.md](roles/idm_configure_replica/README.md) |
+| `idm_dns` | [roles/idm_dns/README.md](roles/idm_dns/README.md) |
+| `idm_server` | [roles/idm_server/README.md](roles/idm_server/README.md) |
+| `install_aap` | [roles/install_aap/README.md](roles/install_aap/README.md) |
+| `install_dirsrv` | [roles/install_dirsrv/README.md](roles/install_dirsrv/README.md) |
+| `install_elastic` | [roles/install_elastic/README.md](roles/install_elastic/README.md) |
+| `install_postfix` | [roles/install_postfix/README.md](roles/install_postfix/README.md) |
+| `install_rhbk` | [roles/install_rhbk/README.md](roles/install_rhbk/README.md) |
+| `jira` | [roles/jira/README.md](roles/jira/README.md) |
+| `jira_stories` | [roles/jira_stories/README.md](roles/jira_stories/README.md) |
+| `kafka_install` | [roles/kafka_install/README.md](roles/kafka_install/README.md) |
+| `ocp_acm` | [roles/ocp_acm/README.md](roles/ocp_acm/README.md) |
+| `ocp_acs` | [roles/ocp_acs/README.md](roles/ocp_acs/README.md) |
+| `ocp_alt_routes` | [roles/ocp_alt_routes/README.md](roles/ocp_alt_routes/README.md) |
+| `ocp_awspca` | [roles/ocp_awspca/README.md](roles/ocp_awspca/README.md) |
+| `ocp_cert_manager` | [roles/ocp_cert_manager/README.md](roles/ocp_cert_manager/README.md) |
+| `ocp_compliance_install` | [roles/ocp_compliance_install/README.md](roles/ocp_compliance_install/README.md) |
+| `ocp_compliance_profiles` | [roles/ocp_compliance_profiles/README.md](roles/ocp_compliance_profiles/README.md) |
+| `ocp_compliance_remediation` | [roles/ocp_compliance_remediation/README.md](roles/ocp_compliance_remediation/README.md) |
+| `ocp_compliance_scan` | [roles/ocp_compliance_scan/README.md](roles/ocp_compliance_scan/README.md) |
+| `ocp_component_route` | [roles/ocp_component_route/README.md](roles/ocp_component_route/README.md) |
+| `ocp_console_banner` | [roles/ocp_console_banner/README.md](roles/ocp_console_banner/README.md) |
+| `ocp_data_foundation` | [roles/ocp_data_foundation/README.md](roles/ocp_data_foundation/README.md) |
+| `ocp_descheduler` | [roles/ocp_descheduler/README.md](roles/ocp_descheduler/README.md) |
+| `ocp_devspaces` | [roles/ocp_devspaces/README.md](roles/ocp_devspaces/README.md) |
+| `ocp_devspaces_user_config` | [roles/ocp_devspaces_user_config/README.md](roles/ocp_devspaces_user_config/README.md) |
+| `ocp_discover_routes` | [roles/ocp_discover_routes/README.md](roles/ocp_discover_routes/README.md) |
+| `ocp_efs_csi` | [roles/ocp_efs_csi/README.md](roles/ocp_efs_csi/README.md) |
+| `ocp_gitlab_runner` | [roles/ocp_gitlab_runner/README.md](roles/ocp_gitlab_runner/README.md) |
+| `ocp_gitops` | [roles/ocp_gitops/README.md](roles/ocp_gitops/README.md) |
+| `ocp_htpasswd_admin` | [roles/ocp_htpasswd_admin/README.md](roles/ocp_htpasswd_admin/README.md) |
+| `ocp_iscsi_storage` | [roles/ocp_iscsi_storage/README.md](roles/ocp_iscsi_storage/README.md) |
+| `ocp_ldap_auth` | [roles/ocp_ldap_auth/README.md](roles/ocp_ldap_auth/README.md) |
+| `ocp_logging` | [roles/ocp_logging/README.md](roles/ocp_logging/README.md) |
+| `ocp_loki` | [roles/ocp_loki/README.md](roles/ocp_loki/README.md) |
+| `ocp_namespace` | [roles/ocp_namespace/README.md](roles/ocp_namespace/README.md) |
+| `ocp_nfs_storage` | [roles/ocp_nfs_storage/README.md](roles/ocp_nfs_storage/README.md) |
+| `ocp_oadp` | [roles/ocp_oadp/README.md](roles/ocp_oadp/README.md) |
+| `ocp_oidc_auth` | [roles/ocp_oidc_auth/README.md](roles/ocp_oidc_auth/README.md) |
+| `ocp_operator_defaults` | [roles/ocp_operator_defaults/README.md](roles/ocp_operator_defaults/README.md) |
+| `ocp_operatorgroups` | [roles/ocp_operatorgroups/README.md](roles/ocp_operatorgroups/README.md) |
+| `ocp_operator_subscription` | [roles/ocp_operator_subscription/README.md](roles/ocp_operator_subscription/README.md) |
+| `ocp_print_crd` | [roles/ocp_print_crd/README.md](roles/ocp_print_crd/README.md) |
+| `ocp_pull_secrets` | [roles/ocp_pull_secrets/README.md](roles/ocp_pull_secrets/README.md) |
+| `ocp_quay` | [roles/ocp_quay/README.md](roles/ocp_quay/README.md) |
+| `ocp_rhbk_client_secrets` | [roles/ocp_rhbk_client_secrets/README.md](roles/ocp_rhbk_client_secrets/README.md) |
+| `ocp_routes` | [roles/ocp_routes/README.md](roles/ocp_routes/README.md) |
+| `ocp_search_dirsrv` | [roles/ocp_search_dirsrv/README.md](roles/ocp_search_dirsrv/README.md) |
+| `ocp_secret_replicator` | [roles/ocp_secret_replicator/README.md](roles/ocp_secret_replicator/README.md) |
+| `ocp_service_accounts` | [roles/ocp_service_accounts/README.md](roles/ocp_service_accounts/README.md) |
+| `ocp_virtualization` | [roles/ocp_virtualization/README.md](roles/ocp_virtualization/README.md) |
+| `ocp_wait_operator` | [roles/ocp_wait_operator/README.md](roles/ocp_wait_operator/README.md) |
+| `ocp_wait_pods` | [roles/ocp_wait_pods/README.md](roles/ocp_wait_pods/README.md) |
+| `rhbk_client` | [roles/rhbk_client/README.md](roles/rhbk_client/README.md) |
+| `rhbk_client_scope` | [roles/rhbk_client_scope/README.md](roles/rhbk_client_scope/README.md) |
+| `rhbk_groups` | [roles/rhbk_groups/README.md](roles/rhbk_groups/README.md) |
+| `rhbk_manage_federation` | [roles/rhbk_manage_federation/README.md](roles/rhbk_manage_federation/README.md) |
+| `rhbk_manage_idp` | [roles/rhbk_manage_idp/README.md](roles/rhbk_manage_idp/README.md) |
+| `rhbk_realm` | [roles/rhbk_realm/README.md](roles/rhbk_realm/README.md) |
+| `rhbk_setup_mapper` | [roles/rhbk_setup_mapper/README.md](roles/rhbk_setup_mapper/README.md) |
+| `rhbk_users` | [roles/rhbk_users/README.md](roles/rhbk_users/README.md) |
+| `rhel_cron` | [roles/rhel_cron/README.md](roles/rhel_cron/README.md) |
+| `rhel_ext_system_roles` | [roles/rhel_ext_system_roles/README.md](roles/rhel_ext_system_roles/README.md) |
+| `rhel_facts` | [roles/rhel_facts/README.md](roles/rhel_facts/README.md) |
+| `rhel_mount` | [roles/rhel_mount/README.md](roles/rhel_mount/README.md) |
+| `rhel_patching` | [roles/rhel_patching/README.md](roles/rhel_patching/README.md) |
+| `rhel_repos` | [roles/rhel_repos/README.md](roles/rhel_repos/README.md) |
+| `rhel_sat_reg` | [roles/rhel_sat_reg/README.md](roles/rhel_sat_reg/README.md) |
+| `rhel_services_management` | [roles/rhel_services_management/README.md](roles/rhel_services_management/README.md) |
+| `satellite_config` | [roles/satellite_config/README.md](roles/satellite_config/README.md) |
+| `satellite_content_view` | [roles/satellite_content_view/README.md](roles/satellite_content_view/README.md) |
+| `satellite_install` | [roles/satellite_install/README.md](roles/satellite_install/README.md) |
+| `vm_image_management` | [roles/vm_image_management/README.md](roles/vm_image_management/README.md) |
+
 ## Using this collection
 
 ```bash

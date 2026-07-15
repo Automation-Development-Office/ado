@@ -1,13 +1,200 @@
 {% set preflight_aap = bootstrap_generate_env_vars_preflight.aap | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
 {% set preflight_git = bootstrap_generate_env_vars_preflight.git | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set preflight_machine_credential = preflight_aap.machine_credential | default({}) %}
+{% set preflight_satellite_config = bootstrap_generate_env_vars_preflight.component_config.satellite | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set preflight_rhel_config = bootstrap_generate_env_vars_preflight.component_config.rhel | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set preflight_idm_config = bootstrap_generate_env_vars_preflight.component_config.idm | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set preflight_cert_manager_config = bootstrap_generate_env_vars_preflight.component_config.cert_manager | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set preflight_openshift_config = bootstrap_generate_env_vars_preflight.openshift | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set preflight_components = bootstrap_generate_env_vars_preflight.components | default(bootstrap_generate_env_vars_preflight.platform | default([])) if bootstrap_generate_env_vars_preflight is defined else [] %}
+{% set preflight_component = bootstrap_generate_env_vars_preflight.component | default('') if bootstrap_generate_env_vars_preflight is defined else '' %}
+{% if preflight_components is string %}
+{% set preflight_components = [preflight_components] %}
+{% endif %}
+{% set preflight_component_apps = bootstrap_generate_env_vars_preflight.component_apps | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set preflight_rhel_group_selected =
+    'all' in preflight_components
+    or 'rhel' in preflight_components
+    or preflight_component == 'rhel'
+%}
+{% set preflight_patching_group_selected =
+    'all' in preflight_components
+    or 'patching' in preflight_components
+    or preflight_component == 'patching'
+%}
+{% set preflight_rhel_apps =
+    preflight_component_apps.rhel | default([])
+    if preflight_rhel_group_selected
+    else []
+%}
+{% set preflight_patching_apps =
+    preflight_component_apps.patching | default([])
+    if preflight_patching_group_selected
+    else []
+%}
+{% set machine_credential_component_selected =
+    'all' in preflight_components
+    or 'rhel' in preflight_components
+    or 'satellite' in preflight_components
+    or 'patching' in preflight_components
+    or preflight_component in ['rhel', 'satellite', 'patching']
+    or 'rhel' in preflight_rhel_apps
+    or 'satellite' in preflight_rhel_apps
+    or 'patching' in preflight_patching_apps
+%}
+{% set satellite_component_selected =
+    'all' in preflight_components
+    or 'satellite' in preflight_components
+    or preflight_component == 'satellite'
+    or 'satellite' in preflight_rhel_apps
+    or 'satellite' in preflight_patching_apps
+%}
+{% set rhel_component_selected =
+    'all' in preflight_components
+    or 'rhel' in preflight_components
+    or preflight_component == 'rhel'
+    or 'rhel' in preflight_rhel_apps
+%}
+{% set idm_component_selected =
+    'all' in preflight_components
+    or 'idm' in preflight_components
+    or preflight_component == 'idm'
+    or 'idm' in preflight_rhel_apps
+%}
+{% set openshift_component_selected =
+    'all' in preflight_components
+    or 'openshift' in preflight_components
+    or preflight_component == 'openshift'
+%}
+{% set bootstrap_generate_env_vars_machine_credential_enabled =
+    (machine_credential_component_selected and (preflight_machine_credential.name | default('ado-machine', true) | length > 0))
+    if bootstrap_generate_env_vars_preflight is defined
+    else (bootstrap_generate_env_vars_machine_credential_enabled | default(false) | bool)
+%}
+{% set bootstrap_generate_env_vars_machine_credential_org = preflight_aap.organization | default('ADO', true) %}
+{% set bootstrap_generate_env_vars_machine_credential_raw_name =
+    preflight_machine_credential.name | default(bootstrap_generate_env_vars_machine_credential_name | default(bootstrap_generate_env_vars_machine_credential_org ~ '-machine'), true)
+%}
+{% set bootstrap_generate_env_vars_machine_credential_name =
+    bootstrap_generate_env_vars_machine_credential_raw_name | replace(' ', '-')
+    if not bootstrap_generate_env_vars_machine_credential_raw_name.startswith(bootstrap_generate_env_vars_machine_credential_org ~ '-')
+    else bootstrap_generate_env_vars_machine_credential_raw_name
+%}
+{% if not bootstrap_generate_env_vars_machine_credential_name.startswith(bootstrap_generate_env_vars_machine_credential_org ~ '-') %}
+{% set bootstrap_generate_env_vars_machine_credential_name = bootstrap_generate_env_vars_machine_credential_org ~ '-' ~ bootstrap_generate_env_vars_machine_credential_name %}
+{% endif %}
+{% set bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled =
+    (preflight_satellite_config.dynamic_inventory_enabled | default(satellite_component_selected) | bool)
+    if bootstrap_generate_env_vars_preflight is defined
+    else (bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled | default(false) | bool)
+%}
+{% set bootstrap_generate_env_vars_satellite_server_url =
+    preflight_satellite_config.hostname
+    | default(bootstrap_generate_env_vars_satellite_server_url | default(''), true)
+%}
+{% if bootstrap_generate_env_vars_satellite_server_url and not (bootstrap_generate_env_vars_satellite_server_url.startswith('http://') or bootstrap_generate_env_vars_satellite_server_url.startswith('https://')) %}
+{% set bootstrap_generate_env_vars_satellite_server_url = 'https://' ~ bootstrap_generate_env_vars_satellite_server_url %}
+{% endif %}
+{% set bootstrap_generate_env_vars_satellite_service_account_username =
+    preflight_satellite_config.service_account_username
+    | default(bootstrap_generate_env_vars_satellite_service_account_username | default(''), true)
+%}
+{% set bootstrap_generate_env_vars_satellite_validate_certs =
+    preflight_satellite_config.validate_certs
+    | default(bootstrap_generate_env_vars_satellite_validate_certs | default(false), true)
+    | bool
+%}
+{% set bootstrap_generate_env_vars_satellite_inventory_overwrite =
+    preflight_satellite_config.inventory_overwrite
+    | default(bootstrap_generate_env_vars_satellite_inventory_overwrite | default(true), true)
+    | bool
+%}
+{% set bootstrap_generate_env_vars_satellite_inventory_overwrite_vars =
+    preflight_satellite_config.inventory_overwrite_vars
+    | default(bootstrap_generate_env_vars_satellite_inventory_overwrite_vars | default(true), true)
+    | bool
+%}
+{% set bootstrap_generate_env_vars_satellite_inventory_update_on_launch =
+    preflight_satellite_config.inventory_update_on_launch
+    | default(bootstrap_generate_env_vars_satellite_inventory_update_on_launch | default(true), true)
+    | bool
+%}
+{% set bootstrap_generate_env_vars_satellite_inventory_update_cache_timeout =
+    preflight_satellite_config.inventory_update_cache_timeout
+    | default(bootstrap_generate_env_vars_satellite_inventory_update_cache_timeout | default(0), true)
+%}
+{% set bootstrap_generate_env_vars_satellite_inventory_verbosity =
+    preflight_satellite_config.inventory_verbosity
+    | default(bootstrap_generate_env_vars_satellite_inventory_verbosity | default(0), true)
+%}
+{% set bootstrap_generate_env_vars_satellite_inventory_host_filter =
+    preflight_satellite_config.inventory_host_filter
+    | default(bootstrap_generate_env_vars_satellite_inventory_host_filter | default(''), true)
+%}
+{% set bootstrap_generate_env_vars_satellite_inventory_source_vars =
+    preflight_satellite_config.inventory_source_vars
+    | default(bootstrap_generate_env_vars_satellite_inventory_source_vars | default({}), true)
+%}
 ---
 {% set bootstrap_generate_env_vars_aap_org = preflight_aap.organization if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_org.user_input %}
-{% set bootstrap_generate_env_vars_aap_inventory = preflight_aap.inventory if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_inventory.user_input %}
-{% set bootstrap_generate_env_vars_aap_project = preflight_aap.project if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_project.user_input %}
-{% set bootstrap_generate_env_vars_aap_ee = preflight_aap.execution_environment if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_ee.user_input | default('ee-supported-rhel9', true)) %}
-{% set bootstrap_generate_env_vars_aap_cred = preflight_aap.vault_credential_name if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_vault_cred.user_input %}
+{% set bootstrap_generate_env_vars_aap_org = bootstrap_generate_env_vars_aap_org | default('ADO', true) %}
+{% set bootstrap_generate_env_vars_satellite_credential_raw_name =
+    preflight_satellite_config.credential_name
+    | default(bootstrap_generate_env_vars_satellite_credential_name | default(bootstrap_generate_env_vars_aap_org ~ '-Satellite-Service-Account'), true)
+%}
+{% set bootstrap_generate_env_vars_satellite_credential_name =
+    bootstrap_generate_env_vars_satellite_credential_raw_name | replace(' ', '-')
+    if not bootstrap_generate_env_vars_satellite_credential_raw_name.startswith(bootstrap_generate_env_vars_aap_org ~ '-')
+    else bootstrap_generate_env_vars_satellite_credential_raw_name
+%}
+{% if not bootstrap_generate_env_vars_satellite_credential_name.startswith(bootstrap_generate_env_vars_aap_org ~ '-') %}
+{% set bootstrap_generate_env_vars_satellite_credential_name = bootstrap_generate_env_vars_aap_org ~ '-' ~ bootstrap_generate_env_vars_satellite_credential_name %}
+{% endif %}
+{% set bootstrap_generate_env_vars_satellite_inventory_source_raw_name =
+    preflight_satellite_config.inventory_source_name
+    | default(bootstrap_generate_env_vars_satellite_inventory_source_name | default(bootstrap_generate_env_vars_aap_org ~ '-Satellite-Dynamic-Inventory'), true)
+%}
+{% set bootstrap_generate_env_vars_satellite_inventory_source_name =
+    bootstrap_generate_env_vars_satellite_inventory_source_raw_name | replace(' ', '-')
+    if not bootstrap_generate_env_vars_satellite_inventory_source_raw_name.startswith(bootstrap_generate_env_vars_aap_org ~ '-')
+    else bootstrap_generate_env_vars_satellite_inventory_source_raw_name
+%}
+{% if not bootstrap_generate_env_vars_satellite_inventory_source_name.startswith(bootstrap_generate_env_vars_aap_org ~ '-') %}
+{% set bootstrap_generate_env_vars_satellite_inventory_source_name = bootstrap_generate_env_vars_aap_org ~ '-' ~ bootstrap_generate_env_vars_satellite_inventory_source_name %}
+{% endif %}
+{% set bootstrap_generate_env_vars_aap_inventory_raw = preflight_aap.inventory | default(bootstrap_generate_env_vars_aap_org ~ '-inventory', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_inventory.user_input | default(bootstrap_generate_env_vars_aap_org ~ '-inventory', true)) %}
+{% set bootstrap_generate_env_vars_aap_inventory =
+    bootstrap_generate_env_vars_aap_inventory_raw | replace(' ', '-')
+    if not bootstrap_generate_env_vars_aap_inventory_raw.startswith(bootstrap_generate_env_vars_aap_org ~ '-')
+    else bootstrap_generate_env_vars_aap_inventory_raw
+%}
+{% if not bootstrap_generate_env_vars_aap_inventory.startswith(bootstrap_generate_env_vars_aap_org ~ '-') %}
+{% set bootstrap_generate_env_vars_aap_inventory = bootstrap_generate_env_vars_aap_org ~ '-' ~ bootstrap_generate_env_vars_aap_inventory %}
+{% endif %}
+{% set bootstrap_generate_env_vars_rhel_inventory = bootstrap_generate_env_vars_aap_org ~ '-RHEL-Inventory' %}
+{% set bootstrap_generate_env_vars_idm_inventory = bootstrap_generate_env_vars_aap_org ~ '-IDM-Inventory' %}
+{% set bootstrap_generate_env_vars_satellite_inventory = bootstrap_generate_env_vars_aap_org ~ '-Satellite-Server-Inventory' %}
+{% set bootstrap_generate_env_vars_aap_project_raw = preflight_aap.project | default(bootstrap_generate_env_vars_aap_org ~ '-project', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project.user_input | default(bootstrap_generate_env_vars_aap_org ~ '-project', true)) %}
+{% set bootstrap_generate_env_vars_aap_project =
+    bootstrap_generate_env_vars_aap_project_raw | replace(' ', '-')
+    if not bootstrap_generate_env_vars_aap_project_raw.startswith(bootstrap_generate_env_vars_aap_org ~ '-')
+    else bootstrap_generate_env_vars_aap_project_raw
+%}
+{% if not bootstrap_generate_env_vars_aap_project.startswith(bootstrap_generate_env_vars_aap_org ~ '-') %}
+{% set bootstrap_generate_env_vars_aap_project = bootstrap_generate_env_vars_aap_org ~ '-' ~ bootstrap_generate_env_vars_aap_project %}
+{% endif %}
+{% set bootstrap_generate_env_vars_aap_ee = preflight_aap.execution_environment | default('ee-supported-rhel9', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_ee.user_input | default('ee-supported-rhel9', true)) %}
+{% set bootstrap_generate_env_vars_aap_cred_raw = preflight_aap.vault_credential_name | default(bootstrap_generate_env_vars_aap_org ~ '-vault', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_vault_cred.user_input | default(bootstrap_generate_env_vars_aap_org ~ '-vault', true)) %}
+{% set bootstrap_generate_env_vars_aap_cred =
+    bootstrap_generate_env_vars_aap_cred_raw | replace(' ', '-')
+    if not bootstrap_generate_env_vars_aap_cred_raw.startswith(bootstrap_generate_env_vars_aap_org ~ '-')
+    else bootstrap_generate_env_vars_aap_cred_raw
+%}
+{% if not bootstrap_generate_env_vars_aap_cred.startswith(bootstrap_generate_env_vars_aap_org ~ '-') %}
+{% set bootstrap_generate_env_vars_aap_cred = bootstrap_generate_env_vars_aap_org ~ '-' ~ bootstrap_generate_env_vars_aap_cred %}
+{% endif %}
 {% set bootstrap_generate_env_vars_aap_git_url = preflight_aap.git_url if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_project_scm_url.user_input %}
-{% set bootstrap_generate_env_vars_aap_git_branch = preflight_aap.git_branch if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project_scm_branch.user_input | default('main', true)) %}
+{% set bootstrap_generate_env_vars_aap_git_branch = (preflight_aap.git_branch | default(bootstrap_generate_env_vars_default_git_branch | default('main'), true)) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project_scm_branch.user_input | default(bootstrap_generate_env_vars_default_git_branch | default('main'), true)) %}
 {% set bootstrap_generate_env_vars_aap_git_token_present = (preflight_git.token | default('') | length > 0) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project_scm_token.user_input | default('', true) | length > 0) %}
 {% set bootstrap_generate_env_vars_git_auto_push =
     (preflight_git.auto_push | default(false))
@@ -15,15 +202,77 @@
     else ((bootstrap_generate_env_vars_prompt_git_auto_push.user_input | default('n', true) | lower) in ['y', 'yes'])
 %}
 {% set controller_bootstrap_scm_credential = bootstrap_generate_env_vars_aap_project ~ '-git-token' %}
+{% set bootstrap_generate_env_vars_aap_additional_credentials = preflight_aap.additional_credentials | default(bootstrap_generate_env_vars_aap_additional_credentials | default([]), true) %}
+{% set bootstrap_generate_env_vars_rhel_hostname = preflight_rhel_config.hostname | default('', true) %}
+{% set bootstrap_generate_env_vars_rhel_hosts_raw = preflight_rhel_config.hosts | default(preflight_rhel_config.hostnames | default([], true), true) %}
+{% if bootstrap_generate_env_vars_rhel_hosts_raw is string %}
+{% set bootstrap_generate_env_vars_rhel_hosts_raw = [bootstrap_generate_env_vars_rhel_hosts_raw] %}
+{% endif %}
+{% set bootstrap_generate_env_vars_rhel_hosts = ([bootstrap_generate_env_vars_rhel_hostname] + bootstrap_generate_env_vars_rhel_hosts_raw) | select | unique | list %}
+{% set bootstrap_generate_env_vars_satellite_inventory_host =
+    bootstrap_generate_env_vars_satellite_server_url
+    | regex_replace('^https?://', '')
+    | regex_replace('/.*$', '')
+%}
+{% set bootstrap_generate_env_vars_idm_hostname = preflight_idm_config.hostname | default('', true) %}
+{% set bootstrap_generate_env_vars_idm_replica_hostname = preflight_idm_config.replica_hostname | default('', true) %}
+{% set bootstrap_generate_env_vars_openshift_api_host =
+    preflight_openshift_config.api_host
+    | default(preflight_openshift_config.host | default('', true), true)
+%}
+{% set bootstrap_generate_env_vars_hub_publish_ado_collection = preflight_aap.hub_publish_ado_collection | default(bootstrap_generate_env_vars_hub_publish_ado_collection | default(true)) | bool %}
+{% set bootstrap_generate_env_vars_hub_mark_ado_validated = true if bootstrap_generate_env_vars_hub_publish_ado_collection else false %}
+{% set bootstrap_generate_env_vars_aap_skip_tls_verify =
+    preflight_aap.skip_tls_verify
+    | default(skip_tls_verify | default(false), true)
+    | bool
+    if bootstrap_generate_env_vars_preflight is defined
+    else (skip_tls_verify | default(false) | bool)
+%}
+{% set bootstrap_generate_env_vars_aap_validate_certs =
+    (not bootstrap_generate_env_vars_aap_skip_tls_verify)
+    if bootstrap_generate_env_vars_preflight is defined
+    else (
+      controller_validate_certs
+      | default(not bootstrap_generate_env_vars_aap_skip_tls_verify)
+      | bool
+    )
+%}
 
-aap_version: {{ bootstrap_generate_env_vars_aap_version_number }}
+aap_version: {{ bootstrap_generate_env_vars_aap_version_number | trim }}
+
+controller_validate_certs: {{ bootstrap_generate_env_vars_aap_validate_certs | lower }}
+controller_verify_ssl: {{ bootstrap_generate_env_vars_aap_validate_certs | lower }}
+tower_verify_ssl: {{ bootstrap_generate_env_vars_aap_validate_certs | lower }}
+validate_certs: {{ bootstrap_generate_env_vars_aap_validate_certs | lower }}
+verify_ssl: {{ bootstrap_generate_env_vars_aap_validate_certs | lower }}
 
 controller_bootstrap_organization: "{{ bootstrap_generate_env_vars_aap_org }}"
 controller_bootstrap_inventory_name: "{{ bootstrap_generate_env_vars_aap_inventory }}"
 controller_bootstrap_project_name: "{{ bootstrap_generate_env_vars_aap_project }}"
 controller_bootstrap_execution_environment_name: "{{ bootstrap_generate_env_vars_aap_ee }}"
+bootstrap_controller_local_inventory_name: "{{ bootstrap_generate_env_vars_aap_inventory }}"
+bootstrap_controller_rhel_inventory_name: "{{ bootstrap_generate_env_vars_rhel_inventory }}"
+bootstrap_controller_idm_inventory_name: "{{ bootstrap_generate_env_vars_idm_inventory }}"
+bootstrap_controller_satellite_inventory_name: "{{ bootstrap_generate_env_vars_satellite_inventory }}"
+bootstrap_controller_cert_manager_mode: "{{ preflight_cert_manager_config.mode | default('cert', true) }}"
 
 controller_bootstrap_creds: "{{ bootstrap_generate_env_vars_aap_cred }}"
+controller_bootstrap_name_prefix: "{{ bootstrap_generate_env_vars_aap_org }}"
+{% if bootstrap_generate_env_vars_machine_credential_enabled %}
+controller_bootstrap_machine_credential: "{{ bootstrap_generate_env_vars_machine_credential_name }}"
+{% endif %}
+
+bootstrap_controller_hub_publish_ado_collection: {{ bootstrap_generate_env_vars_hub_publish_ado_collection | lower }}
+bootstrap_controller_hub_mark_ado_validated: {{ bootstrap_generate_env_vars_hub_mark_ado_validated | lower }}
+hub_collections:
+{% if bootstrap_generate_env_vars_hub_publish_ado_collection %}
+  - collection_name: infra_ado
+    collection_local_path: "{{ bootstrap_generate_env_vars_hub_ado_collection_path | default('.') }}"
+    repository: "validated"
+{% else %}
+  []
+{% endif %}
 
 controller_bootstrap_controller_organizations:
   - name: "{{ bootstrap_generate_env_vars_aap_org }}"
@@ -37,7 +286,7 @@ controller_bootstrap_controller_credentials:
     credential_type: Source Control
     inputs:
       username: "oauth2"
-      password: "{% raw %}{{ vault_controller_git_token }}{% endraw %}"
+      password: "{% raw %}{{ '{{ vault_controller_git_token }}' }}{% endraw %}"
 {% endif %}
 
   - name: "{{ bootstrap_generate_env_vars_aap_cred }}"
@@ -45,7 +294,104 @@ controller_bootstrap_controller_credentials:
     organization: "{{ bootstrap_generate_env_vars_aap_org }}"
     credential_type: Vault
     inputs:
-      vault_password: "{% raw %}{{ vault_controller_vault_password }}{% endraw %}"
+      vault_password: "{% raw %}{{ '{{ vault_controller_vault_password }}' }}{% endraw %}"
+{% if bootstrap_generate_env_vars_machine_credential_enabled %}
+
+  - name: "{{ bootstrap_generate_env_vars_machine_credential_name }}"
+    description: "Machine credential for RHEL, Satellite, and patching jobs"
+    organization: "{{ bootstrap_generate_env_vars_aap_org }}"
+    credential_type: Machine
+    inputs:
+      username: "{% raw %}{{ '{{ vault_machine_credential_username }}' }}{% endraw %}"
+      ssh_key_data: "{% raw %}{{ '{{ vault_machine_credential_ssh_key_data }}' }}{% endraw %}"
+      ssh_key_unlock: "{% raw %}{{ '{{ vault_machine_credential_ssh_key_unlock }}' }}{% endraw %}"
+      become_method: "{% raw %}{{ '{{ vault_machine_credential_become_method }}' }}{% endraw %}"
+      become_username: "{% raw %}{{ '{{ vault_machine_credential_become_username }}' }}{% endraw %}"
+{% endif %}
+{% if bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled %}
+
+  - name: "{{ bootstrap_generate_env_vars_satellite_credential_name }}"
+    description: "Satellite dynamic inventory credential"
+    organization: "{{ bootstrap_generate_env_vars_aap_org }}"
+    credential_type: Red Hat Satellite 6
+    inputs:
+      host: "{{ bootstrap_generate_env_vars_satellite_server_url }}"
+      username: "{% raw %}{{ '{{ vault_satellite_service_account_username }}' }}{% endraw %}"
+      password: "{% raw %}{{ '{{ vault_satellite_service_account_password }}' }}{% endraw %}"
+{% endif %}
+{% for extra_credential in bootstrap_generate_env_vars_aap_additional_credentials %}
+{% if extra_credential.name | default('', true) | length > 0 %}
+{% set extra_credential_vault_ref = 'vault_aap_additional_credentials[' ~ loop.index0 ~ ']' %}
+{% set extra_credential_type = extra_credential.credential_type | default('Machine', true) %}
+{% set extra_credential_raw_name = extra_credential.name | replace(' ', '-') %}
+{% set extra_credential_name =
+    extra_credential_raw_name
+    if extra_credential_raw_name.startswith(bootstrap_generate_env_vars_aap_org ~ '-')
+    else bootstrap_generate_env_vars_aap_org ~ '-' ~ extra_credential_raw_name
+%}
+
+  - name: "{{ extra_credential_name }}"
+    description: "{{ extra_credential.description | default('Additional AAP credential', true) }}"
+    organization: "{{ extra_credential.organization | default(bootstrap_generate_env_vars_aap_org, true) }}"
+    credential_type: "{{ extra_credential_type }}"
+    inputs:
+{% if extra_credential_type == 'Vault' %}
+{% if extra_credential.vault_password | default('', true) | length > 0 %}
+      vault_password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.vault_password{% raw %} }}' }}{% endraw %}"
+{% elif extra_credential.password | default('', true) | length > 0 %}
+      vault_password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.password{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% elif extra_credential_type == 'Red Hat Satellite 6' %}
+{% if extra_credential.host | default('', true) | length > 0 %}
+      host: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.host{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.username | default('', true) | length > 0 %}
+      username: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.username{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.password | default('', true) | length > 0 %}
+      password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.password{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% elif extra_credential_type == 'Source Control' %}
+{% if extra_credential.username | default('', true) | length > 0 %}
+      username: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.username{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.password | default('', true) | length > 0 %}
+      password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.password{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.ssh_key_data | default('', true) | length > 0 %}
+      ssh_key_data: |
+        {% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.ssh_key_data{% raw %} }}' }}{% endraw %}
+{% endif %}
+{% else %}
+{% if extra_credential.username | default('', true) | length > 0 %}
+      username: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.username{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.password | default('', true) | length > 0 %}
+      password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.password{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.token | default('', true) | length > 0 %}
+      bearer_token: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.token{% raw %} }}' }}{% endraw %}"
+      token: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.token{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.ssh_key_data | default('', true) | length > 0 %}
+      ssh_key_data: |
+        {% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.ssh_key_data{% raw %} }}' }}{% endraw %}
+{% endif %}
+{% if extra_credential.ssh_key_unlock | default('', true) | length > 0 %}
+      ssh_key_unlock: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.ssh_key_unlock{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.become_method | default('', true) | length > 0 %}
+      become_method: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.become_method{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.become_username | default('', true) | length > 0 %}
+      become_username: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.become_username{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% if extra_credential.vault_password | default('', true) | length > 0 %}
+      vault_password: "{% raw %}{{ '{{ {% endraw %}{{ extra_credential_vault_ref }}.vault_password{% raw %} }}' }}{% endraw %}"
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
 
 controller_bootstrap_controller_projects:
   - name: "{{ bootstrap_generate_env_vars_aap_project }}"
@@ -62,8 +408,99 @@ controller_bootstrap_controller_projects:
 controller_bootstrap_controller_inventories:
   - name: "{{ bootstrap_generate_env_vars_aap_inventory }}"
     organization: "{{ bootstrap_generate_env_vars_aap_org }}"
-    description: "Generated inventory"
+    description: "Generated local bootstrap inventory"
     variables: {}
+{% if rhel_component_selected or bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled %}
+
+  - name: "{{ bootstrap_generate_env_vars_rhel_inventory }}"
+    organization: "{{ bootstrap_generate_env_vars_aap_org }}"
+    description: "Generated RHEL managed host inventory"
+    variables: {}
+{% endif %}
+{% if idm_component_selected %}
+
+  - name: "{{ bootstrap_generate_env_vars_idm_inventory }}"
+    organization: "{{ bootstrap_generate_env_vars_aap_org }}"
+    description: "Generated IDM server inventory"
+    variables: {}
+{% endif %}
+{% if satellite_component_selected %}
+
+  - name: "{{ bootstrap_generate_env_vars_satellite_inventory }}"
+    organization: "{{ bootstrap_generate_env_vars_aap_org }}"
+    description: "Generated Satellite server inventory"
+    variables: {}
+{% endif %}
+
+bootstrap_controller_controller_hosts:
+  - name: localhost
+    inventory: "{{ bootstrap_generate_env_vars_aap_inventory }}"
+    description: "Local execution host"
+    enabled: true
+    variables:
+      ansible_connection: local
+{% if rhel_component_selected %}
+{% for rhel_host in bootstrap_generate_env_vars_rhel_hosts %}
+  - name: "{{ rhel_host }}"
+    inventory: "{{ bootstrap_generate_env_vars_rhel_inventory }}"
+    description: "RHEL host"
+    enabled: true
+    variables: {}
+{% endfor %}
+{% endif %}
+{% if satellite_component_selected and bootstrap_generate_env_vars_satellite_inventory_host | length > 0 %}
+  - name: "{{ bootstrap_generate_env_vars_satellite_inventory_host }}"
+    inventory: "{{ bootstrap_generate_env_vars_satellite_inventory }}"
+    description: "Satellite host"
+    enabled: true
+    variables: {}
+{% endif %}
+{% if idm_component_selected and bootstrap_generate_env_vars_idm_hostname | length > 0 %}
+  - name: "{{ bootstrap_generate_env_vars_idm_hostname }}"
+    inventory: "{{ bootstrap_generate_env_vars_idm_inventory }}"
+    description: "IDM host"
+    enabled: true
+    variables: {}
+{% endif %}
+{% if idm_component_selected and bootstrap_generate_env_vars_idm_replica_hostname | length > 0 %}
+  - name: "{{ bootstrap_generate_env_vars_idm_replica_hostname }}"
+    inventory: "{{ bootstrap_generate_env_vars_idm_inventory }}"
+    description: "IDM replica host"
+    enabled: true
+    variables: {}
+{% endif %}
+{% if openshift_component_selected and bootstrap_generate_env_vars_openshift_api_host | length > 0 %}
+  - name: "{{ bootstrap_generate_env_vars_openshift_api_host }}"
+    inventory: "{{ bootstrap_generate_env_vars_aap_inventory }}"
+    description: "OpenShift API endpoint"
+    enabled: true
+    variables:
+      ansible_connection: local
+{% endif %}
+
+controller_bootstrap_controller_inventory_sources:
+{% if bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled %}
+  - name: "{{ bootstrap_generate_env_vars_satellite_inventory_source_name }}"
+    description: "Satellite 6 dynamic inventory source"
+    inventory: "{{ bootstrap_generate_env_vars_rhel_inventory }}"
+    organization: "{{ bootstrap_generate_env_vars_aap_org }}"
+    source: satellite6
+    credential: "{{ bootstrap_generate_env_vars_satellite_credential_name }}"
+    overwrite: {{ bootstrap_generate_env_vars_satellite_inventory_overwrite | lower }}
+    overwrite_vars: {{ bootstrap_generate_env_vars_satellite_inventory_overwrite_vars | lower }}
+    update_on_launch: {{ bootstrap_generate_env_vars_satellite_inventory_update_on_launch | lower }}
+    update_cache_timeout: {{ bootstrap_generate_env_vars_satellite_inventory_update_cache_timeout }}
+    verbosity: {{ bootstrap_generate_env_vars_satellite_inventory_verbosity }}
+{% if bootstrap_generate_env_vars_satellite_inventory_host_filter | length > 0 %}
+    host_filter: "{{ bootstrap_generate_env_vars_satellite_inventory_host_filter }}"
+{% endif %}
+{% if bootstrap_generate_env_vars_satellite_inventory_source_vars | length > 0 %}
+    source_vars:
+{{ bootstrap_generate_env_vars_satellite_inventory_source_vars | to_nice_yaml(indent=2) | indent(6, true) }}
+{% endif %}
+{% else %}
+  []
+{% endif %}
 
 controller_bootstrap_controller_execution_environments:
   - name: "{{ bootstrap_generate_env_vars_aap_ee }}"
@@ -71,7 +508,7 @@ controller_bootstrap_controller_execution_environments:
     pull: missing
 
 controller_bootstrap_controller_labels:
-  - name: ado
+  - name: "{{ bootstrap_generate_env_vars_aap_org }}"
     organization: "{{ bootstrap_generate_env_vars_aap_org }}"
 
 
@@ -82,5 +519,6 @@ generate_playbook_repo_pause_for_push: "{{ not bootstrap_generate_env_vars_git_a
 generate_playbook_repo_git_url: "{{ bootstrap_generate_env_vars_aap_git_url }}"
 generate_playbook_repo_git_branch: "{{ bootstrap_generate_env_vars_aap_git_branch }}"
 generate_playbook_repo_git_remote: "origin"
+generate_playbook_repo_git_sync_before_push: true
 generate_playbook_repo_git_username: "oauth2"
 generate_playbook_repo_git_token: "{% raw %}{{ vault_controller_git_token }}{% endraw %}"

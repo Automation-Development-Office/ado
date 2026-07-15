@@ -1,0 +1,15 @@
+---
+minor_changes:
+  - >-
+    bootstrap_generate_env_vars - map OpenShift LDAP, OAuth/RHBK, route
+    discovery, and pull secret checkboxes to distinct component app keys so UI
+    and CLI payloads can select them independently.
+bugfixes:
+  - >-
+    bootstrap_generate_playbook_repo - only copy optional OpenShift LDAP,
+    OAuth/RHBK, route discovery, pull secret, and RHBK realm/client/IDP/
+    federation playbooks when their matching options are selected.
+  - >-
+    bootstrap_controller - only generate optional OpenShift and RHBK AAP job
+    templates when their matching options are selected, preventing unchecked
+    resources from being created in AAP.

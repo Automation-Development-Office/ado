@@ -27,7 +27,7 @@ controller_bootstrap_controller_projects:
     organization: "{{ '{{ controller_bootstrap_organization }}' }}"
     scm_type: git
     scm_url: ""
-    scm_branch: main
+    scm_branch: "{{ generate_env_vars_prompt_aap_project_scm_branch.user_input | default(bootstrap_generate_env_vars_default_git_branch | default('main'), true) }}"
     credential: ""
     wait: true
     update_project: true

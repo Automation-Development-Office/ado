@@ -89,3 +89,15 @@
   ansible.builtin.include_role:
     name: redhat.rhel_system_roles.cockpit
   when: "'cockpit' in rhel_ext_system_roles_apply"
+
+# --------------------------- STIG --------------------------------------------------
+- name: Apply STIG system role (if requested)
+  ansible.builtin.include_role:
+    name: redhat.rhel_system_roles.stig
+  vars:
+    stig_profile: >-
+      {{
+        rhel_ext_system_roles_vars.stig.stig_profile
+        | default(rhel_ext_system_roles_vars.stig.profile | default('stig'))
+      }}
+  when: "'stig' in rhel_ext_system_roles_apply"

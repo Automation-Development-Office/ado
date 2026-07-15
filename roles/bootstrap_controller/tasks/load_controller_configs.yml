@@ -10,10 +10,40 @@
 
 - name: AAP configs | Normalize controller projects var  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
+    controller_credentials: >-
+      {{
+        controller_bootstrap_controller_credentials
+        | default(bootstrap_controller_controller_credentials | default(controller_credentials | default([]), true), true)
+      }}
     controller_projects: >-
       {{
         controller_bootstrap_controller_projects
         | default(bootstrap_controller_controller_projects | default(controller_projects | default([]), true), true)
+      }}
+    controller_inventories: >-
+      {{
+        controller_bootstrap_controller_inventories
+        | default(bootstrap_controller_controller_inventories | default(controller_inventories | default([]), true), true)
+      }}
+    controller_inventory_sources: >-
+      {{
+        controller_bootstrap_controller_inventory_sources
+        | default(bootstrap_controller_controller_inventory_sources | default(controller_inventory_sources | default([]), true), true)
+      }}
+    controller_hosts: >-
+      {{
+        bootstrap_controller_controller_hosts
+        | default(controller_hosts | default([]), true)
+      }}
+    controller_labels: >-
+      {{
+        controller_bootstrap_controller_labels
+        | default(bootstrap_controller_controller_labels | default(controller_labels | default([]), true), true)
+      }}
+    controller_execution_environments: >-
+      {{
+        controller_bootstrap_controller_execution_environments
+        | default(bootstrap_controller_controller_execution_environments | default(controller_execution_environments | default([]), true), true)
       }}
 
 - name: AAP configs | Reset loaded job templates  # noqa: var-naming[no-role-prefix]
@@ -50,8 +80,13 @@
       }}
   loop: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/configs/workflows/*.wf.yml') }}"
 
+- name: AAP configs | Map generated workflows to dispatcher var  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_workflows: "{{ controller_workflow_job_templates }}"
+
 - name: AAP configs | Show loaded config counts
   ansible.builtin.debug:
     msg:
       - "controller_templates={{ controller_templates | length }}"
       - "controller_workflow_job_templates={{ controller_workflow_job_templates | length }}"
+      - "controller_workflows={{ controller_workflows | length }}"
