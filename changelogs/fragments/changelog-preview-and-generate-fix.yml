@@ -1,9 +1,0 @@
-bugfixes:
-  - >-
-    ci - Fix changelog generation to use ``antsibull-changelog release --version``,
-    render ``CHANGELOG.rst`` from fragments, and set GitHub Release notes from the
-    compiled changelog instead of auto-generated commit summaries.
-minor_changes:
-  - >-
-    ci - Add changelog preview for dev pre-releases, including release notes and a
-    downloadable ``CHANGELOG-preview.rst`` asset built from accumulated fragments.

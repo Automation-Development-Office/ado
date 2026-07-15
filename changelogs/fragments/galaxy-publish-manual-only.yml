@@ -1,4 +1,0 @@
-bugfixes:
-  - >-
-    ci - Move Ansible Galaxy publish to a separate manual-only workflow so GitHub
-    Release events no longer trigger automatic Galaxy publication from ``main``.

@@ -1,8 +1,0 @@
----
-minor_changes:
-  - bootstrap_controller - attach the organization label to generated AAP job
-    templates and workflow templates so each bootstrap run has an org-based
-    top-level filter label in addition to component labels.
-  - bootstrap_controller - verify the organization label exists in AAP after
-    label creation so missing domain/filter labels fail visibly during
-    bootstrap.

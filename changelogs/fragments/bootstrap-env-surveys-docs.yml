@@ -1,9 +1,0 @@
----
-bugfixes:
-  - >-
-    bootstrap_controller - include the UI or CLI supplied environment name in
-    generated AAP job and workflow template survey choices and use it as the
-    default environment.
-doc_changes:
-  - >-
-    Align bootstrap playbook examples with role README basic usage examples.
