@@ -1,0 +1,9 @@
+---
+bugfixes:
+  - >-
+    Keep Automation Hub and optional runtime collections out of galaxy.yml hard
+    dependencies so installing the built infra.ado artifact does not fail when
+    public Galaxy cannot resolve Red Hat or local-only collections.
+  - >-
+    Remove remaining install-time galaxy.yml dependency resolution so pod and
+    offline installs of infra.ado use container-provided collection tarballs.

@@ -3,38 +3,20 @@
   ansible.builtin.assert:
     that:
       - vm_name is defined
+      - vm_name | length > 0
       - vm_namespace is defined
+      - vm_namespace | length > 0
       - source_name is defined
-      - instance_type is defined
+      - source_name | length > 0
       - storage_class is defined
+      - storage_class | length > 0
     fail_msg: >
       One or more required variables are missing.
-      Please provide: vm_name, vm_namespace, storage_class, source_name, and instance_type.
+      Please provide vm_name, vm_namespace, storage_class, and source_name.
 
-- name: Create a VirtualMachine by cloning the existing datavolume
-  redhat.openshift_virtualization.kubevirt_vm:
-    validate_certs: false
-    state: present
-    name: "{{ vm_name }}"
-    namespace: "{{ vm_namespace }}"
-    labels:
-      app: "{{ app_label | default(vm_name) }}"
-    instancetype:
-      name: "{{ instance_type }}"
-    preference:
-      name: "{{ preference | default('rhel.9') }}"
-    data_volume_templates:
-      - metadata:
-          name: "{{ vm_name }}-datavolume"
-        spec:
-          sourceRef:
-            kind: "{{ source_kind | default('DataSource') }}"
-            name: "{{ source_name }}"
-            namespace: "{{ source_namespace | default('openshift-virtualization-os-images') }}"
-          storage:
-            resources: {}
-            storageClassName: "{{ storage_class }}"
-    spec:
+- name: Build VirtualMachine spec
+  ansible.builtin.set_fact:
+    ocp_virtualization_vm_spec:
       domain:
         devices:
           interfaces:
@@ -50,6 +32,63 @@
         - name: cloudinitdisk
           cloudInitNoCloud:
             userData: "{{ cloud_init_user_data }}"
+            networkData: "{{ cloud_init_network_data | default('') }}"
+
+- name: Add custom compute settings when no instance type is selected
+  ansible.builtin.set_fact:
+    ocp_virtualization_vm_spec: >-
+      {{
+        ocp_virtualization_vm_spec | combine(
+          {
+            'domain': {
+              'cpu': {'cores': cpu_cores | default(4) | int},
+              'resources': {
+                'requests': {'memory': memory | default('20Gi')}
+              }
+            }
+          },
+          recursive=True
+        )
+      }}
+  when: instance_type | default('custom') | lower in ['', 'custom']
+
+- name: Add instance type when selected
+  ansible.builtin.set_fact:
+    ocp_virtualization_instance_type:
+      name: "{{ instance_type }}"
+  when: instance_type | default('custom') | lower not in ['', 'custom']
+
+- name: Create a VirtualMachine by cloning the existing datavolume
+  redhat.openshift_virtualization.kubevirt_vm:
+    validate_certs: >-
+      {{ validate_certs | default(verify_ssl | default(false)) | bool }}
+    state: "{{ vm_state | default('present') }}"
+    name: "{{ vm_name }}"
+    namespace: "{{ vm_namespace }}"
+    running: "{{ vm_start | default(true) | bool }}"
+    labels:
+      app: "{{ app_label | default(vm_name) }}"
+    instancetype: "{{ ocp_virtualization_instance_type | default(omit) }}"
+    preference:
+      name: "{{ preference | default('rhel.9') }}"
+    data_volume_templates:
+      - metadata:
+          name: "{{ vm_name }}-datavolume"
+        spec:
+          sourceRef:
+            kind: "{{ source_kind | default('DataSource') }}"
+            name: "{{ source_name }}"
+            namespace: >-
+              {{
+                source_namespace
+                | default('openshift-virtualization-os-images')
+              }}
+          storage:
+            resources:
+              requests:
+                storage: "{{ root_disk_size | default('120Gi') }}"
+            storageClassName: "{{ storage_class }}"
+    spec: "{{ ocp_virtualization_vm_spec }}"
     wait: true
     wait_timeout: "{{ wait_timeout | default(3600) }}"
 
@@ -62,3 +101,6 @@
   until: ocp_virtualization_vm_status.result.status.printableStatus == "Running"
   retries: 60
   delay: 5
+  when:
+    - vm_start | default(true) | bool
+    - vm_state | default('present') == 'present'

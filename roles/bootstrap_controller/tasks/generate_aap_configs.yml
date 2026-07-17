@@ -221,6 +221,9 @@
 
       openshift: []
 
+      openshift_virt:
+        - ado-provision-openshift-virt-vm-bootstrap.jt.yml
+
       pega:
         - ado-pega-install-and-configure-bootstrap.jt.yml
 
@@ -406,20 +409,32 @@
         text = text.replace(f"{organization} | ADO ", f"{organization} | ")
 
         data = yaml.safe_load(text)
+
+        def normalize_survey_choices(question):
+            choices = question.get("choices")
+            if choices is None:
+                return
+
+            if isinstance(choices, list):
+                question["choices"] = "\n".join(str(choice) for choice in choices)
+                return
+
+            if not isinstance(choices, str):
+                return
+
+            collapsed = " ".join(choices.split())
+            variable = question.get("variable")
+            if variable == "state" and collapsed == "present absent":
+                question["choices"] = state_choices_yaml
+            elif variable == "state" and collapsed == "add update delete":
+                question["choices"] = console_banner_state_choices_yaml
+            elif variable == "env" and collapsed == " ".join(environment_choices):
+                question["choices"] = environment_choices_yaml
+
         for template in data.get("controller_templates", []) or []:
             survey_spec = template.get("survey_spec", {}) or {}
             for question in survey_spec.get("spec", []) or []:
-                choices = question.get("choices")
-                if question.get("variable") == "state" and choices in (
-                    "add update delete",
-                    console_banner_state_choices_yaml,
-                ):
-                    question["choices"] = console_banner_state_choices_yaml
-                if question.get("variable") == "env" and choices in (
-                    " ".join(environment_choices),
-                    environment_choices_yaml,
-                ):
-                    question["choices"] = environment_choices_yaml
+                normalize_survey_choices(question)
         text = yaml.safe_dump(data, sort_keys=False)
 
         (dest_dir / name).write_text(text)

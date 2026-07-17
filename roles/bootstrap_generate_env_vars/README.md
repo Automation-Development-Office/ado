@@ -37,13 +37,22 @@ Automation Development Office
 | `bootstrap_generate_env_vars_aap_additional_credentials` | Additional AAP credentials to add to generated controller config. Secret-capable fields are written to `aap_vault.yml`. |
 | `bootstrap_generate_env_vars_hub_publish_ado_collection` | Enables generated vars for adding the ADO collection to Automation Hub. Default `true`. |
 | `bootstrap_generate_env_vars_hub_mark_ado_validated` | Targets the generated ADO collection hub entry at validated content when enabled. Default `true`. |
+| `bootstrap_generate_env_vars_hub_force_ado_collection_update` | Forces the ADO collection publish task to overwrite an existing Hub version when Hub allows it. Default `true`. |
 | `bootstrap_generate_env_vars_hub_ado_collection_path` | Local ADO collection path used by generated hub collection vars. Default `.`. |
+| `bootstrap_generate_env_vars_aap_ee_image` | Execution environment image used when creating or updating the default AAP execution environment. Default `registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest`. |
 | `bootstrap_generate_env_vars_satellite_server_url` | Satellite server URL written to `vars_satellite.yml`. |
 | `bootstrap_generate_env_vars_satellite_organization` | Satellite organization written to `vars_satellite.yml`. |
 | `bootstrap_generate_env_vars_satellite_service_account_username` | Satellite service account username used by `satellite_config`. |
 | `bootstrap_generate_env_vars_satellite_service_account_password` | Satellite service account password written to `vault_satellite.yml`. |
 | `bootstrap_generate_env_vars_satellite_admin_password` | Satellite admin password written to `vault_satellite.yml`; defaults to the service account password when omitted. |
-| `bootstrap_generate_env_vars_satellite_validate_certs` | Satellite TLS validation setting. Default `false`. |
+| `bootstrap_generate_env_vars_satellite_validate_certs` | Satellite TLS validation setting. Default `false`; also renders `validate_certs` into the Satellite dynamic inventory source vars. |
+| `bootstrap_generate_env_vars_satellite_deployment_version` | Satellite version written to `satellite_config_satellite_deployment_version` and `satellite_install_satellite_deployment_version`. Default `6.19`. |
+| `bootstrap_generate_env_vars_satellite_location` | Logical Satellite install location, such as `AWS` or `primary-dc`. |
+| `bootstrap_generate_env_vars_satellite_rhn_org_id` | RHN organization ID used when registering the Satellite server host. |
+| `bootstrap_generate_env_vars_satellite_rhn_activation_key` | RHN activation key used when registering the Satellite server host. |
+| `bootstrap_generate_env_vars_satellite_size_profile` | Selected Satellite sizing profile. Default `default`. |
+| `bootstrap_generate_env_vars_satellite_size` | Satellite sizing tier list used to derive install RAM/CPU checks and the installer tuning profile. |
+| `bootstrap_generate_env_vars_satellite_req_dirs` | Satellite storage mount definitions written to `satellite_install_satellite_req_dirs`. |
 | `bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled` | Creates a Satellite 6 dynamic inventory source in AAP when true. Default `false`; preflight JSON defaults to `true` when Satellite is selected and the setting is omitted. |
 | `bootstrap_generate_env_vars_satellite_credential_name` | AAP credential name for the Satellite 6 inventory source. |
 | `bootstrap_generate_env_vars_satellite_inventory_source_name` | AAP inventory source name for Satellite dynamic inventory. |

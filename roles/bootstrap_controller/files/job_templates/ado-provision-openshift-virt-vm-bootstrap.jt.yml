@@ -1,0 +1,198 @@
+---
+controller_templates:
+  - name: ADO | Provision OpenShift Virt VM
+    description: Bootstrap - Provision an OpenShift Virtualization VM
+    organization: '{{ bootstrap_controller_organization }}'
+    playbook: >-
+      playbooks/provision/ado-provision-openshift-virt-vm-bootstrap.yml
+    inventory: '{{ bootstrap_controller_inventory_name }}'
+    project: '{{ bootstrap_controller_project_name }}'
+    execution_environment: >-
+      {{ bootstrap_controller_execution_environment_name }}
+    credentials:
+      - '{{ bootstrap_controller_creds }}'
+    related: null
+    labels:
+      - name: ADO | bootstrap
+        organization: '{{ bootstrap_controller_organization }}'
+      - name: ADO | provision
+        organization: '{{ bootstrap_controller_organization }}'
+      - name: ADO | openshift-virt
+        organization: '{{ bootstrap_controller_organization }}'
+    extra_vars: {}
+    survey_enabled: true
+    survey_spec:
+      name: ADO | Provision OpenShift Virt VM Survey
+      description: >-
+        Configuration options for OpenShift Virtualization VM provisioning
+      spec:
+        - question_name: ADO | Do you want to create or remove?
+          question_description: >-
+            Create (present) or remove (absent) generated VM resources
+          required: true
+          type: multiplechoice
+          variable: state
+          choices: '{{ bootstrap_controller_state_choices }}'
+          default: '{{ bootstrap_controller_default_state }}'
+        - question_name: ADO | What environment?
+          question_description: Target environment
+          required: true
+          type: multiplechoice
+          variable: env
+          choices: '{{ bootstrap_controller_environment_choices }}'
+          default: '{{ bootstrap_controller_default_environment }}'
+        - question_name: ADO | VM namespace
+          question_description: OpenShift namespace where the VM will be created
+          required: false
+          type: text
+          variable: provision_openshift_virt_namespace
+          default: rhel-vms
+        - question_name: ADO | VM name
+          question_description: Name of the VirtualMachine resource
+          required: false
+          type: text
+          variable: provision_openshift_virt_vm_name
+          default: satellite-server
+        - question_name: ADO | Guest hostname
+          question_description: Hostname written into cloud-init for the guest
+          required: false
+          type: text
+          variable: provision_openshift_virt_hostname
+          default: satellite-server
+        - question_name: ADO | Boot image
+          question_description: OpenShift Virtualization boot image/DataSource
+          required: false
+          type: multiplechoice
+          variable: provision_openshift_virt_source_name
+          choices:
+            - rhel9
+            - rhel10
+          default: rhel9
+        - question_name: ADO | Preference
+          question_description: VirtualMachine preference to apply
+          required: false
+          type: multiplechoice
+          variable: provision_openshift_virt_preference
+          choices:
+            - rhel.9
+            - rhel.10
+          default: rhel.9
+        - question_name: ADO | Source namespace
+          question_description: Namespace containing the boot image/DataSource
+          required: false
+          type: text
+          variable: provision_openshift_virt_source_namespace
+          default: openshift-virtualization-os-images
+        - question_name: ADO | Instance type
+          question_description: Use custom to apply CPU and memory values below
+          required: false
+          type: multiplechoice
+          variable: provision_openshift_virt_instance_type
+          choices:
+            - u1.large
+            - u1.xlarge
+            - u1.2xlarge
+            - custom
+          default: u1.xlarge
+        - question_name: ADO | CPU cores
+          question_description: Used when instance type is custom
+          required: false
+          type: integer
+          variable: provision_openshift_virt_cpu_cores
+          default: 4
+        - question_name: ADO | Memory
+          question_description: Used when instance type is custom
+          required: false
+          type: text
+          variable: provision_openshift_virt_memory
+          default: 20Gi
+        - question_name: ADO | Root disk size
+          question_description: Size of the VM root disk
+          required: false
+          type: text
+          variable: provision_openshift_virt_root_disk_size
+          default: 120Gi
+        - question_name: ADO | Storage class
+          question_description: StorageClass used for the VM root disk
+          required: false
+          type: text
+          variable: provision_openshift_virt_storage_class
+          default: synology-nfs-csi
+        - question_name: ADO | Network name
+          question_description: VM network name from the template spec
+          required: false
+          type: text
+          variable: provision_openshift_virt_network_name
+          default: default
+        - question_name: ADO | Cloud user
+          question_description: Login user created by cloud-init
+          required: false
+          type: text
+          variable: provision_openshift_virt_cloud_user
+          default: cloud-user
+        - question_name: ADO | Cloud user password
+          question_description: Optional password for the cloud-init user
+          required: false
+          type: password
+          variable: provision_openshift_virt_cloud_user_password
+          default: ""
+        - question_name: ADO | Enable root SSH
+          question_description: Enable SSH login for root
+          required: false
+          type: multiplechoice
+          variable: provision_openshift_virt_enable_root_ssh
+          choices:
+            - "false"
+            - "true"
+          default: "false"
+        - question_name: ADO | Root password
+          question_description: Optional root password
+          required: false
+          type: password
+          variable: provision_openshift_virt_root_password
+          default: ""
+        - question_name: ADO | Interface name
+          question_description: Guest interface for static network config
+          required: false
+          type: text
+          variable: provision_openshift_virt_interface_name
+          default: eth0
+        - question_name: ADO | Static IP address
+          question_description: Optional static IP for the guest
+          required: false
+          type: text
+          variable: provision_openshift_virt_static_ip
+          default: ""
+        - question_name: ADO | Static IP prefix length
+          question_description: CIDR prefix length for the static IP
+          required: false
+          type: integer
+          variable: provision_openshift_virt_prefix_length
+          default: 24
+        - question_name: ADO | Gateway
+          question_description: Optional gateway for static network config
+          required: false
+          type: text
+          variable: provision_openshift_virt_gateway
+          default: ""
+        - question_name: ADO | DNS servers
+          question_description: Optional comma-separated DNS servers
+          required: false
+          type: text
+          variable: provision_openshift_virt_dns_servers
+          default: ""
+        - question_name: ADO | Start VM
+          question_description: Start the VM after create/update
+          required: false
+          type: multiplechoice
+          variable: provision_openshift_virt_start
+          choices:
+            - "true"
+            - "false"
+          default: "true"
+        - question_name: ADO | Wait timeout
+          question_description: Wait timeout in seconds
+          required: false
+          type: integer
+          variable: provision_openshift_virt_wait_timeout
+          default: 3600

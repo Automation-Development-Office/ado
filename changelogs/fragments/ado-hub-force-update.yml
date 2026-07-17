@@ -1,0 +1,8 @@
+---
+minor_changes:
+  - >-
+    bootstrap_generate_env_vars - Added a generated force-update toggle for
+    publishing the bundled infra.ado collection to validated content in AAP Hub.
+  - >-
+    bootstrap_controller - Publishes the generated infra.ado collection to AAP
+    Hub on AAP 2.5+ runs when the Hub publish option is enabled.

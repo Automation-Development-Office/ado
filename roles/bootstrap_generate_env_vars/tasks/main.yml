@@ -795,14 +795,39 @@
                     vars_data["satellite_config_server_url"] = satellite_url
                 if public_values.get("organization"):
                     vars_data["satellite_config_organization"] = public_values["organization"]
-                if public_values.get("activation_key"):
-                    vars_data["satellite_activation_key"] = public_values["activation_key"]
                 if public_values.get("service_account_username"):
                     vars_data["satellite_config_username"] = public_values["service_account_username"]
                     vars_data["satellite_service_account_username"] = public_values["service_account_username"]
                     vault_data["vault_satellite_service_account_username"] = public_values["service_account_username"]
                 if "validate_certs" in public_values:
                     vars_data["satellite_config_validate_certs"] = public_values["validate_certs"]
+                if public_values.get("deployment_version"):
+                    vars_data["satellite_config_satellite_deployment_version"] = public_values["deployment_version"]
+                    vars_data["satellite_install_satellite_deployment_version"] = public_values["deployment_version"]
+                if public_values.get("location"):
+                    vars_data["satellite_install_satellite_location"] = public_values["location"]
+                if public_values.get("rhn_org_id"):
+                    vars_data["satellite_install_satellite_rhn_org_id"] = public_values["rhn_org_id"]
+                    vars_data["satellite_install_satellite_rhn_connected"] = True
+                if public_values.get("req_dirs"):
+                    vars_data["satellite_install_satellite_req_dirs"] = public_values["req_dirs"]
+                    vars_data["satellite_install_req_dirs"] = public_values["req_dirs"]
+                if public_values.get("size"):
+                    vars_data["satellite_install_satellite_size"] = public_values["size"]
+                if public_values.get("size_profile"):
+                    vars_data["satellite_install_satellite_size_profile"] = public_values["size_profile"]
+                    satellite_sizes = vars_data.get("satellite_install_satellite_size") or []
+                    selected_size = next(
+                        (
+                            item for item in satellite_sizes
+                            if isinstance(item, dict) and item.get("name") == public_values["size_profile"]
+                        ),
+                        {},
+                    )
+                    if selected_size.get("min_ram") is not None:
+                        vars_data["satellite_install_satellite_min_memory_size"] = int(selected_size["min_ram"]) * 1024
+                    if selected_size.get("min_cpu") is not None:
+                        vars_data["satellite_install_satellite_min_cpu_count"] = int(selected_size["min_cpu"])
 
             if component == "cert_manager":
                 if public_values.get("mode"):
@@ -896,6 +921,17 @@
                 if secret_values.get("admin_password") is not None:
                     vault_data["vault_satellite_admin_password"] = secret_values["admin_password"]
                     vault_data["satellite_config_admin_password"] = secret_values["admin_password"]
+                    vault_data["satellite_install_satellite_admin_password"] = secret_values["admin_password"]
+                rhn_activation_key = (
+                    secret_values.get("admin_rhn_activation_key")
+                    or secret_values.get("rhn_activation_key")
+                    or secret_values.get("activation_key")
+                )
+                if rhn_activation_key is not None:
+                    vault_data["vault_satellite_rhn_activation_key"] = rhn_activation_key
+                    vault_data["satellite_install_satellite_rhn_activation_key"] = rhn_activation_key
+                    vault_data["satellite_activation_key"] = rhn_activation_key
+                    vars_data["satellite_install_satellite_rhn_connected"] = True
 
             if component == "cert_manager":
                 if secret_values.get("tls_key") is not None:

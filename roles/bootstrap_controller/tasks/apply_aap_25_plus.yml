@@ -48,6 +48,21 @@
   loop: "{{ bootstrap_controller_controller_inventories | default([]) }}"
   when: bootstrap_controller_controller_inventories | default([]) | length > 0
 
+- name: AAP 2.5+ | Publish ADO collection to AAP Hub
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.hub_publish
+  vars:
+    aap_hostname: "{{ controller_host | default(vault_controller_hostname) }}"
+    aap_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    aap_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    hub_token: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    aap_validate_certs: "{{ controller_validate_certs | default(false) }}"
+    ah_auto_approve: "{{ bootstrap_controller_hub_mark_ado_validated | default(true) | bool }}"
+    ah_overwrite_existing: "{{ bootstrap_controller_hub_force_ado_collection_update | default(true) | bool }}"
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - hub_collections | default([]) | length > 0
+
 - name: AAP 2.5+ | Reset generated job template list  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     controller_templates: []
@@ -626,6 +641,10 @@
       }}
   when:
     - >-
+      bootstrap_controller_skip_unavailable_satellite_dynamic_inventory
+      | default(false)
+      | bool
+    - >-
       bootstrap_controller_satellite_dynamic_inventory_sources
       | default([])
       | length > 0
@@ -649,6 +668,10 @@
       optional Satellite dynamic inventory credential and inventory source were
       skipped. The rest of the bootstrap will continue.
   when:
+    - >-
+      bootstrap_controller_skip_unavailable_satellite_dynamic_inventory
+      | default(false)
+      | bool
     - >-
       bootstrap_controller_satellite_dynamic_inventory_sources
       | default([])
@@ -682,9 +705,30 @@
         var: controller_execution_environments
         tags: execution_environments
 
-- name: AAP 2.5+ | Apply inventory sources
-  ansible.builtin.include_role:
-    name: infra.aap_configuration.controller_inventory_sources
+- name: AAP 2.5+ | Apply inventory sources directly
+  ansible.controller.inventory_source:
+    name: "{{ item.name }}"
+    description: "{{ item.description | default(omit) }}"
+    inventory: "{{ item.inventory }}"
+    organization: "{{ item.organization | default(omit) }}"
+    source: "{{ item.source | default(omit) }}"
+    credential: "{{ item.credential | default(omit) }}"
+    overwrite: "{{ item.overwrite | default(omit) }}"
+    overwrite_vars: "{{ item.overwrite_vars | default(omit) }}"
+    update_on_launch: "{{ item.update_on_launch | default(omit) }}"
+    update_cache_timeout: "{{ item.update_cache_timeout | default(omit) }}"
+    verbosity: "{{ item.verbosity | default(omit) }}"
+    host_filter: "{{ item.host_filter | default(omit) }}"
+    source_vars: "{{ item.source_vars | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ controller_inventory_sources | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: controller_inventory_sources | default([]) | length > 0
 
 - name: AAP 2.5+ | Load controller configs before project sync

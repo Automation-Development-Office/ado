@@ -74,6 +74,21 @@ satellite_config_password: "{% raw %}{{ vault_satellite_service_account_password
 satellite_config_admin_password: "{% raw %}{{ vault_satellite_admin_password | default(vault_satellite_service_account_password | default(omit)) }}{% endraw %}"
 satellite_config_organization: "{{ bootstrap_generate_env_vars_satellite_organization | default('') }}"
 satellite_config_validate_certs: {{ bootstrap_generate_env_vars_satellite_validate_certs | default(false) | bool | lower }}
+satellite_config_satellite_deployment_version: "{{ bootstrap_generate_env_vars_satellite_deployment_version | default('6.19') }}"
+satellite_install_satellite_deployment_version: "{{ bootstrap_generate_env_vars_satellite_deployment_version | default('6.19') }}"
+satellite_install_satellite_location: "{{ bootstrap_generate_env_vars_satellite_location | default('') }}"
+satellite_install_satellite_rhn_connected: {{ ((bootstrap_generate_env_vars_satellite_rhn_org_id | default('') | length) > 0 and (bootstrap_generate_env_vars_satellite_rhn_activation_key | default('') | length) > 0) | bool | lower }}
+satellite_install_satellite_rhn_org_id: "{{ bootstrap_generate_env_vars_satellite_rhn_org_id | default('') }}"
+satellite_install_satellite_rhn_activation_key: "{% raw %}{{ vault_satellite_rhn_activation_key | default(omit) }}{% endraw %}"
+satellite_install_satellite_size_profile: "{{ bootstrap_generate_env_vars_satellite_size_profile | default('default') }}"
+satellite_install_satellite_size:
+{{ bootstrap_generate_env_vars_satellite_size | to_nice_yaml(indent=2) | indent(2, true) }}
+{% set selected_satellite_size = (bootstrap_generate_env_vars_satellite_size | default([]) | selectattr('name', 'equalto', bootstrap_generate_env_vars_satellite_size_profile | default('default')) | first | default({})) %}
+satellite_install_satellite_min_memory_size: {{ (selected_satellite_size.min_ram | default(20) | int) * 1024 }}
+satellite_install_satellite_min_cpu_count: {{ selected_satellite_size.min_cpu | default(4) | int }}
+satellite_install_satellite_req_dirs:
+{{ bootstrap_generate_env_vars_satellite_req_dirs | to_nice_yaml(indent=2) | indent(2, true) }}
+satellite_install_req_dirs: "{% raw %}{{ satellite_install_satellite_req_dirs }}{% endraw %}"
 
 {% elif component_name == 'eck' %}
 components_env:
@@ -95,6 +110,35 @@ ocp_awspca_pca_arn: ""
 idm:
   acme_directory_url: ""
   ca_bundle_file: ""
+
+{% elif component_name == 'openshift_virt' %}
+{% set openshift_virt_config = bootstrap_generate_env_vars_preflight.component_config.openshift_virt | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+provision_openshift_virt_api_host: {{ openshift_virt_config.api_host | default(bootstrap_generate_env_vars_openshift_virt_api_host | default(''), true) | to_json }}
+provision_openshift_virt_skip_tls_verify: {{ openshift_virt_config.skip_tls_verify | default(bootstrap_generate_env_vars_openshift_virt_skip_tls_verify | default(true)) | bool | lower }}
+provision_openshift_virt_namespace: {{ bootstrap_generate_env_vars_openshift_virt_namespace | default('default', true) | to_json }}
+provision_openshift_virt_vm_name: {{ bootstrap_generate_env_vars_openshift_virt_vm_name | default('satellite-server', true) | to_json }}
+provision_openshift_virt_hostname: {{ bootstrap_generate_env_vars_openshift_virt_hostname | default('satellite-server', true) | to_json }}
+provision_openshift_virt_source_kind: {{ bootstrap_generate_env_vars_openshift_virt_source_kind | default('DataSource', true) | to_json }}
+provision_openshift_virt_source_name: {{ bootstrap_generate_env_vars_openshift_virt_source_name | default('rhel9', true) | to_json }}
+provision_openshift_virt_source_namespace: {{ bootstrap_generate_env_vars_openshift_virt_source_namespace | default('openshift-virtualization-os-images', true) | to_json }}
+provision_openshift_virt_instance_type: {{ bootstrap_generate_env_vars_openshift_virt_instance_type | default('u1.xlarge', true) | to_json }}
+provision_openshift_virt_preference: {{ bootstrap_generate_env_vars_openshift_virt_preference | default('rhel.9', true) | to_json }}
+provision_openshift_virt_cpu_cores: {{ bootstrap_generate_env_vars_openshift_virt_cpu_cores | default(4, true) | int }}
+provision_openshift_virt_memory: {{ bootstrap_generate_env_vars_openshift_virt_memory | default('20Gi', true) | to_json }}
+provision_openshift_virt_storage_class: {{ bootstrap_generate_env_vars_openshift_virt_storage_class | default('', true) | to_json }}
+provision_openshift_virt_root_disk_size: {{ bootstrap_generate_env_vars_openshift_virt_root_disk_size | default('120Gi', true) | to_json }}
+provision_openshift_virt_network_name: {{ bootstrap_generate_env_vars_openshift_virt_network_name | default('default', true) | to_json }}
+provision_openshift_virt_cloud_user: {{ bootstrap_generate_env_vars_openshift_virt_cloud_user | default('cloud-user', true) | to_json }}
+provision_openshift_virt_ssh_public_key: {{ openshift_virt_config.ssh_public_key | default(bootstrap_generate_env_vars_openshift_virt_ssh_public_key | default(''), true) | to_json }}
+provision_openshift_virt_enable_root_ssh: {{ bootstrap_generate_env_vars_openshift_virt_enable_root_ssh | default(false) | bool | lower }}
+provision_openshift_virt_interface_name: {{ bootstrap_generate_env_vars_openshift_virt_interface_name | default('eth0', true) | to_json }}
+provision_openshift_virt_static_ip: {{ bootstrap_generate_env_vars_openshift_virt_static_ip | default('', true) | to_json }}
+provision_openshift_virt_prefix_length: {{ bootstrap_generate_env_vars_openshift_virt_prefix_length | default(24, true) | int }}
+provision_openshift_virt_gateway: {{ bootstrap_generate_env_vars_openshift_virt_gateway | default('', true) | to_json }}
+provision_openshift_virt_dns_servers: {{ bootstrap_generate_env_vars_openshift_virt_dns_servers | default([], true) | to_json }}
+provision_openshift_virt_app_label: {{ bootstrap_generate_env_vars_openshift_virt_app_label | default('satellite-server', true) | to_json }}
+provision_openshift_virt_start: {{ bootstrap_generate_env_vars_openshift_virt_start | default(true) | bool | lower }}
+provision_openshift_virt_wait_timeout: {{ bootstrap_generate_env_vars_openshift_virt_wait_timeout | default(3600, true) | int }}
 
 {% elif component_name == 'rhbk' %}
 components_env:

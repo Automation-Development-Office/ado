@@ -1,0 +1,10 @@
+---
+bugfixes:
+  - >-
+    Apply generated AAP inventory sources directly with ansible.controller so
+    Satellite dynamic inventory sources are created when enabled from either
+    the UI preflight JSON or CLI variables.
+  - >-
+    Stop silently removing checked Satellite dynamic inventory sources during
+    AAP credential-type preflight unless the compatibility skip flag is
+    explicitly enabled.

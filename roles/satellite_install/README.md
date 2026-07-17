@@ -33,7 +33,8 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `satellite_install_force_reinstall` | When `true`, rerun the Satellite installer even if Satellite services already appear to be installed | ❌ | `false` |
 | `satellite_install_satellite_deployment_version` | Target Satellite version validated during checks and used in RHSM repo names | ✅ | `""` |
 | `satellite_install_satellite_location` | Logical location/name for the Satellite deployment | ✅ | `""` |
-| `satellite_install_satellite_min_memory_size` | Minimum required memory in MB (`ansible_facts["memtotal_mb"]`) | ❌ | `1024` |
+| `satellite_install_satellite_size_profile` | Selected tuning profile name. When set, `templates/tuning_profile.j2` uses this directly. | ❌ | `"default"` |
+| `satellite_install_satellite_min_memory_size` | Minimum required memory in MB (`ansible_facts["memtotal_mb"]`) | ❌ | `20480` |
 | `satellite_install_satellite_min_cpu_count` | Minimum required vCPU count and input to the Satellite tuning profile template | ❌ | `4` |
 | `satellite_install_satellite_rhn_connected` | When `true`, validate RHSM credentials during preliminary checks | ❌ | `false` |
 | `satellite_install_satellite_rhn_org_id` | RHSM organization ID used for host registration | ✅* | `""` |
@@ -46,7 +47,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `satellite_install_satellite_proxy_scheme` | Optional RHSM proxy scheme (`http` or `https`) passed to `redhat_subscription` | ❌ | `""` |
 | `satellite_install_satellite_selinux_state` | SELinux state applied after package updates | ❌ | `"enforcing"` |
 | `satellite_install_satellite_vg_name` | LVM volume group name for Satellite storage | ❌ | `"satellite"` |
-| `satellite_install_satellite_req_dirs` | List of logical volumes to create and mount; each item requires `lv_name`, `lv_size`, and `mount_point` | ❌† | `[]` |
+| `satellite_install_satellite_req_dirs` | List of logical volumes to create and mount; each item requires `lv_name`, `lv_size`, and `mount_point` | ❌† | `/var/lib/pulp` and `/var/lib/pgsql` defaults |
 | `satellite_install_satellite_data_disk_min_size` | Minimum disk size used when auto-selecting an unpartitioned data disk | ❌ | `"10G"` |
 | `satellite_install_satellite_data_device_name` | Disk device basename override when auto-discovery finds multiple suitable disks | ❌ | `""` |
 | `satellite_install_satellite_data_device` | Base device path prefix joined with the selected disk (for example `/dev/sdb`) | ❌ | `"/dev"` |
@@ -54,7 +55,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `satellite_install_satellite_dns_device` | NetworkManager connection name updated by the DNS configuration tasks | ✅‡ | `""` |
 | `satellite_install_satellite_dns_servers` | DNS servers applied via NetworkManager and `/etc/resolv.conf` | ❌ | `[]` |
 | `satellite_install_satellite_dns_search` | DNS search domains applied via NetworkManager | ❌ | `[]` |
-| `satellite_install_satellite_size` | List of tuning tiers (`name`, `min_cpu`) used by `templates/tuning_profile.j2` to select the `satellite-installer --tuning` profile. Must include tier names `default`, `medium`, `large`, `extra-large`, and `extra-extra-large`. | ✅§ | Not defined in role defaults |
+| `satellite_install_satellite_size` | List of tuning tiers (`name`, `min_hosts`, `max_hosts`, `min_ram`, `min_cpu`) used by `templates/tuning_profile.j2` to select the `satellite-installer --tuning` profile. Must include tier names `default`, `medium`, `large`, `extra-large`, and `extra-extra-large`. | ❌§ | See `defaults/main.yml` |
 
 > **Notes:**
 > \* Required when `satellite_install_satellite_rhn_connected: true`
@@ -86,36 +87,24 @@ Define the Satellite installation configuration in your playbook or inventory us
   become: true
   vars:
     satellite_install_pre_check: false
-    satellite_install_satellite_deployment_version: "6.16"
-    satellite_install_satellite_location: primary-dc
+    satellite_install_satellite_deployment_version: "6.19"
+    satellite_install_satellite_location: AWS
     satellite_install_satellite_rhn_connected: true
     satellite_install_satellite_rhn_org_id: "12345678"
     satellite_install_satellite_rhn_activation_key: "satellite-rhel9"
     satellite_install_satellite_admin_password: "StrongAdminPassword123!"
     satellite_install_satellite_timezone: America/New_York
-    satellite_install_satellite_min_memory_size: 20480
-    satellite_install_satellite_min_cpu_count: 4
-    satellite_install_satellite_size:
-      - name: default
-        min_cpu: 4
-      - name: medium
-        min_cpu: 8
-      - name: large
-        min_cpu: 12
-      - name: extra-large
-        min_cpu: 16
-      - name: extra-extra-large
-        min_cpu: 24
+    satellite_install_satellite_size_profile: default
     satellite_install_satellite_vg_name: satellite
     satellite_install_satellite_data_device: /dev
     satellite_install_satellite_data_disk_min_size: "500G"
     satellite_install_satellite_req_dirs:
-      - lv_name: pulp
-        lv_size: 250G
-        mount_point: /var/lib/pulp
-      - lv_name: postgres
-        lv_size: 20G
-        mount_point: /var/lib/pgsql
+      - mount_point: /var/lib/pulp
+        lv_name: lv_rhspulp
+        lv_size: 300g
+      - mount_point: /var/lib/pgsql
+        lv_name: lv_pgsql
+        lv_size: 20g
     satellite_install_satellite_dns_device: ens192
     satellite_install_satellite_dns_servers:
       - 10.0.0.10
