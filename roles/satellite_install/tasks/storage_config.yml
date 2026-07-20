@@ -98,4 +98,3 @@
     fstype: xfs
     state: mounted
   loop: "{{ satellite_install_req_dirs }}"
-
