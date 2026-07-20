@@ -283,3 +283,103 @@ releases:
     - satellite_config_third_party_products_condition.yml
     - shebang-sanity-fix.yml
     release_date: '2026-07-15'
+  1.0.1:
+    changes:
+      bugfixes:
+      - Apply generated AAP inventory sources directly with ansible.controller so
+        Satellite dynamic inventory sources are created when enabled from either the
+        UI preflight JSON or CLI variables.
+      - Generated env var YAML now suppresses YAML anchors and preserves machine credential
+        SSH private keys with a trailing newline instead of extra spaces.
+      - Keep Automation Hub and optional runtime collections out of galaxy.yml hard
+        dependencies so installing the built infra.ado artifact does not fail when
+        public Galaxy cannot resolve Red Hat or local-only collections.
+      - Normalize generated AAP survey choices so list values remain separate options
+        instead of collapsing into a single dropdown entry.
+      - Remove remaining install-time galaxy.yml dependency resolution so pod and
+        offline installs of infra.ado use container-provided collection tarballs.
+      - Satellite RHN organization IDs and activation keys are written as vault-backed
+        values, with activation keys preserved when supplied by the UI.
+      - Satellite bootstrap playbooks now load generated env vars from the project
+        root when running under AAP and enable become where host changes require it.
+      - Satellite install VG name is now generated from preflight/CLI input and raw
+        installer-only fields are no longer duplicated under generic component config.
+      - Satellite install role defaults and task references now consistently use `satellite_install_rhn_*`,
+        `satellite_install_size*`, `satellite_install_min_*`, and other non-duplicated
+        install variable names.
+      - Satellite storage install variables now use the names consumed by the storage
+        tasks, including `satellite_install_vg_name`, `satellite_install_req_dirs`,
+        and `satellite_install_data_*`.
+      - Stop silently removing checked Satellite dynamic inventory sources during
+        AAP credential-type preflight unless the compatibility skip flag is explicitly
+        enabled.
+      - bootstrap_controller - Corrects AAP controller auth preflight messages to
+        reference the generated aap_vault.yml file.
+      - bootstrap_controller - Loads generated AAP config variables and enables the
+        AAP apply path for collection-only Hub update runs so the Hub publish step
+        is not skipped.
+      - bootstrap_controller - Passes the generated AAP Hub repository target when
+        publishing infra.ado so collection updates land in validated content instead
+        of the published repository.
+      - bootstrap_controller - Stops waiting indefinitely on AAP Hub collection import
+        processing after the upload is submitted so UI runs can return the final recap.
+      - bootstrap_generate_env_vars - Handles empty component and platform lists when
+        running in AAP Hub collection-only update mode.
+      - bootstrap_generate_env_vars - Treats an empty Satellite deployment version
+        as missing and writes the default 6.19 value.
+      - bootstrap_generate_env_vars - point the generated AAP execution environment
+        at the supported AAP 2.6 RHEL 9 execution environment image instead of the
+        generic AWX EE image so Satellite inventory syncs can load redhat.satellite.foreman.
+      - bootstrap_generate_env_vars - render the Satellite TLS validation setting
+        into dynamic inventory source vars so AAP Satellite inventory syncs honor
+        the UI and CLI skip TLS setting.
+      - bootstrap_generate_playbook_repo - Generates project collection requirements
+        with an infra.ado version pin and AAP Hub source URL so AAP project syncs
+        install the collection version containing newly generated roles such as ocp_virtualization.
+      - satellite_config - Defaults the Satellite deployment version to 6.19 for repository
+        label generation.
+      - satellite_install - Defaults the Satellite deployment version to 6.19 so installs
+        do not fail preliminary validation when generated vars omit the version.
+      minor_changes:
+      - Add OpenShift Virtualization VM launch survey options for image preference,
+        instance type, custom CPU and memory, disk size, static networking, password
+        setup, and optional root SSH.
+      - Add Satellite install sizing, storage mount, deployment version, RHN organization,
+        location, admin password, and activation key defaults to the bootstrap env
+        var generator so UI and CLI preflight runs can populate the Satellite install
+        role.
+      - Add default Satellite install tuning tiers and storage mount definitions to
+        the Satellite install role.
+      - Add optional OpenShift Virtualization VM provisioning to bootstrap generation,
+        including component vars, generated playbook repo content, and an AAP job
+        template for CLI and UI preflight runs.
+      - Limit OpenShift Virtualization preflight-derived values to the OpenShift API
+        endpoint, API token, TLS verification setting, and SSH public key so VM sizing
+        and guest customization are controlled from the AAP launch survey.
+      - bootstrap_controller - Publishes the generated infra.ado collection to AAP
+        Hub on AAP 2.5+ runs when the Hub publish option is enabled.
+      - bootstrap_controller - Stops after the AAP Hub publish step when the collection-only
+        update flag is enabled.
+      - bootstrap_generate_env_vars - Added a collection-only Hub update flag so callers
+        can update infra.ado in AAP Hub without generating component bootstrap content.
+      - bootstrap_generate_env_vars - Added a generated force-update toggle for publishing
+        the bundled infra.ado collection to validated content in AAP Hub.
+      - collection - Fill out galaxy metadata with ADO project links, tags, and runtime
+        collection dependencies.
+      - collection - Standardize the collection and role Ansible requirement metadata
+        on ansible-core 2.16.
+      - roles - Flatten task entrypoints that only imported a single task file.
+    fragments:
+    - ado-hub-force-update.yml
+    - bootstrap-controller-survey-choice-normalization.yml
+    - bootstrap-requirements-version.yml
+    - bootstrap-satellite-dynamic-inventory-direct-apply.yml
+    - bootstrap-satellite-install-ui-fields.yml
+    - bootstrap-supported-ee-image.yml
+    - collection-metadata-ansible-216.yml
+    - galaxy-runtime-dependencies.yml
+    - openshift-virt-provision-vm.yml
+    - satellite-bootstrap-vars-vault.yml
+    - satellite-deployment-version-default.yml
+    - satellite-dynamic-inventory-validate-certs.yml
+    release_date: '2026-07-20'

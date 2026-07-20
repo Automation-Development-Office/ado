@@ -1,6 +1,0 @@
----
-bugfixes:
-  - bootstrap_generate_env_vars - point the generated AAP execution environment
-    at the supported AAP 2.6 RHEL 9 execution environment image instead of the
-    generic AWX EE image so Satellite inventory syncs can load
-    redhat.satellite.foreman.
