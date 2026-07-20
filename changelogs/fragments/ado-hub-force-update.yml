@@ -4,5 +4,31 @@ minor_changes:
     bootstrap_generate_env_vars - Added a generated force-update toggle for
     publishing the bundled infra.ado collection to validated content in AAP Hub.
   - >-
+    bootstrap_generate_env_vars - Added a collection-only Hub update flag so
+    callers can update infra.ado in AAP Hub without generating component
+    bootstrap content.
+  - >-
     bootstrap_controller - Publishes the generated infra.ado collection to AAP
     Hub on AAP 2.5+ runs when the Hub publish option is enabled.
+  - >-
+    bootstrap_controller - Stops after the AAP Hub publish step when the
+    collection-only update flag is enabled.
+bugfixes:
+  - >-
+    bootstrap_controller - Loads generated AAP config variables and enables the
+    AAP apply path for collection-only Hub update runs so the Hub publish step
+    is not skipped.
+  - >-
+    bootstrap_generate_env_vars - Handles empty component and platform lists
+    when running in AAP Hub collection-only update mode.
+  - >-
+    bootstrap_controller - Corrects AAP controller auth preflight messages to
+    reference the generated aap_vault.yml file.
+  - >-
+    bootstrap_controller - Passes the generated AAP Hub repository target when
+    publishing infra.ado so collection updates land in validated content instead
+    of the published repository.
+  - >-
+    bootstrap_controller - Stops waiting indefinitely on AAP Hub collection
+    import processing after the upload is submitted so UI runs can return the
+    final recap.

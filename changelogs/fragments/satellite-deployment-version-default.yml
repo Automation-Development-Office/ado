@@ -1,0 +1,12 @@
+---
+bugfixes:
+  - >-
+    satellite_install - Defaults the Satellite deployment version to 6.19 so
+    installs do not fail preliminary validation when generated vars omit the
+    version.
+  - >-
+    satellite_config - Defaults the Satellite deployment version to 6.19 for
+    repository label generation.
+  - >-
+    bootstrap_generate_env_vars - Treats an empty Satellite deployment version
+    as missing and writes the default 6.19 value.

@@ -12,11 +12,17 @@
 {% if not vault_machine_credential_normalized_name.startswith(vault_machine_credential_org ~ '-') %}
 {% set vault_machine_credential_normalized_name = vault_machine_credential_org ~ '-' ~ vault_machine_credential_normalized_name %}
 {% endif %}
+{% set vault_machine_credential_ssh_key_data =
+    preflight_machine_credential.ssh_key_data | default(bootstrap_generate_env_vars_machine_credential_ssh_key_data | default(''), true)
+%}
+{% if vault_machine_credential_ssh_key_data | length > 0 and not vault_machine_credential_ssh_key_data.endswith('\n') %}
+{% set vault_machine_credential_ssh_key_data = vault_machine_credential_ssh_key_data ~ '\n' %}
+{% endif %}
 ---
 vault_machine_credential_name: "{{ vault_machine_credential_normalized_name }}"
 vault_machine_credential_username: "{{ preflight_machine_credential.username | default(bootstrap_generate_env_vars_machine_credential_username | default('cloud-user'), true) }}"
 vault_machine_credential_ssh_key_data: |
-{{ preflight_machine_credential.ssh_key_data | default(bootstrap_generate_env_vars_machine_credential_ssh_key_data | default(''), true) | indent(2, true) }}
+{{ vault_machine_credential_ssh_key_data | indent(2, true) }}
 vault_machine_credential_ssh_key_unlock: "{{ preflight_machine_credential.ssh_key_unlock | default(bootstrap_generate_env_vars_machine_credential_ssh_key_unlock | default(''), true) }}"
 vault_machine_credential_become_method: "{{ preflight_machine_credential.become_method | default(bootstrap_generate_env_vars_machine_credential_become_method | default('sudo'), true) }}"
 vault_machine_credential_become_username: "{{ preflight_machine_credential.become_username | default(bootstrap_generate_env_vars_machine_credential_become_username | default('root'), true) }}"

@@ -74,21 +74,24 @@ satellite_config_password: "{% raw %}{{ vault_satellite_service_account_password
 satellite_config_admin_password: "{% raw %}{{ vault_satellite_admin_password | default(vault_satellite_service_account_password | default(omit)) }}{% endraw %}"
 satellite_config_organization: "{{ bootstrap_generate_env_vars_satellite_organization | default('') }}"
 satellite_config_validate_certs: {{ bootstrap_generate_env_vars_satellite_validate_certs | default(false) | bool | lower }}
-satellite_config_satellite_deployment_version: "{{ bootstrap_generate_env_vars_satellite_deployment_version | default('6.19') }}"
-satellite_install_satellite_deployment_version: "{{ bootstrap_generate_env_vars_satellite_deployment_version | default('6.19') }}"
+satellite_config_satellite_deployment_version: "{{ bootstrap_generate_env_vars_satellite_deployment_version | default('6.19', true) }}"
+satellite_install_satellite_deployment_version: "{{ bootstrap_generate_env_vars_satellite_deployment_version | default('6.19', true) }}"
 satellite_install_satellite_location: "{{ bootstrap_generate_env_vars_satellite_location | default('') }}"
-satellite_install_satellite_rhn_connected: {{ ((bootstrap_generate_env_vars_satellite_rhn_org_id | default('') | length) > 0 and (bootstrap_generate_env_vars_satellite_rhn_activation_key | default('') | length) > 0) | bool | lower }}
-satellite_install_satellite_rhn_org_id: "{{ bootstrap_generate_env_vars_satellite_rhn_org_id | default('') }}"
-satellite_install_satellite_rhn_activation_key: "{% raw %}{{ vault_satellite_rhn_activation_key | default(omit) }}{% endraw %}"
-satellite_install_satellite_size_profile: "{{ bootstrap_generate_env_vars_satellite_size_profile | default('default') }}"
-satellite_install_satellite_size:
+satellite_install_rhn_connected: {{ ((bootstrap_generate_env_vars_satellite_rhn_org_id | default('') | length) > 0 and (bootstrap_generate_env_vars_satellite_rhn_activation_key | default('') | length) > 0) | bool | lower }}
+satellite_install_rhn_org_id: "{% raw %}{{ vault_satellite_rhn_org_id | default(omit) }}{% endraw %}"
+satellite_install_rhn_activation_key: "{% raw %}{{ vault_satellite_rhn_activation_key | default(omit) }}{% endraw %}"
+satellite_install_size_profile: "{{ bootstrap_generate_env_vars_satellite_size_profile | default('default') }}"
+satellite_install_size:
 {{ bootstrap_generate_env_vars_satellite_size | to_nice_yaml(indent=2) | indent(2, true) }}
 {% set selected_satellite_size = (bootstrap_generate_env_vars_satellite_size | default([]) | selectattr('name', 'equalto', bootstrap_generate_env_vars_satellite_size_profile | default('default')) | first | default({})) %}
-satellite_install_satellite_min_memory_size: {{ (selected_satellite_size.min_ram | default(20) | int) * 1024 }}
-satellite_install_satellite_min_cpu_count: {{ selected_satellite_size.min_cpu | default(4) | int }}
-satellite_install_satellite_req_dirs:
+satellite_install_min_memory_size: {{ (selected_satellite_size.min_ram | default(20) | int) * 1024 }}
+satellite_install_min_cpu_count: {{ selected_satellite_size.min_cpu | default(4) | int }}
+satellite_install_vg_name: "{{ bootstrap_generate_env_vars_satellite_vg_name | default('satellite', true) }}"
+satellite_install_req_dirs:
 {{ bootstrap_generate_env_vars_satellite_req_dirs | to_nice_yaml(indent=2) | indent(2, true) }}
-satellite_install_req_dirs: "{% raw %}{{ satellite_install_satellite_req_dirs }}{% endraw %}"
+satellite_install_data_disk_min_size: "{{ bootstrap_generate_env_vars_satellite_data_disk_min_size | default('10G', true) }}"
+satellite_install_data_device_name: "{{ bootstrap_generate_env_vars_satellite_data_device_name | default('', true) }}"
+satellite_install_data_device: "{{ bootstrap_generate_env_vars_satellite_data_device | default('/dev', true) }}"
 
 {% elif component_name == 'eck' %}
 components_env:

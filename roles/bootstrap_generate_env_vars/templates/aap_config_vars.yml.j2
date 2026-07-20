@@ -235,6 +235,7 @@
 {% set bootstrap_generate_env_vars_hub_publish_ado_collection = preflight_aap.hub_publish_ado_collection | default(bootstrap_generate_env_vars_hub_publish_ado_collection | default(true)) | bool %}
 {% set bootstrap_generate_env_vars_hub_mark_ado_validated = true if bootstrap_generate_env_vars_hub_publish_ado_collection else false %}
 {% set bootstrap_generate_env_vars_hub_force_ado_collection_update = preflight_aap.hub_force_ado_collection_update | default(bootstrap_generate_env_vars_hub_force_ado_collection_update | default(true)) | bool %}
+{% set bootstrap_generate_env_vars_hub_update_collection_only = preflight_aap.hub_update_collection_only | default(bootstrap_generate_env_vars_hub_update_collection_only | default(false)) | bool %}
 {% set bootstrap_generate_env_vars_aap_skip_tls_verify =
     preflight_aap.skip_tls_verify
     | default(skip_tls_verify | default(false), true)
@@ -279,6 +280,7 @@ controller_bootstrap_machine_credential: "{{ bootstrap_generate_env_vars_machine
 bootstrap_controller_hub_publish_ado_collection: {{ bootstrap_generate_env_vars_hub_publish_ado_collection | lower }}
 bootstrap_controller_hub_mark_ado_validated: {{ bootstrap_generate_env_vars_hub_mark_ado_validated | lower }}
 bootstrap_controller_hub_force_ado_collection_update: {{ bootstrap_generate_env_vars_hub_force_ado_collection_update | lower }}
+bootstrap_controller_hub_update_collection_only: {{ bootstrap_generate_env_vars_hub_update_collection_only | lower }}
 hub_collections:
 {% if bootstrap_generate_env_vars_hub_publish_ado_collection %}
   - collection_name: infra_ado

@@ -31,8 +31,11 @@ grafana_admin_password: redhat123
 vault_satellite_service_account_username: "{{ bootstrap_generate_env_vars_satellite_service_account_username | default('') }}"
 vault_satellite_service_account_password: "{{ bootstrap_generate_env_vars_satellite_service_account_password | default('') }}"
 vault_satellite_admin_password: "{{ bootstrap_generate_env_vars_satellite_admin_password | default(bootstrap_generate_env_vars_satellite_service_account_password | default('')) }}"
+vault_satellite_rhn_org_id: "{{ bootstrap_generate_env_vars_satellite_rhn_org_id | default('') }}"
 vault_satellite_rhn_activation_key: "{{ bootstrap_generate_env_vars_satellite_rhn_activation_key | default('') }}"
 satellite_install_satellite_admin_password: "{% raw %}{{ vault_satellite_admin_password }}{% endraw %}"
+satellite_install_rhn_org_id: "{% raw %}{{ vault_satellite_rhn_org_id }}{% endraw %}"
+satellite_install_rhn_activation_key: "{% raw %}{{ vault_satellite_rhn_activation_key }}{% endraw %}"
 
 {% elif component_name == 'htpasswd' %}
 htpasswd_users:

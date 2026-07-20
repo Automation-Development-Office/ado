@@ -5,7 +5,7 @@
       - vault_controller_hostname is defined
       - vault_controller_hostname | length > 0
     fail_msg: >-
-      Missing vault_controller_hostname in vault_aap.yml
+      Missing vault_controller_hostname in aap_vault.yml
       example: https://aap-aap.apps.ocp.prod.rhlab
 
 - name: Validate we have either OAuth token OR username/password
@@ -25,7 +25,7 @@
            and (vault_controller_password | length > 0))
         )
     fail_msg: >-
-      Missing controller auth in vault_aap.yml.
+      Missing controller auth in aap_vault.yml.
       Provide either:
         - vault_controller_oauthtoken
       OR

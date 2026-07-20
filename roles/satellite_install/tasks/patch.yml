@@ -21,7 +21,9 @@
 
 - name: patch | Print the number of package updates
   ansible.builtin.debug:
-    msg: "{{ inventory_hostname }} has {{ satellite_install_package_updates['results'] | count }} updates"
+    msg: >-
+      {{ inventory_hostname }} has
+      {{ satellite_install_package_updates['results'] | count }} updates
   when: satellite_install_package_updates['results'] | count > 0
 
 - name: patch | Update host
@@ -33,7 +35,7 @@
         that:
           - satellite_install_package_updates is defined
 
-    - name: patch | Update server with latest packages # noqa: package-latest
+    - name: patch | Update server with latest packages  # noqa: package-latest
       ansible.builtin.dnf:
         name: "*"
         state: latest
@@ -44,9 +46,9 @@
     - name: patch | Enable SELinux
       ansible.posix.selinux:
         policy: targeted
-        state: "{{ satellite_install_satellite_selinux_state }}"
+        state: "{{ satellite_install_selinux_state }}"
 
-    - name: patch | Create autorelabel file # noqa: risky-file-permissions
+    - name: patch | Create autorelabel file  # noqa: risky-file-permissions
       ansible.builtin.file:
         path: /.autorelabel
         state: touch

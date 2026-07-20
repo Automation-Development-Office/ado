@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - >-
+    bootstrap_generate_playbook_repo - Generates project collection
+    requirements with an infra.ado version pin and AAP Hub source URL so AAP
+    project syncs install the collection version containing newly generated
+    roles such as ocp_virtualization.

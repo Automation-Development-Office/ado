@@ -7,7 +7,8 @@
 - name: storage_config | Refresh facts for next facts
   ansible.builtin.setup:
 
-- name: storage_config | Check to see if LVM exists from previous install attempt
+- name: >-
+    storage_config | Check to see if LVM exists from previous install attempt
   ansible.builtin.set_fact:
     satellite_install_lvm_exists: true
   when: ansible_facts['lvm']['vgs'][satellite_install_vg_name] is defined
@@ -16,7 +17,9 @@
   ansible.builtin.set_fact:
     satellite_install_data_disk: "{{ item['key'] }}"
   loop: "{{ ansible_facts['lvm']['pvs'] | dict2items }}"
-  when: item['value']['vg'] == satellite_install_vg_name and satellite_install_lvm_exists
+  when:
+    - item['value']['vg'] == satellite_install_vg_name
+    - satellite_install_lvm_exists
 
 - name: storage_config | Debug devices
   ansible.builtin.debug:
@@ -28,10 +31,17 @@
   loop: "{{ ansible_facts['devices'] | dict2items }}"
   when:
     - satellite_install_data_disk is not defined
-    - item['key'] is search("vd") or item['key'] is search("xvd") or item['key'] is search("sd")
-    - item['value']['size'] | human_to_bytes >= satellite_install_data_disk_min_size | string | human_to_bytes(default_unit="G")
+    - >-
+      item['key'] is search("vd")
+      or item['key'] is search("xvd")
+      or item['key'] is search("sd")
+    - >-
+      item['value']['size'] | human_to_bytes
+      >= satellite_install_data_disk_min_size
+      | string | human_to_bytes(default_unit="G")
     - not item['value']['partitions']
-    - not item['value']['holders'] # Holders = Mountpoints
+    # Holders = Mountpoints
+    - not item['value']['holders']
 
 - name: storage_config | Find suitable disk device for installation
   when:
@@ -40,26 +50,37 @@
   block:
     - name: storage_config | Set variable for suitable disks
       ansible.builtin.set_fact:
-        satellite_install_data_disk_list: "{{ satellite_install_data_disk_list | default([]) + [item['key']] }}"
+        satellite_install_data_disk_list: >-
+          {{ satellite_install_data_disk_list | default([]) + [item['key']] }}
       loop: "{{ ansible_facts['devices'] | dict2items }}"
       when:
         - satellite_install_data_disk is not defined
-        - item['key'] is search("vd") or item['key'] is search("xvd") or item['key'] is search("sd")
-        - item['value']['size'] | human_to_bytes >= satellite_install_data_disk_min_size | string | human_to_bytes(default_unit="G")
+        - >-
+          item['key'] is search("vd")
+          or item['key'] is search("xvd")
+          or item['key'] is search("sd")
+        - >-
+          item['value']['size'] | human_to_bytes
+          >= satellite_install_data_disk_min_size
+          | string | human_to_bytes(default_unit="G")
         - not item['value']['partitions']
-        - not item['value']['holders'] # Holders = Mountpoints
+        # Holders = Mountpoints
+        - not item['value']['holders']
         - satellite_install_data_disk_list is not defined
 
     - name: storage_config | Print list of suitable disks
       ansible.builtin.debug:
         var: satellite_install_data_disk_list
 
-      # TODO Add satellite_install_data_disk_list to the fail_msg
-    - name: storage_config | Assert that there is only one suitable disk for Satellite
+    - name: >-
+        storage_config | Assert that there is only one suitable disk for
+        Satellite
       ansible.builtin.assert:
         that:
           - satellite_install_data_disk_list | length == 1
-        fail_msg: "There are multiple disks that can be used. Please manually define satellite_install_data_device_name and rerun"
+        fail_msg: >-
+          There are multiple disks that can be used. Please manually define
+          satellite_install_data_device_name and rerun
 
     - name: storage_config | Define Satellite data disk
       ansible.builtin.set_fact:
@@ -69,8 +90,14 @@
       loop: "{{ ansible_facts['devices'] | dict2items }}"
       when:
         - satellite_install_data_disk is not defined
-        - item['key'] is search("vd") or item['key'] is search("xvd") or item['key'] is search("sd")
-        - item['value']['size'] | human_to_bytes >= satellite_install_data_disk_min_size | string | human_to_bytes(default_unit="G")
+        - >-
+          item['key'] is search("vd")
+          or item['key'] is search("xvd")
+          or item['key'] is search("sd")
+        - >-
+          item['value']['size'] | human_to_bytes
+          >= satellite_install_data_disk_min_size
+          | string | human_to_bytes(default_unit="G")
         - not item['value']['partitions']
         - not item['value']['holders']
         - satellite_install_data_disk_list is not defined
@@ -87,20 +114,25 @@
     vg: "{{ satellite_install_vg_name }}"
     pvs: "{{ satellite_install_data_disk }}"
 
-- name: storage_config | Create the logical volumes to be mounted to Satellite's required dirs
+- name: >-
+    storage_config | Create the logical volumes to be mounted to Satellite's
+    required dirs
   community.general.lvol:
     vg: "{{ satellite_install_vg_name }}"
     lv: "{{ item['lv_name'] }}"
     size: "{{ item['lv_size'] }}"
   loop: "{{ satellite_install_req_dirs }}"
 
-- name: storage_config | Create a filesystem on the logical volumes that were just created
+- name: >-
+    storage_config | Create a filesystem on the logical volumes that were just
+    created
   community.general.filesystem:
     fstype: xfs
     dev: /dev/mapper/{{ satellite_install_vg_name }}-{{ item['lv_name'] }}
   loop: "{{ satellite_install_req_dirs }}"
 
-- name: storage_config | Mount the additional disk used to Satellite's data dir
+- name: >-
+    storage_config | Mount the additional disk used to Satellite's data dir
   ansible.posix.mount:
     path: "{{ item['mount_point'] }}"
     src: /dev/mapper/{{ satellite_install_vg_name }}-{{ item['lv_name'] }}

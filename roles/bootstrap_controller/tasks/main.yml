@@ -15,6 +15,55 @@
     name: infra.ado.bootstrap_generate_env_vars
   when: bootstrap_controller_generate_env_vars | default(false) | bool
 
+- name: Resolve generated environment name
+  ansible.builtin.set_fact:
+    bootstrap_controller_generated_env: >-
+      {{
+        env
+        | default(bootstrap_generate_env_vars_env | default(''), true)
+      }}
+  when:
+    - env is defined or bootstrap_generate_env_vars_env is defined
+
+- name: Check for generated AAP config vars
+  ansible.builtin.stat:
+    path: >-
+      {{
+        [
+          playbook_dir,
+          'group_vars',
+          'all',
+          bootstrap_controller_generated_env,
+          'aap_config_vars.yml'
+        ] | join('/')
+      }}
+  register: bootstrap_controller_generated_aap_config_vars
+  when:
+    - bootstrap_controller_generated_env | default('') | length > 0
+
+- name: Load generated AAP config vars
+  ansible.builtin.include_vars:
+    file: >-
+      {{
+        [
+          playbook_dir,
+          'group_vars',
+          'all',
+          bootstrap_controller_generated_env,
+          'aap_config_vars.yml'
+        ] | join('/')
+      }}
+  when:
+    - >-
+      bootstrap_controller_generated_aap_config_vars.stat.exists
+      | default(false)
+
+- name: Enable AAP apply for Hub collection update-only runs
+  ansible.builtin.set_fact:
+    bootstrap_controller_apply_aap_configs: true
+  when:
+    - bootstrap_controller_hub_update_collection_only | default(false) | bool
+
 - name: Load generated AAP config vars before repo generation
   ansible.builtin.include_vars:
     file: "group_vars/all/{{ env }}/aap_config_vars.yml"

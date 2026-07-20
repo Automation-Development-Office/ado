@@ -27,6 +27,10 @@ bootstrap_controller_aap_smoke_test_extra_vars: {}
 bootstrap_controller_aap_smoke_test_poll_delay: 5
 bootstrap_controller_aap_smoke_test_poll_retries: 60
 
+bootstrap_controller_hub_publish_wait: false
+bootstrap_controller_hub_publish_timeout: 300
+bootstrap_controller_hub_publish_request_timeout: 60
+
 # Common placeholders. Real values belong in group_vars/all/vars_<env>.yml
 bootstrap_controller_organization: ""
 bootstrap_controller_inventory_name: ""

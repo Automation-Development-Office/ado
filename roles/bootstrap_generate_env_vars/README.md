@@ -38,6 +38,7 @@ Automation Development Office
 | `bootstrap_generate_env_vars_hub_publish_ado_collection` | Enables generated vars for adding the ADO collection to Automation Hub. Default `true`. |
 | `bootstrap_generate_env_vars_hub_mark_ado_validated` | Targets the generated ADO collection hub entry at validated content when enabled. Default `true`. |
 | `bootstrap_generate_env_vars_hub_force_ado_collection_update` | Forces the ADO collection publish task to overwrite an existing Hub version when Hub allows it. Default `true`. |
+| `bootstrap_generate_env_vars_hub_update_collection_only` | Publishes or updates the ADO collection in AAP Hub without generating or applying normal component bootstrap content. Default `false`. |
 | `bootstrap_generate_env_vars_hub_ado_collection_path` | Local ADO collection path used by generated hub collection vars. Default `.`. |
 | `bootstrap_generate_env_vars_aap_ee_image` | Execution environment image used when creating or updating the default AAP execution environment. Default `registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest`. |
 | `bootstrap_generate_env_vars_satellite_server_url` | Satellite server URL written to `vars_satellite.yml`. |
@@ -51,8 +52,12 @@ Automation Development Office
 | `bootstrap_generate_env_vars_satellite_rhn_org_id` | RHN organization ID used when registering the Satellite server host. |
 | `bootstrap_generate_env_vars_satellite_rhn_activation_key` | RHN activation key used when registering the Satellite server host. |
 | `bootstrap_generate_env_vars_satellite_size_profile` | Selected Satellite sizing profile. Default `default`. |
+| `bootstrap_generate_env_vars_satellite_vg_name` | Satellite install LVM volume group name written to `satellite_install_vg_name`. Default `satellite`. |
+| `bootstrap_generate_env_vars_satellite_data_disk_min_size` | Minimum unpartitioned Satellite data disk size written to `satellite_install_data_disk_min_size`. Default `10G`. |
+| `bootstrap_generate_env_vars_satellite_data_device_name` | Optional Satellite data disk basename written to `satellite_install_data_device_name`. |
+| `bootstrap_generate_env_vars_satellite_data_device` | Satellite data disk path prefix written to `satellite_install_data_device`. Default `/dev`. |
 | `bootstrap_generate_env_vars_satellite_size` | Satellite sizing tier list used to derive install RAM/CPU checks and the installer tuning profile. |
-| `bootstrap_generate_env_vars_satellite_req_dirs` | Satellite storage mount definitions written to `satellite_install_satellite_req_dirs`. |
+| `bootstrap_generate_env_vars_satellite_req_dirs` | Satellite storage mount definitions written to `satellite_install_req_dirs`. |
 | `bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled` | Creates a Satellite 6 dynamic inventory source in AAP when true. Default `false`; preflight JSON defaults to `true` when Satellite is selected and the setting is omitted. |
 | `bootstrap_generate_env_vars_satellite_credential_name` | AAP credential name for the Satellite 6 inventory source. |
 | `bootstrap_generate_env_vars_satellite_inventory_source_name` | AAP inventory source name for Satellite dynamic inventory. |

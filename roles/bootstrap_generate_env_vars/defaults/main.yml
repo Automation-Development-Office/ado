@@ -48,6 +48,7 @@ bootstrap_generate_env_vars_aap_additional_credentials: []
 bootstrap_generate_env_vars_hub_publish_ado_collection: true
 bootstrap_generate_env_vars_hub_mark_ado_validated: true
 bootstrap_generate_env_vars_hub_force_ado_collection_update: true
+bootstrap_generate_env_vars_hub_update_collection_only: false
 bootstrap_generate_env_vars_hub_ado_collection_path: "."
 bootstrap_generate_env_vars_aap_ee_image: >-
   registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest
@@ -70,6 +71,10 @@ bootstrap_generate_env_vars_satellite_location: ""
 bootstrap_generate_env_vars_satellite_rhn_org_id: ""
 bootstrap_generate_env_vars_satellite_rhn_activation_key: ""
 bootstrap_generate_env_vars_satellite_size_profile: "default"
+bootstrap_generate_env_vars_satellite_vg_name: "satellite"
+bootstrap_generate_env_vars_satellite_data_disk_min_size: "10G"
+bootstrap_generate_env_vars_satellite_data_device_name: ""
+bootstrap_generate_env_vars_satellite_data_device: "/dev"
 bootstrap_generate_env_vars_satellite_size:
   - name: default
     min_hosts: 0
