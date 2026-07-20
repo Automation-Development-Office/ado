@@ -47,7 +47,7 @@ Automation Development Office
 | `bootstrap_generate_env_vars_satellite_service_account_password` | Satellite service account password written to `vault_satellite.yml`. |
 | `bootstrap_generate_env_vars_satellite_admin_password` | Satellite admin password written to `vault_satellite.yml`; defaults to the service account password when omitted. |
 | `bootstrap_generate_env_vars_satellite_validate_certs` | Satellite TLS validation setting. Default `false`; also renders `validate_certs` into the Satellite dynamic inventory source vars. |
-| `bootstrap_generate_env_vars_satellite_deployment_version` | Satellite version written to `satellite_config_satellite_deployment_version` and `satellite_install_satellite_deployment_version`. Default `6.19`. |
+| `bootstrap_generate_env_vars_satellite_deployment_version` | Satellite version written to `satellite_config_satellite_deployment_version` and `satellite_install_deployment_version`. Default `6.19`. |
 | `bootstrap_generate_env_vars_satellite_location` | Logical Satellite install location, such as `AWS` or `primary-dc`. |
 | `bootstrap_generate_env_vars_satellite_rhn_org_id` | RHN organization ID used when registering the Satellite server host. |
 | `bootstrap_generate_env_vars_satellite_rhn_activation_key` | RHN activation key used when registering the Satellite server host. |

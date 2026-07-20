@@ -11,23 +11,23 @@
 
 - name: dns_config | Update NetworkManager DNS
   community.general.nmcli:
-    conn_name: "{{ satellite_install_satellite_dns_device }}"
+    conn_name: "{{ satellite_install_dns_device }}"
     type: ethernet
     dns4:
       - "{{ item }}"
     state: present
-  loop: "{{ satellite_install_satellite_dns_servers }}"
-  when: satellite_install_satellite_dns_servers is defined
+  loop: "{{ satellite_install_dns_servers }}"
+  when: satellite_install_dns_servers is defined
 
 - name: dns_config | Update NetworkManager DNS search
   community.general.nmcli:
-    conn_name: "{{ satellite_install_satellite_dns_device }}"
+    conn_name: "{{ satellite_install_dns_device }}"
     type: ethernet
     dns4_search:
       - "{{ item }}"
     state: present
-  loop: "{{ satellite_install_satellite_dns_search }}"
-  when: satellite_install_satellite_dns_search is defined
+  loop: "{{ satellite_install_dns_search }}"
+  when: satellite_install_dns_search is defined
 
 - name: dns_config | Update /etc/resolv.conf if defined
   ansible.builtin.template:
@@ -36,5 +36,5 @@
     mode: "0644"
     owner: root
     group: root
-  when: satellite_install_satellite_dns_servers is defined
+  when: satellite_install_dns_servers is defined
 ...

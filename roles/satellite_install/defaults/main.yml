@@ -1,24 +1,16 @@
 ---
 # yamllint disable rule:line-length
-satellite_install_satellite_rhn_repos:
-  - "rhel-9-for-x86_64-baseos-rpms"
-  - "rhel-9-for-x86_64-appstream-rpms"
+satellite_install_rhn_repos:
   - >-
-    satellite-{{ satellite_install_satellite_deployment_version }}-for-rhel-9-x86_64-rpms
+    satellite-{{ satellite_install_deployment_version }}-for-rhel-9-x86_64-rpms
   - >-
-    satellite-maintenance-{{ satellite_install_satellite_deployment_version }}-for-rhel-9-x86_64-rpms
+    satellite-maintenance-{{ satellite_install_deployment_version }}-for-rhel-9-x86_64-rpms
 # yamllint enable rule:line-length
 satellite_install_pre_check: false
-satellite_install_satellite_packages:
+satellite_install_packages:
   - satellite
-  - chrony
-  - sos
-  - fapolicyd
-  - vim
-  - bash-completion
-  - bind-utils
-satellite_install_satellite_deployment_version: "6.19"
-satellite_install_satellite_location: ""
+satellite_install_deployment_version: "6.19"
+satellite_install_location: ""
 satellite_install_size_profile: "default"
 satellite_install_size:
   - name: default

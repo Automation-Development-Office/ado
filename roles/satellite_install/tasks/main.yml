@@ -5,7 +5,7 @@
   ansible.builtin.include_tasks: preliminary_check.yml
 
 - name: Block tasks to run when pre_check is set to false
-  when: not satellite_install_pre_check
+  when: not (satellite_install_pre_check | bool)
   block:
     - name: RHSM Subscribe
       ansible.builtin.include_tasks: rhsm_subscribe.yml

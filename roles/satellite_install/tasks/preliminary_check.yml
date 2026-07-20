@@ -6,7 +6,7 @@
       - (ansible_facts['distribution_major_version'] | int >= 9)
     fail_msg: >-
       RHEL{{ ansible_facts['distribution_major_version'] }} is not supported
-      with {{ satellite_install_satellite_deployment_version }}.
+      with {{ satellite_install_deployment_version }}.
     success_msg: >-
       RHEL{{ ansible_facts['distribution_major_version'] }} detected.
       Proceeding with install.
@@ -14,8 +14,8 @@
 - name: preliminary_check | Validate Red Hat Satellite version is defined
   ansible.builtin.assert:
     that:
-      - satellite_install_satellite_deployment_version is defined
-      - satellite_install_satellite_deployment_version | length > 0
+      - satellite_install_deployment_version is defined
+      - satellite_install_deployment_version | length > 0
     fail_msg: |
       Define a supported version of Red Hat Satellite. Supported versions can
       be found at https://access.redhat.com/support/policy/updates/satellite.
@@ -44,8 +44,8 @@
     preliminary_check | Check location of where the Satellite will be located
   ansible.builtin.assert:
     that:
-      - satellite_install_satellite_location is defined
-      - satellite_install_satellite_location | length > 0
+      - satellite_install_location is defined
+      - satellite_install_location | length > 0
     fail_msg: |
       Define a location where Satellite will be installed
 

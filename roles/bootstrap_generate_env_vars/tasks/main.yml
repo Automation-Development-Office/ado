@@ -795,9 +795,6 @@
             "satellite_install_rhn_activation_key",
             "satellite_install_rhn_org_id",
             "satellite_admin_rhn_activation_key",
-            "satellite_install_satellite_admin_rhn_activation_key",
-            "satellite_install_satellite_rhn_activation_key",
-            "satellite_install_satellite_rhn_org_id",
             "satellite_rhn_org_id",
         }
         for quoted_key in quoted_public_keys:
@@ -825,16 +822,7 @@
                 "satellite_install_data_device",
                 "satellite_install_data_device_name",
                 "satellite_install_data_disk_min_size",
-                "satellite_admin_rhn_activation_key",
-                "satellite_install_satellite_admin_rhn_activation_key",
-                "satellite_install_satellite_rhn_activation_key",
-                "satellite_install_satellite_rhn_org_id",
                 "satellite_rhn_org_id",
-                "satellite_install_satellite_vg_name",
-                "satellite_install_satellite_req_dirs",
-                "satellite_install_satellite_data_device",
-                "satellite_install_satellite_data_device_name",
-                "satellite_install_satellite_data_disk_min_size",
                 "satellite_data_device",
                 "satellite_data_device_name",
                 "satellite_data_disk_min_size",
@@ -867,20 +855,7 @@
                 "satellite_install_data_device",
                 "satellite_install_data_device_name",
                 "satellite_install_data_disk_min_size",
-                "satellite_admin_rhn_activation_key",
                 "satellite_rhn_org_id",
-                "satellite_install_satellite_rhn_activation_key",
-                "satellite_install_satellite_rhn_connected",
-                "satellite_install_satellite_rhn_org_id",
-                "satellite_install_satellite_size",
-                "satellite_install_satellite_size_profile",
-                "satellite_install_satellite_min_memory_size",
-                "satellite_install_satellite_min_cpu_count",
-                "satellite_install_satellite_vg_name",
-                "satellite_install_satellite_req_dirs",
-                "satellite_install_satellite_data_device",
-                "satellite_install_satellite_data_device_name",
-                "satellite_install_satellite_data_disk_min_size",
                 "satellite_data_device",
                 "satellite_data_device_name",
                 "satellite_data_disk_min_size",
@@ -959,12 +934,11 @@
                     vars_data["satellite_config_validate_certs"] = public_values["validate_certs"]
                 if public_values.get("deployment_version"):
                     vars_data["satellite_config_satellite_deployment_version"] = public_values["deployment_version"]
-                    vars_data["satellite_install_satellite_deployment_version"] = public_values["deployment_version"]
+                    vars_data["satellite_install_deployment_version"] = public_values["deployment_version"]
                 if public_values.get("location"):
-                    vars_data["satellite_install_satellite_location"] = public_values["location"]
+                    vars_data["satellite_install_location"] = public_values["location"]
                 vg_name = first_present(
                     public_values.get("satellite_install_vg_name"),
-                    public_values.get("satellite_install_satellite_vg_name"),
                     public_values.get("satellite_vg_name"),
                     public_values.get("vg_name"),
                     public_values.get("vgname"),
@@ -975,7 +949,6 @@
                     public_values.get("satellite_install_data_disk_min_size"),
                     public_values.get("satellite_data_disk_min_size"),
                     public_values.get("data_disk_min_size"),
-                    public_values.get("satellite_install_satellite_data_disk_min_size"),
                 )
                 if data_disk_min_size is not None:
                     vars_data["satellite_install_data_disk_min_size"] = QuotedString(str(data_disk_min_size))
@@ -983,7 +956,6 @@
                     public_values.get("satellite_install_data_device_name"),
                     public_values.get("satellite_data_device_name"),
                     public_values.get("data_device_name"),
-                    public_values.get("satellite_install_satellite_data_device_name"),
                 )
                 if data_device_name is not None:
                     vars_data["satellite_install_data_device_name"] = str(data_device_name)
@@ -991,7 +963,6 @@
                     public_values.get("satellite_install_data_device"),
                     public_values.get("satellite_data_device"),
                     public_values.get("data_device"),
-                    public_values.get("satellite_install_satellite_data_device"),
                 )
                 if data_device is not None:
                     vars_data["satellite_install_data_device"] = str(data_device)
@@ -1001,7 +972,6 @@
                     public_values.get("org_id"),
                     public_values.get("redhat_org_id"),
                     public_values.get("satellite_rhn_org_id"),
-                    public_values.get("satellite_install_satellite_rhn_org_id"),
                 )
                 if rhn_org_id is not None:
                     vault_data["vault_satellite_rhn_org_id"] = QuotedString(str(rhn_org_id))
@@ -1013,8 +983,6 @@
                     public_values.get("satellite_install_rhn_activation_key"),
                     public_values.get("admin_rhn_activation_key"),
                     public_values.get("satellite_admin_rhn_activation_key"),
-                    public_values.get("satellite_install_satellite_admin_rhn_activation_key"),
-                    public_values.get("satellite_install_satellite_rhn_activation_key"),
                     public_values.get("rhn_activation_key"),
                     public_values.get("activation_key"),
                     public_values.get("admin_activation_key"),
@@ -1029,7 +997,6 @@
                 req_dirs = first_present(
                     public_values.get("satellite_install_req_dirs"),
                     public_values.get("req_dirs"),
-                    public_values.get("satellite_install_satellite_req_dirs"),
                 )
                 if req_dirs:
                     vars_data["satellite_install_req_dirs"] = copy.deepcopy(req_dirs)
@@ -1145,7 +1112,7 @@
                 if secret_values.get("admin_password") is not None:
                     vault_data["vault_satellite_admin_password"] = secret_values["admin_password"]
                     vault_data["satellite_config_admin_password"] = secret_values["admin_password"]
-                    vault_data["satellite_install_satellite_admin_password"] = secret_values["admin_password"]
+                    vault_data["satellite_install_admin_password"] = secret_values["admin_password"]
                     vault_data_changed = True
                 rhn_org_id = first_present(
                     public_values.get("satellite_install_rhn_org_id"),
@@ -1153,13 +1120,13 @@
                     public_values.get("org_id"),
                     public_values.get("redhat_org_id"),
                     public_values.get("satellite_rhn_org_id"),
-                    public_values.get("satellite_install_satellite_rhn_org_id"),
+                    public_values.get("satellite_install_rhn_org_id"),
                     secret_values.get("rhn_org_id"),
                     secret_values.get("org_id"),
                     secret_values.get("redhat_org_id"),
                     secret_values.get("satellite_rhn_org_id"),
                     secret_values.get("satellite_install_rhn_org_id"),
-                    secret_values.get("satellite_install_satellite_rhn_org_id"),
+                    secret_values.get("satellite_install_rhn_org_id"),
                 )
                 if rhn_org_id is not None:
                     vault_data["vault_satellite_rhn_org_id"] = QuotedString(str(rhn_org_id))
@@ -1173,16 +1140,16 @@
                     secret_values.get("satellite_install_rhn_activation_key"),
                     secret_values.get("admin_rhn_activation_key"),
                     secret_values.get("satellite_admin_rhn_activation_key"),
-                    secret_values.get("satellite_install_satellite_admin_rhn_activation_key"),
-                    secret_values.get("satellite_install_satellite_rhn_activation_key"),
+                    secret_values.get("satellite_install_admin_rhn_activation_key"),
+                    secret_values.get("satellite_install_rhn_activation_key"),
                     secret_values.get("rhn_activation_key"),
                     secret_values.get("activation_key"),
                     secret_values.get("admin_activation_key"),
                     public_values.get("admin_rhn_activation_key"),
                     public_values.get("satellite_admin_rhn_activation_key"),
-                    public_values.get("satellite_install_satellite_admin_rhn_activation_key"),
+                    public_values.get("satellite_install_admin_rhn_activation_key"),
                     public_values.get("satellite_install_rhn_activation_key"),
-                    public_values.get("satellite_install_satellite_rhn_activation_key"),
+                    public_values.get("satellite_install_rhn_activation_key"),
                     public_values.get("rhn_activation_key"),
                     public_values.get("activation_key"),
                     public_values.get("admin_activation_key"),

@@ -75,8 +75,8 @@ satellite_config_admin_password: "{% raw %}{{ vault_satellite_admin_password | d
 satellite_config_organization: "{{ bootstrap_generate_env_vars_satellite_organization | default('') }}"
 satellite_config_validate_certs: {{ bootstrap_generate_env_vars_satellite_validate_certs | default(false) | bool | lower }}
 satellite_config_satellite_deployment_version: "{{ bootstrap_generate_env_vars_satellite_deployment_version | default('6.19', true) }}"
-satellite_install_satellite_deployment_version: "{{ bootstrap_generate_env_vars_satellite_deployment_version | default('6.19', true) }}"
-satellite_install_satellite_location: "{{ bootstrap_generate_env_vars_satellite_location | default('') }}"
+satellite_install_deployment_version: "{{ bootstrap_generate_env_vars_satellite_deployment_version | default('6.19', true) }}"
+satellite_install_location: "{{ bootstrap_generate_env_vars_satellite_location | default('') }}"
 satellite_install_rhn_connected: {{ ((bootstrap_generate_env_vars_satellite_rhn_org_id | default('') | length) > 0 and (bootstrap_generate_env_vars_satellite_rhn_activation_key | default('') | length) > 0) | bool | lower }}
 satellite_install_rhn_org_id: "{% raw %}{{ vault_satellite_rhn_org_id | default(omit) }}{% endraw %}"
 satellite_install_rhn_activation_key: "{% raw %}{{ vault_satellite_rhn_activation_key | default(omit) }}{% endraw %}"

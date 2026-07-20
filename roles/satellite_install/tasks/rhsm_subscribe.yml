@@ -106,4 +106,4 @@
       community.general.rhsm_repository:
         name: "{{ item }}"
         state: enabled
-      loop: "{{ satellite_install_satellite_rhn_repos }}"
+      loop: "{{ satellite_install_rhn_repos }}"

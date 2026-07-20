@@ -5,7 +5,7 @@
 
 - name: install_packages | Install packages
   ansible.builtin.dnf:
-    name: "{{ satellite_install_satellite_packages }}"
+    name: "{{ satellite_install_packages }}"
     state: present
   when: "'satellite' not in ansible_facts['packages']"
 ...
