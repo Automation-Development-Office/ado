@@ -1,3 +1,37 @@
 ---
-- name: Dispatch ado.aap_configuration workflow
-  ansible.builtin.import_tasks: dispatch.yml
+- name: Ensure local configs directory exists
+  ansible.builtin.file:
+    path: "{{ role_path }}/configs"
+    state: directory
+    mode: '0755'
+
+- name: Find configuration files from the user's repo
+  ansible.builtin.find:
+    paths: "{{ playbook_dir }}/configs"
+    patterns: "*.yml"
+  register: aap_configuration_user_configs
+
+- name: Copy user configuration files into role configs directory
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "{{ role_path }}/configs/{{ item.path | basename }}"
+    mode: '0644'
+  loop: "{{ aap_configuration_user_configs.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+- name: Load config vars
+  ansible.builtin.include_vars:
+    dir: "{{ role_path }}/configs"
+    extensions: ["yml"]
+    ignore_unknown_extensions: true
+
+- name: Capture config path before delegating to upstream dispatch role
+  ansible.builtin.set_fact:
+    aap_configuration_role_config_path: "{{ role_path }}/configs"
+
+- name: Run upstream infra.aap_configuration dispatcher
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.dispatch
+  vars:
+    aap_configuration_config_path: "{{ aap_configuration_role_config_path }}"

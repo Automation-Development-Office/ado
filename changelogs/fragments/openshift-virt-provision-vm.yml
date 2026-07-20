@@ -1,0 +1,14 @@
+---
+minor_changes:
+  - >-
+    Add optional OpenShift Virtualization VM provisioning to bootstrap
+    generation, including component vars, generated playbook repo content, and
+    an AAP job template for CLI and UI preflight runs.
+  - >-
+    Add OpenShift Virtualization VM launch survey options for image preference,
+    instance type, custom CPU and memory, disk size, static networking,
+    password setup, and optional root SSH.
+  - >-
+    Limit OpenShift Virtualization preflight-derived values to the OpenShift
+    API endpoint, API token, TLS verification setting, and SSH public key so VM
+    sizing and guest customization are controlled from the AAP launch survey.

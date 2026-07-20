@@ -31,12 +31,12 @@
         argv:
           - foreman-rake
           - permissions:reset
-          - "password={{ satellite_install_satellite_admin_password }}"
+          - "password={{ satellite_install_admin_password }}"
       changed_when: true
 
 - name: install_satellite | Ensure successful installation
   ansible.builtin.command: satellite-maintain service status
-  register: satellite_install_satellite_status
+  register: satellite_install_status
   changed_when: false
-  failed_when: satellite_install_satellite_status.rc != 0
+  failed_when: satellite_install_status.rc != 0
 ...

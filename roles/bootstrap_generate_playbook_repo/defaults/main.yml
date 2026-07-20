@@ -13,6 +13,10 @@ bootstrap_generate_playbook_repo_git_token: ""
 bootstrap_generate_playbook_repo_git_sync_before_push: true
 bootstrap_generate_playbook_repo_pause_after_generate: false
 
+bootstrap_generate_playbook_repo_infra_ado_collection_version: "1.0.1"
+bootstrap_generate_playbook_repo_infra_ado_collection_repository: published
+bootstrap_generate_playbook_repo_infra_ado_collection_source: ""
+
 bootstrap_generate_playbook_repo_component: all
 
 bootstrap_generate_playbook_repo_component_map:
@@ -56,6 +60,12 @@ bootstrap_generate_playbook_repo_component_map:
     - rhel
     - satellite
     - idm
+
+  provision:
+    - openshift_virt
+
+  openshift_virt:
+    - openshift_virt
 
   aap:
     - aap
@@ -319,6 +329,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     target_platform: openshift
     category: platform
     app: openshift_update_pull_secret
+
+  - src: provision/ado-provision-openshift-virt-vm-bootstrap.yml
+    dest: playbooks/provision/ado-provision-openshift-virt-vm-bootstrap.yml
+    target_platform: openshift
+    category: provision
+    app: openshift_virt
 
   - src: pega/ado-install-and-configure-bootstrap.yml
     dest: playbooks/pega/ado-install-and-configure-bootstrap.yml

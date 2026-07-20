@@ -1,3 +1,4 @@
 ---
 collections:
   - name: infra.ado
+    version: "1.0.1"

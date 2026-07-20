@@ -1,0 +1,127 @@
+---
+- name: ADO | Provision OpenShift Virtualization VM
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: openshift_virt
+    vm_name: "{{ provision_openshift_virt_vm_name }}"
+    vm_namespace: "{{ provision_openshift_virt_namespace }}"
+    source_kind: "{{ provision_openshift_virt_source_kind }}"
+    source_name: "{{ provision_openshift_virt_source_name }}"
+    source_namespace: "{{ provision_openshift_virt_source_namespace }}"
+    instance_type: "{{ provision_openshift_virt_instance_type }}"
+    preference: "{{ provision_openshift_virt_preference }}"
+    cpu_cores: "{{ provision_openshift_virt_cpu_cores }}"
+    memory: "{{ provision_openshift_virt_memory }}"
+    storage_class: "{{ provision_openshift_virt_storage_class }}"
+    root_disk_size: "{{ provision_openshift_virt_root_disk_size }}"
+    network_name: "{{ provision_openshift_virt_network_name }}"
+    app_label: "{{ provision_openshift_virt_app_label }}"
+    vm_start: "{{ provision_openshift_virt_start }}"
+    vm_state: "{{ state | default('present') }}"
+    wait_timeout: "{{ provision_openshift_virt_wait_timeout }}"
+    cloud_user_password: >-
+      {{ provision_openshift_virt_cloud_user_password | default('') }}
+    root_password: "{{ provision_openshift_virt_root_password | default('') }}"
+    enable_root_ssh: >-
+      {{ provision_openshift_virt_enable_root_ssh | default(false) }}
+    validate_certs: >-
+      {{ not (provision_openshift_virt_skip_tls_verify | bool) }}
+    # yamllint disable rule:line-length
+    cloud_init_user_data: |
+      #cloud-config
+      hostname: {{ provision_openshift_virt_hostname }}
+      ssh_pwauth: {{ ((cloud_user_password | length > 0) or (root_password | length > 0)) | bool | lower }}
+      disable_root: {{ (not (enable_root_ssh | bool)) | bool | lower }}
+      users:
+        - default
+        - name: {{ provision_openshift_virt_cloud_user }}
+          sudo: ALL=(ALL) NOPASSWD:ALL
+          shell: /bin/bash
+          lock_passwd: {{ (cloud_user_password | length == 0) | bool | lower }}
+      {% if
+        provision_openshift_virt_ssh_public_key | default('') | length > 0
+      %}
+          ssh_authorized_keys:
+            - {{ provision_openshift_virt_ssh_public_key }}
+      {% endif %}
+      {% if enable_root_ssh | bool %}
+        - name: root
+          lock_passwd: {{ (root_password | length == 0) | bool | lower }}
+      {% if
+        provision_openshift_virt_ssh_public_key | default('') | length > 0
+      %}
+          ssh_authorized_keys:
+            - {{ provision_openshift_virt_ssh_public_key }}
+      {% endif %}
+      {% endif %}
+      {% if (cloud_user_password | length > 0) or (root_password | length > 0) %}
+      chpasswd:
+        expire: false
+        users:
+      {% if cloud_user_password | length > 0 %}
+          - name: {{ provision_openshift_virt_cloud_user }}
+            password: {{ cloud_user_password }}
+            type: text
+      {% endif %}
+      {% if root_password | length > 0 %}
+          - name: root
+            password: {{ root_password }}
+            type: text
+      {% endif %}
+      {% endif %}
+      {% if enable_root_ssh | bool %}
+      write_files:
+        - path: /etc/ssh/sshd_config.d/99-ado-root-login.conf
+          permissions: "0644"
+          content: |
+            PermitRootLogin yes
+      runcmd:
+        - systemctl restart sshd || systemctl restart ssh
+      {% endif %}
+    cloud_init_network_data: |
+      {% if provision_openshift_virt_static_ip | default('') | length > 0 %}
+      {% set dns_servers = provision_openshift_virt_dns_servers | default([]) %}
+      {% if dns_servers is string %}
+      {% set dns_servers = dns_servers.split(',') | map('trim') | reject('equalto', '') | list %}
+      {% endif %}
+      version: 2
+      ethernets:
+        {{ provision_openshift_virt_interface_name | default('eth0') }}:
+          dhcp4: false
+          addresses:
+            - {{ provision_openshift_virt_static_ip }}/{{ provision_openshift_virt_prefix_length | default(24) }}
+      {% if provision_openshift_virt_gateway | default('') | length > 0 %}
+          gateway4: {{ provision_openshift_virt_gateway }}
+      {% endif %}
+      {% if dns_servers | length > 0 %}
+          nameservers:
+            addresses:
+      {% for dns_server in dns_servers %}
+              - {{ dns_server }}
+      {% endfor %}
+      {% endif %}
+      {% endif %}
+    # yamllint enable rule:line-length
+  vars_files:
+    - group_vars/all/{{ env }}/infra_config_vars.yml
+    - group_vars/all/{{ env }}/vault_{{ component }}.yml
+    - group_vars/all/{{ env }}/vars_{{ component }}.yml
+  environment:
+    K8S_AUTH_HOST: >-
+      {{
+        provision_openshift_virt_api_host
+        | default(host | default(''), true)
+      }}
+    K8S_AUTH_API_KEY: >-
+      {{
+        provision_openshift_virt_api_token
+        | default(token | default(''), true)
+      }}
+    K8S_AUTH_VERIFY_SSL: "{{ validate_certs | bool | ternary('yes', 'no') }}"
+  pre_tasks:
+    - name: Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: infra.ado.bootstrap_resolve_component
+  roles:
+    - role: infra.ado.ocp_virtualization

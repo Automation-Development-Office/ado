@@ -1,7 +1,7 @@
 ---
 - name: rhsm_subscribe | Set timezone
   community.general.timezone:
-    name: "{{ satellite_install_satellite_timezone }}"
+    name: "{{ satellite_install_timezone }}"
 
 - name: rhsm_subscribe | Restart chronyd
   ansible.builtin.service:
@@ -55,10 +55,14 @@
         regexp: "^{{ item.key }}"
         line: "{{ item.value }}"
       loop:
-        - { key: "hostname", value: "hostname = subscription.rhsm.redhat.com" }
-        - { key: "baseurl", value: "baseurl = https://cdn.redhat.com" }
-        - { key: "repo_ca_cert", value: "repo_ca_cert = %(ca_cert_dir)sredhat-uep.pem" }
-        - { key: "prefix", value: "prefix = /subscription" }
+        - key: hostname
+          value: hostname = subscription.rhsm.redhat.com
+        - key: baseurl
+          value: baseurl = https://cdn.redhat.com
+        - key: repo_ca_cert
+          value: repo_ca_cert = %(ca_cert_dir)sredhat-uep.pem
+        - key: prefix
+          value: prefix = /subscription
 
     - name: rhsm_subscribe | Start rhsm service
       ansible.builtin.service:
@@ -80,24 +84,26 @@
 
     - name: rhsm_subscribe | Debug activation key
       ansible.builtin.debug:
-        var: satellite_install_satellite_rhn_activation_key
+        var: satellite_install_rhn_activation_key
 
     - name: rhsm_subscribe | Debug org id
       ansible.builtin.debug:
-        var: satellite_install_satellite_rhn_org_id
+        var: satellite_install_rhn_org_id
 
     - name: rhsm_subscribe | Register system
       community.general.redhat_subscription:
-        activationkey: "{{ satellite_install_satellite_rhn_activation_key }}"
-        org_id: "{{ satellite_install_satellite_rhn_org_id }}"
+        activationkey: "{{ satellite_install_rhn_activation_key }}"
+        org_id: "{{ satellite_install_rhn_org_id }}"
         state: present
         force_register: true
-        server_proxy_hostname: "{{ satellite_install_satellite_proxy_server | default(omit) }}"
-        server_proxy_port: "{{ satellite_install_satellite_proxy_port | default(omit) }}"
-        server_proxy_scheme: "{{ satellite_install_satellite_proxy_scheme | default(omit) }}"
+        server_proxy_hostname: >-
+          {{ satellite_install_proxy_server | default(omit) }}
+        server_proxy_port: "{{ satellite_install_proxy_port | default(omit) }}"
+        server_proxy_scheme: >-
+          {{ satellite_install_proxy_scheme | default(omit) }}
 
     - name: rhsm_subscribe | Enable repositories
       community.general.rhsm_repository:
         name: "{{ item }}"
         state: enabled
-      loop: "{{ satellite_install_satellite_rhn_repos }}"
+      loop: "{{ satellite_install_rhn_repos }}"

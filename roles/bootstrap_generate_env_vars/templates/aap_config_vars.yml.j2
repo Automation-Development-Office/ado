@@ -135,6 +135,12 @@
     preflight_satellite_config.inventory_source_vars
     | default(bootstrap_generate_env_vars_satellite_inventory_source_vars | default({}), true)
 %}
+{% set bootstrap_generate_env_vars_satellite_inventory_effective_source_vars =
+    {
+      'validate_certs': bootstrap_generate_env_vars_satellite_validate_certs
+    }
+    | combine(bootstrap_generate_env_vars_satellite_inventory_source_vars | default({}))
+%}
 ---
 {% set bootstrap_generate_env_vars_aap_org = preflight_aap.organization if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_org.user_input %}
 {% set bootstrap_generate_env_vars_aap_org = bootstrap_generate_env_vars_aap_org | default('ADO', true) %}
@@ -184,6 +190,12 @@
 {% set bootstrap_generate_env_vars_aap_project = bootstrap_generate_env_vars_aap_org ~ '-' ~ bootstrap_generate_env_vars_aap_project %}
 {% endif %}
 {% set bootstrap_generate_env_vars_aap_ee = preflight_aap.execution_environment | default('ee-supported-rhel9', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_ee.user_input | default('ee-supported-rhel9', true)) %}
+{% set bootstrap_generate_env_vars_aap_ee_image =
+    preflight_aap.execution_environment_image
+    | default(bootstrap_generate_env_vars_aap_ee_image | default('registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest'), true)
+    if bootstrap_generate_env_vars_preflight is defined
+    else (bootstrap_generate_env_vars_aap_ee_image | default('registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest', true))
+%}
 {% set bootstrap_generate_env_vars_aap_cred_raw = preflight_aap.vault_credential_name | default(bootstrap_generate_env_vars_aap_org ~ '-vault', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_vault_cred.user_input | default(bootstrap_generate_env_vars_aap_org ~ '-vault', true)) %}
 {% set bootstrap_generate_env_vars_aap_cred =
     bootstrap_generate_env_vars_aap_cred_raw | replace(' ', '-')
@@ -222,6 +234,8 @@
 %}
 {% set bootstrap_generate_env_vars_hub_publish_ado_collection = preflight_aap.hub_publish_ado_collection | default(bootstrap_generate_env_vars_hub_publish_ado_collection | default(true)) | bool %}
 {% set bootstrap_generate_env_vars_hub_mark_ado_validated = true if bootstrap_generate_env_vars_hub_publish_ado_collection else false %}
+{% set bootstrap_generate_env_vars_hub_force_ado_collection_update = preflight_aap.hub_force_ado_collection_update | default(bootstrap_generate_env_vars_hub_force_ado_collection_update | default(true)) | bool %}
+{% set bootstrap_generate_env_vars_hub_update_collection_only = preflight_aap.hub_update_collection_only | default(bootstrap_generate_env_vars_hub_update_collection_only | default(false)) | bool %}
 {% set bootstrap_generate_env_vars_aap_skip_tls_verify =
     preflight_aap.skip_tls_verify
     | default(skip_tls_verify | default(false), true)
@@ -265,6 +279,8 @@ controller_bootstrap_machine_credential: "{{ bootstrap_generate_env_vars_machine
 
 bootstrap_controller_hub_publish_ado_collection: {{ bootstrap_generate_env_vars_hub_publish_ado_collection | lower }}
 bootstrap_controller_hub_mark_ado_validated: {{ bootstrap_generate_env_vars_hub_mark_ado_validated | lower }}
+bootstrap_controller_hub_force_ado_collection_update: {{ bootstrap_generate_env_vars_hub_force_ado_collection_update | lower }}
+bootstrap_controller_hub_update_collection_only: {{ bootstrap_generate_env_vars_hub_update_collection_only | lower }}
 hub_collections:
 {% if bootstrap_generate_env_vars_hub_publish_ado_collection %}
   - collection_name: infra_ado
@@ -494,9 +510,9 @@ controller_bootstrap_controller_inventory_sources:
 {% if bootstrap_generate_env_vars_satellite_inventory_host_filter | length > 0 %}
     host_filter: "{{ bootstrap_generate_env_vars_satellite_inventory_host_filter }}"
 {% endif %}
-{% if bootstrap_generate_env_vars_satellite_inventory_source_vars | length > 0 %}
+{% if bootstrap_generate_env_vars_satellite_inventory_effective_source_vars | length > 0 %}
     source_vars:
-{{ bootstrap_generate_env_vars_satellite_inventory_source_vars | to_nice_yaml(indent=2) | indent(6, true) }}
+{{ bootstrap_generate_env_vars_satellite_inventory_effective_source_vars | to_nice_yaml(indent=2) | indent(6, true) }}
 {% endif %}
 {% else %}
   []
@@ -504,7 +520,7 @@ controller_bootstrap_controller_inventory_sources:
 
 controller_bootstrap_controller_execution_environments:
   - name: "{{ bootstrap_generate_env_vars_aap_ee }}"
-    image: quay.io/ansible/awx-ee:latest
+    image: "{{ bootstrap_generate_env_vars_aap_ee_image }}"
     pull: missing
 
 controller_bootstrap_controller_labels:

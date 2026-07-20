@@ -1,0 +1,5 @@
+---
+bugfixes:
+  - >-
+    Normalize generated AAP survey choices so list values remain separate
+    options instead of collapsing into a single dropdown entry.

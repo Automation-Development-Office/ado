@@ -24,7 +24,7 @@ your collection description
 
 **Supported ansible-core versions:**
 
-* 2.15.0 or newer
+* 2.16.0 or newer
 
 .. ansible-links::
 

@@ -22,6 +22,7 @@ generate_env_vars_components:  # noqa: var-naming[no-role-prefix]
   - keycloak
   - ldap_auth_openshift
   - oadp
+  - openshift_virt
   - pega
   - quay
   - rhbk
@@ -46,7 +47,11 @@ bootstrap_generate_env_vars_components: "{{ generate_env_vars_components }}"
 bootstrap_generate_env_vars_aap_additional_credentials: []
 bootstrap_generate_env_vars_hub_publish_ado_collection: true
 bootstrap_generate_env_vars_hub_mark_ado_validated: true
+bootstrap_generate_env_vars_hub_force_ado_collection_update: true
+bootstrap_generate_env_vars_hub_update_collection_only: false
 bootstrap_generate_env_vars_hub_ado_collection_path: "."
+bootstrap_generate_env_vars_aap_ee_image: >-
+  registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest
 
 # Satellite dynamic inventory defaults
 bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled: false
@@ -61,3 +66,77 @@ bootstrap_generate_env_vars_satellite_inventory_update_cache_timeout: 0
 bootstrap_generate_env_vars_satellite_inventory_verbosity: 0
 bootstrap_generate_env_vars_satellite_inventory_host_filter: ""
 bootstrap_generate_env_vars_satellite_inventory_source_vars: {}
+bootstrap_generate_env_vars_satellite_deployment_version: "6.19"
+bootstrap_generate_env_vars_satellite_location: ""
+bootstrap_generate_env_vars_satellite_rhn_org_id: ""
+bootstrap_generate_env_vars_satellite_rhn_activation_key: ""
+bootstrap_generate_env_vars_satellite_size_profile: "default"
+bootstrap_generate_env_vars_satellite_vg_name: "satellite"
+bootstrap_generate_env_vars_satellite_data_disk_min_size: "10G"
+bootstrap_generate_env_vars_satellite_data_device_name: ""
+bootstrap_generate_env_vars_satellite_data_device: "/dev"
+bootstrap_generate_env_vars_satellite_size:
+  - name: default
+    min_hosts: 0
+    max_hosts: 5000
+    min_ram: 20
+    min_cpu: 4
+  - name: medium
+    min_hosts: 5000
+    max_hosts: 10000
+    min_ram: 32
+    min_cpu: 8
+  - name: large
+    min_hosts: 10000
+    max_hosts: 20000
+    min_ram: 64
+    min_cpu: 12
+  - name: extra-large
+    min_hosts: 20000
+    max_hosts: 60000
+    min_ram: 128
+    min_cpu: 16
+  - name: extra-extra-large
+    min_hosts: 60000
+    max_hosts: 100000
+    min_ram: 256
+    min_cpu: 32
+bootstrap_generate_env_vars_satellite_req_dirs:
+  - mount_point: /var/lib/pulp
+    lv_name: lv_rhspulp
+    lv_size: 300g
+  - mount_point: /var/lib/pgsql
+    lv_name: lv_pgsql
+    lv_size: 20g
+
+# OpenShift Virtualization provisioning defaults
+bootstrap_generate_env_vars_openshift_virt_api_host: ""
+bootstrap_generate_env_vars_openshift_virt_api_token: ""
+bootstrap_generate_env_vars_openshift_virt_skip_tls_verify: true
+bootstrap_generate_env_vars_openshift_virt_namespace: default
+bootstrap_generate_env_vars_openshift_virt_vm_name: satellite-server
+bootstrap_generate_env_vars_openshift_virt_hostname: satellite-server
+bootstrap_generate_env_vars_openshift_virt_source_kind: DataSource
+bootstrap_generate_env_vars_openshift_virt_source_name: rhel9
+bootstrap_generate_env_vars_openshift_virt_source_namespace: >-
+  openshift-virtualization-os-images
+bootstrap_generate_env_vars_openshift_virt_instance_type: u1.xlarge
+bootstrap_generate_env_vars_openshift_virt_preference: rhel.9
+bootstrap_generate_env_vars_openshift_virt_cpu_cores: 4
+bootstrap_generate_env_vars_openshift_virt_memory: 20Gi
+bootstrap_generate_env_vars_openshift_virt_storage_class: ""
+bootstrap_generate_env_vars_openshift_virt_root_disk_size: 120Gi
+bootstrap_generate_env_vars_openshift_virt_network_name: default
+bootstrap_generate_env_vars_openshift_virt_cloud_user: cloud-user
+bootstrap_generate_env_vars_openshift_virt_cloud_user_password: ""
+bootstrap_generate_env_vars_openshift_virt_ssh_public_key: ""
+bootstrap_generate_env_vars_openshift_virt_enable_root_ssh: false
+bootstrap_generate_env_vars_openshift_virt_root_password: ""
+bootstrap_generate_env_vars_openshift_virt_interface_name: eth0
+bootstrap_generate_env_vars_openshift_virt_static_ip: ""
+bootstrap_generate_env_vars_openshift_virt_prefix_length: 24
+bootstrap_generate_env_vars_openshift_virt_gateway: ""
+bootstrap_generate_env_vars_openshift_virt_dns_servers: []
+bootstrap_generate_env_vars_openshift_virt_app_label: satellite-server
+bootstrap_generate_env_vars_openshift_virt_start: true
+bootstrap_generate_env_vars_openshift_virt_wait_timeout: 3600

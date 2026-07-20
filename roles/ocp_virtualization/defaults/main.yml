@@ -1,3 +1,29 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
-# defaults file for ocp_virt
+---
+vm_name: >-
+  {{ provision_openshift_virt_vm_name | default('satellite-server') }}
+vm_namespace: "{{ provision_openshift_virt_namespace | default('default') }}"
+source_kind: >-
+  {{ provision_openshift_virt_source_kind | default('DataSource') }}
+source_name: "{{ provision_openshift_virt_source_name | default('rhel9') }}"
+source_namespace: >-
+  {{
+    provision_openshift_virt_source_namespace
+    | default('openshift-virtualization-os-images')
+  }}
+instance_type: >-
+  {{ provision_openshift_virt_instance_type | default('u1.xlarge') }}
+preference: "{{ provision_openshift_virt_preference | default('rhel.9') }}"
+cpu_cores: "{{ provision_openshift_virt_cpu_cores | default(4) }}"
+memory: "{{ provision_openshift_virt_memory | default('20Gi') }}"
+storage_class: "{{ provision_openshift_virt_storage_class | default('') }}"
+root_disk_size: >-
+  {{ provision_openshift_virt_root_disk_size | default('120Gi') }}
+network_name: "{{ provision_openshift_virt_network_name | default('default') }}"
+app_label: "{{ provision_openshift_virt_app_label | default(vm_name) }}"
+vm_start: "{{ provision_openshift_virt_start | default(true) }}"
+wait_timeout: "{{ provision_openshift_virt_wait_timeout | default(3600) }}"
+cloud_init_user_data: >-
+  {{ provision_openshift_virt_cloud_init_user_data | default('') }}
+cloud_init_network_data: >-
+  {{ provision_openshift_virt_cloud_init_network_data | default('') }}
+vm_state: "{{ provision_openshift_virt_state | default('present') }}"

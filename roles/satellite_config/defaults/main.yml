@@ -1,4 +1,5 @@
 ---
+satellite_config_satellite_deployment_version: "6.19"
 satellite_config_satellite_redhat_repos:
   - name: "Red Hat Satellite Capsule {{ satellite_config_satellite_deployment_version }} for RHEL 9 x86_64 (RPMs)"
     label: "satellite-capsule-{{ satellite_config_satellite_deployment_version }}-for-rhel-9-x86_64-rpms"

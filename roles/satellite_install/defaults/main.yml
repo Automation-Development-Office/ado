@@ -1,32 +1,61 @@
 ---
-satellite_install_satellite_rhn_repos:
-  - "rhel-9-for-x86_64-baseos-rpms"
-  - "rhel-9-for-x86_64-appstream-rpms"
-  - "satellite-{{ satellite_install_satellite_deployment_version }}-for-rhel-9-x86_64-rpms"
-  - "satellite-maintenance-{{ satellite_install_satellite_deployment_version }}-for-rhel-9-x86_64-rpms"
+# yamllint disable rule:line-length
+satellite_install_rhn_repos:
+  - >-
+    satellite-{{ satellite_install_deployment_version }}-for-rhel-9-x86_64-rpms
+  - >-
+    satellite-maintenance-{{ satellite_install_deployment_version }}-for-rhel-9-x86_64-rpms
+# yamllint enable rule:line-length
 satellite_install_pre_check: false
-satellite_install_satellite_packages:
+satellite_install_packages:
   - satellite
-  - chrony
-  - sos
-  - fapolicyd
-  - vim
-  - bash-completion
-  - bind-utils
-satellite_install_satellite_deployment_version: ""
-satellite_install_satellite_location: ""
-satellite_install_satellite_min_memory_size: 1024
-satellite_install_satellite_min_cpu_count: 4
-satellite_install_satellite_rhn_connected: false
-satellite_install_satellite_rhn_org_id: ""
-satellite_install_satellite_rhn_activation_key: ""
-satellite_install_satellite_timezone: "UTC"
-satellite_install_satellite_selinux_state: "enforcing"
-satellite_install_satellite_proxy_server: ""
-satellite_install_satellite_proxy_port: ""
-satellite_install_satellite_proxy_scheme: ""
-satellite_install_satellite_vg_name: "satellite"
-satellite_install_satellite_req_dirs: []
-satellite_install_satellite_data_disk_min_size: "10G"
-satellite_install_satellite_data_device_name: ""
-satellite_install_satellite_data_device: "/dev"
+satellite_install_deployment_version: "6.19"
+satellite_install_location: ""
+satellite_install_size_profile: "default"
+satellite_install_size:
+  - name: default
+    min_hosts: 0
+    max_hosts: 5000
+    min_ram: 20
+    min_cpu: 4
+  - name: medium
+    min_hosts: 5000
+    max_hosts: 10000
+    min_ram: 32
+    min_cpu: 8
+  - name: large
+    min_hosts: 10000
+    max_hosts: 20000
+    min_ram: 64
+    min_cpu: 12
+  - name: extra-large
+    min_hosts: 20000
+    max_hosts: 60000
+    min_ram: 128
+    min_cpu: 16
+  - name: extra-extra-large
+    min_hosts: 60000
+    max_hosts: 100000
+    min_ram: 256
+    min_cpu: 32
+satellite_install_min_memory_size: 20480
+satellite_install_min_cpu_count: 4
+satellite_install_rhn_connected: false
+satellite_install_rhn_org_id: ""
+satellite_install_rhn_activation_key: ""
+satellite_install_timezone: "UTC"
+satellite_install_selinux_state: "enforcing"
+satellite_install_proxy_server: ""
+satellite_install_proxy_port: ""
+satellite_install_proxy_scheme: ""
+satellite_install_vg_name: "satellite"
+satellite_install_req_dirs:
+  - mount_point: /var/lib/pulp
+    lv_name: lv_rhspulp
+    lv_size: 300g
+  - mount_point: /var/lib/pgsql
+    lv_name: lv_pgsql
+    lv_size: 20g
+satellite_install_data_disk_min_size: "10G"
+satellite_install_data_device_name: ""
+satellite_install_data_device: "/dev"

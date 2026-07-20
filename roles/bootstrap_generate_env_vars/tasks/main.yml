@@ -27,9 +27,12 @@
       }}
     bootstrap_generate_env_vars_platform: >-
       {{
-        bootstrap_generate_env_vars_preflight.platform
-        | default(['all'])
-        | first
+        (
+          bootstrap_generate_env_vars_preflight.platform
+          | default([])
+          | first
+          | default('all', true)
+        )
         | lower
       }}
     bootstrap_generate_env_vars_components: >-
@@ -714,13 +717,26 @@
     loop_var: component_name
 
 # yamllint disable rule:line-length
-- name: Overlay preflight component values into generated vars/vault files
+- name: Overlay preflight component values into generated vars/vault files  # noqa: jinja[spacing]
   ansible.builtin.shell: |
     set -euo pipefail
     python3 <<'PYCODE'
     from pathlib import Path
+    import copy
     import json
     import yaml
+
+    class NoAliasDumper(yaml.SafeDumper):
+        def ignore_aliases(self, data):
+            return True
+
+    class QuotedString(str):
+        pass
+
+    def quoted_string_representer(dumper, data):
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
+
+    NoAliasDumper.add_representer(QuotedString, quoted_string_representer)
 
     preflight_file = Path("{{ preflight_json }}")
     env_dir = Path("{{ bootstrap_generate_env_vars_env_dir }}")
@@ -740,8 +756,17 @@
 
     def write_yaml(path, data, mode="0644"):
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("---\n" + yaml.safe_dump(data, sort_keys=False, width=1000))
+        path.write_text("---\n" + yaml.dump(data, Dumper=NoAliasDumper, sort_keys=False, width=1000))
         path.chmod(int(mode, 8))
+
+    def first_present(*values):
+        for value in values:
+            if value is not None and value != "":
+                return value
+        return None
+
+    def vault_ref(name):
+        return QuotedString("{{ " + name + " }}")
 
     def merge_component(component, cfg):
         if not isinstance(cfg, dict):
@@ -752,19 +777,124 @@
 
         vars_data = load_yaml(vars_path)
         vault_data = load_yaml(vault_path)
+        vars_data_changed = False
+        vault_data_changed = False
 
         public_values = {k: v for k, v in cfg.items() if not is_secret_key(k)}
         secret_values = {k: v for k, v in cfg.items() if is_secret_key(k)}
+        passthrough_public_values = copy.deepcopy(public_values)
+
+        quoted_public_keys = {
+            "activation_key",
+            "admin_activation_key",
+            "admin_rhn_activation_key",
+            "rhn_activation_key",
+            "rhn_org_id",
+            "org_id",
+            "redhat_org_id",
+            "satellite_install_rhn_activation_key",
+            "satellite_install_rhn_org_id",
+            "satellite_admin_rhn_activation_key",
+            "satellite_rhn_org_id",
+        }
+        for quoted_key in quoted_public_keys:
+            if quoted_key in public_values and public_values[quoted_key] is not None:
+                public_values[quoted_key] = QuotedString(str(public_values[quoted_key]))
+
+        if component == "satellite":
+            satellite_role_only_keys = {
+                "activation_key",
+                "admin_activation_key",
+                "admin_rhn_activation_key",
+                "rhn_activation_key",
+                "rhn_org_id",
+                "org_id",
+                "redhat_org_id",
+                "satellite_install_rhn_activation_key",
+                "satellite_install_rhn_org_id",
+                "satellite_install_rhn_connected",
+                "satellite_install_size",
+                "satellite_install_size_profile",
+                "satellite_install_min_memory_size",
+                "satellite_install_min_cpu_count",
+                "satellite_install_vg_name",
+                "satellite_install_req_dirs",
+                "satellite_install_data_device",
+                "satellite_install_data_device_name",
+                "satellite_install_data_disk_min_size",
+                "satellite_rhn_org_id",
+                "satellite_data_device",
+                "satellite_data_device_name",
+                "satellite_data_disk_min_size",
+                "satellite_vg_name",
+                "data_device",
+                "data_device_name",
+                "data_disk_min_size",
+                "size",
+                "req_dirs",
+                "vg_name",
+                "vgname",
+            }
+            satellite_stale_raw_keys = {
+                "activation_key",
+                "admin_activation_key",
+                "admin_rhn_activation_key",
+                "rhn_activation_key",
+                "rhn_org_id",
+                "org_id",
+                "redhat_org_id",
+                "satellite_install_rhn_activation_key",
+                "satellite_install_rhn_org_id",
+                "satellite_install_rhn_connected",
+                "satellite_install_size",
+                "satellite_install_size_profile",
+                "satellite_install_min_memory_size",
+                "satellite_install_min_cpu_count",
+                "satellite_install_vg_name",
+                "satellite_install_req_dirs",
+                "satellite_install_data_device",
+                "satellite_install_data_device_name",
+                "satellite_install_data_disk_min_size",
+                "satellite_rhn_org_id",
+                "satellite_data_device",
+                "satellite_data_device_name",
+                "satellite_data_disk_min_size",
+                "satellite_vg_name",
+                "data_device",
+                "data_device_name",
+                "data_disk_min_size",
+                "size",
+                "req_dirs",
+                "vg_name",
+                "vgname",
+            }
+            for satellite_key in satellite_role_only_keys:
+                passthrough_public_values.pop(satellite_key, None)
+            for satellite_key in satellite_stale_raw_keys:
+                vars_data.pop(satellite_key, None)
+                vault_data.pop(satellite_key, None)
+            existing_satellite_config = copy.deepcopy(
+                vars_data.get("component_config", {}).get(component, {})
+            )
+            for satellite_key in satellite_stale_raw_keys:
+                existing_satellite_config.pop(satellite_key, None)
+        else:
+            existing_satellite_config = {}
 
         if public_values:
             vars_data.setdefault("component_config", {})
+            existing_component_config = (
+                existing_satellite_config
+                if component == "satellite"
+                else copy.deepcopy(vars_data["component_config"].get(component, {}))
+            )
             vars_data["component_config"][component] = {
-                **vars_data["component_config"].get(component, {}),
-                **public_values,
+                **existing_component_config,
+                **copy.deepcopy(passthrough_public_values),
             }
 
-            for k, v in public_values.items():
-                vars_data[k] = v
+            for k, v in passthrough_public_values.items():
+                vars_data[k] = copy.deepcopy(v)
 
             if component == "grafana":
                 vars_data.setdefault("components_env", {}).setdefault("grafana", {})
@@ -795,14 +925,97 @@
                     vars_data["satellite_config_server_url"] = satellite_url
                 if public_values.get("organization"):
                     vars_data["satellite_config_organization"] = public_values["organization"]
-                if public_values.get("activation_key"):
-                    vars_data["satellite_activation_key"] = public_values["activation_key"]
                 if public_values.get("service_account_username"):
                     vars_data["satellite_config_username"] = public_values["service_account_username"]
                     vars_data["satellite_service_account_username"] = public_values["service_account_username"]
                     vault_data["vault_satellite_service_account_username"] = public_values["service_account_username"]
+                    vault_data_changed = True
                 if "validate_certs" in public_values:
                     vars_data["satellite_config_validate_certs"] = public_values["validate_certs"]
+                if public_values.get("deployment_version"):
+                    vars_data["satellite_config_satellite_deployment_version"] = public_values["deployment_version"]
+                    vars_data["satellite_install_deployment_version"] = public_values["deployment_version"]
+                if public_values.get("location"):
+                    vars_data["satellite_install_location"] = public_values["location"]
+                vg_name = first_present(
+                    public_values.get("satellite_install_vg_name"),
+                    public_values.get("satellite_vg_name"),
+                    public_values.get("vg_name"),
+                    public_values.get("vgname"),
+                )
+                if vg_name is not None:
+                    vars_data["satellite_install_vg_name"] = vg_name
+                data_disk_min_size = first_present(
+                    public_values.get("satellite_install_data_disk_min_size"),
+                    public_values.get("satellite_data_disk_min_size"),
+                    public_values.get("data_disk_min_size"),
+                )
+                if data_disk_min_size is not None:
+                    vars_data["satellite_install_data_disk_min_size"] = QuotedString(str(data_disk_min_size))
+                data_device_name = first_present(
+                    public_values.get("satellite_install_data_device_name"),
+                    public_values.get("satellite_data_device_name"),
+                    public_values.get("data_device_name"),
+                )
+                if data_device_name is not None:
+                    vars_data["satellite_install_data_device_name"] = str(data_device_name)
+                data_device = first_present(
+                    public_values.get("satellite_install_data_device"),
+                    public_values.get("satellite_data_device"),
+                    public_values.get("data_device"),
+                )
+                if data_device is not None:
+                    vars_data["satellite_install_data_device"] = str(data_device)
+                rhn_org_id = first_present(
+                    public_values.get("satellite_install_rhn_org_id"),
+                    public_values.get("rhn_org_id"),
+                    public_values.get("org_id"),
+                    public_values.get("redhat_org_id"),
+                    public_values.get("satellite_rhn_org_id"),
+                )
+                if rhn_org_id is not None:
+                    vault_data["vault_satellite_rhn_org_id"] = QuotedString(str(rhn_org_id))
+                    vault_data["satellite_install_rhn_org_id"] = QuotedString(str(rhn_org_id))
+                    vars_data["satellite_install_rhn_org_id"] = vault_ref("vault_satellite_rhn_org_id")
+                    vars_data["satellite_install_rhn_connected"] = True
+                    vault_data_changed = True
+                rhn_activation_key = first_present(
+                    public_values.get("satellite_install_rhn_activation_key"),
+                    public_values.get("admin_rhn_activation_key"),
+                    public_values.get("satellite_admin_rhn_activation_key"),
+                    public_values.get("rhn_activation_key"),
+                    public_values.get("activation_key"),
+                    public_values.get("admin_activation_key"),
+                )
+                if rhn_activation_key is not None:
+                    vault_data["vault_satellite_rhn_activation_key"] = QuotedString(str(rhn_activation_key))
+                    vault_data["satellite_install_rhn_activation_key"] = QuotedString(str(rhn_activation_key))
+                    vault_data["satellite_activation_key"] = QuotedString(str(rhn_activation_key))
+                    vars_data["satellite_install_rhn_activation_key"] = vault_ref("vault_satellite_rhn_activation_key")
+                    vars_data["satellite_install_rhn_connected"] = True
+                    vault_data_changed = True
+                req_dirs = first_present(
+                    public_values.get("satellite_install_req_dirs"),
+                    public_values.get("req_dirs"),
+                )
+                if req_dirs:
+                    vars_data["satellite_install_req_dirs"] = copy.deepcopy(req_dirs)
+                if public_values.get("size"):
+                    vars_data["satellite_install_size"] = copy.deepcopy(public_values["size"])
+                if public_values.get("size_profile"):
+                    vars_data["satellite_install_size_profile"] = public_values["size_profile"]
+                    satellite_sizes = vars_data.get("satellite_install_size") or []
+                    selected_size = next(
+                        (
+                            item for item in satellite_sizes
+                            if isinstance(item, dict) and item.get("name") == public_values["size_profile"]
+                        ),
+                        {},
+                    )
+                    if selected_size.get("min_ram") is not None:
+                        vars_data["satellite_install_min_memory_size"] = int(selected_size["min_ram"]) * 1024
+                    if selected_size.get("min_cpu") is not None:
+                        vars_data["satellite_install_min_cpu_count"] = int(selected_size["min_cpu"])
 
             if component == "cert_manager":
                 if public_values.get("mode"):
@@ -878,6 +1091,8 @@
                     vars_data["rhel_stig_profile"] = public_values["profile"]
 
             write_yaml(vars_path, vars_data, "0644")
+            if vault_data_changed:
+                write_yaml(vault_path, vault_data, "0600")
 
         if secret_values:
             vault_data.setdefault("component_vault_config", {})
@@ -893,9 +1108,63 @@
                 if secret_values.get("service_account_password") is not None:
                     vault_data["vault_satellite_service_account_password"] = secret_values["service_account_password"]
                     vault_data["satellite_config_password"] = secret_values["service_account_password"]
+                    vault_data_changed = True
                 if secret_values.get("admin_password") is not None:
                     vault_data["vault_satellite_admin_password"] = secret_values["admin_password"]
                     vault_data["satellite_config_admin_password"] = secret_values["admin_password"]
+                    vault_data["satellite_install_admin_password"] = secret_values["admin_password"]
+                    vault_data_changed = True
+                rhn_org_id = first_present(
+                    public_values.get("satellite_install_rhn_org_id"),
+                    public_values.get("rhn_org_id"),
+                    public_values.get("org_id"),
+                    public_values.get("redhat_org_id"),
+                    public_values.get("satellite_rhn_org_id"),
+                    public_values.get("satellite_install_rhn_org_id"),
+                    secret_values.get("rhn_org_id"),
+                    secret_values.get("org_id"),
+                    secret_values.get("redhat_org_id"),
+                    secret_values.get("satellite_rhn_org_id"),
+                    secret_values.get("satellite_install_rhn_org_id"),
+                    secret_values.get("satellite_install_rhn_org_id"),
+                )
+                if rhn_org_id is not None:
+                    vault_data["vault_satellite_rhn_org_id"] = QuotedString(str(rhn_org_id))
+                    vault_data["satellite_install_rhn_org_id"] = QuotedString(str(rhn_org_id))
+                    vars_data["satellite_install_rhn_org_id"] = vault_ref("vault_satellite_rhn_org_id")
+                    vars_data["satellite_install_rhn_connected"] = True
+                    vars_data_changed = True
+                    vault_data_changed = True
+
+                rhn_activation_key = first_present(
+                    secret_values.get("satellite_install_rhn_activation_key"),
+                    secret_values.get("admin_rhn_activation_key"),
+                    secret_values.get("satellite_admin_rhn_activation_key"),
+                    secret_values.get("satellite_install_admin_rhn_activation_key"),
+                    secret_values.get("satellite_install_rhn_activation_key"),
+                    secret_values.get("rhn_activation_key"),
+                    secret_values.get("activation_key"),
+                    secret_values.get("admin_activation_key"),
+                    public_values.get("admin_rhn_activation_key"),
+                    public_values.get("satellite_admin_rhn_activation_key"),
+                    public_values.get("satellite_install_admin_rhn_activation_key"),
+                    public_values.get("satellite_install_rhn_activation_key"),
+                    public_values.get("satellite_install_rhn_activation_key"),
+                    public_values.get("rhn_activation_key"),
+                    public_values.get("activation_key"),
+                    public_values.get("admin_activation_key"),
+                )
+                if rhn_activation_key is not None:
+                    vault_data["vault_satellite_rhn_activation_key"] = QuotedString(str(rhn_activation_key))
+                    vault_data["satellite_install_rhn_activation_key"] = QuotedString(str(rhn_activation_key))
+                    vault_data["satellite_activation_key"] = QuotedString(str(rhn_activation_key))
+                    vars_data["satellite_install_rhn_activation_key"] = vault_ref("vault_satellite_rhn_activation_key")
+                    vars_data["satellite_install_rhn_connected"] = True
+                    vars_data_changed = True
+                    vault_data_changed = True
+
+                if vars_data_changed:
+                    write_yaml(vars_path, vars_data, "0644")
 
             if component == "cert_manager":
                 if secret_values.get("tls_key") is not None:

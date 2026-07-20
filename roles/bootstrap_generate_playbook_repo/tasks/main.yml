@@ -40,6 +40,59 @@
       {{ bootstrap_generate_playbook_repo_force | default(false) | bool }}
   when: bootstrap_generate_playbook_repo_seed_src is defined
 
+- name: Generate playbook repo | Ensure collections directory exists
+  ansible.builtin.file:
+    path: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/collections"
+    state: directory
+    mode: "0755"
+
+- name: Generate playbook repo | Resolve infra.ado collection repository
+  ansible.builtin.set_fact:
+    bootstrap_generate_playbook_repo_infra_ado_repo_resolved: >-
+      {{
+        bootstrap_generate_playbook_repo_infra_ado_collection_repository
+        | default('published', true)
+      }}
+
+- name: Generate playbook repo | Resolve infra.ado collection source
+  ansible.builtin.set_fact:
+    bootstrap_generate_playbook_repo_infra_ado_source_resolved: >-
+      {{
+        bootstrap_generate_playbook_repo_infra_ado_collection_source
+        | default('', true)
+      }}
+
+- name: Generate playbook repo | Derive infra.ado collection source from AAP
+  ansible.builtin.set_fact:
+    bootstrap_generate_playbook_repo_infra_ado_source_resolved: >-
+      {{
+        (
+          controller_host
+          | default(vault_controller_hostname | default('', true), true)
+          | regex_replace('/+$', '')
+        )
+        ~ '/api/galaxy/content/'
+        ~ bootstrap_generate_playbook_repo_infra_ado_repo_resolved
+        ~ '/'
+      }}
+  when:
+    - >-
+      bootstrap_generate_playbook_repo_infra_ado_source_resolved | length == 0
+    - >-
+      (
+        controller_host
+        | default(vault_controller_hostname | default('', true), true)
+      ) | length > 0
+
+- name: Generate playbook repo | Render collection requirements
+  ansible.builtin.template:
+    src: requirements.yml.j2
+    dest: >-
+      {{
+        bootstrap_generate_playbook_repo_dest_resolved
+      }}/collections/requirements.yml
+    mode: "0644"
+
 - name: Generate playbook repo | Normalize component selector
   ansible.builtin.set_fact:
     bootstrap_generate_playbook_repo_component_effective: >-
@@ -58,12 +111,18 @@
           bootstrap_generate_playbook_repo_selected_components
           + (
               ['rhel']
-              if 'patching' in bootstrap_generate_playbook_repo_selected_components
+              if (
+                'patching'
+                in bootstrap_generate_playbook_repo_selected_components
+              )
               else []
             )
           if (
             bootstrap_generate_playbook_repo_selected_components is defined
-            and bootstrap_generate_playbook_repo_selected_components | length > 0
+            and (
+              bootstrap_generate_playbook_repo_selected_components
+              | length > 0
+            )
           )
           else
           bootstrap_generate_playbook_repo_component_map[
@@ -96,7 +155,10 @@
           and (
             bootstrap_generate_playbook_repo_selected_components
             is not defined
-            or bootstrap_generate_playbook_repo_selected_components | length == 0
+            or (
+              bootstrap_generate_playbook_repo_selected_components
+              | length == 0
+            )
           )
         )
         else
@@ -132,7 +194,11 @@
   ansible.builtin.file:
     path: "{{ item.path }}"
     state: absent
-  loop: "{{ bootstrap_generate_playbook_repo_existing_dirs.files | default([]) }}"
+  loop: >-
+    {{
+      bootstrap_generate_playbook_repo_existing_dirs.files
+      | default([])
+    }}
   when:
     - item.path | basename not in bootstrap_generate_playbook_repo_selected_dirs
 
@@ -305,13 +371,19 @@
       | quote
     }}
 
-    if git ls-remote --exit-code --heads "$remote_name" "$branch_name" >/dev/null; then
+    if git ls-remote \
+      --exit-code \
+      --heads \
+      "$remote_name" \
+      "$branch_name" \
+      >/dev/null; then
       git fetch "$remote_name" "$branch_name"
       git rebase FETCH_HEAD
     else
       rc=$?
       if [ "$rc" -eq 2 ]; then
-        echo "Remote branch $remote_name/$branch_name does not exist yet; skipping sync."
+        echo "Remote branch $remote_name/$branch_name does not exist yet;"
+        echo "skipping sync."
       else
         exit "$rc"
       fi
@@ -326,7 +398,10 @@
   when:
     - bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
     - bootstrap_generate_playbook_repo_git_url | default('') | length > 0
-    - bootstrap_generate_playbook_repo_git_sync_before_push | default(true) | bool
+    - >-
+      bootstrap_generate_playbook_repo_git_sync_before_push
+      | default(true)
+      | bool
 
 - name: Generate playbook repo | Push generated repo
   ansible.builtin.shell: |

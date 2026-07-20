@@ -30,7 +30,9 @@
     controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
     validate_certs: "{{ controller_validate_certs | default(false) }}"
   loop: "{{ bootstrap_controller_controller_organizations | default([]) }}"
-  when: bootstrap_controller_controller_organizations | default([]) | length > 0
+  when:
+    - bootstrap_controller_controller_organizations | default([]) | length > 0
+    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
 
 # Inventories direct because infra.aap_configuration 4.6.19 stringifies variables
 - name: AAP 2.5+ | Create inventories directly
@@ -46,7 +48,120 @@
     controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
     validate_certs: "{{ controller_validate_certs | default(false) }}"
   loop: "{{ bootstrap_controller_controller_inventories | default([]) }}"
-  when: bootstrap_controller_controller_inventories | default([]) | length > 0
+  when:
+    - bootstrap_controller_controller_inventories | default([]) | length > 0
+    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
+
+- name: AAP 2.5+ | Set AAP Hub collection publish defaults
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_publish_repository: "{{ (hub_collections | first).repository | default('validated') }}"
+    bootstrap_controller_hub_publish_working_dir: "/var/tmp/ado-hub-publish"
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - hub_collections | default([]) | length > 0
+
+- name: AAP 2.5+ | Reset AAP Hub collection publish working dir
+  ansible.builtin.file:
+    path: "{{ bootstrap_controller_hub_publish_working_dir }}"
+    state: absent
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - hub_collections | default([]) | length > 0
+
+- name: AAP 2.5+ | Create AAP Hub collection publish working dir
+  ansible.builtin.file:
+    path: "{{ bootstrap_controller_hub_publish_working_dir }}"
+    state: directory
+    mode: "0755"
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - hub_collections | default([]) | length > 0
+
+- name: AAP 2.5+ | Copy ADO collection source for AAP Hub publish
+  ansible.builtin.copy:
+    src: "{{ __hub_collection_item.collection_local_path }}/"
+    dest: "{{ bootstrap_controller_hub_publish_working_dir }}/{{ __hub_collection_item.collection_name }}"
+    remote_src: true
+    mode: "0755"
+  loop: "{{ hub_collections }}"
+  loop_control:
+    loop_var: __hub_collection_item
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - hub_collections | default([]) | length > 0
+    - __hub_collection_item.collection_local_path is defined
+
+- name: AAP 2.5+ | Build ADO collection for AAP Hub publish
+  ansible.hub.ah_build:
+    path: "{{ bootstrap_controller_hub_publish_working_dir }}/{{ __hub_collection_item.collection_name }}"
+    output_path: "{{ bootstrap_controller_hub_publish_working_dir }}/{{ __hub_collection_item.collection_name }}"
+    force: true
+  register: bootstrap_controller_hub_build_results
+  loop: "{{ hub_collections }}"
+  loop_control:
+    loop_var: __hub_collection_item
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - hub_collections | default([]) | length > 0
+
+- name: AAP 2.5+ | Check built ADO collection artifact path
+  ansible.builtin.stat:
+    path: "{{ __hub_build_result_item.path }}"
+  register: bootstrap_controller_hub_build_stat_results
+  loop: "{{ bootstrap_controller_hub_build_results.results | default([]) }}"
+  loop_control:
+    loop_var: __hub_build_result_item
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - hub_collections | default([]) | length > 0
+
+- name: AAP 2.5+ | Find built ADO collection artifact
+  ansible.builtin.find:
+    paths: "{{ (__hub_build_stat_item.stat.isdir) | ternary(__hub_build_stat_item.stat.path, (__hub_build_stat_item.stat.path | dirname)) }}"
+    patterns: "{{ (__hub_build_stat_item.stat.isdir) | ternary('*.tar.gz', (__hub_build_stat_item.stat.path | basename)) }}"
+  register: bootstrap_controller_hub_find_results
+  loop: "{{ bootstrap_controller_hub_build_stat_results.results | default([]) }}"
+  loop_control:
+    loop_var: __hub_build_stat_item
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - hub_collections | default([]) | length > 0
+
+- name: AAP 2.5+ | Set built ADO collection artifact list
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_collection_artifacts: "{{ bootstrap_controller_hub_find_results.results | default([]) | map(attribute='files') | flatten | map(attribute='path') | list }}"
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - hub_collections | default([]) | length > 0
+
+- name: AAP 2.5+ | Publish ADO collection to validated AAP Hub repository
+  ansible.hub.ah_collection:
+    namespace: "{{ (__hub_collection_file | basename).split('-')[0] }}"
+    name: "{{ (__hub_collection_file | basename).split('-')[1] }}"
+    version: "{{ (__hub_collection_file | basename).split('-')[2:] | join('-') | splitext | first | splitext | first }}"
+    path: "{{ __hub_collection_file }}"
+    repository: "{{ bootstrap_controller_hub_publish_repository }}"
+    auto_approve: "{{ bootstrap_controller_hub_mark_ado_validated | default(true) | bool }}"
+    overwrite_existing: "{{ bootstrap_controller_hub_force_ado_collection_update | default(true) | bool }}"
+    wait: "{{ bootstrap_controller_hub_publish_wait | default(false) | bool }}"
+    timeout: "{{ bootstrap_controller_hub_publish_timeout | default(300) | int }}"
+    request_timeout: "{{ bootstrap_controller_hub_publish_request_timeout | default(60) | int }}"
+    ah_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    ah_token: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ bootstrap_controller_hub_collection_artifacts | default([]) }}"
+  loop_control:
+    loop_var: __hub_collection_file
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - hub_collections | default([]) | length > 0
+    - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
+
+- name: AAP 2.5+ | Stop after ADO Hub collection update
+  ansible.builtin.meta: end_host
+  when: bootstrap_controller_hub_update_collection_only | default(false) | bool
 
 - name: AAP 2.5+ | Reset generated job template list  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
@@ -626,6 +741,10 @@
       }}
   when:
     - >-
+      bootstrap_controller_skip_unavailable_satellite_dynamic_inventory
+      | default(false)
+      | bool
+    - >-
       bootstrap_controller_satellite_dynamic_inventory_sources
       | default([])
       | length > 0
@@ -649,6 +768,10 @@
       optional Satellite dynamic inventory credential and inventory source were
       skipped. The rest of the bootstrap will continue.
   when:
+    - >-
+      bootstrap_controller_skip_unavailable_satellite_dynamic_inventory
+      | default(false)
+      | bool
     - >-
       bootstrap_controller_satellite_dynamic_inventory_sources
       | default([])
@@ -682,9 +805,30 @@
         var: controller_execution_environments
         tags: execution_environments
 
-- name: AAP 2.5+ | Apply inventory sources
-  ansible.builtin.include_role:
-    name: infra.aap_configuration.controller_inventory_sources
+- name: AAP 2.5+ | Apply inventory sources directly
+  ansible.controller.inventory_source:
+    name: "{{ item.name }}"
+    description: "{{ item.description | default(omit) }}"
+    inventory: "{{ item.inventory }}"
+    organization: "{{ item.organization | default(omit) }}"
+    source: "{{ item.source | default(omit) }}"
+    credential: "{{ item.credential | default(omit) }}"
+    overwrite: "{{ item.overwrite | default(omit) }}"
+    overwrite_vars: "{{ item.overwrite_vars | default(omit) }}"
+    update_on_launch: "{{ item.update_on_launch | default(omit) }}"
+    update_cache_timeout: "{{ item.update_cache_timeout | default(omit) }}"
+    verbosity: "{{ item.verbosity | default(omit) }}"
+    host_filter: "{{ item.host_filter | default(omit) }}"
+    source_vars: "{{ item.source_vars | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ controller_inventory_sources | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: controller_inventory_sources | default([]) | length > 0
 
 - name: AAP 2.5+ | Load controller configs before project sync

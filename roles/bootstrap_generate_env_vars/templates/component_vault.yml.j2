@@ -31,6 +31,11 @@ grafana_admin_password: redhat123
 vault_satellite_service_account_username: "{{ bootstrap_generate_env_vars_satellite_service_account_username | default('') }}"
 vault_satellite_service_account_password: "{{ bootstrap_generate_env_vars_satellite_service_account_password | default('') }}"
 vault_satellite_admin_password: "{{ bootstrap_generate_env_vars_satellite_admin_password | default(bootstrap_generate_env_vars_satellite_service_account_password | default('')) }}"
+vault_satellite_rhn_org_id: "{{ bootstrap_generate_env_vars_satellite_rhn_org_id | default('') }}"
+vault_satellite_rhn_activation_key: "{{ bootstrap_generate_env_vars_satellite_rhn_activation_key | default('') }}"
+satellite_install_admin_password: "{% raw %}{{ vault_satellite_admin_password }}{% endraw %}"
+satellite_install_rhn_org_id: "{% raw %}{{ vault_satellite_rhn_org_id }}{% endraw %}"
+satellite_install_rhn_activation_key: "{% raw %}{{ vault_satellite_rhn_activation_key }}{% endraw %}"
 
 {% elif component_name == 'htpasswd' %}
 htpasswd_users:
@@ -58,6 +63,10 @@ htpasswd_users:
 htpasswd_pass: redhat123
 ocp_awspca_access_key_id: ""
 ocp_awspca_secret_access_key: ""
+
+{% elif component_name == 'openshift_virt' %}
+{% set openshift_virt_config = bootstrap_generate_env_vars_preflight.component_config.openshift_virt | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+provision_openshift_virt_api_token: "{{ openshift_virt_config.api_token | default(bootstrap_generate_env_vars_openshift_virt_api_token | default(''), true) }}"
 
 {% elif component_name == 'gitlab' %}
 gitlab_tls_crt:
