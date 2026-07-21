@@ -1,0 +1,9 @@
+---
+minor_changes:
+  - >-
+    satellite_install - add optional Satellite subscription manifest upload
+    support after Satellite installation.
+  - >-
+    bootstrap_generate_env_vars - support Satellite manifest uploads by writing
+    uploaded preflight content into generated repository files and wiring the
+    resulting path into Satellite install variables.

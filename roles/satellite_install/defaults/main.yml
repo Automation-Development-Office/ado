@@ -43,6 +43,10 @@ satellite_install_min_cpu_count: 4
 satellite_install_rhn_connected: false
 satellite_install_rhn_org_id: ""
 satellite_install_rhn_activation_key: ""
+satellite_install_admin_username: "admin"
+satellite_install_manifest_file: ""
+satellite_install_manifest_path: ""
+satellite_install_manifest_organization: ""
 satellite_install_timezone: "UTC"
 satellite_install_selinux_state: "enforcing"
 satellite_install_proxy_server: ""

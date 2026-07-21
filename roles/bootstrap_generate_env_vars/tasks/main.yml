@@ -722,8 +722,11 @@
     set -euo pipefail
     python3 <<'PYCODE'
     from pathlib import Path
+    import base64
+    import binascii
     import copy
     import json
+    import re
     import yaml
 
     class NoAliasDumper(yaml.SafeDumper):
@@ -746,7 +749,7 @@
 
     def is_secret_key(key):
         k = str(key or "").lower()
-        return any(x in k for x in ["password", "token", "secret", "vault", "credential", "tls_key"])
+        return any(x in k for x in ["password", "token", "secret", "vault", "credential", "tls_key", "manifest_content"])
 
     def load_yaml(path):
         if not path.exists():
@@ -767,6 +770,27 @@
 
     def vault_ref(name):
         return QuotedString("{{ " + name + " }}")
+
+    def safe_upload_filename(name, default_name):
+        candidate = Path(str(name or default_name)).name
+        candidate = re.sub(r"[^A-Za-z0-9._-]+", "-", candidate).strip(".-")
+        return candidate or default_name
+
+    def write_repo_file_from_preflight(filename, content, default_name, encoding="base64"):
+        project_dir = env_dir.parents[2] if len(env_dir.parents) >= 3 else env_dir
+        files_dir = project_dir / "files"
+        files_dir.mkdir(parents=True, exist_ok=True)
+        target = files_dir / safe_upload_filename(filename, default_name)
+        if str(encoding or "base64").lower() in ("base64", "b64"):
+            try:
+                raw = base64.b64decode(str(content), validate=True)
+            except (binascii.Error, ValueError) as exc:
+                raise SystemExit(f"Invalid base64 upload content for {target.name}: {exc}") from exc
+            target.write_bytes(raw)
+        else:
+            target.write_text(str(content), encoding="utf-8")
+        target.chmod(0o600)
+        return target
 
     def merge_component(component, cfg):
         if not isinstance(cfg, dict):
@@ -822,7 +846,18 @@
                 "satellite_install_data_device",
                 "satellite_install_data_device_name",
                 "satellite_install_data_disk_min_size",
+                "satellite_install_manifest_file",
+                "satellite_install_manifest_path",
+                "satellite_install_manifest_organization",
                 "satellite_rhn_org_id",
+                "satellite_manifest_file",
+                "satellite_manifest_path",
+                "satellite_manifest_organization",
+                "manifest_file",
+                "manifest_path",
+                "manifest_filename",
+                "manifest_organization",
+                "manifest_encoding",
                 "satellite_data_device",
                 "satellite_data_device_name",
                 "satellite_data_disk_min_size",
@@ -855,7 +890,18 @@
                 "satellite_install_data_device",
                 "satellite_install_data_device_name",
                 "satellite_install_data_disk_min_size",
+                "satellite_install_manifest_file",
+                "satellite_install_manifest_path",
+                "satellite_install_manifest_organization",
                 "satellite_rhn_org_id",
+                "satellite_manifest_file",
+                "satellite_manifest_path",
+                "satellite_manifest_organization",
+                "manifest_file",
+                "manifest_path",
+                "manifest_filename",
+                "manifest_organization",
+                "manifest_encoding",
                 "satellite_data_device",
                 "satellite_data_device_name",
                 "satellite_data_disk_min_size",
@@ -878,6 +924,14 @@
             )
             for satellite_key in satellite_stale_raw_keys:
                 existing_satellite_config.pop(satellite_key, None)
+            satellite_manifest_payload_keys = {
+                "satellite_manifest_content",
+                "satellite_manifest_content_base64",
+                "satellite_manifest_b64",
+                "manifest_content",
+                "manifest_content_base64",
+                "manifest_b64",
+            }
         else:
             existing_satellite_config = {}
 
@@ -937,6 +991,53 @@
                     vars_data["satellite_install_deployment_version"] = public_values["deployment_version"]
                 if public_values.get("location"):
                     vars_data["satellite_install_location"] = public_values["location"]
+                manifest_organization = first_present(
+                    public_values.get("satellite_install_manifest_organization"),
+                    public_values.get("satellite_manifest_organization"),
+                    public_values.get("manifest_organization"),
+                    public_values.get("organization"),
+                )
+                if manifest_organization is not None:
+                    vars_data["satellite_install_manifest_organization"] = str(manifest_organization)
+                manifest_path = first_present(
+                    public_values.get("satellite_install_manifest_path"),
+                    public_values.get("satellite_manifest_path"),
+                    public_values.get("manifest_path"),
+                )
+                manifest_content = first_present(
+                    secret_values.get("satellite_manifest_content_base64"),
+                    secret_values.get("manifest_content_base64"),
+                    secret_values.get("satellite_manifest_b64"),
+                    secret_values.get("manifest_b64"),
+                    secret_values.get("satellite_manifest_content"),
+                    secret_values.get("manifest_content"),
+                )
+                if manifest_content is not None:
+                    manifest_filename = first_present(
+                        public_values.get("satellite_install_manifest_file"),
+                        public_values.get("satellite_manifest_file"),
+                        public_values.get("manifest_file"),
+                        public_values.get("manifest_filename"),
+                        "satellite-manifest.zip",
+                    )
+                    manifest_encoding = first_present(
+                        public_values.get("manifest_encoding"),
+                        "base64",
+                    )
+                    manifest_target = write_repo_file_from_preflight(
+                        manifest_filename,
+                        manifest_content,
+                        "satellite-manifest.zip",
+                        manifest_encoding,
+                    )
+                    vars_data["satellite_install_manifest_file"] = manifest_target.name
+                    vars_data["satellite_install_manifest_path"] = QuotedString(
+                        "{{ playbook_dir }}/../../files/" + manifest_target.name
+                    )
+                elif manifest_path is not None:
+                    vars_data["satellite_install_manifest_path"] = str(manifest_path)
+                for manifest_payload_key in satellite_manifest_payload_keys:
+                    secret_values.pop(manifest_payload_key, None)
                 vg_name = first_present(
                     public_values.get("satellite_install_vg_name"),
                     public_values.get("satellite_vg_name"),

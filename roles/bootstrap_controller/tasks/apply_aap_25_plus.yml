@@ -207,116 +207,6 @@
   ansible.builtin.debug:
     msg: "Loaded controller_workflow_job_templates count={{ controller_workflow_job_templates | length }}"
 
-- name: AAP 2.5+ | Build final label list from selected templates and workflows
-  ansible.builtin.set_fact:
-    bootstrap_controller_labels_final: >-
-      {{
-        (
-          [
-            {
-              'name': controller_bootstrap_organization
-                      | default(bootstrap_controller_organization),
-              'organization': controller_bootstrap_organization
-                              | default(bootstrap_controller_organization)
-            }
-          ]
-          +
-          (
-            controller_templates | default([])
-            | map(attribute='related')
-            | select('defined')
-            | map(attribute='labels')
-            | select('defined')
-            | flatten
-            | list
-          )
-          +
-          (
-            controller_workflow_job_templates | default([])
-            | map(attribute='related')
-            | select('defined')
-            | map(attribute='labels')
-            | select('defined')
-            | flatten
-            | list
-          )
-        )
-        | unique
-        | list
-      }}
-
-- name: AAP 2.5+ | Normalize labels before creation
-  ansible.builtin.set_fact:
-    bootstrap_controller_final_labels: >-
-      {{
-        bootstrap_controller_final_labels
-        | default([])
-        | map('combine', {'organization': controller_bootstrap_organization | default(bootstrap_controller_organization | default(''))})
-        | list
-      }}
-
-- name: AAP 2.5+ | Build labels to create
-  ansible.builtin.set_fact:
-    bootstrap_controller_labels_to_create: >-
-      {{
-        (
-          [{'name': controller_bootstrap_organization | default(bootstrap_controller_organization)}]
-          +
-          (
-            controller_templates
-            | default([])
-            | map(attribute='labels')
-            | select('defined')
-            | flatten
-            | default([])
-          )
-          +
-          (
-            controller_workflow_job_templates
-            | default([])
-            | map(attribute='labels')
-            | select('defined')
-            | flatten
-            | default([])
-          )
-        )
-        | map('combine', {'organization': controller_bootstrap_organization | default(bootstrap_controller_organization | default(''))})
-        | unique
-        | list
-      }}
-
-- name: AAP 2.5+ | Build labels to create from job templates and workflows
-  ansible.builtin.set_fact:
-    bootstrap_controller_labels_to_create: >-
-      {{
-        (
-          [{
-            'name': controller_bootstrap_organization | default(bootstrap_controller_organization),
-            'organization': controller_bootstrap_organization | default(bootstrap_controller_organization)
-          }]
-          +
-          (
-            controller_templates
-            | default([])
-            | map(attribute='labels')
-            | select('defined')
-            | flatten
-            | list
-          )
-          +
-          (
-            controller_workflow_job_templates
-            | default([])
-            | map(attribute='labels')
-            | select('defined')
-            | flatten
-            | list
-          )
-        )
-        | unique
-        | list
-      }}
-
 - name: AAP 2.5+ | Build labels to create from generated config files
   ansible.builtin.shell: |
     set -euo pipefail
@@ -431,7 +321,6 @@
     bootstrap_controller_labels_to_create: >-
       {{ bootstrap_controller_labels_to_create_result.stdout | from_json }}
 
-
 - name: AAP 2.5+ | Debug labels before job templates
   ansible.builtin.debug:
     msg:
@@ -440,16 +329,49 @@
   when: bootstrap_controller_labels_to_create | default([]) | length > 0
 
 - name: AAP 2.5+ | Final sanitize labels before creation
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    import json
+
+    labels = {{ bootstrap_controller_labels_to_create | default([]) | to_json }}
+    organization = {{ (controller_bootstrap_organization | default(bootstrap_controller_organization | default(''))) | to_json }}
+
+    clean_labels = []
+    seen = set()
+
+    for label in labels:
+        if isinstance(label, dict):
+            name = label.get("name")
+            label_organization = label.get("organization") or organization
+        else:
+            name = label
+            label_organization = organization
+
+        if not name:
+            continue
+
+        key = (str(name), str(label_organization))
+        if key in seen:
+            continue
+
+        seen.add(key)
+        clean_labels.append({
+            "name": str(name),
+            "organization": str(label_organization),
+        })
+
+    print(json.dumps(clean_labels))
+    PYCODE
+  args:
+    executable: /bin/bash
+  register: bootstrap_controller_labels_sanitize_result
+  changed_when: false
+
+- name: AAP 2.5+ | Store sanitized labels before creation
   ansible.builtin.set_fact:
     bootstrap_controller_labels_to_create: >-
-      {{
-        bootstrap_controller_labels_to_create
-        | default([])
-        | rejectattr('name', 'undefined')
-        | map('combine', {'organization': controller_bootstrap_organization | default(bootstrap_controller_organization)})
-        | unique(attribute='name')
-        | list
-      }}
+      {{ bootstrap_controller_labels_sanitize_result.stdout | from_json }}
 
 - name: AAP 2.5+ | Resolve controller API URL for label verification
   ansible.builtin.set_fact:

@@ -30,3 +30,7 @@
 
     - name: Satellite Install
       ansible.builtin.include_tasks: install_satellite.yml
+
+    - name: Satellite manifest import
+      ansible.builtin.include_tasks: import_manifest.yml
+      when: satellite_install_manifest_path | default("") | length > 0
