@@ -135,29 +135,61 @@
     - hub_collections | default([]) | length > 0
 
 - name: AAP 2.5+ | Publish ADO collection to validated AAP Hub repository
-  ansible.hub.ah_collection:
-    namespace: "{{ (__hub_collection_file | basename).split('-')[0] }}"
-    name: "{{ (__hub_collection_file | basename).split('-')[1] }}"
-    version: "{{ (__hub_collection_file | basename).split('-')[2:] | join('-') | splitext | first | splitext | first }}"
-    path: "{{ __hub_collection_file }}"
-    repository: "{{ bootstrap_controller_hub_publish_repository }}"
-    auto_approve: "{{ bootstrap_controller_hub_mark_ado_validated | default(true) | bool }}"
-    overwrite_existing: "{{ bootstrap_controller_hub_force_ado_collection_update | default(true) | bool }}"
-    wait: "{{ bootstrap_controller_hub_publish_wait | default(false) | bool }}"
-    timeout: "{{ bootstrap_controller_hub_publish_timeout | default(300) | int }}"
-    request_timeout: "{{ bootstrap_controller_hub_publish_request_timeout | default(60) | int }}"
-    ah_host: "{{ controller_host | default(vault_controller_hostname) }}"
-    ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-    ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
-    ah_token: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
-    validate_certs: "{{ controller_validate_certs | default(false) }}"
-  loop: "{{ bootstrap_controller_hub_collection_artifacts | default([]) }}"
-  loop_control:
-    loop_var: __hub_collection_file
   when:
     - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
     - hub_collections | default([]) | length > 0
     - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
+  block:
+    - name: AAP 2.5+ | Upload/approve ADO collection artifact on AAP Hub
+      ansible.hub.ah_collection:
+        namespace: "{{ (__hub_collection_file | basename).split('-')[0] }}"
+        name: "{{ (__hub_collection_file | basename).split('-')[1] }}"
+        version: "{{ (__hub_collection_file | basename).split('-')[2:] | join('-') | splitext | first | splitext | first }}"
+        path: "{{ __hub_collection_file }}"
+        repository: "{{ bootstrap_controller_hub_publish_repository }}"
+        auto_approve: "{{ bootstrap_controller_hub_mark_ado_validated | default(true) | bool }}"
+        overwrite_existing: "{{ bootstrap_controller_hub_force_ado_collection_update | default(true) | bool }}"
+        wait: "{{ bootstrap_controller_hub_publish_wait | default(false) | bool }}"
+        timeout: "{{ bootstrap_controller_hub_publish_timeout | default(300) | int }}"
+        request_timeout: "{{ bootstrap_controller_hub_publish_request_timeout | default(60) | int }}"
+        ah_host: "{{ controller_host | default(vault_controller_hostname) }}"
+        ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        ah_token: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+      loop: "{{ bootstrap_controller_hub_collection_artifacts | default([]) }}"
+      loop_control:
+        loop_var: __hub_collection_file
+  rescue:
+    # ansible.hub.ah_collection auto_approve crashes (IndexError) when the same
+    # namespace/name/version already exists and overwrite_existing is false.
+    - name: AAP 2.5+ | Detect Hub approve crash for already-published collection version
+      ansible.builtin.set_fact:
+        bootstrap_controller_hub_publish_already_present: >-
+          {{
+            (
+              (ansible_failed_result.module_stderr | default('') | string) is search('IndexError')
+              or (ansible_failed_result.msg | default('') | string) is search('IndexError|Awaiting approval not found')
+            )
+            and not (bootstrap_controller_hub_force_ado_collection_update | default(false) | bool)
+          }}
+
+    - name: AAP 2.5+ | Warn when Hub collection version already present
+      ansible.builtin.debug:
+        msg: >-
+          AAP Hub already has this infra.ado version (or approve found nothing to move).
+          Bootstrap continued because Hub force update is off. To replace the Hub artifact,
+          enable "Force update infra.ado collection" (or bump the collection version) and rerun.
+          Artifact: {{ bootstrap_controller_hub_collection_artifacts | default([]) | join(', ') }}
+          Repository: {{ bootstrap_controller_hub_publish_repository | default('validated') }}
+      when: bootstrap_controller_hub_publish_already_present | bool
+
+    - name: AAP 2.5+ | Fail Hub collection publish for unexpected errors
+      ansible.builtin.fail:
+        msg: >-
+          AAP Hub collection publish failed:
+          {{ ansible_failed_result.msg | default(ansible_failed_result) }}
+      when: not (bootstrap_controller_hub_publish_already_present | bool)
 
 - name: AAP 2.5+ | Stop after ADO Hub collection update
   ansible.builtin.meta: end_host

@@ -36,7 +36,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `satellite_config_organization` | Satellite organization name or label | ✅ | Not defined in role defaults |
 | `satellite_config_validate_certs` | Whether to validate Satellite TLS certificates | ❌ | Not defined in role defaults |
 | `satellite_config_upload_manifest` | When `true`, include the manifest tasks in the role flow to copy, upload, and refresh the subscription manifest | ❌ | `false` |
-| `satellite_config_settings` | List of Satellite settings to apply; each item requires `name` and `value` | ❌ | See `defaults/main.yml` |
+| `satellite_config_settings` | List of Satellite settings to apply; each item requires `name` and `value`. On Satellite 6.19+, `host_tasks_workers_pool_size` is omitted automatically (removed upstream). | ❌ | See `defaults/main.yml` |
 | `satellite_config_rhn_connected` | When `true`, configure connected Satellite proxy settings; when `false`, configure disconnected CDN sync | ❌ | Not defined in role defaults |
 | `satellite_config_proxy_server` | HTTP proxy hostname for connected Satellite content sync | ❌* | Not defined in role defaults |
 | `satellite_config_proxy_port` | HTTP proxy port for connected Satellite content sync | ❌* | Not defined in role defaults |

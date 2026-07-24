@@ -70,6 +70,7 @@ satellite_config_settings:
       - "vlinuxbr*"
       - "vovsbr*"
       - "bond*"
+  # Kept for Satellite < 6.19. Skipped automatically on 6.19+ (setting removed in Katello 4.20).
   - name: "host_tasks_workers_pool_size"
     value: "100"
 satellite_config_server_url: "https://{{ ansible_fqdn }}"
