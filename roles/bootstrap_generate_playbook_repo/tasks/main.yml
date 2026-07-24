@@ -46,44 +46,6 @@
     state: directory
     mode: "0755"
 
-- name: Generate playbook repo | Resolve infra.ado collection repository
-  ansible.builtin.set_fact:
-    bootstrap_generate_playbook_repo_infra_ado_repo_resolved: >-
-      {{
-        bootstrap_generate_playbook_repo_infra_ado_collection_repository
-        | default('published', true)
-      }}
-
-- name: Generate playbook repo | Resolve infra.ado collection source
-  ansible.builtin.set_fact:
-    bootstrap_generate_playbook_repo_infra_ado_source_resolved: >-
-      {{
-        bootstrap_generate_playbook_repo_infra_ado_collection_source
-        | default('', true)
-      }}
-
-- name: Generate playbook repo | Derive infra.ado collection source from AAP
-  ansible.builtin.set_fact:
-    bootstrap_generate_playbook_repo_infra_ado_source_resolved: >-
-      {{
-        (
-          controller_host
-          | default(vault_controller_hostname | default('', true), true)
-          | regex_replace('/+$', '')
-        )
-        ~ '/api/galaxy/content/'
-        ~ bootstrap_generate_playbook_repo_infra_ado_repo_resolved
-        ~ '/'
-      }}
-  when:
-    - >-
-      bootstrap_generate_playbook_repo_infra_ado_source_resolved | length == 0
-    - >-
-      (
-        controller_host
-        | default(vault_controller_hostname | default('', true), true)
-      ) | length > 0
-
 - name: Generate playbook repo | Render collection requirements
   ansible.builtin.template:
     src: requirements.yml.j2

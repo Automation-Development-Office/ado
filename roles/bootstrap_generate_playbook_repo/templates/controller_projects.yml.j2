@@ -6,6 +6,8 @@ controller_projects:
     scm_type: git
     scm_url: "{{ bootstrap_generate_playbook_repo_git_url }}"
     scm_branch: "{{ bootstrap_generate_playbook_repo_git_branch }}"
-    scm_update_on_launch: false
-    scm_credential: "{{ bootstrap_controller_scm_credential | default('ocp-gitlab') }}"
-    wait: false
+    scm_update_on_launch: true
+    scm_update_cache_timeout: 0
+    scm_credential: >-
+      {{ bootstrap_controller_scm_credential | default('ocp-gitlab') }}
+    wait: true
