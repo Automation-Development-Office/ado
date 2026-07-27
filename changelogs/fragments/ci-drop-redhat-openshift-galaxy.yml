@@ -1,0 +1,8 @@
+---
+bugfixes:
+  - >-
+    CI collections/requirements.yml - drop redhat.openshift. It is not
+    published on public Galaxy (Automation Hub only), which broke
+    ansible-galaxy install in GitHub Actions. Token-auth OpenShift paths
+    use kubernetes.core; username/password login still needs redhat.openshift
+    from Automation Hub at runtime.
