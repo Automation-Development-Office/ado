@@ -1,3 +1,20 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
-# defaults file for advanced-cluster-management
+---
+# yamllint disable rule:line-length
+# Synology DSM / CSI defaults (iSCSI protocol).
+ocp_iscsi_storage_namespace: synology-csi
+ocp_iscsi_storage_class_name: synology-iscsi-storage
+ocp_iscsi_storage_protocol: iscsi
+ocp_iscsi_storage_location: /volume1
+ocp_iscsi_storage_fstype: xfs
+ocp_iscsi_storage_reclaim_policy: Delete
+ocp_iscsi_storage_allow_volume_expansion: true
+ocp_iscsi_storage_is_default: true
+ocp_iscsi_storage_install_snapshotter: true
+# DSM API connection used to build client-info-secret.
+ocp_iscsi_storage_dsm_host: ""
+ocp_iscsi_storage_dsm_port: 5000
+ocp_iscsi_storage_dsm_https: false
+ocp_iscsi_storage_dsm_username: ""
+ocp_iscsi_storage_dsm_password: ""
+# Optional: host / api_key / validate_certs / kubeconfig (path).
+ocp_iscsi_storage_connection: {}

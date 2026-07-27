@@ -1,10 +1,14 @@
 ---
+# yamllint disable rule:line-length
 - name: Install AAP on OpenShift | Resolve environment
   ansible.builtin.set_fact:
     bootstrap_controller_aap_install_env: >-
       {{
         bootstrap_controller_generated_env
-        | default(env | default(bootstrap_generate_env_vars_env | default('prod'), true), true)
+        | default(
+          env | default(bootstrap_generate_env_vars_env | default('prod'), true),
+          true
+        )
       }}
 
 - name: Install AAP on OpenShift | Load generated AAP install vars
@@ -76,11 +80,21 @@
       {{ aap_ocp_install_connection.api_key }}
     bootstrap_controller_aap_install_k8s_validate_certs: >-
       {{ aap_ocp_install_connection.validate_certs | default(false) | bool }}
+    bootstrap_controller_aap_install_k8s_kubeconfig: >-
+      {{
+        bootstrap_controller_openshift_kubeconfig
+        | default('', true)
+      }}
 
 - name: Install AAP on OpenShift | Ensure namespace exists for admin secret
   kubernetes.core.k8s:
-    host: "{{ bootstrap_controller_aap_install_k8s_host }}"
-    api_key: "{{ bootstrap_controller_aap_install_k8s_api_key }}"
+    host: "{{ bootstrap_controller_aap_install_k8s_host | default(omit) }}"
+    api_key: "{{ bootstrap_controller_aap_install_k8s_api_key | default(omit) }}"
+    kubeconfig: >-
+      {{
+        bootstrap_controller_aap_install_k8s_kubeconfig
+        | default(omit, true)
+      }}
     validate_certs: "{{ bootstrap_controller_aap_install_k8s_validate_certs }}"
     state: present
     definition:
@@ -93,8 +107,13 @@
 - name: Install AAP on OpenShift | Create or update admin password secret
   no_log: true
   kubernetes.core.k8s:
-    host: "{{ bootstrap_controller_aap_install_k8s_host }}"
-    api_key: "{{ bootstrap_controller_aap_install_k8s_api_key }}"
+    host: "{{ bootstrap_controller_aap_install_k8s_host | default(omit) }}"
+    api_key: "{{ bootstrap_controller_aap_install_k8s_api_key | default(omit) }}"
+    kubeconfig: >-
+      {{
+        bootstrap_controller_aap_install_k8s_kubeconfig
+        | default(omit, true)
+      }}
     validate_certs: "{{ bootstrap_controller_aap_install_k8s_validate_certs }}"
     state: present
     definition:
@@ -107,25 +126,34 @@
       stringData:
         password: "{{ bootstrap_controller_aap_admin_password }}"
 
-- name: Install AAP on OpenShift | Attach admin credentials to platform install vars
+- name: Install AAP on OpenShift | Build platform vars with admin credentials
   ansible.builtin.set_fact:
-    aap_ocp_install_platform: >-
+    bootstrap_controller_aap_ocp_install_platform: >-
       {{
         aap_ocp_install_platform
         | combine(
           {
             'admin_user': bootstrap_controller_aap_admin_user,
-            'admin_password_secret': bootstrap_controller_aap_admin_password_secret
+            'admin_password_secret':
+              bootstrap_controller_aap_admin_password_secret
           },
           recursive=true
         )
       }}
-    aap_ocp_install_controller: >-
+    bootstrap_controller_aap_ocp_install_controller: >-
       {{
         (aap_ocp_install_controller | default({}))
-        | combine({'admin_user': bootstrap_controller_aap_admin_user}, recursive=true)
+        | combine(
+          {'admin_user': bootstrap_controller_aap_admin_user},
+          recursive=true
+        )
       }}
 
 - name: Install AAP on OpenShift | Run installer role
   ansible.builtin.include_role:
     name: infra.ado.aap_ocp_install
+  vars:
+    aap_ocp_install_platform: >-
+      {{ bootstrap_controller_aap_ocp_install_platform }}
+    aap_ocp_install_controller: >-
+      {{ bootstrap_controller_aap_ocp_install_controller }}

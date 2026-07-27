@@ -1,0 +1,15 @@
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: {{ ocp_iscsi_storage_class_name }}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "{{ ocp_iscsi_storage_is_default | bool | lower }}"
+provisioner: csi.san.synology.com
+parameters:
+  protocol: '{{ ocp_iscsi_storage_protocol }}'
+  dsm: '{{ ocp_iscsi_storage_dsm_host }}'
+  location: '{{ ocp_iscsi_storage_location }}'
+  csi.storage.k8s.io/fstype: '{{ ocp_iscsi_storage_fstype }}'
+reclaimPolicy: {{ ocp_iscsi_storage_reclaim_policy }}
+allowVolumeExpansion: {{ ocp_iscsi_storage_allow_volume_expansion | bool | lower }}

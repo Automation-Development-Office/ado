@@ -1,58 +1,76 @@
 # Role: infra.ado.ocp_iscsi_storage
 
-Ocp Iscsi Storage automation role. Primary tasks include: Get all storage classes; Set fact if default storage class exists; Create synology-csi namespace.
+Install Synology CSI (iSCSI) on OpenShift using `kubernetes.core.k8s`
+(no `oc` CLI). Bundled vendor manifests plus a generated
+`client-info-secret` and StorageClass.
 
 ## Role Author
 
 Automation Development Office
 
-## ✅ Role Requirements
+## Requirements
 
 - Ansible Core
-- Required collections listed in `collections/requirements.yml`
-- Inventory or extra variables appropriate for the target platform
+- `kubernetes.core` collection
+- Cluster-admin OpenShift credentials (kubeconfig or host + token)
 
-## 📦 Role Variables
+## Variables
 
 | Variable | Description |
 |----------|-------------|
-| `ocp_iscsi_storage_state` | Desired state used by role tasks when supported. |
+| `ocp_iscsi_storage_dsm_host` | Synology DSM IP/hostname (required). |
+| `ocp_iscsi_storage_dsm_port` | DSM API port. Default: `5000`. |
+| `ocp_iscsi_storage_dsm_https` | Use HTTPS to DSM. Default: `false`. |
+| `ocp_iscsi_storage_dsm_username` | DSM username (required, vault). |
+| `ocp_iscsi_storage_dsm_password` | DSM password (required, vault). |
+| `ocp_iscsi_storage_class_name` | StorageClass name. Default: `synology-iscsi-storage`. |
+| `ocp_iscsi_storage_location` | DSM volume path. Default: `/volume1`. |
+| `ocp_iscsi_storage_is_default` | Mark StorageClass as default. Default: `true`. |
+| `ocp_iscsi_storage_install_snapshotter` | Install snapshotter manifests. Default: `true`. |
+| `ocp_iscsi_storage_connection` | Optional `host` / `api_key` / `kubeconfig` / `validate_certs`. |
 
-## 🚀 Role Usage
+## Examples
 
 ```yaml
-- name: Run ocp_iscsi_storage
+- name: Install Synology iSCSI CSI
   hosts: localhost
   gather_facts: false
   roles:
     - role: infra.ado.ocp_iscsi_storage
+      vars:
+        ocp_iscsi_storage_dsm_host: 192.168.0.6
+        ocp_iscsi_storage_dsm_username: "{{ vault_dsm_user }}"
+        ocp_iscsi_storage_dsm_password: "{{ vault_dsm_pass }}"
+        ocp_iscsi_storage_connection:
+          kubeconfig: "{{ kubeconfig_path }}"
+          validate_certs: false
 ```
 
-## 🧪 Role Molecule Testing
+## Behavior Notes
 
-Run Molecule scenarios from the role directory when a scenario is available.
+- Applies namespace, client-info Secret, OpenShift SCC, controller,
+  CSIDriver, node DaemonSet, StorageClass, and optional snapshotter.
+- Replaces manual `oc create -f ...` steps with idempotent k8s module calls.
+- Auth via role connection kwargs or `KUBECONFIG` / in-cluster defaults.
 
-This role runs tasks such as:
-
-- Get all storage classes
-- Set fact if default storage class exists
-- Create synology-csi namespace
-- Create client-info-secret from file
+## Molecule
 
 ```bash
 cd roles/ocp_iscsi_storage
 molecule test
 ```
 
-## 📁 Role Structure
+## Repository layout
 
 ```text
 roles/ocp_iscsi_storage/
   README.md
   defaults/
+  files/
   handlers/
   meta/
   tasks/
+  templates/
   tests/
   vars/
 ```

@@ -158,6 +158,30 @@
             )
             +
             (
+              ['nfs_csi']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and 'nfs_csi' in (
+                  bootstrap_generate_env_vars_preflight.component_options.openshift
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['iscsi_csi']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and 'iscsi_csi' in (
+                  bootstrap_generate_env_vars_preflight.component_options.openshift
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
               ['console']
               if (
                 'openshift' in bootstrap_generate_env_vars_preflight_components
@@ -1671,6 +1695,174 @@
         if openshift.get("token") is not None:
             vault_data["token"] = openshift.get("token")
             vault_data["openshift_token"] = openshift.get("token")
+
+        use_kubeconfig = as_bool(openshift.get("use_kubeconfig"), False)
+        kubeconfig_content = first_present(
+            openshift.get("kubeconfig_content"),
+            openshift.get("kubeconfig"),
+        )
+        if use_kubeconfig and kubeconfig_content is not None:
+            vault_data["openshift_kubeconfig"] = kubeconfig_content
+            vault_data["kubeconfig_content"] = kubeconfig_content
+            vars_data["openshift_use_kubeconfig"] = True
+        else:
+            vault_data.pop("openshift_kubeconfig", None)
+            vault_data.pop("kubeconfig_content", None)
+            vars_data.pop("openshift_use_kubeconfig", None)
+
+        vars_data["openshift_install_htpasswd_during_bootstrap"] = as_bool(
+            openshift.get("install_htpasswd_during_bootstrap"),
+            False,
+        )
+        vars_data["openshift_install_nfs_during_bootstrap"] = as_bool(
+            openshift.get("install_nfs_during_bootstrap"),
+            False,
+        )
+
+        if "nfs_csi" in openshift_options:
+            nfs_server = first_present(
+                openshift.get("nfs_server"),
+                openshift.get("ocp_nfs_storage_server"),
+            )
+            nfs_share = first_present(
+                openshift.get("nfs_share"),
+                openshift.get("ocp_nfs_storage_share"),
+            )
+            if nfs_server is not None:
+                vars_data["ocp_nfs_storage_server"] = str(nfs_server)
+                vars_data["nfs_server"] = str(nfs_server)
+            if nfs_share is not None:
+                vars_data["ocp_nfs_storage_share"] = str(nfs_share)
+                vars_data["nfs_share"] = str(nfs_share)
+            vars_data["ocp_nfs_storage_class_name"] = str(
+                first_present(
+                    openshift.get("nfs_storage_class_name"),
+                    openshift.get("ocp_nfs_storage_class_name"),
+                    "synology-nfs-csi",
+                )
+            )
+            vars_data["ocp_nfs_storage_driver_version"] = str(
+                first_present(
+                    openshift.get("nfs_driver_version"),
+                    openshift.get("ocp_nfs_storage_driver_version"),
+                    "4.11.0",
+                )
+            )
+            vars_data["ocp_nfs_storage_nfs_version"] = str(
+                first_present(
+                    openshift.get("nfs_version"),
+                    openshift.get("ocp_nfs_storage_nfs_version"),
+                    "4.1",
+                )
+            )
+            vars_data["ocp_nfs_storage_create_test_namespace"] = as_bool(
+                openshift.get("nfs_create_test_namespace"),
+                True,
+            )
+            vars_data["ocp_nfs_storage_create_test_pvc"] = as_bool(
+                openshift.get("nfs_create_test_pvc"),
+                False,
+            )
+            vars_data["ocp_nfs_storage_test_namespace"] = str(
+                first_present(
+                    openshift.get("nfs_test_namespace"),
+                    "synology-nfs-pv",
+                )
+            )
+        else:
+            for nfs_key in (
+                "ocp_nfs_storage_server",
+                "nfs_server",
+                "ocp_nfs_storage_share",
+                "nfs_share",
+                "ocp_nfs_storage_class_name",
+                "ocp_nfs_storage_driver_version",
+                "ocp_nfs_storage_nfs_version",
+                "ocp_nfs_storage_create_test_namespace",
+                "ocp_nfs_storage_create_test_pvc",
+                "ocp_nfs_storage_test_namespace",
+            ):
+                vars_data.pop(nfs_key, None)
+
+        vars_data["openshift_install_iscsi_during_bootstrap"] = as_bool(
+            openshift.get("install_iscsi_during_bootstrap"),
+            False,
+        )
+
+        if "iscsi_csi" in openshift_options:
+            iscsi_host = first_present(
+                openshift.get("iscsi_dsm_host"),
+                openshift.get("ocp_iscsi_storage_dsm_host"),
+            )
+            iscsi_user = first_present(
+                openshift.get("iscsi_dsm_username"),
+                openshift.get("ocp_iscsi_storage_dsm_username"),
+            )
+            iscsi_pass = first_present(
+                openshift.get("iscsi_dsm_password"),
+                openshift.get("ocp_iscsi_storage_dsm_password"),
+            )
+            if iscsi_host is not None:
+                vars_data["ocp_iscsi_storage_dsm_host"] = str(iscsi_host)
+                vars_data["iscsi_dsm_host"] = str(iscsi_host)
+            if iscsi_user is not None:
+                vault_data["ocp_iscsi_storage_dsm_username"] = str(iscsi_user)
+                vault_data["iscsi_dsm_username"] = str(iscsi_user)
+            if iscsi_pass is not None:
+                vault_data["ocp_iscsi_storage_dsm_password"] = str(iscsi_pass)
+                vault_data["iscsi_dsm_password"] = str(iscsi_pass)
+            vars_data["ocp_iscsi_storage_dsm_port"] = int(
+                first_present(
+                    openshift.get("iscsi_dsm_port"),
+                    openshift.get("ocp_iscsi_storage_dsm_port"),
+                    5000,
+                )
+            )
+            vars_data["ocp_iscsi_storage_dsm_https"] = as_bool(
+                openshift.get("iscsi_dsm_https"),
+                False,
+            )
+            vars_data["ocp_iscsi_storage_class_name"] = str(
+                first_present(
+                    openshift.get("iscsi_storage_class_name"),
+                    openshift.get("ocp_iscsi_storage_class_name"),
+                    "synology-iscsi-storage",
+                )
+            )
+            vars_data["ocp_iscsi_storage_location"] = str(
+                first_present(
+                    openshift.get("iscsi_location"),
+                    openshift.get("ocp_iscsi_storage_location"),
+                    "/volume1",
+                )
+            )
+            vars_data["ocp_iscsi_storage_is_default"] = as_bool(
+                openshift.get("iscsi_is_default"),
+                True,
+            )
+            vars_data["ocp_iscsi_storage_install_snapshotter"] = as_bool(
+                openshift.get("iscsi_install_snapshotter"),
+                True,
+            )
+        else:
+            for iscsi_key in (
+                "ocp_iscsi_storage_dsm_host",
+                "iscsi_dsm_host",
+                "ocp_iscsi_storage_dsm_port",
+                "ocp_iscsi_storage_dsm_https",
+                "ocp_iscsi_storage_class_name",
+                "ocp_iscsi_storage_location",
+                "ocp_iscsi_storage_is_default",
+                "ocp_iscsi_storage_install_snapshotter",
+            ):
+                vars_data.pop(iscsi_key, None)
+            for iscsi_vault_key in (
+                "ocp_iscsi_storage_dsm_username",
+                "iscsi_dsm_username",
+                "ocp_iscsi_storage_dsm_password",
+                "iscsi_dsm_password",
+            ):
+                vault_data.pop(iscsi_vault_key, None)
 
         if "admin_htpasswd" in openshift_options and (
             openshift.get("admin_username") or openshift.get("admin_password")

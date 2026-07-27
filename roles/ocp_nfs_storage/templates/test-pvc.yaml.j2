@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ ocp_nfs_storage_test_pvc_name }}
+  namespace: {{ ocp_nfs_storage_test_namespace }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ ocp_nfs_storage_test_pvc_size }}
+  storageClassName: {{ ocp_nfs_storage_class_name }}
+  volumeMode: Filesystem

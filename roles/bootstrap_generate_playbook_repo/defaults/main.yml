@@ -292,6 +292,18 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     category: platform
     app: admin_htpasswd
 
+  - src: openshift/ado-install-nfs-csi-bootstrap.yml
+    dest: playbooks/openshift/ado-install-nfs-csi-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: nfs_csi
+
+  - src: openshift/ado-install-iscsi-csi-bootstrap.yml
+    dest: playbooks/openshift/ado-install-iscsi-csi-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: iscsi_csi
+
   - src: openshift/ado-discover-routes-bootstrap.yml
     dest: playbooks/openshift/ado-discover-routes-bootstrap.yml
     target_platform: openshift

@@ -1,0 +1,101 @@
+---
+# yamllint disable rule:line-length
+# Materialize OpenShift auth for kubernetes.core / Helm in the preflight pod.
+# Prefers uploaded kubeconfig content; otherwise builds a kubeconfig from
+# api_host + token.
+
+- name: OpenShift auth | Resolve environment directory
+  ansible.builtin.set_fact:
+    bootstrap_controller_openshift_auth_env: >-
+      {{
+        bootstrap_controller_generated_env
+        | default(env | default(bootstrap_generate_env_vars_env | default('prod'), true), true)
+      }}
+
+- name: OpenShift auth | Load generated OpenShift vars
+  ansible.builtin.include_vars:
+    dir: >-
+      {{
+        playbook_dir
+      }}/group_vars/all/{{ bootstrap_controller_openshift_auth_env }}
+    extensions:
+      - yml
+      - yaml
+  when:
+    - >-
+      (
+        playbook_dir
+        + '/group_vars/all/'
+        + bootstrap_controller_openshift_auth_env
+      ) is directory
+
+- name: OpenShift auth | Create temporary kubeconfig path
+  ansible.builtin.tempfile:
+    state: file
+    suffix: -ado-kubeconfig
+  register: bootstrap_controller_openshift_kubeconfig_tmp
+
+- name: OpenShift auth | Write uploaded kubeconfig content
+  when:
+    - openshift_kubeconfig | default('') | length > 0
+      or kubeconfig_content | default('') | length > 0
+  no_log: true
+  ansible.builtin.copy:
+    dest: "{{ bootstrap_controller_openshift_kubeconfig_tmp.path }}"
+    mode: "0600"
+    content: >-
+      {{
+        openshift_kubeconfig
+        | default(kubeconfig_content | default(''), true)
+      }}
+
+- name: OpenShift auth | Build kubeconfig from API host + token
+  when:
+    - openshift_kubeconfig | default('') | length == 0
+    - kubeconfig_content | default('') | length == 0
+    - (token | default(openshift_token | default('')) | length > 0)
+    - (host | default(api_host | default('')) | length > 0)
+  no_log: true
+  ansible.builtin.copy:
+    dest: "{{ bootstrap_controller_openshift_kubeconfig_tmp.path }}"
+    mode: "0600"
+    content: |
+      apiVersion: v1
+      kind: Config
+      clusters:
+        - name: ado-cluster
+          cluster:
+            server: {{ host | default(api_host) }}
+            insecure-skip-tls-verify: {{ (not (verify_ssl | default(validate_certs | default(false)) | bool)) | bool | lower }}
+      contexts:
+        - name: ado-context
+          context:
+            cluster: ado-cluster
+            user: ado-user
+      current-context: ado-context
+      users:
+        - name: ado-user
+          user:
+            token: {{ token | default(openshift_token) }}
+
+- name: OpenShift auth | Assert kubeconfig was materialized
+  ansible.builtin.stat:
+    path: "{{ bootstrap_controller_openshift_kubeconfig_tmp.path }}"
+  register: bootstrap_controller_openshift_kubeconfig_stat
+
+- name: OpenShift auth | Fail when no OpenShift credentials are available
+  ansible.builtin.assert:
+    that:
+      - bootstrap_controller_openshift_kubeconfig_stat.stat.exists
+      - bootstrap_controller_openshift_kubeconfig_stat.stat.size | int > 0
+    fail_msg: >-
+      Provide openshift.token or upload openshift.kubeconfig_content so
+      bootstrap can talk to the OpenShift API.
+
+- name: OpenShift auth | Export connection facts for prep roles
+  ansible.builtin.set_fact:
+    bootstrap_controller_openshift_kubeconfig: >-
+      {{ bootstrap_controller_openshift_kubeconfig_tmp.path }}
+    bootstrap_controller_openshift_connection:
+      kubeconfig: "{{ bootstrap_controller_openshift_kubeconfig_tmp.path }}"
+      validate_certs: "{{ verify_ssl | default(validate_certs | default(false)) | bool }}"

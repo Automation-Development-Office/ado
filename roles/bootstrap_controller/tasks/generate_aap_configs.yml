@@ -200,6 +200,10 @@
 
       admin_htpasswd:
         - ado-openshift-create-htpass-user-bootstrap.jt.yml
+      nfs_csi:
+        - ado-openshift-install-nfs-csi-bootstrap.jt.yml
+      iscsi_csi:
+        - ado-openshift-install-iscsi-csi-bootstrap.jt.yml
 
       openshift_ldap_auth:
         - ado-openshift-configure-ldap-auth-bootstrap.jt.yml

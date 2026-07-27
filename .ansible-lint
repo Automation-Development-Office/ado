@@ -8,6 +8,7 @@ exclude_paths:
     - "**/vars/**"          # exclude any vars dir anywhere
     - "**/molecule/**"     # exclude any molecule dir anywhere
     - "**/meta/**"         # exclude any meta dir anywhere
+    - "**/files/**"        # vendor/k8s manifests shipped with roles
     - "roles/**/meta/**"  # explicit role meta exclusion
     - galaxy.yml
     - "**/changelogs/**"
