@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - >-
+    aap_ocp_install_upstream - do not resolve redhat.openshift.openshift_auth
+    when an OpenShift API token is already provided. Username/password login
+    and token revoke live in separate task files so token-auth installs work
+    with only kubernetes.core (as used by preflight bootstrap).

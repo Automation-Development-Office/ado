@@ -1,4 +1,40 @@
 ---
+- name: manifest | Resolve manifest file name
+  ansible.builtin.set_fact:
+    satellite_config_manifest_file: >-
+      {{
+        satellite_config_manifest_file
+        | default(
+            (
+              satellite_config_manifest_src
+              | default(satellite_config_manifest_path | default(''), true)
+            )
+            | basename,
+            true
+          )
+      }}
+
+- name: manifest | Resolve controller-side manifest source
+  ansible.builtin.set_fact:
+    satellite_config_manifest_src: >-
+      {{
+        satellite_config_manifest_src
+        | default(
+            playbook_dir ~ '/../../files/' ~ satellite_config_manifest_file,
+            true
+          )
+      }}
+  when: satellite_config_manifest_src | default('') | length == 0
+
+- name: manifest | Resolve Satellite host manifest destination
+  ansible.builtin.set_fact:
+    satellite_config_manifest_path: >-
+      {{
+        satellite_config_manifest_path
+        | default('/root/' ~ satellite_config_manifest_file, true)
+      }}
+  when: satellite_config_manifest_path | default('') | length == 0
+
 - name: manifest | Copy the manifest to Satellite
   ansible.builtin.copy:
     src: "{{ satellite_config_manifest_src }}"

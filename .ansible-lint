@@ -20,8 +20,12 @@ exclude_paths:
     - roles/bootstrap_controller/templates/workflows/**
     - roles/bootstrap_generate_playbook_repo/files/playbooks/**
     - roles/bootstrap_generate_playbook_repo/files/playbook_repo_seed/**
+    # Vendored verbatim from infra.aap_utilities 3.5.0; linted upstream.
+    - roles/aap_ocp_install_upstream/**
 
 mock_roles:
+    - infra.ado.aap_ocp_install
+    - infra.ado.aap_ocp_install_upstream
     - infra.ado.aap_build_ee
     - infra.ado.aap_configuration
     - infra.ado.bootstrap_controller

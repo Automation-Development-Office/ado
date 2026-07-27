@@ -1,9 +1,9 @@
 ---
 controller_templates:
-  - name: ADO | Deploy AAP 26
-    description: Bootstrap - Deploy and configure AAP 2.6
+  - name: ADO | Install AAP on OpenShift
+    description: Bootstrap - Install AAP 2.5 or 2.6 with infra.aap_utilities
     organization: '{{ bootstrap_controller_organization }}'
-    playbook: playbooks/aap/ado-aap26-deploy-and-configure-bootstrap.yml
+    playbook: playbooks/aap/ado-aap-ocp-install-bootstrap.yml
     inventory: '{{ bootstrap_controller_inventory_name }}'
     project: '{{ bootstrap_controller_project_name }}'
     execution_environment: '{{ bootstrap_controller_execution_environment_name }}'
@@ -18,18 +18,11 @@ controller_templates:
     extra_vars: {}
     survey_enabled: true
     survey_spec:
-      name: ADO | Deploy AAP 26 Survey
-      description: Configuration options for AAP 2.6 deployment
+      name: ADO | Install AAP on OpenShift Survey
+      description: Select the generated environment containing AAP installer settings
       spec:
-        - question_name: ADO | Do you want to install or remove?
-          question_description: Install (present) or Remove (absent)
-          required: true
-          type: multiplechoice
-          variable: state
-          choices: '{{ bootstrap_controller_state_choices }}'
-          default: '{{ bootstrap_controller_default_state }}'
         - question_name: ADO | What environment?
-          question_description: Target environment
+          question_description: Target generated environment
           required: true
           type: multiplechoice
           variable: env

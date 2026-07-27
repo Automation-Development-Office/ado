@@ -749,6 +749,8 @@
 
     def is_secret_key(key):
         k = str(key or "").lower()
+        if k in {"hub_s3_secret", "hub_azure_secret"}:
+            return False
         return any(x in k for x in ["password", "token", "secret", "vault", "credential", "tls_key", "manifest_content"])
 
     def load_yaml(path):
@@ -768,8 +770,27 @@
                 return value
         return None
 
+    def as_bool(value, default=True):
+        if value is None:
+            return default
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+    jinja_open = "{" + "{"
+    jinja_close = "}" + "}"
+
     def vault_ref(name):
-        return QuotedString("{{ " + name + " }}")
+        return QuotedString(jinja_open + " " + name + " " + jinja_close)
+
+    def playbook_file_ref(filename):
+        return (
+            jinja_open
+            + " playbook_dir "
+            + jinja_close
+            + "/../../files/"
+            + filename
+        )
 
     def safe_upload_filename(name, default_name):
         candidate = Path(str(name or default_name)).name
@@ -846,6 +867,13 @@
                 "satellite_install_data_device",
                 "satellite_install_data_device_name",
                 "satellite_install_data_disk_min_size",
+                "satellite_config_manifest_file",
+                "satellite_config_manifest_src",
+                "satellite_config_manifest_path",
+                "satellite_config_manifest_organization",
+                "satellite_config_upload_manifest",
+                "satellite_config_rhn_connected",
+                "rhn_connected",
                 "satellite_install_manifest_file",
                 "satellite_install_manifest_path",
                 "satellite_install_manifest_organization",
@@ -890,6 +918,13 @@
                 "satellite_install_data_device",
                 "satellite_install_data_device_name",
                 "satellite_install_data_disk_min_size",
+                "satellite_config_manifest_file",
+                "satellite_config_manifest_src",
+                "satellite_config_manifest_path",
+                "satellite_config_manifest_organization",
+                "satellite_config_upload_manifest",
+                "satellite_config_rhn_connected",
+                "rhn_connected",
                 "satellite_install_manifest_file",
                 "satellite_install_manifest_path",
                 "satellite_install_manifest_organization",
@@ -932,6 +967,37 @@
                 "manifest_content_base64",
                 "manifest_b64",
             }
+        elif component == "aap":
+            aap_role_only_keys = {
+                "deployment_version",
+                "version",
+                "namespace",
+                "create_namespace",
+                "operator_channel",
+                "operator_approval",
+                "instance_name",
+                "component_deployment",
+                "minimal_footprint",
+                "admin_username",
+                "install_controller",
+                "install_hub",
+                "install_eda",
+                "install_lightspeed",
+                "controller_replicas",
+                "hub_storage_type",
+                "hub_storage_class",
+                "hub_storage_size",
+                "hub_s3_secret",
+                "hub_azure_secret",
+                "platform_manifest_overrides",
+                "controller_manifest_overrides",
+                "hub_manifest_overrides",
+                "eda_manifest_overrides",
+            }
+            for aap_key in aap_role_only_keys:
+                passthrough_public_values.pop(aap_key, None)
+                vars_data.pop(aap_key, None)
+            existing_satellite_config = {}
         else:
             existing_satellite_config = {}
 
@@ -968,6 +1034,238 @@
                 if public_values.get("hostname"):
                     vars_data["components_env"]["rhbk"]["hostname"] = public_values["hostname"]
 
+            if component == "aap":
+                deployment_version = str(
+                    first_present(
+                        public_values.get("deployment_version"),
+                        public_values.get("version"),
+                        "2.6",
+                    )
+                )
+                namespace = str(public_values.get("namespace") or "aap")
+                instance_name = str(
+                    public_values.get("instance_name") or namespace
+                )
+                admin_password_secret = f"{instance_name}-admin-password"
+                preflight_aap = preflight.get("aap") or {}
+                admin_username = str(
+                    first_present(
+                        public_values.get("admin_username"),
+                        preflight_aap.get("admin_username"),
+                        "admin",
+                    )
+                    or "admin"
+                )
+                admin_password = first_present(
+                    secret_values.get("admin_password"),
+                    preflight_aap.get("admin_password"),
+                )
+                if admin_password is not None:
+                    vault_data["aap_admin_password"] = admin_password
+                    vault_data["vault_controller_password"] = admin_password
+                    vault_data_changed = True
+                vault_data["aap_admin_user"] = admin_username
+                vault_data_changed = True
+                minimal_footprint = as_bool(
+                    public_values.get("minimal_footprint"),
+                    False,
+                )
+                install_controller = as_bool(
+                    public_values.get("install_controller"),
+                    True,
+                )
+                install_hub = as_bool(public_values.get("install_hub"), True)
+                install_eda = as_bool(public_values.get("install_eda"), True)
+                install_lightspeed = as_bool(
+                    public_values.get("install_lightspeed"),
+                    False,
+                )
+                if minimal_footprint:
+                    install_hub = False
+                    install_eda = False
+                    install_lightspeed = False
+                openshift_values = preflight.get("openshift") or {}
+                api_host = first_present(
+                    openshift_values.get("api_host"),
+                    openshift_values.get("host"),
+                    preflight.get("api_host"),
+                )
+                skip_tls_verify = as_bool(
+                    openshift_values.get("skip_tls_verify"),
+                    True,
+                )
+                if openshift_values.get("token") is not None:
+                    vault_data["token"] = openshift_values["token"]
+                    vault_data_changed = True
+                vars_data["aap_ocp_install_namespace"] = namespace
+                vars_data["aap_ocp_install_create_namespace"] = as_bool(
+                    public_values.get("create_namespace"),
+                    True,
+                )
+                vars_data["aap_ocp_install_connection"] = {
+                    "host": str(api_host or ""),
+                    "api_key": vault_ref("token"),
+                    "validate_certs": not skip_tls_verify,
+                }
+                vars_data["aap_ocp_install_operator"] = {
+                    "channel": str(
+                        public_values.get("operator_channel")
+                        or f"stable-{deployment_version}-cluster-scoped"
+                    ),
+                    "approval": str(
+                        public_values.get("operator_approval") or "automatic"
+                    ),
+                }
+                vars_data["aap_ocp_install_platform"] = {
+                    "instance_name": instance_name,
+                    "namespace": namespace,
+                    "component_deployment": str(
+                        public_values.get("component_deployment") or "unified"
+                    ),
+                    "admin_user": admin_username,
+                    "admin_password_secret": admin_password_secret,
+                    "platform_manifest_overrides": copy.deepcopy(
+                        public_values.get("platform_manifest_overrides") or {}
+                    ),
+                }
+                vars_data["aap_ocp_install_controller"] = {
+                    "instance_name": f"{instance_name}-controller",
+                    "namespace": namespace,
+                    "install": install_controller,
+                    "admin_user": admin_username,
+                    "replicas": int(
+                        public_values.get("controller_replicas") or 1
+                    ),
+                    "controller_manifest_overrides": copy.deepcopy(
+                        public_values.get("controller_manifest_overrides") or {}
+                    ),
+                }
+                vars_data["aap_ocp_install_hub"] = {
+                    "instance_name": f"{instance_name}-hub",
+                    "namespace": namespace,
+                    "install": install_hub,
+                    "storage_type": str(
+                        public_values.get("hub_storage_type") or "file"
+                    ),
+                    "file_storage_storage_class": str(
+                        public_values.get("hub_storage_class") or ""
+                    ),
+                    "file_storage_size": str(
+                        public_values.get("hub_storage_size") or "20Gi"
+                    ),
+                    "object_storage_s3_secret": str(
+                        public_values.get("hub_s3_secret") or ""
+                    ),
+                    "object_storage_azure_secret": str(
+                        public_values.get("hub_azure_secret") or ""
+                    ),
+                    "hub_manifest_overrides": copy.deepcopy(
+                        public_values.get("hub_manifest_overrides") or {}
+                    ),
+                }
+                vars_data["aap_ocp_install_eda"] = {
+                    "instance_name": f"{instance_name}-eda",
+                    "namespace": namespace,
+                    "install": install_eda,
+                    "eda_manifest_overrides": copy.deepcopy(
+                        public_values.get("eda_manifest_overrides") or {}
+                    ),
+                }
+                vars_data["aap_ocp_install_lightspeed"] = {
+                    "install": install_lightspeed
+                }
+                vars_data["aap_install_during_bootstrap"] = as_bool(
+                    public_values.get("install_during_bootstrap"),
+                    False,
+                )
+                vars_data["aap_minimal_footprint"] = minimal_footprint
+
+            if component == "openshift_virt":
+                openshift_values = preflight.get("openshift") or {}
+                openshift_skip_tls = as_bool(
+                    openshift_values.get("skip_tls_verify"),
+                    True,
+                )
+                virt_skip_tls = as_bool(
+                    first_present(
+                        public_values.get("skip_tls_verify"),
+                        public_values.get("provision_openshift_virt_skip_tls_verify"),
+                    ),
+                    openshift_skip_tls,
+                )
+                vars_data["provision_openshift_virt_skip_tls_verify"] = virt_skip_tls
+                vars_data["skip_tls_verify"] = openshift_skip_tls
+                vars_data["verify_ssl"] = not openshift_skip_tls
+                vars_data["validate_certs"] = not virt_skip_tls
+
+                api_host = first_present(
+                    public_values.get("api_host"),
+                    public_values.get("provision_openshift_virt_api_host"),
+                    openshift_values.get("api_host"),
+                    openshift_values.get("host"),
+                )
+                if api_host is not None:
+                    vars_data["provision_openshift_virt_api_host"] = str(api_host)
+
+                api_token = first_present(
+                    secret_values.get("api_token"),
+                    openshift_values.get("token"),
+                )
+                if api_token is not None:
+                    vault_data["provision_openshift_virt_api_token"] = api_token
+                    vault_data_changed = True
+                    secret_values.pop("api_token", None)
+
+                if "prefix_length" in public_values:
+                    try:
+                        vars_data["provision_openshift_virt_prefix_length"] = int(
+                            public_values.get("prefix_length") or 24
+                        )
+                    except (TypeError, ValueError):
+                        vars_data["provision_openshift_virt_prefix_length"] = 24
+
+                if "gateway" in public_values:
+                    vars_data["provision_openshift_virt_gateway"] = str(
+                        public_values.get("gateway") or ""
+                    )
+
+                if "dns_servers" in public_values:
+                    dns_servers = public_values.get("dns_servers")
+                    if isinstance(dns_servers, list):
+                        vars_data["provision_openshift_virt_dns_servers"] = [
+                            str(item).strip() for item in dns_servers if str(item).strip()
+                        ]
+                    else:
+                        vars_data["provision_openshift_virt_dns_servers"] = str(
+                            dns_servers or ""
+                        )
+
+                if "ip_range" in public_values:
+                    vars_data["openshift_virt_ip_range"] = str(
+                        public_values.get("ip_range") or ""
+                    )
+
+                # Static IP is chosen at job launch; preflight only seeds shared network defaults.
+                vars_data["provision_openshift_virt_static_ip"] = ""
+                vars_data["openshift_virt_network_defaults"] = {
+                    "ip_range": str(
+                        vars_data.get("openshift_virt_ip_range")
+                        or public_values.get("ip_range")
+                        or ""
+                    ),
+                    "static_ip": "",
+                    "prefix_length": int(
+                        vars_data.get("provision_openshift_virt_prefix_length") or 24
+                    ),
+                    "gateway": str(
+                        vars_data.get("provision_openshift_virt_gateway") or ""
+                    ),
+                    "dns_servers": vars_data.get(
+                        "provision_openshift_virt_dns_servers",
+                        "",
+                    ),
+                }
+
             if component == "satellite":
                 vars_data.setdefault("components_env", {}).setdefault("satellite", {})
                 vars_data["components_env"]["satellite"].pop("storage", None)
@@ -991,19 +1289,40 @@
                     vars_data["satellite_install_deployment_version"] = public_values["deployment_version"]
                 if public_values.get("location"):
                     vars_data["satellite_install_location"] = public_values["location"]
+
+                rhn_connected = as_bool(
+                    first_present(
+                        public_values.get("satellite_config_rhn_connected"),
+                        public_values.get("rhn_connected"),
+                        public_values.get("satellite_install_rhn_connected"),
+                    ),
+                    True,
+                )
+                vars_data["satellite_config_rhn_connected"] = rhn_connected
+
                 manifest_organization = first_present(
+                    public_values.get("satellite_config_manifest_organization"),
                     public_values.get("satellite_install_manifest_organization"),
                     public_values.get("satellite_manifest_organization"),
                     public_values.get("manifest_organization"),
                     public_values.get("organization"),
                 )
                 if manifest_organization is not None:
-                    vars_data["satellite_install_manifest_organization"] = str(manifest_organization)
-                manifest_path = first_present(
+                    vars_data["satellite_config_organization"] = str(manifest_organization)
+                manifest_file = first_present(
+                    public_values.get("satellite_config_manifest_file"),
+                    public_values.get("satellite_install_manifest_file"),
+                    public_values.get("satellite_manifest_file"),
+                    public_values.get("manifest_file"),
+                    public_values.get("manifest_filename"),
+                )
+                manifest_src = first_present(
+                    public_values.get("satellite_config_manifest_src"),
                     public_values.get("satellite_install_manifest_path"),
                     public_values.get("satellite_manifest_path"),
                     public_values.get("manifest_path"),
                 )
+                manifest_dest = public_values.get("satellite_config_manifest_path")
                 manifest_content = first_present(
                     secret_values.get("satellite_manifest_content_base64"),
                     secret_values.get("manifest_content_base64"),
@@ -1014,10 +1333,7 @@
                 )
                 if manifest_content is not None:
                     manifest_filename = first_present(
-                        public_values.get("satellite_install_manifest_file"),
-                        public_values.get("satellite_manifest_file"),
-                        public_values.get("manifest_file"),
-                        public_values.get("manifest_filename"),
+                        manifest_file,
                         "satellite-manifest.zip",
                     )
                     manifest_encoding = first_present(
@@ -1030,12 +1346,41 @@
                         "satellite-manifest.zip",
                         manifest_encoding,
                     )
-                    vars_data["satellite_install_manifest_file"] = manifest_target.name
-                    vars_data["satellite_install_manifest_path"] = QuotedString(
-                        "{{ playbook_dir }}/../../files/" + manifest_target.name
+                    vars_data["satellite_config_manifest_file"] = manifest_target.name
+                    vars_data["satellite_config_manifest_src"] = QuotedString(
+                        playbook_file_ref(manifest_target.name)
                     )
-                elif manifest_path is not None:
-                    vars_data["satellite_install_manifest_path"] = str(manifest_path)
+                    vars_data["satellite_config_manifest_path"] = str(
+                        first_present(
+                            manifest_dest,
+                            "/root/" + manifest_target.name,
+                        )
+                    )
+                    vars_data["satellite_config_upload_manifest"] = True
+                elif manifest_file is not None or manifest_src is not None:
+                    if manifest_file is not None:
+                        manifest_filename = Path(str(manifest_file)).name
+                        resolved_src = first_present(
+                            manifest_src,
+                            playbook_file_ref(manifest_filename),
+                        )
+                    else:
+                        manifest_filename = Path(str(manifest_src)).name
+                        resolved_src = str(manifest_src)
+                    vars_data["satellite_config_manifest_file"] = manifest_filename
+                    if jinja_open in str(resolved_src):
+                        vars_data["satellite_config_manifest_src"] = QuotedString(
+                            str(resolved_src)
+                        )
+                    else:
+                        vars_data["satellite_config_manifest_src"] = str(resolved_src)
+                    vars_data["satellite_config_manifest_path"] = str(
+                        first_present(
+                            manifest_dest,
+                            "/root/" + manifest_filename,
+                        )
+                    )
+                    vars_data["satellite_config_upload_manifest"] = True
                 for manifest_payload_key in satellite_manifest_payload_keys:
                     secret_values.pop(manifest_payload_key, None)
                 vg_name = first_present(
@@ -1204,6 +1549,13 @@
 
             for k, v in secret_values.items():
                 vault_data[k] = v
+
+            if component == "aap":
+                if secret_values.get("admin_password") is not None:
+                    vault_data["aap_admin_password"] = secret_values["admin_password"]
+                    vault_data["vault_controller_password"] = secret_values["admin_password"]
+                vault_data.pop("admin_password", None)
+                vault_data_changed = True
 
             if component == "satellite":
                 if secret_values.get("service_account_password") is not None:
@@ -1568,6 +1920,11 @@
         bootstrap_generate_env_vars_force | bool
         or bootstrap_generate_env_vars_preflight is defined
       }}
+  when:
+    - bootstrap_generate_env_vars_use_aap | bool
+
+- name: Generate AAP gateway authenticators from preflight auth
+  ansible.builtin.include_tasks: generate_gateway_auth.yml
   when:
     - bootstrap_generate_env_vars_use_aap | bool
 

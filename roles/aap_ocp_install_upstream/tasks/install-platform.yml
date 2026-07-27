@@ -1,0 +1,207 @@
+---
+- name: install-platform | Create platform namespace
+  when:
+    - aap_ocp_install_platform['namespace'] is defined
+  kubernetes.core.k8s:
+    host: "{{ __aap_ocp_install_auth_results['openshift_auth']['host'] }}"
+    api_key: "{{ __aap_ocp_install_auth_results['openshift_auth']['api_key'] }}"
+    validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"
+    state: present
+    resource_definition: "{{ lookup('ansible.builtin.template', 'namespace.yaml.j2', template_vars=ns_vars) | from_yaml | ansible.builtin.combine(aap_ocp_install_platform['namespace_manifest_overrides'] | default({}), recursive=true) }}"
+    apply: true
+  vars:
+    ns_vars:
+      ns_name: "{{ aap_ocp_install_platform['namespace'] }}"
+
+- name: install-platform | Build AnsibleAutomationPlatform custom resource
+  ansible.builtin.include_tasks:
+    file: build-platform-cr.yml
+
+- name: install-platform | Create automation platform instance
+  kubernetes.core.k8s:
+    host: "{{ __aap_ocp_install_auth_results['openshift_auth']['host'] }}"
+    api_key: "{{ __aap_ocp_install_auth_results['openshift_auth']['api_key'] }}"
+    validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"
+    state: present
+    resource_definition: "{{ __aap_ocp_install_platform_cr }}"
+    apply: true
+
+- name: install-platform | Wait for operator to create the automation platform route
+  kubernetes.core.k8s_info:
+    host: "{{ __aap_ocp_install_auth_results['openshift_auth']['host'] }}"
+    api_key: "{{ __aap_ocp_install_auth_results['openshift_auth']['api_key'] }}"
+    validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"
+    kind: Route
+    name: "{{ aap_ocp_install_platform['instance_name'] | mandatory }}"
+    api_version: route.openshift.io/v1
+    namespace: "{{ aap_ocp_install_platform['namespace'] | default(aap_ocp_install_namespace) | mandatory }}"
+  register: __aap_ocp_install_platform_route_result
+  until:
+    - __aap_ocp_install_platform_route_result['resources'] | length > 0
+  retries: 60 # Wait for 15 minutes (60*15/60)
+  delay: 15
+
+- name: install-platform | Store automation platform route
+  ansible.builtin.set_fact:
+    aap_ocp_install_platform_route: "https://{{ __aap_ocp_install_platform_route_result['resources'][0]['status']['ingress'][0]['host'] }}"
+
+- name: install-platform | Ensure automation platform login is available
+  ansible.builtin.uri:
+    url: "{{ aap_ocp_install_platform_route }}"
+    validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"
+    method: GET
+    status_code:
+      - 200
+  register: _aap_ocp_install_platform_available
+  until:
+    - _aap_ocp_install_platform_available['status'] == 200
+    - ('migrations_notran' not in _aap_ocp_install_platform_available['url'])
+  retries: 120 # Wait for 30 minutes (120*15/60)
+  delay: 15
+
+# Ensure that all of the platform components are also available
+- name: install-platform | Wait for operator to create the automation controller route
+  when:
+    - aap_ocp_install_controller is defined
+    - aap_ocp_install_controller['install'] is defined
+    - aap_ocp_install_controller['install'] | bool
+    - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+  kubernetes.core.k8s_info:
+    host: "{{ __aap_ocp_install_auth_results['openshift_auth']['host'] }}"
+    api_key: "{{ __aap_ocp_install_auth_results['openshift_auth']['api_key'] }}"
+    validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"
+    kind: Route
+    name: "{{ aap_ocp_install_platform['instance_name'] | mandatory }}-controller"
+    api_version: route.openshift.io/v1
+    namespace: "{{ aap_ocp_install_platform['namespace'] | default(aap_ocp_install_namespace) | mandatory }}"
+  register: __aap_ocp_install_controller_route_result
+  until:
+    - __aap_ocp_install_controller_route_result['resources'] | length > 0
+  retries: 60 # Wait for 15 minutes (60*15/60)
+  delay: 15
+
+- name: install-platform | Store automation controller route
+  when:
+    - aap_ocp_install_controller is defined
+    - aap_ocp_install_controller['install'] is defined
+    - aap_ocp_install_controller['install'] | bool
+    - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+  ansible.builtin.set_fact:
+    aap_ocp_install_controller_route: "https://{{ __aap_ocp_install_controller_route_result['resources'][0]['status']['ingress'][0]['host'] }}"
+
+- name: install-platform | Ensure automation controller API is available
+  when:
+    - aap_ocp_install_controller is defined
+    - aap_ocp_install_controller['install'] is defined
+    - aap_ocp_install_controller['install'] | bool
+    - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+  ansible.builtin.uri:
+    url: "{{ aap_ocp_install_controller_route }}/api"
+    validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"
+    method: GET
+    status_code:
+      - 200
+  register: _aap_ocp_install_controller_available
+  until:
+    - (_aap_ocp_install_controller_available['status'] == 200)
+    - ('migrations_notran' not in _aap_ocp_install_controller_available['url'])
+  retries: 120 # Wait for 30 minutes (120*15/60)
+  delay: 15
+
+- name: install-platform | Wait for operator to create the automation EDA route
+  when:
+    - aap_ocp_install_eda is defined
+    - aap_ocp_install_eda['install'] is defined
+    - aap_ocp_install_eda['install'] | bool
+    - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+  kubernetes.core.k8s_info:
+    host: "{{ __aap_ocp_install_auth_results['openshift_auth']['host'] }}"
+    api_key: "{{ __aap_ocp_install_auth_results['openshift_auth']['api_key'] }}"
+    validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"
+    kind: Route
+    name: "{{ aap_ocp_install_platform['instance_name'] | mandatory }}-eda"
+    api_version: route.openshift.io/v1
+    namespace: "{{ aap_ocp_install_platform['namespace'] | default(aap_ocp_install_namespace) | mandatory }}"
+  register: __aap_ocp_install_eda_route_result
+  until:
+    - __aap_ocp_install_eda_route_result['resources'] | length > 0
+  retries: 60 # Wait for 15 minutes (60*15/60)
+  delay: 15
+
+- name: install-platform | Store automation eda route
+  when:
+    - aap_ocp_install_eda is defined
+    - aap_ocp_install_eda['install'] is defined
+    - aap_ocp_install_eda['install'] | bool
+    - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+  ansible.builtin.set_fact:
+    aap_ocp_install_eda_route: "https://{{ __aap_ocp_install_eda_route_result['resources'][0]['status']['ingress'][0]['host'] }}"
+
+- name: install-platform | Ensure automation eda API is available
+  when:
+    - aap_ocp_install_eda is defined
+    - aap_ocp_install_eda['install'] is defined
+    - aap_ocp_install_eda['install'] | bool
+    - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+  ansible.builtin.uri:
+    url: "{{ aap_ocp_install_eda_route }}/api"
+    validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"
+    method: GET
+    status_code:
+      - 200
+  register: _aap_ocp_install_eda_available
+  until:
+    - (_aap_ocp_install_eda_available['status'] == 200)
+    - ('migrations_notran' not in _aap_ocp_install_eda_available['url'])
+  retries: 120 # Wait for 30 minutes (120*15/60)
+  delay: 15
+
+- name: install-platform | Wait for operator to create the automation hub route
+  when:
+    - aap_ocp_install_hub is defined
+    - aap_ocp_install_hub['install'] is defined
+    - aap_ocp_install_hub['install'] | bool
+    - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+  kubernetes.core.k8s_info:
+    host: "{{ __aap_ocp_install_auth_results['openshift_auth']['host'] }}"
+    api_key: "{{ __aap_ocp_install_auth_results['openshift_auth']['api_key'] }}"
+    validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"
+    kind: Route
+    name: "{{ aap_ocp_install_platform['instance_name'] | mandatory }}-hub"
+    api_version: route.openshift.io/v1
+    namespace: "{{ aap_ocp_install_platform['namespace'] | default(aap_ocp_install_namespace) | mandatory }}"
+  register: __aap_ocp_install_hub_route_result
+  until:
+    - __aap_ocp_install_hub_route_result['resources'] | length > 0
+  retries: 60 # Wait for 15 minutes (60*15/60)
+  delay: 15
+
+- name: install-platform | Store automation hub route
+  when:
+    - aap_ocp_install_hub is defined
+    - aap_ocp_install_hub['install'] is defined
+    - aap_ocp_install_hub['install'] | bool
+    - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+  ansible.builtin.set_fact:
+    aap_ocp_install_hub_route: "https://{{ __aap_ocp_install_hub_route_result['resources'][0]['status']['ingress'][0]['host'] }}"
+
+- name: install-platform | Ensure automation hub API is available
+  when:
+    - aap_ocp_install_hub is defined
+    - aap_ocp_install_hub['install'] is defined
+    - aap_ocp_install_hub['install'] | bool
+    - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+  ansible.builtin.uri:
+    url: "{{ aap_ocp_install_hub_route }}/api/galaxy/pulp/api/v3/"
+    validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"
+    method: GET
+    status_code:
+      - 200
+  register: _aap_ocp_install_hub_available
+  until:
+    - (_aap_ocp_install_hub_available['status'] == 200)
+    - ('migrations_notran' not in _aap_ocp_install_hub_available['url'])
+  retries: 120 # Wait for 30 minutes (120*15/60)
+  delay: 15
+
+...

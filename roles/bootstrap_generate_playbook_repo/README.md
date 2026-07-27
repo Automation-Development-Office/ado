@@ -32,9 +32,10 @@ Automation Development Office
 | `bootstrap_generate_playbook_repo_component_map` | Maps component selections to generated playbook groups. |
 | `bootstrap_generate_playbook_repo_generated_playbooks` | Manifest of bundled playbooks copied into the generated repository. |
 
-Generated collection requirements pin `infra.ado` by version only. AAP resolves
-the collection through the content repositories configured for the project and
-execution environment.
+Generated collection requirements pin `infra.ado` by version and also request
+`kubernetes.core` and `redhat.openshift` for OpenShift component installers.
+AAP resolves them through the content repositories configured for the project
+and execution environment.
 
 ## 🚀 Role Usage
 

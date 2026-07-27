@@ -27,6 +27,11 @@ bootstrap_controller_aap_smoke_test_extra_vars: {}
 bootstrap_controller_aap_smoke_test_poll_delay: 5
 bootstrap_controller_aap_smoke_test_poll_retries: 60
 
+# When true (from preflight component_config.aap.install_during_bootstrap),
+# bootstrap runs infra.ado.aap_ocp_install before apply_aap_configs and omits
+# the Install AAP on OpenShift job template.
+bootstrap_controller_aap_install_during_bootstrap: false
+
 bootstrap_controller_hub_publish_wait: false
 bootstrap_controller_hub_publish_timeout: 300
 bootstrap_controller_hub_publish_request_timeout: 60

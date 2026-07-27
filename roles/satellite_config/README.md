@@ -36,16 +36,17 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `satellite_config_organization` | Satellite organization name or label | ✅ | Not defined in role defaults |
 | `satellite_config_validate_certs` | Whether to validate Satellite TLS certificates | ❌ | Not defined in role defaults |
 | `satellite_config_upload_manifest` | When `true`, include the manifest tasks in the role flow to copy, upload, and refresh the subscription manifest | ❌ | `false` |
+| `satellite_config_rhn_connected` | When `true`, configure connected Satellite proxy settings; when `false`, configure disconnected CDN sync | ❌ | `true` |
 | `satellite_config_settings` | List of Satellite settings to apply; each item requires `name` and `value`. On Satellite 6.19+, `host_tasks_workers_pool_size` is omitted automatically (removed upstream). | ❌ | See `defaults/main.yml` |
-| `satellite_config_rhn_connected` | When `true`, configure connected Satellite proxy settings; when `false`, configure disconnected CDN sync | ❌ | Not defined in role defaults |
 | `satellite_config_proxy_server` | HTTP proxy hostname for connected Satellite content sync | ❌* | Not defined in role defaults |
 | `satellite_config_proxy_port` | HTTP proxy port for connected Satellite content sync | ❌* | Not defined in role defaults |
 | `satellite_config_proxy_scheme` | HTTP proxy scheme (`http` or `https`) for connected Satellite content sync | ❌* | Not defined in role defaults |
 | `satellite_config_connected_fqdn` | FQDN of the upstream connected Satellite used for disconnected CDN configuration | ✅† | Not defined in role defaults |
 | `satellite_config_upstream_admin_username` | Administrator username for the upstream connected Satellite | ✅† | Not defined in role defaults |
 | `satellite_config_upstream_admin_password` | Administrator password for the upstream connected Satellite | ✅† | Not defined in role defaults |
-| `satellite_config_manifest_src` | Controller-side path to the subscription manifest file copied to Satellite | ✅‡ | Not defined in role defaults |
-| `satellite_config_manifest_path` | Destination path on the Satellite host for the manifest file | ✅‡ | Not defined in role defaults |
+| `satellite_config_manifest_file` | Manifest filename used by bootstrap/configure; role derives source/destination paths when unset | ❌ | `""` |
+| `satellite_config_manifest_src` | Controller-side path to the subscription manifest file copied to Satellite | ✅‡ | `""` |
+| `satellite_config_manifest_path` | Destination path on the Satellite host for the manifest file | ✅‡ | `""` |
 | `satellite_config_satellite_deployment_version` | Satellite version interpolated into default Red Hat repository set labels | ❌ | `"6.19"` |
 | `satellite_config_satellite_redhat_repos` | Red Hat repository sets to enable; each item supports `label`, optional `repos`, and optional `all` | ❌ | See `defaults/main.yml` |
 | `satellite_config_gpg_key_files` | Role-relative GPG key files copied to the Satellite host | ❌ | See `defaults/main.yml` |

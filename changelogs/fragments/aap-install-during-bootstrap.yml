@@ -1,0 +1,10 @@
+---
+minor_changes:
+  - >-
+    bootstrap_controller / preflight - add component_config.aap.install_during_bootstrap.
+    When true, bootstrap writes install vars, runs infra.ado.aap_ocp_install in the
+    preflight pod, and skips playbook/AAP config generation, Controller
+    connectivity/smoke/apply, and the Install AAP job template. Rerun bootstrap
+    once AAP is up to configure the Controller. When false (default), selecting
+    the OpenShift aap app still generates that job template and OpenShift
+    workflow node for later use.

@@ -1,0 +1,7 @@
+---
+minor_changes:
+  - >-
+    bootstrap_generate_env_vars / OpenShift Virt - accept optional preflight
+    static_ip, prefix_length, gateway, and dns_servers values, write them to
+    generated vars (including openshift_virt_network_defaults), and seed the
+    Provision OpenShift Virt VM survey defaults from those values.

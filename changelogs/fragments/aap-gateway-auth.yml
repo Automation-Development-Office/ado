@@ -1,0 +1,8 @@
+---
+minor_changes:
+  - >-
+    bootstrap_generate_env_vars / bootstrap_controller - configure AAP 2.5+
+    Automation Gateway authenticators from preflight aap.auth (Keycloak OIDC,
+    LDAP, Keycloak SAML). Writes vault_gateway_auth.yml and applies
+    gateway_authenticators / gateway_authenticator_maps through
+    infra.aap_configuration.dispatch during bootstrap.

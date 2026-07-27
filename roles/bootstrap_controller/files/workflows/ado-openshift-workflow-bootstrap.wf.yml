@@ -99,8 +99,8 @@ controller_workflow_job_templates:
         unified_job_template: ADO | Deploy Kafka
         lookup_organization: "{{ bootstrap_controller_organization }}"
 
-      - identifier: Deploy AAP 26
-        unified_job_template: ADO | Deploy AAP 26
+      - identifier: Install AAP on OpenShift
+        unified_job_template: ADO | Install AAP on OpenShift
         lookup_organization: "{{ bootstrap_controller_organization }}"
 
       - identifier: Deploy ECK

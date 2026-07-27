@@ -16,7 +16,7 @@ components_defaults:
     operator_source_namespace: openshift-marketplace
 
     # the exact host you want
-    hostname: "aap.{{ app_domain }}"
+    hostname: "aap.{{ bootstrap_resolve_component_app_domain }}"
     ingress_class: openshift-default
 
     admin_password_secret: controller-admin-password
@@ -35,7 +35,7 @@ components_defaults:
     operator_source_namespace: openshift-marketplace
 
     # the exact host you want
-    hostname: "aap25.{{ app_domain }}"
+    hostname: "aap25.{{ bootstrap_resolve_component_app_domain }}"
     ingress_class: openshift-default
 
     admin_password_secret: controller-admin-password-25`
@@ -58,7 +58,7 @@ components_defaults:
 
     ingress_type: Route
     route_tls_termination_mechanism: Edge
-    controller_route_host: "controller24.{{ app_domain }}"
+    controller_route_host: "controller24.{{ bootstrap_resolve_component_app_domain }}"
     aap24_configure_hub: false
     aap24_hub_url: ""
     aap24_hub_token: ""
@@ -251,7 +251,7 @@ components_defaults:
     operator_source_namespace: openshift-marketplace
 
     # the exact host you want
-    hostname: "gitlab.{{ app_domain }}"
+    hostname: "gitlab.{{ bootstrap_resolve_component_app_domain }}"
     host_suffix: gitlab
     ingress_class: openshift-default
 
@@ -299,9 +299,9 @@ components_defaults:
     operator_source: community-operators
     operator_source_namespace: openshift-marketplace
 
-    grafana_hostname: grafana.{{ app_domain }}
+    grafana_hostname: grafana.{{ bootstrap_resolve_component_app_domain }}
     storage_size: 2Gi
-    prometheus_source: prometheus-k8s-openshift-monitoring.{{ app_domain }}
+    prometheus_source: prometheus-k8s-openshift-monitoring.{{ bootstrap_resolve_component_app_domain }}
     grafana_datasource: "Openshift"
     grafana_folder: "Openshift"
     dashboard_dir: "../templates"
@@ -310,7 +310,7 @@ components_defaults:
 
     grafana_route_name: grafana
     grafana_route_name_alt: grafana-alt
-    grafana_hostname_alt: "grafana.{{ app_domain_alt }}"
+    grafana_hostname_alt: "grafana.{{ bootstrap_resolve_component_app_domain_alt }}"
     grafana_route_backend_svc: grafana-service
 
     grafana_route_backend_port: grafana
@@ -414,7 +414,7 @@ components_defaults:
     operator_source_namespace: openshift-marketplace
 
     # grafana vars
-    quay_hostname: "quay.{{ app_domain}}"
+    quay_hostname: "quay.{{ bootstrap_resolve_component_app_domain }}"
     storage_size: 10Gi
     postgres_image: registry.redhat.io/rhel9/postgresql-15:latest
     quay_config_secret: quay-config-secret
@@ -429,7 +429,7 @@ components_defaults:
     operator_source_namespace: openshift-marketplace
     install_rhbk_operator: true
 
-    rhbk_hostname: "keycloak.{{ app_domain }}"
+    rhbk_hostname: "keycloak.{{ bootstrap_resolve_component_app_domain }}"
     create_rhbk_admin_user: true
     rhbk_recreate_ss_on_immutable_change: true
     rhbk_tls_secret_name: keycloak-tls-secret
@@ -458,6 +458,11 @@ components_defaults:
         preferred_username: "preferred_username"
         name: "name"
         email: "email"
+
+  # OpenShift Virtualization VM provisioning inputs are generated directly as
+  # provision_openshift_virt_* variables. Keep a registry entry so the common
+  # resolver can merge optional components_env/overrides without failing.
+  openshift_virt: {}
 
   ldap_auth_openshift:
     enabled: true

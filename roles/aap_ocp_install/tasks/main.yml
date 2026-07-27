@@ -1,0 +1,22 @@
+---
+- name: Validate ADO AAP on OpenShift installer inputs
+  ansible.builtin.assert:
+    that:
+      - aap_ocp_install_namespace | default('') | length > 0
+      - aap_ocp_install_connection is mapping
+      - aap_ocp_install_operator is mapping
+      - aap_ocp_install_operator.channel | default('') | length > 0
+      - aap_ocp_install_platform is mapping
+      - aap_ocp_install_platform.instance_name | default('') | length > 0
+      - >-
+        aap_ocp_install_operator.channel
+        is regex('^stable-(2\.5|2\.6)(-|$)')
+    fail_msg: >-
+      infra.ado.aap_ocp_install supports AAP 2.5 and 2.6 platform installs.
+      Provide namespace, OpenShift connection, operator channel
+      (stable-2.5* or stable-2.6*), and platform instance_name.
+
+- name: Install AAP on OpenShift with vendored infra.aap_utilities role
+  ansible.builtin.include_role:
+    name: infra.ado.aap_ocp_install_upstream
+    public: true

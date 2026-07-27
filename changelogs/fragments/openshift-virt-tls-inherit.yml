@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - >-
+    bootstrap_generate_env_vars / OpenShift Virt playbook - inherit OpenShift
+    skip_tls_verify (and API host/token when blank) for VM provisioning, and
+    fall back to generated OpenShift TLS vars so the job no longer fails when
+    provision_openshift_virt_skip_tls_verify is unset.

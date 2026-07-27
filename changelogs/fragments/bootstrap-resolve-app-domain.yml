@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - >-
+    bootstrap_resolve_component - normalize app_domain from the generated
+    apps_domain value (or derive apps.<domain> for legacy vars) before
+    rendering component defaults, and register openshift_virt so VM
+    provisioning no longer fails during common variable resolution.

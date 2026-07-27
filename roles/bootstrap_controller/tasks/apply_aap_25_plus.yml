@@ -163,14 +163,34 @@
   rescue:
     # ansible.hub.ah_collection auto_approve crashes (IndexError) when the same
     # namespace/name/version already exists and overwrite_existing is false.
+    # Looped failures put IndexError under results[].module_stderr, not top-level.
+    - name: AAP 2.5+ | Collect Hub publish failure text
+      ansible.builtin.set_fact:
+        bootstrap_controller_hub_publish_failure_text: >-
+          {{
+            [
+              ansible_failed_result.module_stderr | default(''),
+              ansible_failed_result.msg | default(''),
+              ansible_failed_result.results | default([])
+                | map(attribute='module_stderr')
+                | select('defined')
+                | list
+                | join('\n'),
+              ansible_failed_result.results | default([])
+                | map(attribute='msg')
+                | select('defined')
+                | list
+                | join('\n'),
+              ansible_failed_result | to_json
+            ] | join('\n')
+          }}
+
     - name: AAP 2.5+ | Detect Hub approve crash for already-published collection version
       ansible.builtin.set_fact:
         bootstrap_controller_hub_publish_already_present: >-
           {{
-            (
-              (ansible_failed_result.module_stderr | default('') | string) is search('IndexError')
-              or (ansible_failed_result.msg | default('') | string) is search('IndexError|Awaiting approval not found')
-            )
+            (bootstrap_controller_hub_publish_failure_text | default('') | string)
+              is search('IndexError|Awaiting approval not found')
             and not (bootstrap_controller_hub_force_ado_collection_update | default(false) | bool)
           }}
 
@@ -182,14 +202,14 @@
           enable "Force update infra.ado collection" (or bump the collection version) and rerun.
           Artifact: {{ bootstrap_controller_hub_collection_artifacts | default([]) | join(', ') }}
           Repository: {{ bootstrap_controller_hub_publish_repository | default('validated') }}
-      when: bootstrap_controller_hub_publish_already_present | bool
+      when: bootstrap_controller_hub_publish_already_present | default(false) | bool
 
     - name: AAP 2.5+ | Fail Hub collection publish for unexpected errors
       ansible.builtin.fail:
         msg: >-
           AAP Hub collection publish failed:
           {{ ansible_failed_result.msg | default(ansible_failed_result) }}
-      when: not (bootstrap_controller_hub_publish_already_present | bool)
+      when: not (bootstrap_controller_hub_publish_already_present | default(false) | bool)
 
 - name: AAP 2.5+ | Stop after ADO Hub collection update
   ansible.builtin.meta: end_host
@@ -742,6 +762,12 @@
       bootstrap_controller_satellite_credential_type_lookup.json.count
       | default(0)
       | int == 0
+
+- name: AAP 2.5+ | Apply gateway authenticators from preflight Auth
+  ansible.builtin.include_tasks: apply_gateway_auth.yml
+  when:
+    - aap_auth_configure_gateway | default(false) | bool
+    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
 
 # Create/update credentials and EEs first
 - name: AAP 2.5+ | Apply credentials and execution environments
