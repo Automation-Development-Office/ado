@@ -8,13 +8,13 @@ Install Synology CSI (iSCSI) on OpenShift using `kubernetes.core.k8s`
 
 Automation Development Office
 
-## Requirements
+## ✅ Role Requirements
 
 - Ansible Core
 - `kubernetes.core` collection
 - Cluster-admin OpenShift credentials (kubeconfig or host + token)
 
-## Variables
+## 📦 Role Variables
 
 | Variable | Description |
 |----------|-------------|
@@ -29,7 +29,7 @@ Automation Development Office
 | `ocp_iscsi_storage_install_snapshotter` | Install snapshotter manifests. Default: `true`. |
 | `ocp_iscsi_storage_connection` | Optional `host` / `api_key` / `kubeconfig` / `validate_certs`. |
 
-## Examples
+## 🚀 Role Usage
 
 ```yaml
 - name: Install Synology iSCSI CSI
@@ -46,21 +46,21 @@ Automation Development Office
           validate_certs: false
 ```
 
-## Behavior Notes
+Applies namespace, client-info Secret, OpenShift SCC, controller, CSIDriver,
+node DaemonSet, StorageClass, and optional snapshotter via idempotent k8s
+module calls. Auth uses role connection kwargs or `KUBECONFIG` / in-cluster
+defaults.
 
-- Applies namespace, client-info Secret, OpenShift SCC, controller,
-  CSIDriver, node DaemonSet, StorageClass, and optional snapshotter.
-- Replaces manual `oc create -f ...` steps with idempotent k8s module calls.
-- Auth via role connection kwargs or `KUBECONFIG` / in-cluster defaults.
+## 🧪 Role Molecule Testing
 
-## Molecule
+Run Molecule scenarios from the role directory when a scenario is available.
 
 ```bash
 cd roles/ocp_iscsi_storage
 molecule test
 ```
 
-## Repository layout
+## 📁 Role Structure
 
 ```text
 roles/ocp_iscsi_storage/

@@ -1,27 +1,27 @@
-# infra.aap_utilities.aap_ocp_install
+# Role: infra.ado.aap_ocp_install_upstream
 
-## Summary
+Vendored upstream `infra.aap_utilities.aap_ocp_install` 3.5.0 implementation
+used by `infra.ado.aap_ocp_install`. See `UPSTREAM.md` for source details.
 
 Installs Ansible Automation Platform (AAP) on OpenShift using the operator: connects to the OpenShift cluster, optionally creates the target namespace, installs the operator Subscription, then deploys your chosen components. Before any cluster changes, the role runs pre-flight checks and fails with a list of validation errors if something is wrong.
 
 For operator channels below 2.5, the role creates standalone `AutomationController`, `AutomationHub`, and `EDA` custom resources. For channels 2.5 and later, define `aap_ocp_install_platform` and set **`aap_ocp_install_platform.component_deployment`** to **`unified`** (default) to apply one `AnsibleAutomationPlatform` CR, or to **`individual`** to create standalone component CRs first and then link them from the platform CR. Optional `aap_ocp_install_controller`, `aap_ocp_install_hub`, and `aap_ocp_install_eda` dictionaries can be omitted when you are not configuring that component.
 
-## Requirements
+## Role Author
+
+- Brant Evans
+- Derek Waters
+- Andrew Block
+- Automation Development Office (vendoring / ADO wrapper)
+
+## ✅ Role Requirements
 
 - **Ansible:** 2.15.0 or later.
 - **Python:** the `kubernetes` library (version 12.0.0 or later).
 - **Operator channel naming:** use a channel string that includes a `major.minor` version (for example `stable-2.4` or `stable-2.5-cluster-scoped`) so the role can tell pre-2.5 installs from 2.5+ platform installs.
+- **Collections:** `kubernetes.core`. `redhat.openshift` is only required when authenticating with OpenShift username/password (not needed when `aap_ocp_install_connection.api_key` is set).
 
-## Dependencies
-
-Install these Ansible collections on the control node:
-
-- `kubernetes.core`.
-- `redhat.openshift` (only required when authenticating with OpenShift
-  username/password; not needed when `aap_ocp_install_connection.api_key`
-  is set).
-
-## Role variables
+## 📦 Role Variables
 
 The tables below list user-facing variables and nested keys.
 
@@ -186,7 +186,7 @@ For **unified** installs, fields must match what the operator expects under `spe
 
 **Console links:** Per-component `ConsoleLink` objects are created for controller, hub, and EDA only when you are **not** on an AAP 2.5+ platform install (`aap_ocp_install_platform` defined with channel 2.5+). On 2.5+ platform installs, only the platform `ConsoleLink` is managed (when `aap_ocp_install_platform.create_link` is true). Tag the corresponding component or `platform` so those steps run when you use selective tags.
 
-## Example playbooks
+## 🚀 Role Usage
 
 Pre-2.5 (for example channel `stable-2.2`):
 
@@ -251,12 +251,30 @@ AAP 2.5+ (single namespace: omit `aap_ocp_install_platform.namespace` to use `aa
 
 You may set `aap_ocp_install_platform.namespace` to a different valid namespace than `aap_ocp_install_namespace` if your layout requires it; the simple case is one shared namespace.
 
+## 🧪 Role Molecule Testing
+
+This vendored upstream role has no Molecule scenario in-tree. Validate through
+the ADO wrapper role `infra.ado.aap_ocp_install` and integration workflows that
+exercise AAP-on-OpenShift installs.
+
+```bash
+cd roles/aap_ocp_install
+molecule test
+```
+
+## 📁 Role Structure
+
+```text
+roles/aap_ocp_install_upstream/
+  README.md
+  UPSTREAM.md
+  defaults/
+  meta/
+  tasks/
+  templates/
+  vars/
+```
+
 ## License
 
-[GPLv3+0](https://github.com/redhat-cop/aap_utilities#licensing)
-
-## Author information
-
-- Brant Evans
-- Derek Waters
-- Andrew Block
+[GPLv3+](https://github.com/redhat-cop/aap_utilities#licensing)

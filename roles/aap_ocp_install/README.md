@@ -5,7 +5,11 @@ ADO-supported inputs and delegating to the vendored
 `infra.aap_utilities.aap_ocp_install` 3.5.0 implementation. Vendoring keeps
 generated projects usable when disconnected from Automation Galaxy.
 
-## Requirements
+## Role Author
+
+Automation Development Office
+
+## ✅ Role Requirements
 
 - Ansible Core 2.15 or later
 - Python `kubernetes` 12.0 or later in the execution environment
@@ -13,25 +17,26 @@ generated projects usable when disconnected from Automation Galaxy.
 - An OpenShift token or username/password with permission to install operators
   and create AAP custom resources
 
-## Variables
+## 📦 Role Variables
 
-The wrapper intentionally uses the upstream `aap_ocp_install_*` interface:
-
-- `aap_ocp_install_namespace`
-- `aap_ocp_install_create_namespace`
-- `aap_ocp_install_connection`
-- `aap_ocp_install_operator`
-- `aap_ocp_install_platform`
-- `aap_ocp_install_controller`
-- `aap_ocp_install_hub`
-- `aap_ocp_install_eda`
-- `aap_ocp_install_lightspeed`
-
+The wrapper intentionally uses the upstream `aap_ocp_install_*` interface.
 The operator channel must begin with `stable-2.5` or `stable-2.6`. See the
 upstream `infra.aap_utilities.aap_ocp_install` documentation for all nested
 keys and manifest override options.
 
-## Example
+| Variable | Description |
+|----------|-------------|
+| `aap_ocp_install_namespace` | Namespace for the operator Subscription and AAP components. |
+| `aap_ocp_install_create_namespace` | Whether to create `aap_ocp_install_namespace`. |
+| `aap_ocp_install_connection` | OpenShift API connection (`host`, `api_key` or username/password). |
+| `aap_ocp_install_operator` | Operator install settings including `channel`. |
+| `aap_ocp_install_platform` | AAP 2.5+ platform CR settings (`instance_name`, `component_deployment`). |
+| `aap_ocp_install_controller` | Controller component settings (`install`, overrides). |
+| `aap_ocp_install_hub` | Hub component settings (`install`, storage, overrides). |
+| `aap_ocp_install_eda` | EDA component settings (`install`, overrides). |
+| `aap_ocp_install_lightspeed` | Optional Lightspeed enablement on AAP 2.5+. |
+
+## 🚀 Role Usage
 
 ```yaml
 ---
@@ -60,4 +65,23 @@ keys and manifest override options.
           file_storage_size: 20Gi
         aap_ocp_install_eda:
           install: true
+```
+
+## 🧪 Role Molecule Testing
+
+Run Molecule scenarios from the role directory when a scenario is available.
+
+```bash
+cd roles/aap_ocp_install
+molecule test
+```
+
+## 📁 Role Structure
+
+```text
+roles/aap_ocp_install/
+  README.md
+  defaults/
+  meta/
+  tasks/
 ```
