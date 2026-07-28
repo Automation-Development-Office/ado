@@ -383,3 +383,120 @@ releases:
     - satellite-deployment-version-default.yml
     - satellite-dynamic-inventory-validate-certs.yml
     release_date: '2026-07-20'
+  1.0.2:
+    changes:
+      bugfixes:
+      - CI collections/requirements.yml - drop redhat.openshift. It is not published
+        on public Galaxy (Automation Hub only), which broke ansible-galaxy install
+        in GitHub Actions. Token-auth OpenShift paths use kubernetes.core; username/password
+        login still needs redhat.openshift from Automation Hub at runtime.
+      - aap_ocp_install, aap_ocp_install_upstream, ocp_iscsi_storage - align role
+        README headings with the collection README format template so README verification
+        passes.
+      - aap_ocp_install_upstream - do not resolve redhat.openshift.openshift_auth
+        when an OpenShift API token is already provided. Username/password login and
+        token revoke live in separate task files so token-auth installs work with
+        only kubernetes.core (as used by preflight bootstrap).
+      - bootstrap_controller - fix OpenShift Virt VM survey apply failure where provision_openshift_virt_prefix_length
+        default was emitted as the string "24" instead of integer 24 (quoted placeholder
+        substitution order).
+      - bootstrap_controller - normalize string and dictionary AAP labels before creating
+        them so generated organization labels do not fail AAP 2.5+ bootstrap runs.
+      - bootstrap_generate_env_vars / OpenShift Virt playbook - inherit OpenShift
+        skip_tls_verify (and API host/token when blank) for VM provisioning, and fall
+        back to generated OpenShift TLS vars so the job no longer fails when provision_openshift_virt_skip_tls_verify
+        is unset.
+      - bootstrap_generate_playbook_repo - configure generated AAP projects to sync
+        on launch and wait for project creation so job runs pick up current collection
+        requirements from the generated repository.
+      - bootstrap_generate_playbook_repo - generate infra.ado collection requirements
+        with only the collection name and version so AAP resolves the source through
+        its configured content repositories.
+      - bootstrap_resolve_component - normalize app_domain from the generated apps_domain
+        value (or derive apps.<domain> for legacy vars) before rendering component
+        defaults, and register openshift_virt so VM provisioning no longer fails during
+        common variable resolution.
+      - ci - remove unsupported ``user`` platform key from ``integration_rhel_patching``
+        and ``integration_rhel_repos_default`` Molecule configs so podman driver schema
+        validation passes.
+      - ocp_iscsi_storage - wrap multi-document CSI manifests as Kubernetes List resources
+        and clear executable bits so ansible-test yamllint and shebang sanity checks
+        pass.
+      minor_changes:
+      - 'Bootstrap can materialize OpenShift auth from an uploaded kubeconfig
+
+        (or host+token), then optionally install Admin HTPasswd and NFS CSI
+
+        storage in the preflight pod before AAP install.
+
+        '
+      - OpenShift Virt network defaults - drop preflight static IP seeding; add optional
+        ip_range guidance for the survey help text while keeping gateway, DNS, and
+        prefix_length as optional survey defaults.
+      - 'Wire the ``iscsi_csi`` OpenShift option to ``ocp_iscsi_storage``
+
+        (bundled Synology CSI manifests via kubernetes.core, client-info
+
+        secret from DSM credentials, StorageClass, optional snapshotter)
+
+        with bootstrap prep, playbook, and job template support.
+
+        '
+      - 'Wire the ``nfs_csi`` OpenShift option to ``ocp_nfs_storage`` (Helm
+
+        csi-driver-nfs 4.11.0, privileged SCC RoleBindings, StorageClass)
+
+        with playbook and job template support.
+
+        '
+      - aap_ocp_install - add an ADO wrapper around the vendored infra.aap_utilities
+        3.5.0 aap_ocp_install role for AAP 2.5 and 2.6 operator/platform deployments
+        on OpenShift.
+      - bootstrap AAP on OpenShift install - add component_config.aap.minimal_footprint
+        to disable Hub, EDA, and Lightspeed for CPU-constrained clusters (Controller
+        + Gateway only).
+      - 'bootstrap AAP on OpenShift install - support component_config.aap.admin_username
+        / admin_password (vault: aap_admin_password). Bootstrap creates the ``{instance}-admin-password``
+        Secret and sets ``spec.admin_password_secret`` on the AnsibleAutomationPlatform
+        CR.'
+      - bootstrap roles - generate native aap_ocp_install variables and a single AAP-on-OpenShift
+        playbook/job template instead of the incomplete copied AAP 2.4 placeholders.
+      - bootstrap_controller / preflight - add component_config.aap.install_during_bootstrap.
+        When true, bootstrap writes install vars, runs infra.ado.aap_ocp_install in
+        the preflight pod, and skips playbook/AAP config generation, Controller connectivity/smoke/apply,
+        and the Install AAP job template. Rerun bootstrap once AAP is up to configure
+        the Controller. When false (default), selecting the OpenShift aap app still
+        generates that job template and OpenShift workflow node for later use.
+      - bootstrap_generate_env_vars - write Satellite manifest uploads as satellite_config_manifest_file
+        (with derived src/path and upload flag) for the Satellite configure playbook.
+      - bootstrap_generate_env_vars / OpenShift Virt - accept optional preflight static_ip,
+        prefix_length, gateway, and dns_servers values, write them to generated vars
+        (including openshift_virt_network_defaults), and seed the Provision OpenShift
+        Virt VM survey defaults from those values.
+      - bootstrap_generate_env_vars / bootstrap_controller - configure AAP 2.5+ Automation
+        Gateway authenticators from preflight aap.auth (Keycloak OIDC, LDAP, Keycloak
+        SAML). Writes vault_gateway_auth.yml and applies gateway_authenticators /
+        gateway_authenticator_maps through infra.aap_configuration.dispatch during
+        bootstrap.
+      - bootstrap_generate_env_vars / satellite_config - emit and default satellite_config_rhn_connected
+        to true; UI/CLI preflight can override with component_config.satellite.rhn_connected.
+      - bootstrap_generate_playbook_repo - include kubernetes.core and redhat.openshift
+        in generated project collection requirements.
+    fragments:
+    - aap-gateway-auth.yml
+    - aap-install-during-bootstrap.yml
+    - aap-ocp-admin-password-minimal.yml
+    - aap-ocp-install-token-auth-no-redhat-openshift.yml
+    - aap-ocp-install.yml
+    - bootstrap-controller-label-normalization.yml
+    - bootstrap-project-sync-on-launch.yml
+    - bootstrap-resolve-app-domain.yml
+    - ci-drop-redhat-openshift-galaxy.yml
+    - molecule-podman-user-schema.yml
+    - ocp-iscsi-readme-sanity.yml
+    - openshift-virt-network-defaults.yml
+    - openshift-virt-prefix-survey-fix.yml
+    - openshift-virt-tls-inherit.yml
+    - pre-aap-openshift-htpasswd-nfs-kubeconfig.yml
+    - satellite-manifest-upload.yml
+    release_date: '2026-07-28'

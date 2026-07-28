@@ -1,6 +1,0 @@
----
-bugfixes:
-  - >-
-    ci - remove unsupported ``user`` platform key from
-    ``integration_rhel_patching`` and ``integration_rhel_repos_default``
-    Molecule configs so podman driver schema validation passes.
