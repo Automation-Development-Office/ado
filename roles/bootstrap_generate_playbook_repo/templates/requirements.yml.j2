@@ -2,6 +2,5 @@
 collections:
   - name: infra.ado
     version: "{{ bootstrap_generate_playbook_repo_infra_ado_collection_version }}"
-{% if bootstrap_generate_playbook_repo_infra_ado_source_resolved | default('') | length > 0 %}
-    source: "{{ bootstrap_generate_playbook_repo_infra_ado_source_resolved }}"
-{% endif %}
+  - name: kubernetes.core
+  - name: redhat.openshift

@@ -1,0 +1,6 @@
+---
+bugfixes:
+  - >-
+    bootstrap_controller - normalize string and dictionary AAP labels before
+    creating them so generated organization labels do not fail AAP 2.5+
+    bootstrap runs.

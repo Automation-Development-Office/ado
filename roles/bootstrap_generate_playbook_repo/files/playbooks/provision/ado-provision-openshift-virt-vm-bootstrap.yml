@@ -25,8 +25,21 @@
     root_password: "{{ provision_openshift_virt_root_password | default('') }}"
     enable_root_ssh: >-
       {{ provision_openshift_virt_enable_root_ssh | default(false) }}
+    # Prefer an explicit VM TLS override; otherwise inherit OpenShift form
+    # skip_tls_verify / verify_ssl from infra_config_vars.yml.
     validate_certs: >-
-      {{ not (provision_openshift_virt_skip_tls_verify | bool) }}
+      {{
+        not (
+          (
+            provision_openshift_virt_skip_tls_verify
+            | default(
+                skip_tls_verify
+                | default(not (verify_ssl | default(false) | bool)),
+                true
+              )
+          ) | bool
+        )
+      }}
     # yamllint disable rule:line-length
     cloud_init_user_data: |
       #cloud-config
@@ -120,6 +133,53 @@
       }}
     K8S_AUTH_VERIFY_SSL: "{{ validate_certs | bool | ternary('yes', 'no') }}"
   pre_tasks:
+    - name: Prefer generated network defaults when survey values are blank
+      ansible.builtin.set_fact:
+        provision_openshift_virt_static_ip: >-
+          {{
+            (
+              provision_openshift_virt_static_ip | default('') | string | trim
+            )
+            or (
+              (openshift_virt_network_defaults | default({})).get('static_ip', '')
+              | string
+              | trim
+            )
+          }}
+        provision_openshift_virt_prefix_length: >-
+          {{
+            provision_openshift_virt_prefix_length
+            | default(
+                (openshift_virt_network_defaults | default({})).get('prefix_length', 24),
+                true
+              )
+          }}
+        provision_openshift_virt_gateway: >-
+          {{
+            (
+              provision_openshift_virt_gateway | default('') | string | trim
+            )
+            or (
+              (openshift_virt_network_defaults | default({})).get('gateway', '')
+              | string
+              | trim
+            )
+          }}
+        provision_openshift_virt_dns_servers: >-
+          {{
+            (
+              provision_openshift_virt_dns_servers | default('') | string | trim
+            )
+            if (
+              (
+                provision_openshift_virt_dns_servers | default('') | string | trim
+              ) | length > 0
+            )
+            else (
+              (openshift_virt_network_defaults | default({})).get('dns_servers', '')
+            )
+          }}
+
     - name: Resolve vars for component from framework defaults + env overrides
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component

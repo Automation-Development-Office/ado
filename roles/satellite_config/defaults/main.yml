@@ -1,4 +1,9 @@
 ---
+satellite_config_rhn_connected: true
+satellite_config_upload_manifest: false
+satellite_config_manifest_file: ""
+satellite_config_manifest_src: ""
+satellite_config_manifest_path: ""
 satellite_config_satellite_deployment_version: "6.19"
 satellite_config_satellite_redhat_repos:
   - name: "Red Hat Satellite Capsule {{ satellite_config_satellite_deployment_version }} for RHEL 9 x86_64 (RPMs)"
@@ -70,6 +75,7 @@ satellite_config_settings:
       - "vlinuxbr*"
       - "vovsbr*"
       - "bond*"
+  # Kept for Satellite < 6.19. Skipped automatically on 6.19+ (setting removed in Katello 4.20).
   - name: "host_tasks_workers_pool_size"
     value: "100"
 satellite_config_server_url: "https://{{ ansible_fqdn }}"

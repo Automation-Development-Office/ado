@@ -1,3 +1,24 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
-# defaults file for advanced-cluster-management
+---
+# yamllint disable rule:line-length
+# Chart version without leading "v" matches helm chart tags (e.g. 4.11.0).
+ocp_nfs_storage_driver_version: "4.11.0"
+ocp_nfs_storage_namespace: csi-driver-nfs
+ocp_nfs_storage_helm_release: csi-driver-nfs
+ocp_nfs_storage_helm_repo_name: csi-driver-nfs
+ocp_nfs_storage_helm_repo_url: >-
+  https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+ocp_nfs_storage_class_name: synology-nfs-csi
+ocp_nfs_storage_server: ""
+ocp_nfs_storage_share: ""
+ocp_nfs_storage_nfs_version: "4.1"
+ocp_nfs_storage_reclaim_policy: Delete
+ocp_nfs_storage_binding_mode: Immediate
+ocp_nfs_storage_allow_volume_expansion: true
+ocp_nfs_storage_create_test_namespace: true
+ocp_nfs_storage_test_namespace: synology-nfs-pv
+ocp_nfs_storage_create_test_pvc: false
+ocp_nfs_storage_test_pvc_name: synology-nfs-pvc
+ocp_nfs_storage_test_pvc_size: 10Gi
+# Optional: host / api_key / validate_certs / kubeconfig (path). When unset,
+# kubernetes.core uses the process environment (KUBECONFIG / in-cluster).
+ocp_nfs_storage_connection: {}

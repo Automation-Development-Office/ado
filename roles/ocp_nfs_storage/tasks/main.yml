@@ -1,16 +1,69 @@
 ---
-- name: Ensure Helm repo for csi-driver-nfs is present
-  kubernetes.core.helm_repository:
-    name: csi-driver-nfs
-    repo_url: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
+# yamllint disable rule:line-length
+- name: NFS CSI | Resolve OpenShift connection kwargs
+  ansible.builtin.set_fact:
+    ocp_nfs_storage_k8s_auth: >-
+      {{
+        {}
+        | combine(
+          {'host': ocp_nfs_storage_connection.host}
+          if (ocp_nfs_storage_connection.host | default('') | length > 0)
+          else {},
+          recursive=true
+        )
+        | combine(
+          {'api_key': ocp_nfs_storage_connection.api_key}
+          if (ocp_nfs_storage_connection.api_key | default('') | length > 0)
+          else {},
+          recursive=true
+        )
+        | combine(
+          {'kubeconfig': ocp_nfs_storage_connection.kubeconfig}
+          if (ocp_nfs_storage_connection.kubeconfig | default('') | length > 0)
+          else {},
+          recursive=true
+        )
+        | combine(
+          {
+            'validate_certs': ocp_nfs_storage_connection.validate_certs
+            | default(true)
+            | bool
+          }
+          if (
+            ocp_nfs_storage_connection.host is defined
+            or ocp_nfs_storage_connection.kubeconfig is defined
+          )
+          else {},
+          recursive=true
+        )
+      }}
 
-- name: Install csi-driver-nfs with Helm
+- name: NFS CSI | Assert NFS server and share are set
+  ansible.builtin.assert:
+    that:
+      - ocp_nfs_storage_server | default('') | length > 0
+      - ocp_nfs_storage_share | default('') | length > 0
+      - ocp_nfs_storage_class_name | default('') | length > 0
+    fail_msg: >-
+      ocp_nfs_storage_server, ocp_nfs_storage_share, and
+      ocp_nfs_storage_class_name are required.
+
+- name: NFS CSI | Ensure Helm repo for csi-driver-nfs is present
+  kubernetes.core.helm_repository:
+    name: "{{ ocp_nfs_storage_helm_repo_name }}"
+    repo_url: "{{ ocp_nfs_storage_helm_repo_url }}"
+
+- name: NFS CSI | Install csi-driver-nfs with Helm
   kubernetes.core.helm:
-    name: csi-driver-nfs
+    name: "{{ ocp_nfs_storage_helm_release }}"
     chart_ref: csi-driver-nfs/csi-driver-nfs
-    chart_version: "{{ nfs_driver_version | default('v4.6.0') }}"
+    chart_version: "{{ ocp_nfs_storage_driver_version }}"
     create_namespace: true
-    namespace: csi-driver-nfs
+    namespace: "{{ ocp_nfs_storage_namespace }}"
+    host: "{{ ocp_nfs_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_nfs_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_nfs_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_nfs_storage_k8s_auth.validate_certs | default(omit) }}"
     values:
       controller:
         runOnControlPlane: true
@@ -21,7 +74,7 @@
         customResourceDefinitions:
           enabled: false
 
-- name: Assign privileged SCC to csi-nfs-node-sa
+- name: NFS CSI | Assign privileged SCC to csi-nfs-node-sa
   kubernetes.core.k8s:
     state: present
     definition:
@@ -29,17 +82,21 @@
       kind: RoleBinding
       metadata:
         name: privileged-scc-to-csi-nfs-node-sa
-        namespace: csi-driver-nfs
+        namespace: "{{ ocp_nfs_storage_namespace }}"
       subjects:
         - kind: ServiceAccount
           name: csi-nfs-node-sa
-          namespace: csi-driver-nfs
+          namespace: "{{ ocp_nfs_storage_namespace }}"
       roleRef:
         kind: ClusterRole
         name: system:openshift:scc:privileged
         apiGroup: rbac.authorization.k8s.io
+    host: "{{ ocp_nfs_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_nfs_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_nfs_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_nfs_storage_k8s_auth.validate_certs | default(omit) }}"
 
-- name: Assign privileged SCC to csi-nfs-controller-sa
+- name: NFS CSI | Assign privileged SCC to csi-nfs-controller-sa
   kubernetes.core.k8s:
     state: present
     definition:
@@ -47,17 +104,63 @@
       kind: RoleBinding
       metadata:
         name: privileged-scc-to-csi-nfs-controller-sa
-        namespace: csi-driver-nfs
+        namespace: "{{ ocp_nfs_storage_namespace }}"
       subjects:
         - kind: ServiceAccount
           name: csi-nfs-controller-sa
-          namespace: csi-driver-nfs
+          namespace: "{{ ocp_nfs_storage_namespace }}"
       roleRef:
         kind: ClusterRole
         name: system:openshift:scc:privileged
         apiGroup: rbac.authorization.k8s.io
+    host: "{{ ocp_nfs_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_nfs_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_nfs_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_nfs_storage_k8s_auth.validate_certs | default(omit) }}"
 
-- name: Apply NFS storage class
+- name: NFS CSI | Apply NFS StorageClass
   kubernetes.core.k8s:
     state: present
-    src: "{{ nfs_storage_class_manifest | default('/tmp/nfs-storage-class.yaml') }}"
+    definition: >-
+      {{
+        lookup(
+          'ansible.builtin.template',
+          'storageclass.yaml.j2'
+        ) | from_yaml
+      }}
+    host: "{{ ocp_nfs_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_nfs_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_nfs_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_nfs_storage_k8s_auth.validate_certs | default(omit) }}"
+
+- name: NFS CSI | Ensure test namespace exists
+  when: ocp_nfs_storage_create_test_namespace | bool
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ ocp_nfs_storage_test_namespace }}"
+    host: "{{ ocp_nfs_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_nfs_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_nfs_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_nfs_storage_k8s_auth.validate_certs | default(omit) }}"
+
+- name: NFS CSI | Apply test PVC
+  when:
+    - ocp_nfs_storage_create_test_pvc | bool
+    - ocp_nfs_storage_create_test_namespace | bool
+  kubernetes.core.k8s:
+    state: present
+    definition: >-
+      {{
+        lookup(
+          'ansible.builtin.template',
+          'test-pvc.yaml.j2'
+        ) | from_yaml
+      }}
+    host: "{{ ocp_nfs_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_nfs_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_nfs_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_nfs_storage_k8s_auth.validate_certs | default(omit) }}"

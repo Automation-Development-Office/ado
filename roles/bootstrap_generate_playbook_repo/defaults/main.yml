@@ -14,8 +14,6 @@ bootstrap_generate_playbook_repo_git_sync_before_push: true
 bootstrap_generate_playbook_repo_pause_after_generate: false
 
 bootstrap_generate_playbook_repo_infra_ado_collection_version: "1.0.1"
-bootstrap_generate_playbook_repo_infra_ado_collection_repository: published
-bootstrap_generate_playbook_repo_infra_ado_collection_source: ""
 
 bootstrap_generate_playbook_repo_component: all
 
@@ -108,26 +106,8 @@ bootstrap_generate_playbook_repo_component_map:
 
 bootstrap_generate_playbook_repo_generated_playbooks:
 
-  - src: aap/ado-aap24-deploy-and-configure-bootstrap.yml
-    dest: playbooks/aap/ado-aap24-deploy-and-configure-bootstrap.yml
-    target_platform: openshift
-    category: platform
-    app: aap
-
-  - src: aap/ado-aap25-deploy-and-configure-bootstrap.yml
-    dest: playbooks/aap/ado-aap25-deploy-and-configure-bootstrap.yml
-    target_platform: openshift
-    category: platform
-    app: aap
-
-  - src: aap/ado-aap26-deploy-and-configure-bootstrap.yml
-    dest: playbooks/aap/ado-aap26-deploy-and-configure-bootstrap.yml
-    target_platform: openshift
-    category: platform
-    app: aap
-
-  - src: aap/ado-aap27-deploy-and-configure-bootstrap.yml
-    dest: playbooks/aap/ado-aap27-deploy-and-configure-bootstrap.yml
+  - src: aap/ado-aap-ocp-install-bootstrap.yml
+    dest: playbooks/aap/ado-aap-ocp-install-bootstrap.yml
     target_platform: openshift
     category: platform
     app: aap
@@ -311,6 +291,18 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     target_platform: openshift
     category: platform
     app: admin_htpasswd
+
+  - src: openshift/ado-install-nfs-csi-bootstrap.yml
+    dest: playbooks/openshift/ado-install-nfs-csi-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: nfs_csi
+
+  - src: openshift/ado-install-iscsi-csi-bootstrap.yml
+    dest: playbooks/openshift/ado-install-iscsi-csi-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: iscsi_csi
 
   - src: openshift/ado-discover-routes-bootstrap.yml
     dest: playbooks/openshift/ado-discover-routes-bootstrap.yml

@@ -1,0 +1,242 @@
+---
+# Build gateway_authenticators / gateway_authenticator_maps from preflight aap.auth.
+# AAP 2.5+ only (Automation Gateway). Secrets land in aap_vault.yml.
+
+- name: Build AAP gateway authenticators from preflight auth
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    from pathlib import Path
+    import json
+    import re
+
+    import yaml
+
+    env_dir = Path("{{ bootstrap_generate_env_vars_env_dir }}")
+    preflight_path = "{{ preflight_json | default('', true) }}"
+    auth = {}
+    org = "ADO"
+    if preflight_path:
+        preflight = json.loads(Path(preflight_path).read_text())
+        aap = preflight.get("aap") or {}
+        org = str(aap.get("organization") or "ADO")
+        auth = aap.get("auth") or {}
+
+    authenticators = []
+    maps = []
+    vault_updates = {}
+
+    def split_list(value):
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        return [part.strip() for part in re.split(r"[\n,]", str(value)) if part.strip()]
+
+    def add_maps(authenticator_name, method_cfg):
+        superuser_groups = split_list(method_cfg.get("superuser_groups"))
+        if superuser_groups:
+            maps.append(
+                {
+                    "name": f"{authenticator_name} Superuser",
+                    "authenticator": authenticator_name,
+                    "revoke": True,
+                    "map_type": "is_superuser",
+                    "triggers": {"groups": {"has_or": superuser_groups}},
+                }
+            )
+        org_groups = split_list(method_cfg.get("organization_groups"))
+        org_name = str(method_cfg.get("organization") or org)
+        org_role = str(method_cfg.get("organization_role") or "Organization Member")
+        if org_groups and org_name:
+            maps.append(
+                {
+                    "name": f"{authenticator_name} Organization",
+                    "authenticator": authenticator_name,
+                    "revoke": True,
+                    "map_type": "organization",
+                    "organization": org_name,
+                    "role": org_role,
+                    "triggers": {"groups": {"has_or": org_groups}},
+                }
+            )
+
+    oidc = auth.get("keycloak_oidc") or {}
+    if oidc.get("enabled") is True:
+        name = str(oidc.get("name") or "Keycloak OIDC").strip() or "Keycloak OIDC"
+        slug = str(oidc.get("slug") or "keycloak-oidc").strip() or "keycloak-oidc"
+        secret = str(oidc.get("secret") or "")
+        vault_updates["vault_aap_auth_keycloak_oidc_secret"] = secret
+        authenticators.append(
+            {
+                "name": name,
+                "slug": slug,
+                "enabled": True,
+                "create_objects": True,
+                "remove_users": bool(oidc.get("remove_users", False)),
+                "order": int(oidc.get("order") or 2),
+                "type": "ansible_base.authentication.authenticator_plugins.keycloak",
+                "configuration": {
+                    "ACCESS_TOKEN_URL": str(oidc.get("access_token_url") or ""),
+                    "AUTHORIZATION_URL": str(oidc.get("authorization_url") or ""),
+                    "KEY": str(oidc.get("key") or ""),
+                    "SECRET": secret,
+                    "PUBLIC_KEY": str(oidc.get("public_key") or ""),
+                    "GROUPS_CLAIM": str(oidc.get("groups_claim") or "Group"),
+                },
+            }
+        )
+        add_maps(name, oidc)
+
+    ldap = auth.get("ldap") or {}
+    if ldap.get("enabled") is True:
+        name = str(ldap.get("name") or "LDAP").strip() or "LDAP"
+        slug = str(ldap.get("slug") or "ldap").strip() or "ldap"
+        bind_password = str(ldap.get("bind_password") or "")
+        vault_updates["vault_aap_auth_ldap_bind_password"] = bind_password
+        server_uri = split_list(ldap.get("server_uri"))
+        user_search = split_list(ldap.get("user_search"))
+        group_search = split_list(ldap.get("group_search"))
+
+        def as_search(parts, default_scope="SCOPE_SUBTREE", default_filter="(objectClass=*)"):
+            if not parts:
+                return []
+            if len(parts) == 1:
+                return [parts[0], default_scope, default_filter]
+            if len(parts) == 2:
+                return [parts[0], parts[1], default_filter]
+            return parts[:3]
+
+        authenticators.append(
+            {
+                "name": name,
+                "slug": slug,
+                "enabled": True,
+                "create_objects": True,
+                "remove_users": bool(ldap.get("remove_users", True)),
+                "order": int(ldap.get("order") or 3),
+                "type": "ansible_base.authentication.authenticator_plugins.ldap",
+                "configuration": {
+                    "SERVER_URI": server_uri,
+                    "BIND_DN": str(ldap.get("bind_dn") or ""),
+                    "BIND_PASSWORD": bind_password,
+                    "START_TLS": bool(ldap.get("start_tls", False)),
+                    "USER_SEARCH": as_search(
+                        user_search,
+                        default_filter="(uid=%(user)s)",
+                    ),
+                    "GROUP_SEARCH": as_search(
+                        group_search,
+                        default_filter="(objectClass=groupOfNames)",
+                    ),
+                    "GROUP_TYPE": str(ldap.get("group_type") or "MemberDNGroupType"),
+                    "GROUP_TYPE_PARAMS": ldap.get("group_type_params")
+                    or {"name_attr": "cn"},
+                    "USER_ATTR_MAP": ldap.get("user_attr_map")
+                    or {
+                        "first_name": "givenName",
+                        "last_name": "sn",
+                        "email": "mail",
+                    },
+                },
+            }
+        )
+        add_maps(name, ldap)
+
+    saml = auth.get("keycloak_saml") or {}
+    if saml.get("enabled") is True:
+        name = str(saml.get("name") or "Keycloak SAML").strip() or "Keycloak SAML"
+        slug = str(saml.get("slug") or "keycloak-saml").strip() or "keycloak-saml"
+        sp_private_key = str(saml.get("sp_private_key") or "")
+        vault_updates["vault_aap_auth_keycloak_saml_sp_private_key"] = sp_private_key
+        authenticators.append(
+            {
+                "name": name,
+                "slug": slug,
+                "enabled": True,
+                "create_objects": True,
+                "remove_users": bool(saml.get("remove_users", False)),
+                "order": int(saml.get("order") or 4),
+                "type": "ansible_base.authentication.authenticator_plugins.saml",
+                "configuration": {
+                    "SP_ENTITY_ID": str(saml.get("sp_entity_id") or ""),
+                    "SP_PUBLIC_CERT": str(saml.get("sp_public_cert") or ""),
+                    "SP_PRIVATE_KEY": sp_private_key,
+                    "IDP_URL": str(saml.get("idp_url") or ""),
+                    "IDP_ENTITY_ID": str(saml.get("idp_entity_id") or ""),
+                    "IDP_X509_CERT": str(saml.get("idp_x509_cert") or ""),
+                    "IDP_ATTR_USERNAME": str(saml.get("idp_attr_username") or "username"),
+                    "IDP_ATTR_EMAIL": str(saml.get("idp_attr_email") or "email"),
+                    "IDP_ATTR_FIRST_NAME": str(saml.get("idp_attr_first_name") or "firstName"),
+                    "IDP_ATTR_LAST_NAME": str(saml.get("idp_attr_last_name") or "lastName"),
+                    "IDP_ATTR_USER_PERMANENT_ID": str(
+                        saml.get("idp_attr_user_permanent_id") or "name_id"
+                    ),
+                    "IDP_GROUPS": str(saml.get("idp_groups") or "Group"),
+                    "CALLBACK_URL": str(saml.get("callback_url") or ""),
+                    "ORG_INFO": saml.get("org_info")
+                    or {"en-US": {"url": "", "name": org, "displayname": org}},
+                    "TECHNICAL_CONTACT": saml.get("technical_contact")
+                    or {"givenName": "", "emailAddress": ""},
+                    "SUPPORT_CONTACT": saml.get("support_contact")
+                    or {"givenName": "", "emailAddress": ""},
+                },
+            }
+        )
+        add_maps(name, saml)
+
+    out = {
+        "gateway_authenticators": authenticators,
+        "gateway_authenticator_maps": maps,
+        "gateway_authenticators_secure_logging": True,
+        "aap_auth_configure_gateway": bool(authenticators),
+    }
+    # Encrypted with other vault*.yml files when vault encryption is enabled.
+    (env_dir / "vault_gateway_auth.yml").write_text(
+        yaml.safe_dump(out, sort_keys=False, default_flow_style=False)
+    )
+
+    vault_path = env_dir / "aap_vault.yml"
+    if vault_path.exists():
+        vault_data = yaml.safe_load(vault_path.read_text()) or {}
+        if not isinstance(vault_data, dict):
+            vault_data = {}
+    else:
+        vault_data = {}
+    for key in (
+        "vault_aap_auth_keycloak_oidc_secret",
+        "vault_aap_auth_ldap_bind_password",
+        "vault_aap_auth_keycloak_saml_sp_private_key",
+    ):
+        vault_data.setdefault(key, "")
+    vault_data.update(vault_updates)
+    vault_path.write_text(
+        yaml.safe_dump(vault_data, sort_keys=False, default_flow_style=False)
+    )
+
+    print(
+        f"gateway_authenticators={len(authenticators)} "
+        f"gateway_authenticator_maps={len(maps)}"
+    )
+    PYCODE
+  args:
+    executable: /bin/bash
+  register: bootstrap_generate_env_vars_gateway_auth
+  changed_when: true
+  when:
+    - bootstrap_generate_env_vars_use_aap | bool
+    - bootstrap_generate_env_vars_preflight is defined
+
+- name: Ensure empty gateway auth vault file when no preflight auth build
+  ansible.builtin.copy:
+    dest: "{{ bootstrap_generate_env_vars_env_dir }}/vault_gateway_auth.yml"
+    mode: "0600"
+    content: |
+      ---
+      gateway_authenticators: []
+      gateway_authenticator_maps: []
+      gateway_authenticators_secure_logging: true
+      aap_auth_configure_gateway: false
+    force: false
+  when:
+    - bootstrap_generate_env_vars_use_aap | bool

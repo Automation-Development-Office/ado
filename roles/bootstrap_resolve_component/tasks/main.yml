@@ -7,6 +7,41 @@
     bootstrap_resolve_component_components_env: "{{ components_env | default({}) }}"
 # noqa: var-naming
 
+- name: Resolve_component | Normalize OpenShift application domains
+  ansible.builtin.set_fact:
+    bootstrap_resolve_component_app_domain: >-
+      {{
+        app_domain
+        | default(
+            apps_domain
+            | default(
+                ('apps.' ~ domain) if (domain | default('') | length > 0) else '',
+                true
+              ),
+            true
+          )
+      }}
+    bootstrap_resolve_component_app_domain_alt: >-
+      {{
+        app_domain_alt
+        | default(
+            apps_domain_alt
+            | default(
+                app_domain
+                | default(
+                    apps_domain
+                    | default(
+                        ('apps.' ~ domain) if (domain | default('') | length > 0) else '',
+                        true
+                      ),
+                    true
+                  ),
+                true
+              ),
+            true
+          )
+      }}
+
 - name: Resolve_component | Create temp file for rendered registry
   ansible.builtin.tempfile:
     state: file

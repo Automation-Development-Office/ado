@@ -1,0 +1,12 @@
+---
+- name: ADO | Install AAP 2.5 or 2.6 on OpenShift
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: aap
+  vars_files:
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_aap.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_aap.yml"
+  roles:
+    - role: infra.ado.aap_ocp_install

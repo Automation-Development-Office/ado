@@ -38,8 +38,12 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `satellite_install_min_cpu_count` | Minimum required vCPU count and input to the Satellite tuning profile template | ❌ | `4` |
 | `satellite_install_rhn_connected` | When `true`, validate RHSM credentials during preliminary checks | ❌ | `false` |
 | `satellite_install_rhn_org_id` | RHSM organization ID used for host registration | ✅* | `""` |
+| `satellite_install_admin_username` | Satellite admin username used when importing a subscription manifest | ❌ | `"admin"` |
 | `satellite_install_admin_password` | Password to set for the Satellite admin user after installation | ✅ | `""` |
 | `satellite_install_rhn_activation_key` | RHSM activation key used for host registration | ✅* | `""` |
+| `satellite_install_manifest_file` | Manifest filename written by bootstrap when a manifest is uploaded through preflight | ❌ | `""` |
+| `satellite_install_manifest_path` | Local path to a Red Hat Satellite subscription manifest zip to upload after installation | ❌ | `""` |
+| `satellite_install_manifest_organization` | Satellite organization that receives the uploaded manifest. Falls back to Satellite config organization when unset. | ❌ | `""` |
 | `satellite_install_rhn_repos` | RHSM repository IDs enabled after registration | ❌ | See `defaults/main.yml` |
 | `satellite_install_timezone` | System timezone set before RHSM registration | ❌ | `"UTC"` |
 | `satellite_install_proxy_server` | Optional RHSM proxy hostname passed to `redhat_subscription` | ❌ | `""` |
@@ -93,6 +97,8 @@ Define the Satellite installation configuration in your playbook or inventory us
     satellite_install_rhn_org_id: "12345678"
     satellite_install_rhn_activation_key: "satellite-rhel9"
     satellite_install_admin_password: "StrongAdminPassword123!"
+    satellite_install_manifest_path: "{{ playbook_dir }}/../../files/satellite-manifest.zip"
+    satellite_install_manifest_organization: "Default Organization"
     satellite_install_timezone: America/New_York
     satellite_install_size_profile: default
     satellite_install_vg_name: satellite
@@ -119,7 +125,7 @@ Define the Satellite installation configuration in your playbook or inventory us
 
 - **Main Task File** (`main.yml`):
   - Always runs `preliminary_check.yml` first for validation.
-  - When `pre_check: false`, continues with conditional task imports for RHSM subscription, patching, storage configuration, package installation, firewall configuration, certificate preparation, and DNS configuration.
+  - When `pre_check: false`, continues with conditional task imports for RHSM subscription, patching, storage configuration, package installation, firewall configuration, certificate preparation, DNS configuration, Satellite installation, and optional manifest import.
 - **Preliminary Check** (`preliminary_check.yml`):
   - Validates RHEL version (9+), required inputs, and system resources.
   - Ensures `grubby` is installed, removes `ipv6.disable=1` kernel arguments, adds `ipv6.disable=0` if missing.
@@ -140,6 +146,8 @@ Define the Satellite installation configuration in your playbook or inventory us
   - Prepares custom certificates using the `openssl.cnf.j2` template.
 - **DNS Config** (`dns_config.yml`):
   - Updates DNS settings via NetworkManager and resolv.conf.
+- **Manifest Import** (`import_manifest.yml`):
+  - Optionally uploads a Red Hat Satellite subscription manifest zip with `hammer subscription upload` when `satellite_install_manifest_path` is defined.
 
 ## 🧪 Role Molecule Testing
 
@@ -165,6 +173,7 @@ roles/
    │  ├─ dns_config.yml
    │  ├─ install_packages.yml
    │  ├─ install_satellite.yml
+   │  ├─ import_manifest.yml
    │  ├─ main.yml
    │  ├─ patch.yml
    │  ├─ prep-custom-certs.yml

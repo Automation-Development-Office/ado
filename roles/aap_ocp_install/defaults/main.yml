@@ -1,0 +1,6 @@
+---
+# Supported AAP versions for the ADO bootstrap integration. The delegated
+# infra.aap_utilities role remains responsible for operator/CR implementation.
+aap_ocp_install_ado_supported_versions:
+  - "2.5"
+  - "2.6"

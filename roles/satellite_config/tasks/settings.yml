@@ -22,6 +22,26 @@
     state: present
   when: satellite_config_admin_auth.status != 200
 
+# host_tasks_workers_pool_size was removed in Satellite 6.19 / Katello 4.20.
+# Applying it there makes redhat.satellite.setting fail with NoneType subscript errors.
+- name: settings | Build effective Satellite settings for this deployment version
+  ansible.builtin.set_fact:
+    satellite_config_settings_effective: >-
+      {{
+        satellite_config_settings
+        | rejectattr(
+            'name',
+            'equalto',
+            'host_tasks_workers_pool_size'
+          )
+        | list
+        if (
+          satellite_config_satellite_deployment_version | default('6.19')
+          is version('6.19', '>=')
+        )
+        else satellite_config_settings
+      }}
+
 - name: settings | Set Red Hat Satellite Settings
   redhat.satellite.setting:
     username: "{{ satellite_config_username }}"
@@ -30,7 +50,7 @@
     name: "{{ item['name'] }}"
     value: "{{ item['value'] }}"
     validate_certs: "{{ satellite_config_validate_certs }}"
-  loop: "{{ satellite_config_settings }}"
+  loop: "{{ satellite_config_settings_effective }}"
 
 - name: settings | Disable subscription connection for disconnected satellite
   when: satellite_config_rhn_connected is false

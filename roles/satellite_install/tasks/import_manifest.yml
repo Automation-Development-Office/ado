@@ -1,0 +1,56 @@
+---
+- name: Satellite manifest | Resolve organization
+  ansible.builtin.set_fact:
+    satellite_install_manifest_resolved_organization: >-
+      {{
+        satellite_install_manifest_organization
+        | default(
+            satellite_config_organization | default(organization | default('')),
+            true
+          )
+      }}
+
+- name: Satellite manifest | Validate manifest input
+  ansible.builtin.assert:
+    that:
+      - satellite_install_manifest_path | default("") | length > 0
+      - >-
+        satellite_install_manifest_resolved_organization | default("") |
+        length > 0
+      - satellite_install_admin_username | default("") | length > 0
+      - satellite_install_admin_password | default("") | length > 0
+    fail_msg: >-
+      Satellite manifest import requires satellite_install_manifest_path,
+      satellite_install_manifest_organization, satellite_install_admin_username,
+      and satellite_install_admin_password.
+
+- name: Satellite manifest | Check file exists
+  ansible.builtin.stat:
+    path: "{{ satellite_install_manifest_path }}"
+  register: satellite_install_manifest_file_stat
+
+- name: Satellite manifest | Validate file exists
+  ansible.builtin.assert:
+    that:
+      - satellite_install_manifest_file_stat.stat.exists
+      - satellite_install_manifest_file_stat.stat.isreg
+    fail_msg: >-
+      Satellite manifest file was not found at
+      {{ satellite_install_manifest_path }}.
+
+- name: Satellite manifest | Upload manifest
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --username
+      - "{{ satellite_install_admin_username }}"
+      - --password
+      - "{{ satellite_install_admin_password }}"
+      - subscription
+      - upload
+      - --organization
+      - "{{ satellite_install_manifest_resolved_organization }}"
+      - --file
+      - "{{ satellite_install_manifest_path }}"
+  changed_when: true
+  no_log: true

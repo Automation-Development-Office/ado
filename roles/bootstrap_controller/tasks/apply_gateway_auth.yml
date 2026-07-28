@@ -1,0 +1,27 @@
+---
+# Apply Automation Gateway authenticators (AAP 2.5+) from gateway_auth_vars.yml.
+
+- name: Gateway auth | Skip when no authenticators configured
+  ansible.builtin.debug:
+    msg: >-
+      No gateway_authenticators configured; skipping AAP Auth apply.
+  when: not (aap_auth_configure_gateway | default(false) | bool)
+
+- name: Gateway auth | Apply authenticators and authenticator maps
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.dispatch
+  vars:
+    gateway_authenticators_secure_logging: true
+    gateway_configuration_dispatcher_roles:
+      - role: gateway_authenticators
+        var: gateway_authenticators
+        tags: authenticators
+      - role: gateway_authenticator_maps
+        var: gateway_authenticator_maps
+        tags: authenticator_maps
+    hub_configuration_dispatcher_roles: []
+    eda_configuration_dispatcher_roles: []
+    controller_configuration_dispatcher_roles: []
+  when:
+    - aap_auth_configure_gateway | default(false) | bool
+    - gateway_authenticators | default([]) | length > 0

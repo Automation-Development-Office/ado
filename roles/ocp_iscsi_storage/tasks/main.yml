@@ -1,90 +1,159 @@
 ---
-- name: Get all storage classes
-  kubernetes.core.k8s_info:
-    api_version: storage.k8s.io/v1
-    kind: StorageClass
-    kubeconfig: "{{ kubeconfig_tmp }}"
-  register: ocp_iscsi_storage_classes
-
-- name: Set fact if default storage class exists
+# yamllint disable rule:line-length
+- name: Iscsi CSI | Resolve OpenShift connection kwargs
   ansible.builtin.set_fact:
-    ocp_iscsi_storage_has_default_storage_class: >-
+    ocp_iscsi_storage_k8s_auth: >-
       {{
-        ocp_iscsi_storage_classes.resources
-        | selectattr('metadata.annotations.storageclass\\.kubernetes\\.io/is-default-class', 'equalto', 'true')
-        | list
-        | length > 0
+        {}
+        | combine(
+          {'host': ocp_iscsi_storage_connection.host}
+          if (ocp_iscsi_storage_connection.host | default('') | length > 0)
+          else {},
+          recursive=true
+        )
+        | combine(
+          {'api_key': ocp_iscsi_storage_connection.api_key}
+          if (ocp_iscsi_storage_connection.api_key | default('') | length > 0)
+          else {},
+          recursive=true
+        )
+        | combine(
+          {'kubeconfig': ocp_iscsi_storage_connection.kubeconfig}
+          if (ocp_iscsi_storage_connection.kubeconfig | default('') | length > 0)
+          else {},
+          recursive=true
+        )
+        | combine(
+          {
+            'validate_certs': ocp_iscsi_storage_connection.validate_certs
+            | default(true)
+            | bool
+          }
+          if (
+            ocp_iscsi_storage_connection.host is defined
+            or ocp_iscsi_storage_connection.kubeconfig is defined
+          )
+          else {},
+          recursive=true
+        )
       }}
 
-- name: Create synology-csi namespace
+- name: Iscsi CSI | Assert DSM credentials and StorageClass name are set
+  ansible.builtin.assert:
+    that:
+      - ocp_iscsi_storage_dsm_host | default('') | length > 0
+      - ocp_iscsi_storage_dsm_username | default('') | length > 0
+      - ocp_iscsi_storage_dsm_password | default('') | length > 0
+      - ocp_iscsi_storage_class_name | default('') | length > 0
+      - ocp_iscsi_storage_namespace | default('') | length > 0
+    fail_msg: >-
+      ocp_iscsi_storage_dsm_host, _username, _password, _class_name, and
+      _namespace are required.
+
+- name: Iscsi CSI | Ensure synology-csi namespace exists
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig_tmp }}"
+    state: present
     definition:
       apiVersion: v1
       kind: Namespace
       metadata:
-        name: synology-csi
-  when: not ocp_iscsi_storage_has_default_storage_class
+        name: "{{ ocp_iscsi_storage_namespace }}"
+    host: "{{ ocp_iscsi_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_iscsi_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_iscsi_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_iscsi_storage_k8s_auth.validate_certs | default(omit) }}"
 
-- name: Create client-info-secret from file
+- name: Iscsi CSI | Create client-info-secret from DSM credentials
+  no_log: true
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig_tmp }}"
-    namespace: synology-csi
+    state: present
     definition:
       apiVersion: v1
       kind: Secret
       metadata:
         name: client-info-secret
+        namespace: "{{ ocp_iscsi_storage_namespace }}"
       type: Opaque
-      data:
-        client-info.yml: "{{ lookup('file', synology_dir + '/client-info.yml') | b64encode }}"
-  when: not ocp_iscsi_storage_has_default_storage_class
+      stringData:
+        client-info.yml: >-
+          {{
+            lookup(
+              'ansible.builtin.template',
+              'client-info.yml.j2'
+            )
+          }}
+    host: "{{ ocp_iscsi_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_iscsi_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_iscsi_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_iscsi_storage_k8s_auth.validate_certs | default(omit) }}"
 
-- name: Apply synology-csi-scc.yml
+- name: Iscsi CSI | Apply OpenShift SCC for CSI service accounts
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
-    src: "{{ synology_dir }}/synology-csi-scc.yml"
-  when: not ocp_iscsi_storage_has_default_storage_class
+    src: "{{ role_path }}/files/synology-csi-scc.yml"
+    host: "{{ ocp_iscsi_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_iscsi_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_iscsi_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_iscsi_storage_k8s_auth.validate_certs | default(omit) }}"
 
-- name: Apply controller.yml
+- name: Iscsi CSI | Apply CSI controller manifests
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
-    src: "{{ deploy_dir }}/controller.yml"
-  when: not ocp_iscsi_storage_has_default_storage_class
+    src: "{{ role_path }}/files/controller.yml"
+    host: "{{ ocp_iscsi_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_iscsi_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_iscsi_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_iscsi_storage_k8s_auth.validate_certs | default(omit) }}"
 
-- name: Apply csi-driver.yml
+- name: Iscsi CSI | Apply CSIDriver
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
-    src: "{{ deploy_dir }}/csi-driver.yml"
-  when: not ocp_iscsi_storage_has_default_storage_class
+    src: "{{ role_path }}/files/csi-driver.yml"
+    host: "{{ ocp_iscsi_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_iscsi_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_iscsi_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_iscsi_storage_k8s_auth.validate_certs | default(omit) }}"
 
-- name: Apply node.yml
+- name: Iscsi CSI | Apply CSI node DaemonSet manifests
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
-    src: "{{ deploy_dir }}/node.yml"
-  when: not ocp_iscsi_storage_has_default_storage_class
+    src: "{{ role_path }}/files/node.yml"
+    host: "{{ ocp_iscsi_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_iscsi_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_iscsi_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_iscsi_storage_k8s_auth.validate_certs | default(omit) }}"
 
-- name: Apply storage-class.yml
+- name: Iscsi CSI | Apply StorageClass
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
-    src: "{{ synology_dir }}/storage-class.yml"
-  when: not ocp_iscsi_storage_has_default_storage_class
+    definition: >-
+      {{
+        lookup(
+          'ansible.builtin.template',
+          'storageclass.yaml.j2'
+        ) | from_yaml
+      }}
+    host: "{{ ocp_iscsi_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_iscsi_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_iscsi_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_iscsi_storage_k8s_auth.validate_certs | default(omit) }}"
 
-- name: Apply snapshotter.yaml
+- name: Iscsi CSI | Apply snapshotter
+  when: ocp_iscsi_storage_install_snapshotter | bool
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
-    src: "{{ deploy_dir }}/snapshotter/snapshotter.yaml"
-  when: not ocp_iscsi_storage_has_default_storage_class
+    src: "{{ role_path }}/files/snapshotter.yml"
+    host: "{{ ocp_iscsi_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_iscsi_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_iscsi_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_iscsi_storage_k8s_auth.validate_certs | default(omit) }}"
 
-- name: Apply volume-snapshot-class.yml
+- name: Iscsi CSI | Apply VolumeSnapshotClass
+  when: ocp_iscsi_storage_install_snapshotter | bool
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig_tmp }}"
     state: present
-    src: "{{ deploy_dir }}/snapshotter/volume-snapshot-class.yml"
-  when: not ocp_iscsi_storage_has_default_storage_class
+    src: "{{ role_path }}/files/volume-snapshot-class.yml"
+    host: "{{ ocp_iscsi_storage_k8s_auth.host | default(omit) }}"
+    api_key: "{{ ocp_iscsi_storage_k8s_auth.api_key | default(omit) }}"
+    kubeconfig: "{{ ocp_iscsi_storage_k8s_auth.kubeconfig | default(omit) }}"
+    validate_certs: "{{ ocp_iscsi_storage_k8s_auth.validate_certs | default(omit) }}"

@@ -158,29 +158,29 @@ controller_templates:
           variable: provision_openshift_virt_interface_name
           default: eth0
         - question_name: ADO | Static IP address
-          question_description: Optional static IP for the guest
+          question_description: '{{ bootstrap_controller_openshift_virt_static_ip_help }}'
           required: false
           type: text
           variable: provision_openshift_virt_static_ip
-          default: ""
+          default: '{{ bootstrap_controller_openshift_virt_static_ip }}'
         - question_name: ADO | Static IP prefix length
           question_description: CIDR prefix length for the static IP
           required: false
           type: integer
           variable: provision_openshift_virt_prefix_length
-          default: 24
+          default: '{{ bootstrap_controller_openshift_virt_prefix_length }}'
         - question_name: ADO | Gateway
           question_description: Optional gateway for static network config
           required: false
           type: text
           variable: provision_openshift_virt_gateway
-          default: ""
+          default: '{{ bootstrap_controller_openshift_virt_gateway }}'
         - question_name: ADO | DNS servers
           question_description: Optional comma-separated DNS servers
           required: false
           type: text
           variable: provision_openshift_virt_dns_servers
-          default: ""
+          default: '{{ bootstrap_controller_openshift_virt_dns_servers }}'
         - question_name: ADO | Start VM
           question_description: Start the VM after create/update
           required: false

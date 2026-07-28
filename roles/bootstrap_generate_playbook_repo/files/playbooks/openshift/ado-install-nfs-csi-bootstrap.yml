@@ -1,0 +1,22 @@
+---
+- name: ADO | Install NFS CSI storage driver
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: openshift
+  vars_files:
+    - group_vars/all/{{ env }}/infra_config_vars.yml
+    - group_vars/all/{{ env }}/vault_{{ component }}.yml
+    - group_vars/all/{{ env }}/vars_{{ component }}.yml
+  environment:
+    K8S_AUTH_HOST: "{{ host }}"
+    K8S_AUTH_API_KEY: "{{ token }}"
+    K8S_AUTH_VERIFY_SSL: >-
+      {{ (verify_ssl | default(false) | bool) | ternary('yes', 'no') }}
+  roles:
+    - role: infra.ado.ocp_nfs_storage
+      vars:
+        ocp_nfs_storage_connection:
+          host: "{{ host }}"
+          api_key: "{{ token }}"
+          validate_certs: "{{ verify_ssl | default(false) | bool }}"

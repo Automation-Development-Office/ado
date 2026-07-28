@@ -134,10 +134,7 @@
   ansible.builtin.set_fact:
     bootstrap_controller_job_template_component_map:
       aap:
-        - ado-aap-aap24-deploy-and-configure-bootstrap.jt.yml
-        - ado-aap-aap25-deploy-and-configure-bootstrap.jt.yml
-        - ado-aap-aap26-deploy-and-configure-bootstrap.jt.yml
-        - ado-aap-aap27-deploy-and-configure-bootstrap.jt.yml
+        - ado-aap-ocp-install-bootstrap.jt.yml
 
       acs:
         - ado-acs-deploy-and-configure-bootstrap.jt.yml
@@ -203,6 +200,10 @@
 
       admin_htpasswd:
         - ado-openshift-create-htpass-user-bootstrap.jt.yml
+      nfs_csi:
+        - ado-openshift-install-nfs-csi-bootstrap.jt.yml
+      iscsi_csi:
+        - ado-openshift-install-iscsi-csi-bootstrap.jt.yml
 
       openshift_ldap_auth:
         - ado-openshift-configure-ldap-auth-bootstrap.jt.yml
@@ -278,13 +279,23 @@
         | list
       }}
 
+- name: AAP configs | Skip Install AAP JT when bootstrap installs AAP
+  ansible.builtin.set_fact:
+    bootstrap_controller_job_template_files_selected: >-
+      {{
+        bootstrap_controller_job_template_files_selected
+        | reject('equalto', 'ado-aap-ocp-install-bootstrap.jt.yml')
+        | list
+      }}
+  when: bootstrap_controller_aap_install_during_bootstrap | default(false) | bool
+
 # yamllint disable rule:line-length
 - name: AAP configs | Copy job templates for generated playbooks only
   ansible.builtin.shell: |
     set -euo pipefail
     python3 <<'PYCODE'
     from pathlib import Path
-
+    import json
     import yaml
 
     src_dir = Path("{{ role_path }}/files/job_templates")
@@ -316,6 +327,46 @@
     selected = {{ bootstrap_controller_job_template_files_selected | default([]) | to_json }}
     if not selected:
         selected = [p.name for p in sorted(src_dir.glob("*.jt.yml"))]
+
+    env_name = "{{ env | default('prod', true) }}"
+    virt_vars_path = Path("{{ playbook_dir }}") / "group_vars" / "all" / env_name / "vars_openshift_virt.yml"
+    virt_vars = {}
+    if virt_vars_path.exists():
+        loaded = yaml.safe_load(virt_vars_path.read_text()) or {}
+        if isinstance(loaded, dict):
+            virt_vars = loaded
+    network_defaults = virt_vars.get("openshift_virt_network_defaults") or {}
+    if not isinstance(network_defaults, dict):
+        network_defaults = {}
+
+    def virt_default(key, fallback=""):
+        value = virt_vars.get(f"provision_openshift_virt_{key}", network_defaults.get(key, fallback))
+        if value is None:
+            return fallback
+        if isinstance(value, list):
+            return ",".join(str(item).strip() for item in value if str(item).strip())
+        return str(value)
+
+    # Static IP is launch-time only; preflight seeds gateway/DNS/prefix and an optional range hint.
+    virt_static_ip = ""
+    try:
+        virt_prefix_length = int(virt_default("prefix_length", "24") or 24)
+    except (TypeError, ValueError):
+        virt_prefix_length = 24
+    virt_gateway = virt_default("gateway", "")
+    virt_dns_servers = virt_default("dns_servers", "")
+    virt_ip_range = str(
+        network_defaults.get("ip_range")
+        or virt_vars.get("openshift_virt_ip_range")
+        or virt_vars.get("provision_openshift_virt_ip_range")
+        or ""
+    ).strip()
+    if virt_ip_range:
+        virt_static_ip_help = (
+            f"Optional static IP for the guest. Suggested range: {virt_ip_range}"
+        )
+    else:
+        virt_static_ip_help = "Optional static IP for the guest"
 
     lb = "{" * 2
     rb = "}" * 2
@@ -351,6 +402,12 @@
         f"{lb} controller_bootstrap_environment_choices {rb}": environment_choices_yaml,
         f"{lb} bootstrap_controller_default_environment {rb}": default_environment,
         f"{lb} controller_bootstrap_default_environment {rb}": default_environment,
+        f"{lb} bootstrap_controller_openshift_virt_static_ip {rb}": virt_static_ip,
+        f"{lb} bootstrap_controller_openshift_virt_prefix_length {rb}": str(virt_prefix_length),
+        f"{lb} bootstrap_controller_openshift_virt_gateway {rb}": virt_gateway,
+        f"{lb} bootstrap_controller_openshift_virt_dns_servers {rb}": virt_dns_servers,
+        f"{lb} bootstrap_controller_openshift_virt_static_ip_help {rb}": virt_static_ip_help,
+        f"{lb} bootstrap_controller_openshift_virt_ip_range {rb}": virt_ip_range,
     }
 
     quoted_replacements = {}
@@ -358,6 +415,22 @@
         quoted_replacements["'" + old + "'"] = new
         quoted_replacements['"' + old + '"'] = new
     replacements.update(quoted_replacements)
+
+    # Survey text defaults must stay YAML strings; integer defaults must be bare numbers.
+    # Prefer quoted-placeholder keys (longer) so we do not leave surrounding quotes behind.
+    for key, value in (
+        (f"{lb} bootstrap_controller_openshift_virt_static_ip {rb}", virt_static_ip),
+        (f"{lb} bootstrap_controller_openshift_virt_gateway {rb}", virt_gateway),
+        (f"{lb} bootstrap_controller_openshift_virt_dns_servers {rb}", virt_dns_servers),
+        (f"{lb} bootstrap_controller_openshift_virt_static_ip_help {rb}", virt_static_ip_help),
+        (f"{lb} bootstrap_controller_openshift_virt_ip_range {rb}", virt_ip_range),
+    ):
+        quoted = json.dumps("" if value is None else str(value))
+        replacements["'" + key + "'"] = quoted
+        replacements['"' + key + '"'] = quoted
+    prefix_key = f"{lb} bootstrap_controller_openshift_virt_prefix_length {rb}"
+    replacements["'" + prefix_key + "'"] = str(virt_prefix_length)
+    replacements['"' + prefix_key + '"'] = str(virt_prefix_length)
 
     replacements[f"{lb} bootstrap_controller_state_choices {rb}"] = state_choices_yaml
     replacements[f"{lb} controller_bootstrap_state_choices {rb}"] = state_choices_yaml
@@ -392,7 +465,7 @@
 
         text = src.read_text()
 
-        for old, new in replacements.items():
+        for old, new in sorted(replacements.items(), key=lambda item: len(item[0]), reverse=True):
             if old:
                 text = text.replace(old, new)
 

@@ -30,7 +30,10 @@
   when:
     - satellite_install_data_disk is not defined
     - item.key is match('^(vd|xvd|sd)')
-    - item.value.size | human_to_bytes >= satellite_install_data_disk_min_size | string | human_to_bytes(default_unit='G')
+    - >-
+      item.value.size | human_to_bytes >=
+      satellite_install_data_disk_min_size | string |
+      human_to_bytes(default_unit='G')
     - not item.value.partitions
     - not item.value.holders
 
@@ -54,14 +57,22 @@
 
 - name: storage_config | Use manually specified disk
   ansible.builtin.set_fact:
-    satellite_install_data_disk: "{{ satellite_install_data_device }}/{{ satellite_install_data_device_name }}"
+    satellite_install_data_disk: >-
+      {{
+        satellite_install_data_device ~
+        '/' ~ satellite_install_data_device_name
+      }}
   when:
     - satellite_install_data_disk is not defined
     - satellite_install_data_device_name is defined
 
 - name: storage_config | Use automatically discovered disk
   ansible.builtin.set_fact:
-    satellite_install_data_disk: "{{ satellite_install_data_device }}/{{ satellite_install_data_disk_list[0] }}"
+    satellite_install_data_disk: >-
+      {{
+        satellite_install_data_device ~
+        '/' ~ satellite_install_data_disk_list[0]
+      }}
   when:
     - satellite_install_data_disk is not defined
     - satellite_install_data_device_name is not defined
@@ -91,7 +102,7 @@
     dev: "/dev/mapper/{{ satellite_install_vg_name }}-{{ item.lv_name }}"
   loop: "{{ satellite_install_req_dirs }}"
 
-- name: storage_config | Mount logical volumes
+- name: storage_config | Mount logical volumes  # noqa: args[module]
   ansible.posix.mount:
     path: "{{ item.mount_point }}"
     src: "/dev/mapper/{{ satellite_install_vg_name }}-{{ item.lv_name }}"

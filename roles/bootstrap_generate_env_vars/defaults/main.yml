@@ -53,6 +53,23 @@ bootstrap_generate_env_vars_hub_ado_collection_path: "."
 bootstrap_generate_env_vars_aap_ee_image: >-
   registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest
 
+# AAP on OpenShift installer defaults
+bootstrap_generate_env_vars_aap_deployment_version: "2.6"
+bootstrap_generate_env_vars_aap_namespace: "aap"
+bootstrap_generate_env_vars_aap_instance_name: "aap"
+bootstrap_generate_env_vars_aap_create_namespace: true
+bootstrap_generate_env_vars_aap_component_deployment: unified
+bootstrap_generate_env_vars_aap_install_controller: true
+bootstrap_generate_env_vars_aap_install_hub: true
+bootstrap_generate_env_vars_aap_install_eda: true
+bootstrap_generate_env_vars_aap_install_lightspeed: false
+bootstrap_generate_env_vars_aap_controller_replicas: 1
+bootstrap_generate_env_vars_aap_hub_storage_type: file
+bootstrap_generate_env_vars_aap_hub_storage_class: ""
+bootstrap_generate_env_vars_aap_hub_storage_size: 20Gi
+bootstrap_generate_env_vars_aap_hub_s3_secret: ""
+bootstrap_generate_env_vars_aap_hub_azure_secret: ""
+
 # Satellite dynamic inventory defaults
 bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled: false
 bootstrap_generate_env_vars_satellite_credential_name: >-
@@ -70,6 +87,8 @@ bootstrap_generate_env_vars_satellite_deployment_version: "6.19"
 bootstrap_generate_env_vars_satellite_location: ""
 bootstrap_generate_env_vars_satellite_rhn_org_id: ""
 bootstrap_generate_env_vars_satellite_rhn_activation_key: ""
+bootstrap_generate_env_vars_satellite_rhn_connected: true
+bootstrap_generate_env_vars_satellite_manifest_file: ""
 bootstrap_generate_env_vars_satellite_size_profile: "default"
 bootstrap_generate_env_vars_satellite_vg_name: "satellite"
 bootstrap_generate_env_vars_satellite_data_disk_min_size: "10G"
@@ -134,6 +153,7 @@ bootstrap_generate_env_vars_openshift_virt_enable_root_ssh: false
 bootstrap_generate_env_vars_openshift_virt_root_password: ""
 bootstrap_generate_env_vars_openshift_virt_interface_name: eth0
 bootstrap_generate_env_vars_openshift_virt_static_ip: ""
+bootstrap_generate_env_vars_openshift_virt_ip_range: ""
 bootstrap_generate_env_vars_openshift_virt_prefix_length: 24
 bootstrap_generate_env_vars_openshift_virt_gateway: ""
 bootstrap_generate_env_vars_openshift_virt_dns_servers: []

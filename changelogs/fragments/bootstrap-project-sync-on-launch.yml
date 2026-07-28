@@ -1,0 +1,10 @@
+---
+bugfixes:
+  - >-
+    bootstrap_generate_playbook_repo - configure generated AAP projects to sync
+    on launch and wait for project creation so job runs pick up current
+    collection requirements from the generated repository.
+  - >-
+    bootstrap_generate_playbook_repo - generate infra.ado collection
+    requirements with only the collection name and version so AAP resolves the
+    source through its configured content repositories.

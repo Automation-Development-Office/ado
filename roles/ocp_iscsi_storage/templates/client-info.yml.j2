@@ -1,0 +1,7 @@
+---
+clients:
+  - host: {{ ocp_iscsi_storage_dsm_host }}
+    port: {{ ocp_iscsi_storage_dsm_port }}
+    https: {{ ocp_iscsi_storage_dsm_https | bool | lower }}
+    username: {{ ocp_iscsi_storage_dsm_username }}
+    password: {{ ocp_iscsi_storage_dsm_password }}

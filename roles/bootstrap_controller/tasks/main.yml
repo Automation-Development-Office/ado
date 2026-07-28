@@ -1,4 +1,5 @@
 ---
+# yamllint disable rule:line-length
 - name: Normalize bootstrap flags
   ansible.builtin.set_fact:
     bootstrap_controller_generate_env_vars: >-
@@ -9,11 +10,80 @@
       {{ generate_aap_configs | default(false) | bool }}
     bootstrap_controller_apply_aap_configs: >-
       {{ apply_aap_configs | default(false) | bool }}
+    bootstrap_controller_aap_install_during_bootstrap: false
 
 - name: Generate env var files
   ansible.builtin.include_role:
     name: infra.ado.bootstrap_generate_env_vars
   when: bootstrap_controller_generate_env_vars | default(false) | bool
+
+- name: Resolve AAP install-during-bootstrap from preflight
+  ansible.builtin.set_fact:
+    bootstrap_controller_aap_install_during_bootstrap: >-
+      {{
+        (
+          (
+            bootstrap_generate_env_vars_preflight.component_config.aap.install_during_bootstrap
+            | default(aap_install_during_bootstrap | default(false))
+          )
+          if (
+            bootstrap_generate_env_vars_preflight is defined
+            and (bootstrap_generate_env_vars_preflight.component_config | default({})).aap is defined
+          )
+          else (aap_install_during_bootstrap | default(false))
+        ) | bool
+      }}
+  when:
+    - bootstrap_controller_generate_env_vars | default(false) | bool
+    - >-
+      bootstrap_generate_env_vars_preflight is defined
+      or aap_install_during_bootstrap is defined
+
+- name: Resolve OpenShift prep-during-bootstrap flags from preflight
+  ansible.builtin.set_fact:
+    bootstrap_controller_htpasswd_during_bootstrap: >-
+      {{
+        (
+          (
+            bootstrap_generate_env_vars_preflight.openshift.install_htpasswd_during_bootstrap
+            | default(false)
+          )
+          if bootstrap_generate_env_vars_preflight is defined
+          else false
+        ) | bool
+      }}
+    bootstrap_controller_nfs_during_bootstrap: >-
+      {{
+        (
+          (
+            bootstrap_generate_env_vars_preflight.openshift.install_nfs_during_bootstrap
+            | default(false)
+          )
+          if bootstrap_generate_env_vars_preflight is defined
+          else false
+        ) | bool
+      }}
+    bootstrap_controller_iscsi_during_bootstrap: >-
+      {{
+        (
+          (
+            bootstrap_generate_env_vars_preflight.openshift.install_iscsi_during_bootstrap
+            | default(false)
+          )
+          if bootstrap_generate_env_vars_preflight is defined
+          else false
+        ) | bool
+      }}
+  when: bootstrap_controller_generate_env_vars | default(false) | bool
+
+# Install-only path: when bootstrap is installing AAP on OpenShift, do not
+# generate Controller JT configs, push AAP configs, or apply to Controller.
+# Rerun bootstrap after AAP is up to configure it.
+- name: Skip AAP Controller configure when installing AAP during bootstrap
+  ansible.builtin.set_fact:
+    bootstrap_controller_generate_aap_configs: false
+    bootstrap_controller_apply_aap_configs: false
+  when: bootstrap_controller_aap_install_during_bootstrap | default(false) | bool
 
 - name: Resolve generated environment name
   ansible.builtin.set_fact:
@@ -24,6 +94,79 @@
       }}
   when:
     - env is defined or bootstrap_generate_env_vars_env is defined
+
+- name: Prepare OpenShift auth for cluster prep / AAP install
+  ansible.builtin.include_tasks: prepare_openshift_auth.yml
+  when: >-
+    (
+      bootstrap_controller_htpasswd_during_bootstrap | default(false) | bool
+    )
+    or (
+      bootstrap_controller_nfs_during_bootstrap | default(false) | bool
+    )
+    or (
+      bootstrap_controller_iscsi_during_bootstrap | default(false) | bool
+    )
+    or (
+      bootstrap_controller_aap_install_during_bootstrap | default(false) | bool
+    )
+
+- name: Optionally create OpenShift admin HTPasswd during bootstrap
+  ansible.builtin.include_tasks: install_htpasswd.yml
+  when:
+    - bootstrap_controller_htpasswd_during_bootstrap | default(false) | bool
+    - >-
+      'admin_htpasswd' in (
+        (
+          bootstrap_generate_env_vars_preflight.component_options.openshift
+          | default([])
+        )
+        if bootstrap_generate_env_vars_preflight is defined
+        else []
+      )
+
+- name: Optionally install NFS CSI storage during bootstrap
+  ansible.builtin.include_tasks: install_nfs_csi.yml
+  when:
+    - bootstrap_controller_nfs_during_bootstrap | default(false) | bool
+    - >-
+      'nfs_csi' in (
+        (
+          bootstrap_generate_env_vars_preflight.component_options.openshift
+          | default([])
+        )
+        if bootstrap_generate_env_vars_preflight is defined
+        else []
+      )
+
+- name: Optionally install Synology iSCSI CSI storage during bootstrap
+  ansible.builtin.include_tasks: install_iscsi_csi.yml
+  when:
+    - bootstrap_controller_iscsi_during_bootstrap | default(false) | bool
+    - >-
+      'iscsi_csi' in (
+        (
+          bootstrap_generate_env_vars_preflight.component_options.openshift
+          | default([])
+        )
+        if bootstrap_generate_env_vars_preflight is defined
+        else []
+      )
+
+- name: Optionally install AAP on OpenShift during bootstrap
+  ansible.builtin.include_tasks: install_aap_on_openshift.yml
+  when:
+    - bootstrap_controller_aap_install_during_bootstrap | default(false) | bool
+    - >-
+      'aap' in (bootstrap_generate_env_vars_components | default([]))
+      or 'aap' in (
+        (
+          bootstrap_generate_env_vars_preflight.component_apps.openshift
+          | default([])
+        )
+        if bootstrap_generate_env_vars_preflight is defined
+        else []
+      )
 
 - name: Check for generated AAP config vars
   ansible.builtin.stat:
@@ -40,6 +183,7 @@
   register: bootstrap_controller_generated_aap_config_vars
   when:
     - bootstrap_controller_generated_env | default('') | length > 0
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Load generated AAP config vars
   ansible.builtin.include_vars:
@@ -57,12 +201,23 @@
     - >-
       bootstrap_controller_generated_aap_config_vars.stat.exists
       | default(false)
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Enable AAP apply for Hub collection update-only runs
   ansible.builtin.set_fact:
     bootstrap_controller_apply_aap_configs: true
   when:
     - bootstrap_controller_hub_update_collection_only | default(false) | bool
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
+
+- name: Check for AAP config vars before repo generation
+  ansible.builtin.stat:
+    path: "group_vars/all/{{ env }}/aap_config_vars.yml"
+  register: bootstrap_controller_aap_config_vars_before_repo
+  when:
+    - bootstrap_controller_generate_playbooks | default(false) | bool
+    - env is defined
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Load generated AAP config vars before repo generation
   ansible.builtin.include_vars:
@@ -70,6 +225,19 @@
   when:
     - bootstrap_controller_generate_playbooks | default(false) | bool
     - env is defined
+    - >-
+      bootstrap_controller_aap_config_vars_before_repo.stat.exists
+      | default(false)
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
+
+- name: Check for AAP vault vars before repo generation
+  ansible.builtin.stat:
+    path: "group_vars/all/{{ env }}/aap_vault.yml"
+  register: bootstrap_controller_aap_vault_before_repo
+  when:
+    - bootstrap_controller_generate_playbooks | default(false) | bool
+    - env is defined
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Load generated AAP vault vars before repo generation
   ansible.builtin.include_vars:
@@ -77,6 +245,10 @@
   when:
     - bootstrap_controller_generate_playbooks | default(false) | bool
     - env is defined
+    - >-
+      bootstrap_controller_aap_vault_before_repo.stat.exists
+      | default(false)
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Generate playbook repo
   ansible.builtin.include_role:
@@ -84,7 +256,9 @@
   vars:
     bootstrap_generate_playbook_repo_selected_components: >-
       {{ bootstrap_generate_env_vars_components | default(['openshift']) }}
-  when: bootstrap_controller_generate_playbooks | default(false) | bool
+  when:
+    - bootstrap_controller_generate_playbooks | default(false) | bool
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Push generated playbooks before AAP config apply
   ansible.builtin.shell: |
@@ -133,13 +307,16 @@
   when:
     - bootstrap_controller_generate_playbooks | default(false) | bool
     - bootstrap_controller_apply_aap_configs | default(false) | bool
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Generate AAP config files
   ansible.builtin.include_tasks: generate_aap_configs.yml
   vars:
     bootstrap_controller_selected_components: >-
       {{ bootstrap_generate_env_vars_components | default(['openshift']) }}
-  when: bootstrap_controller_generate_aap_configs | default(false) | bool
+  when:
+    - bootstrap_controller_generate_aap_configs | default(false) | bool
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Push generated repo after AAP config generation
   ansible.builtin.shell: |
@@ -190,7 +367,10 @@
     - bootstrap_controller_generate_aap_configs | default(false) | bool
     - bootstrap_generate_playbook_repo_git_mode
       | default(generate_playbook_repo_git_mode | default('manual')) == 'push'
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Apply AAP controller objects
   ansible.builtin.include_tasks: aap.yml
-  when: bootstrap_controller_apply_aap_configs | default(false) | bool
+  when:
+    - bootstrap_controller_apply_aap_configs | default(false) | bool
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)

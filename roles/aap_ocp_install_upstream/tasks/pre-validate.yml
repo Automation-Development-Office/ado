@@ -1,0 +1,198 @@
+---
+- name: pre-validate | Ensure OpenShift host variable is set (block)
+  block:
+    - name: pre-validate | Ensure OpenShift host variable is set
+      ansible.builtin.assert:
+        that:
+          - aap_ocp_install_connection['host'] is defined
+          - aap_ocp_install_connection['host'] | default("", true) | length > 0
+        quiet: true
+  rescue:
+    - name: pre-validate | Update validation errors fact - host
+      ansible.builtin.set_fact:
+        __aap_ocp_install_prevalidate_errors: >
+          {{ __aap_ocp_install_prevalidate_errors + ["aap_ocp_install_connection['host'] must be set"] }}
+
+- name: pre-validate | Ensure OpenShift username and password variables are not set when API Token set (block)
+  when:
+    - aap_ocp_install_connection['api_key'] is defined
+  block:
+    - name: pre-validate | Ensure OpenShift username and password variables are not set when API Token set
+      ansible.builtin.assert:
+        that:
+          - aap_ocp_install_connection['username'] is not defined
+          - aap_ocp_install_connection['password'] is not defined
+        quiet: true
+  rescue:
+    - name: pre-validate | Update validation errors fact - username
+      ansible.builtin.set_fact:
+        __aap_ocp_install_prevalidate_errors: >
+          {{ __aap_ocp_install_prevalidate_errors + ["aap_ocp_install_connection['username'] or aap_ocp_install_connection['password'] must not be set when aap_ocp_install_connection['api_key']
+          is set"] }}
+
+- name: pre-validate | Ensure OpenShift API token variable is set (block)
+  when:
+    - aap_ocp_install_connection['api_key'] is defined
+  block:
+    - name: pre-validate | Ensure OpenShift API token variable is set
+      ansible.builtin.assert:
+        that:
+          - aap_ocp_install_connection['api_key'] is defined
+          - aap_ocp_install_connection['api_key'] | default("", true) | length > 0
+        quiet: true
+  rescue:
+    - name: pre-validate | Update validation errors fact - api_key
+      ansible.builtin.set_fact:
+        __aap_ocp_install_prevalidate_errors: >
+          {{ __aap_ocp_install_prevalidate_errors + ["aap_ocp_install_connection['api_key'] must be set"] }}
+
+- name: pre-validate | Ensure OpenShift username variable is set (block)
+  when:
+    - aap_ocp_install_connection['api_key'] is not defined
+  block:
+    - name: pre-validate | Ensure OpenShift username variable is set
+      ansible.builtin.assert:
+        that:
+          - aap_ocp_install_connection['username'] is defined
+          - aap_ocp_install_connection['username'] | default("", true) | length > 0
+        quiet: true
+  rescue:
+    - name: pre-validate | Update validation errors fact - username
+      ansible.builtin.set_fact:
+        __aap_ocp_install_prevalidate_errors: >
+          {{ __aap_ocp_install_prevalidate_errors + ["aap_ocp_install_connection['username'] must be set"] }}
+
+- name: pre-validate | Ensure OpenShift password variable is set (block)
+  when:
+    - aap_ocp_install_connection['api_key'] is not defined
+  block:
+    - name: pre-validate | Ensure OpenShift password variable is set
+      ansible.builtin.assert:
+        that:
+          - aap_ocp_install_connection['password'] is defined
+          - aap_ocp_install_connection['password'] | default("", true) | length > 0
+        quiet: true
+  rescue:
+    - name: pre-validate | Update validation errors fact - password
+      ansible.builtin.set_fact:
+        __aap_ocp_install_prevalidate_errors: >
+          {{ __aap_ocp_install_prevalidate_errors + ["aap_ocp_install_connection['password'] must be set"] }}
+
+- name: pre-validate | Ensure OpenShift namespace variable is set (block)
+  block:
+    - name: pre-validate | Ensure OpenShift namespace variable is set
+      ansible.builtin.assert:
+        that:
+          - (aap_ocp_install_namespace | default("", true) | regex_search('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')) is not none
+        quiet: true
+  rescue:
+    - name: pre-validate | Update validation errors fact - namespace
+      ansible.builtin.set_fact:
+        __aap_ocp_install_prevalidate_errors: >
+          {{ __aap_ocp_install_prevalidate_errors + ["aap_ocp_install_namespace must be a lowercase RFC 1123 label consisting of lower case alphanumeric characters
+          or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc'"] }}
+
+- name: pre-validate | Ensure operator variables are set
+  when:
+    - ( 'operator' in ansible_run_tags ) or ( 'all' in ansible_run_tags and aap_ocp_install_operator is defined )
+  ansible.builtin.include_tasks:
+    file: pre-validate-operator.yml
+
+- name: pre-validate | Retrieve the requested operator channel version numbers
+  when: aap_ocp_install_operator is defined and aap_ocp_install_operator['channel'] is defined
+  ansible.builtin.set_fact:
+    __aap_ocp_install_major_version: "{{ aap_ocp_install_operator['channel'] | regex_search(__aap_ocp_install_major_version_re, '\\1') | first }}"
+    __aap_ocp_install_minor_version: "{{ aap_ocp_install_operator['channel'] | regex_search(__aap_ocp_install_minor_version_re, '\\1') | first }}"
+  vars:
+    __aap_ocp_install_major_version_re: '(\d+)\.\d+'
+    __aap_ocp_install_minor_version_re: '\d+\.(\d+)'
+
+- name: pre-validate | Set a flag indicating whether to use the new (AAP 2.5+) operator installation method
+  when: __aap_ocp_install_major_version is defined and __aap_ocp_install_minor_version is defined
+  ansible.builtin.set_fact:
+    __aap_ocp_install_25_install: "{{ (__aap_ocp_install_major_version | int) > 2 \
+                                  or ((__aap_ocp_install_major_version | int) == 2 \
+                                  and (__aap_ocp_install_minor_version | int) >= 5) }}"
+
+- name: pre-validate | Default the 2.5+ install flag to false when operator channel is not defined
+  when: __aap_ocp_install_25_install is not defined
+  ansible.builtin.set_fact:
+    __aap_ocp_install_25_install: false
+
+- name: pre-validate | Set platform component deployment mode when using AAP 2.5+ platform install
+  when:
+    - aap_ocp_install_platform is defined
+    - __aap_ocp_install_25_install | bool
+  ansible.builtin.set_fact:
+    __aap_ocp_install_platform_component_deployment: "{{ aap_ocp_install_platform['component_deployment'] | default('unified') }}"
+
+- name: pre-validate | Ensure platform component_deployment is unified or individual
+  when:
+    - aap_ocp_install_platform is defined
+    - __aap_ocp_install_25_install | bool
+  block:
+    - name: pre-validate | Assert component_deployment value
+      ansible.builtin.assert:
+        that:
+          - __aap_ocp_install_platform_component_deployment in ['unified', 'individual']
+        quiet: true
+  rescue:
+    - name: pre-validate | Update validation errors fact - component_deployment
+      ansible.builtin.set_fact:
+        __aap_ocp_install_prevalidate_errors: >
+          {{ __aap_ocp_install_prevalidate_errors +
+          ["aap_ocp_install_platform['component_deployment'] must be 'unified' or 'individual'"] }}
+
+- name: pre-validate | Ensure platform variables are set
+  when:
+    - (( 'platform' in ansible_run_tags ) or ( 'all' in ansible_run_tags and aap_ocp_install_platform is defined ))
+    - (__aap_ocp_install_25_install | bool)
+  ansible.builtin.include_tasks:
+    file: pre-validate-platform.yml
+
+- name: pre-validate | Ensure controller variables are set
+  when:
+    - (( 'controller' in ansible_run_tags ) or ( 'all' in ansible_run_tags and aap_ocp_install_controller is defined ))
+    - (not (__aap_ocp_install_25_install | bool))
+      or (
+        (__aap_ocp_install_25_install | bool)
+        and (aap_ocp_install_platform is defined)
+        and ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+        and (aap_ocp_install_controller['install'] | default(false) | bool)
+      )
+  ansible.builtin.include_tasks:
+    file: pre-validate-controller.yml
+
+- name: pre-validate | Ensure hub variables are set
+  when:
+    - (( 'hub' in ansible_run_tags ) or ( 'all' in ansible_run_tags and aap_ocp_install_hub is defined ))
+    - (not (__aap_ocp_install_25_install | bool))
+      or (
+        (__aap_ocp_install_25_install | bool)
+        and (aap_ocp_install_platform is defined)
+        and ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+        and (aap_ocp_install_hub['install'] | default(false) | bool)
+      )
+  ansible.builtin.include_tasks:
+    file: pre-validate-hub.yml
+
+- name: pre-validate | Ensure eda variables are set
+  when:
+    - (( 'eda' in ansible_run_tags ) or ( 'all' in ansible_run_tags and aap_ocp_install_eda is defined ))
+    - (not (__aap_ocp_install_25_install | bool))
+      or (
+        (__aap_ocp_install_25_install | bool)
+        and (aap_ocp_install_platform is defined)
+        and ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+        and (aap_ocp_install_eda['install'] | default(false) | bool)
+      )
+  ansible.builtin.include_tasks:
+    file: pre-validate-eda.yml
+
+- name: pre-validate | Ensure no validation errors found
+  ansible.builtin.debug:
+    msg:
+      - "The following errors must be fixed to continue:"
+      - "{{ __aap_ocp_install_prevalidate_errors }}"
+  failed_when: (__aap_ocp_install_prevalidate_errors | length) > 0
+...

@@ -158,6 +158,30 @@
             )
             +
             (
+              ['nfs_csi']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and 'nfs_csi' in (
+                  bootstrap_generate_env_vars_preflight.component_options.openshift
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['iscsi_csi']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and 'iscsi_csi' in (
+                  bootstrap_generate_env_vars_preflight.component_options.openshift
+                  | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
               ['console']
               if (
                 'openshift' in bootstrap_generate_env_vars_preflight_components
@@ -722,8 +746,11 @@
     set -euo pipefail
     python3 <<'PYCODE'
     from pathlib import Path
+    import base64
+    import binascii
     import copy
     import json
+    import re
     import yaml
 
     class NoAliasDumper(yaml.SafeDumper):
@@ -746,7 +773,9 @@
 
     def is_secret_key(key):
         k = str(key or "").lower()
-        return any(x in k for x in ["password", "token", "secret", "vault", "credential", "tls_key"])
+        if k in {"hub_s3_secret", "hub_azure_secret"}:
+            return False
+        return any(x in k for x in ["password", "token", "secret", "vault", "credential", "tls_key", "manifest_content"])
 
     def load_yaml(path):
         if not path.exists():
@@ -765,8 +794,48 @@
                 return value
         return None
 
+    def as_bool(value, default=True):
+        if value is None:
+            return default
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+    jinja_open = "{" + "{"
+    jinja_close = "}" + "}"
+
     def vault_ref(name):
-        return QuotedString("{{ " + name + " }}")
+        return QuotedString(jinja_open + " " + name + " " + jinja_close)
+
+    def playbook_file_ref(filename):
+        return (
+            jinja_open
+            + " playbook_dir "
+            + jinja_close
+            + "/../../files/"
+            + filename
+        )
+
+    def safe_upload_filename(name, default_name):
+        candidate = Path(str(name or default_name)).name
+        candidate = re.sub(r"[^A-Za-z0-9._-]+", "-", candidate).strip(".-")
+        return candidate or default_name
+
+    def write_repo_file_from_preflight(filename, content, default_name, encoding="base64"):
+        project_dir = env_dir.parents[2] if len(env_dir.parents) >= 3 else env_dir
+        files_dir = project_dir / "files"
+        files_dir.mkdir(parents=True, exist_ok=True)
+        target = files_dir / safe_upload_filename(filename, default_name)
+        if str(encoding or "base64").lower() in ("base64", "b64"):
+            try:
+                raw = base64.b64decode(str(content), validate=True)
+            except (binascii.Error, ValueError) as exc:
+                raise SystemExit(f"Invalid base64 upload content for {target.name}: {exc}") from exc
+            target.write_bytes(raw)
+        else:
+            target.write_text(str(content), encoding="utf-8")
+        target.chmod(0o600)
+        return target
 
     def merge_component(component, cfg):
         if not isinstance(cfg, dict):
@@ -822,7 +891,25 @@
                 "satellite_install_data_device",
                 "satellite_install_data_device_name",
                 "satellite_install_data_disk_min_size",
+                "satellite_config_manifest_file",
+                "satellite_config_manifest_src",
+                "satellite_config_manifest_path",
+                "satellite_config_manifest_organization",
+                "satellite_config_upload_manifest",
+                "satellite_config_rhn_connected",
+                "rhn_connected",
+                "satellite_install_manifest_file",
+                "satellite_install_manifest_path",
+                "satellite_install_manifest_organization",
                 "satellite_rhn_org_id",
+                "satellite_manifest_file",
+                "satellite_manifest_path",
+                "satellite_manifest_organization",
+                "manifest_file",
+                "manifest_path",
+                "manifest_filename",
+                "manifest_organization",
+                "manifest_encoding",
                 "satellite_data_device",
                 "satellite_data_device_name",
                 "satellite_data_disk_min_size",
@@ -855,7 +942,25 @@
                 "satellite_install_data_device",
                 "satellite_install_data_device_name",
                 "satellite_install_data_disk_min_size",
+                "satellite_config_manifest_file",
+                "satellite_config_manifest_src",
+                "satellite_config_manifest_path",
+                "satellite_config_manifest_organization",
+                "satellite_config_upload_manifest",
+                "satellite_config_rhn_connected",
+                "rhn_connected",
+                "satellite_install_manifest_file",
+                "satellite_install_manifest_path",
+                "satellite_install_manifest_organization",
                 "satellite_rhn_org_id",
+                "satellite_manifest_file",
+                "satellite_manifest_path",
+                "satellite_manifest_organization",
+                "manifest_file",
+                "manifest_path",
+                "manifest_filename",
+                "manifest_organization",
+                "manifest_encoding",
                 "satellite_data_device",
                 "satellite_data_device_name",
                 "satellite_data_disk_min_size",
@@ -878,6 +983,45 @@
             )
             for satellite_key in satellite_stale_raw_keys:
                 existing_satellite_config.pop(satellite_key, None)
+            satellite_manifest_payload_keys = {
+                "satellite_manifest_content",
+                "satellite_manifest_content_base64",
+                "satellite_manifest_b64",
+                "manifest_content",
+                "manifest_content_base64",
+                "manifest_b64",
+            }
+        elif component == "aap":
+            aap_role_only_keys = {
+                "deployment_version",
+                "version",
+                "namespace",
+                "create_namespace",
+                "operator_channel",
+                "operator_approval",
+                "instance_name",
+                "component_deployment",
+                "minimal_footprint",
+                "admin_username",
+                "install_controller",
+                "install_hub",
+                "install_eda",
+                "install_lightspeed",
+                "controller_replicas",
+                "hub_storage_type",
+                "hub_storage_class",
+                "hub_storage_size",
+                "hub_s3_secret",
+                "hub_azure_secret",
+                "platform_manifest_overrides",
+                "controller_manifest_overrides",
+                "hub_manifest_overrides",
+                "eda_manifest_overrides",
+            }
+            for aap_key in aap_role_only_keys:
+                passthrough_public_values.pop(aap_key, None)
+                vars_data.pop(aap_key, None)
+            existing_satellite_config = {}
         else:
             existing_satellite_config = {}
 
@@ -914,6 +1058,238 @@
                 if public_values.get("hostname"):
                     vars_data["components_env"]["rhbk"]["hostname"] = public_values["hostname"]
 
+            if component == "aap":
+                deployment_version = str(
+                    first_present(
+                        public_values.get("deployment_version"),
+                        public_values.get("version"),
+                        "2.6",
+                    )
+                )
+                namespace = str(public_values.get("namespace") or "aap")
+                instance_name = str(
+                    public_values.get("instance_name") or namespace
+                )
+                admin_password_secret = f"{instance_name}-admin-password"
+                preflight_aap = preflight.get("aap") or {}
+                admin_username = str(
+                    first_present(
+                        public_values.get("admin_username"),
+                        preflight_aap.get("admin_username"),
+                        "admin",
+                    )
+                    or "admin"
+                )
+                admin_password = first_present(
+                    secret_values.get("admin_password"),
+                    preflight_aap.get("admin_password"),
+                )
+                if admin_password is not None:
+                    vault_data["aap_admin_password"] = admin_password
+                    vault_data["vault_controller_password"] = admin_password
+                    vault_data_changed = True
+                vault_data["aap_admin_user"] = admin_username
+                vault_data_changed = True
+                minimal_footprint = as_bool(
+                    public_values.get("minimal_footprint"),
+                    False,
+                )
+                install_controller = as_bool(
+                    public_values.get("install_controller"),
+                    True,
+                )
+                install_hub = as_bool(public_values.get("install_hub"), True)
+                install_eda = as_bool(public_values.get("install_eda"), True)
+                install_lightspeed = as_bool(
+                    public_values.get("install_lightspeed"),
+                    False,
+                )
+                if minimal_footprint:
+                    install_hub = False
+                    install_eda = False
+                    install_lightspeed = False
+                openshift_values = preflight.get("openshift") or {}
+                api_host = first_present(
+                    openshift_values.get("api_host"),
+                    openshift_values.get("host"),
+                    preflight.get("api_host"),
+                )
+                skip_tls_verify = as_bool(
+                    openshift_values.get("skip_tls_verify"),
+                    True,
+                )
+                if openshift_values.get("token") is not None:
+                    vault_data["token"] = openshift_values["token"]
+                    vault_data_changed = True
+                vars_data["aap_ocp_install_namespace"] = namespace
+                vars_data["aap_ocp_install_create_namespace"] = as_bool(
+                    public_values.get("create_namespace"),
+                    True,
+                )
+                vars_data["aap_ocp_install_connection"] = {
+                    "host": str(api_host or ""),
+                    "api_key": vault_ref("token"),
+                    "validate_certs": not skip_tls_verify,
+                }
+                vars_data["aap_ocp_install_operator"] = {
+                    "channel": str(
+                        public_values.get("operator_channel")
+                        or f"stable-{deployment_version}-cluster-scoped"
+                    ),
+                    "approval": str(
+                        public_values.get("operator_approval") or "automatic"
+                    ),
+                }
+                vars_data["aap_ocp_install_platform"] = {
+                    "instance_name": instance_name,
+                    "namespace": namespace,
+                    "component_deployment": str(
+                        public_values.get("component_deployment") or "unified"
+                    ),
+                    "admin_user": admin_username,
+                    "admin_password_secret": admin_password_secret,
+                    "platform_manifest_overrides": copy.deepcopy(
+                        public_values.get("platform_manifest_overrides") or {}
+                    ),
+                }
+                vars_data["aap_ocp_install_controller"] = {
+                    "instance_name": f"{instance_name}-controller",
+                    "namespace": namespace,
+                    "install": install_controller,
+                    "admin_user": admin_username,
+                    "replicas": int(
+                        public_values.get("controller_replicas") or 1
+                    ),
+                    "controller_manifest_overrides": copy.deepcopy(
+                        public_values.get("controller_manifest_overrides") or {}
+                    ),
+                }
+                vars_data["aap_ocp_install_hub"] = {
+                    "instance_name": f"{instance_name}-hub",
+                    "namespace": namespace,
+                    "install": install_hub,
+                    "storage_type": str(
+                        public_values.get("hub_storage_type") or "file"
+                    ),
+                    "file_storage_storage_class": str(
+                        public_values.get("hub_storage_class") or ""
+                    ),
+                    "file_storage_size": str(
+                        public_values.get("hub_storage_size") or "20Gi"
+                    ),
+                    "object_storage_s3_secret": str(
+                        public_values.get("hub_s3_secret") or ""
+                    ),
+                    "object_storage_azure_secret": str(
+                        public_values.get("hub_azure_secret") or ""
+                    ),
+                    "hub_manifest_overrides": copy.deepcopy(
+                        public_values.get("hub_manifest_overrides") or {}
+                    ),
+                }
+                vars_data["aap_ocp_install_eda"] = {
+                    "instance_name": f"{instance_name}-eda",
+                    "namespace": namespace,
+                    "install": install_eda,
+                    "eda_manifest_overrides": copy.deepcopy(
+                        public_values.get("eda_manifest_overrides") or {}
+                    ),
+                }
+                vars_data["aap_ocp_install_lightspeed"] = {
+                    "install": install_lightspeed
+                }
+                vars_data["aap_install_during_bootstrap"] = as_bool(
+                    public_values.get("install_during_bootstrap"),
+                    False,
+                )
+                vars_data["aap_minimal_footprint"] = minimal_footprint
+
+            if component == "openshift_virt":
+                openshift_values = preflight.get("openshift") or {}
+                openshift_skip_tls = as_bool(
+                    openshift_values.get("skip_tls_verify"),
+                    True,
+                )
+                virt_skip_tls = as_bool(
+                    first_present(
+                        public_values.get("skip_tls_verify"),
+                        public_values.get("provision_openshift_virt_skip_tls_verify"),
+                    ),
+                    openshift_skip_tls,
+                )
+                vars_data["provision_openshift_virt_skip_tls_verify"] = virt_skip_tls
+                vars_data["skip_tls_verify"] = openshift_skip_tls
+                vars_data["verify_ssl"] = not openshift_skip_tls
+                vars_data["validate_certs"] = not virt_skip_tls
+
+                api_host = first_present(
+                    public_values.get("api_host"),
+                    public_values.get("provision_openshift_virt_api_host"),
+                    openshift_values.get("api_host"),
+                    openshift_values.get("host"),
+                )
+                if api_host is not None:
+                    vars_data["provision_openshift_virt_api_host"] = str(api_host)
+
+                api_token = first_present(
+                    secret_values.get("api_token"),
+                    openshift_values.get("token"),
+                )
+                if api_token is not None:
+                    vault_data["provision_openshift_virt_api_token"] = api_token
+                    vault_data_changed = True
+                    secret_values.pop("api_token", None)
+
+                if "prefix_length" in public_values:
+                    try:
+                        vars_data["provision_openshift_virt_prefix_length"] = int(
+                            public_values.get("prefix_length") or 24
+                        )
+                    except (TypeError, ValueError):
+                        vars_data["provision_openshift_virt_prefix_length"] = 24
+
+                if "gateway" in public_values:
+                    vars_data["provision_openshift_virt_gateway"] = str(
+                        public_values.get("gateway") or ""
+                    )
+
+                if "dns_servers" in public_values:
+                    dns_servers = public_values.get("dns_servers")
+                    if isinstance(dns_servers, list):
+                        vars_data["provision_openshift_virt_dns_servers"] = [
+                            str(item).strip() for item in dns_servers if str(item).strip()
+                        ]
+                    else:
+                        vars_data["provision_openshift_virt_dns_servers"] = str(
+                            dns_servers or ""
+                        )
+
+                if "ip_range" in public_values:
+                    vars_data["openshift_virt_ip_range"] = str(
+                        public_values.get("ip_range") or ""
+                    )
+
+                # Static IP is chosen at job launch; preflight only seeds shared network defaults.
+                vars_data["provision_openshift_virt_static_ip"] = ""
+                vars_data["openshift_virt_network_defaults"] = {
+                    "ip_range": str(
+                        vars_data.get("openshift_virt_ip_range")
+                        or public_values.get("ip_range")
+                        or ""
+                    ),
+                    "static_ip": "",
+                    "prefix_length": int(
+                        vars_data.get("provision_openshift_virt_prefix_length") or 24
+                    ),
+                    "gateway": str(
+                        vars_data.get("provision_openshift_virt_gateway") or ""
+                    ),
+                    "dns_servers": vars_data.get(
+                        "provision_openshift_virt_dns_servers",
+                        "",
+                    ),
+                }
+
             if component == "satellite":
                 vars_data.setdefault("components_env", {}).setdefault("satellite", {})
                 vars_data["components_env"]["satellite"].pop("storage", None)
@@ -937,6 +1313,100 @@
                     vars_data["satellite_install_deployment_version"] = public_values["deployment_version"]
                 if public_values.get("location"):
                     vars_data["satellite_install_location"] = public_values["location"]
+
+                rhn_connected = as_bool(
+                    first_present(
+                        public_values.get("satellite_config_rhn_connected"),
+                        public_values.get("rhn_connected"),
+                        public_values.get("satellite_install_rhn_connected"),
+                    ),
+                    True,
+                )
+                vars_data["satellite_config_rhn_connected"] = rhn_connected
+
+                manifest_organization = first_present(
+                    public_values.get("satellite_config_manifest_organization"),
+                    public_values.get("satellite_install_manifest_organization"),
+                    public_values.get("satellite_manifest_organization"),
+                    public_values.get("manifest_organization"),
+                    public_values.get("organization"),
+                )
+                if manifest_organization is not None:
+                    vars_data["satellite_config_organization"] = str(manifest_organization)
+                manifest_file = first_present(
+                    public_values.get("satellite_config_manifest_file"),
+                    public_values.get("satellite_install_manifest_file"),
+                    public_values.get("satellite_manifest_file"),
+                    public_values.get("manifest_file"),
+                    public_values.get("manifest_filename"),
+                )
+                manifest_src = first_present(
+                    public_values.get("satellite_config_manifest_src"),
+                    public_values.get("satellite_install_manifest_path"),
+                    public_values.get("satellite_manifest_path"),
+                    public_values.get("manifest_path"),
+                )
+                manifest_dest = public_values.get("satellite_config_manifest_path")
+                manifest_content = first_present(
+                    secret_values.get("satellite_manifest_content_base64"),
+                    secret_values.get("manifest_content_base64"),
+                    secret_values.get("satellite_manifest_b64"),
+                    secret_values.get("manifest_b64"),
+                    secret_values.get("satellite_manifest_content"),
+                    secret_values.get("manifest_content"),
+                )
+                if manifest_content is not None:
+                    manifest_filename = first_present(
+                        manifest_file,
+                        "satellite-manifest.zip",
+                    )
+                    manifest_encoding = first_present(
+                        public_values.get("manifest_encoding"),
+                        "base64",
+                    )
+                    manifest_target = write_repo_file_from_preflight(
+                        manifest_filename,
+                        manifest_content,
+                        "satellite-manifest.zip",
+                        manifest_encoding,
+                    )
+                    vars_data["satellite_config_manifest_file"] = manifest_target.name
+                    vars_data["satellite_config_manifest_src"] = QuotedString(
+                        playbook_file_ref(manifest_target.name)
+                    )
+                    vars_data["satellite_config_manifest_path"] = str(
+                        first_present(
+                            manifest_dest,
+                            "/root/" + manifest_target.name,
+                        )
+                    )
+                    vars_data["satellite_config_upload_manifest"] = True
+                elif manifest_file is not None or manifest_src is not None:
+                    if manifest_file is not None:
+                        manifest_filename = Path(str(manifest_file)).name
+                        resolved_src = first_present(
+                            manifest_src,
+                            playbook_file_ref(manifest_filename),
+                        )
+                    else:
+                        manifest_filename = Path(str(manifest_src)).name
+                        resolved_src = str(manifest_src)
+                    vars_data["satellite_config_manifest_file"] = manifest_filename
+                    if jinja_open in str(resolved_src):
+                        vars_data["satellite_config_manifest_src"] = QuotedString(
+                            str(resolved_src)
+                        )
+                    else:
+                        vars_data["satellite_config_manifest_src"] = str(resolved_src)
+                    vars_data["satellite_config_manifest_path"] = str(
+                        first_present(
+                            manifest_dest,
+                            "/root/" + manifest_filename,
+                        )
+                    )
+                    vars_data["satellite_config_upload_manifest"] = True
+                for manifest_payload_key in satellite_manifest_payload_keys:
+                    secret_values.pop(manifest_payload_key, None)
                 vg_name = first_present(
                     public_values.get("satellite_install_vg_name"),
                     public_values.get("satellite_vg_name"),
@@ -1104,6 +1574,13 @@
             for k, v in secret_values.items():
                 vault_data[k] = v
 
+            if component == "aap":
+                if secret_values.get("admin_password") is not None:
+                    vault_data["aap_admin_password"] = secret_values["admin_password"]
+                    vault_data["vault_controller_password"] = secret_values["admin_password"]
+                vault_data.pop("admin_password", None)
+                vault_data_changed = True
+
             if component == "satellite":
                 if secret_values.get("service_account_password") is not None:
                     vault_data["vault_satellite_service_account_password"] = secret_values["service_account_password"]
@@ -1218,6 +1695,174 @@
         if openshift.get("token") is not None:
             vault_data["token"] = openshift.get("token")
             vault_data["openshift_token"] = openshift.get("token")
+
+        use_kubeconfig = as_bool(openshift.get("use_kubeconfig"), False)
+        kubeconfig_content = first_present(
+            openshift.get("kubeconfig_content"),
+            openshift.get("kubeconfig"),
+        )
+        if use_kubeconfig and kubeconfig_content is not None:
+            vault_data["openshift_kubeconfig"] = kubeconfig_content
+            vault_data["kubeconfig_content"] = kubeconfig_content
+            vars_data["openshift_use_kubeconfig"] = True
+        else:
+            vault_data.pop("openshift_kubeconfig", None)
+            vault_data.pop("kubeconfig_content", None)
+            vars_data.pop("openshift_use_kubeconfig", None)
+
+        vars_data["openshift_install_htpasswd_during_bootstrap"] = as_bool(
+            openshift.get("install_htpasswd_during_bootstrap"),
+            False,
+        )
+        vars_data["openshift_install_nfs_during_bootstrap"] = as_bool(
+            openshift.get("install_nfs_during_bootstrap"),
+            False,
+        )
+
+        if "nfs_csi" in openshift_options:
+            nfs_server = first_present(
+                openshift.get("nfs_server"),
+                openshift.get("ocp_nfs_storage_server"),
+            )
+            nfs_share = first_present(
+                openshift.get("nfs_share"),
+                openshift.get("ocp_nfs_storage_share"),
+            )
+            if nfs_server is not None:
+                vars_data["ocp_nfs_storage_server"] = str(nfs_server)
+                vars_data["nfs_server"] = str(nfs_server)
+            if nfs_share is not None:
+                vars_data["ocp_nfs_storage_share"] = str(nfs_share)
+                vars_data["nfs_share"] = str(nfs_share)
+            vars_data["ocp_nfs_storage_class_name"] = str(
+                first_present(
+                    openshift.get("nfs_storage_class_name"),
+                    openshift.get("ocp_nfs_storage_class_name"),
+                    "synology-nfs-csi",
+                )
+            )
+            vars_data["ocp_nfs_storage_driver_version"] = str(
+                first_present(
+                    openshift.get("nfs_driver_version"),
+                    openshift.get("ocp_nfs_storage_driver_version"),
+                    "4.11.0",
+                )
+            )
+            vars_data["ocp_nfs_storage_nfs_version"] = str(
+                first_present(
+                    openshift.get("nfs_version"),
+                    openshift.get("ocp_nfs_storage_nfs_version"),
+                    "4.1",
+                )
+            )
+            vars_data["ocp_nfs_storage_create_test_namespace"] = as_bool(
+                openshift.get("nfs_create_test_namespace"),
+                True,
+            )
+            vars_data["ocp_nfs_storage_create_test_pvc"] = as_bool(
+                openshift.get("nfs_create_test_pvc"),
+                False,
+            )
+            vars_data["ocp_nfs_storage_test_namespace"] = str(
+                first_present(
+                    openshift.get("nfs_test_namespace"),
+                    "synology-nfs-pv",
+                )
+            )
+        else:
+            for nfs_key in (
+                "ocp_nfs_storage_server",
+                "nfs_server",
+                "ocp_nfs_storage_share",
+                "nfs_share",
+                "ocp_nfs_storage_class_name",
+                "ocp_nfs_storage_driver_version",
+                "ocp_nfs_storage_nfs_version",
+                "ocp_nfs_storage_create_test_namespace",
+                "ocp_nfs_storage_create_test_pvc",
+                "ocp_nfs_storage_test_namespace",
+            ):
+                vars_data.pop(nfs_key, None)
+
+        vars_data["openshift_install_iscsi_during_bootstrap"] = as_bool(
+            openshift.get("install_iscsi_during_bootstrap"),
+            False,
+        )
+
+        if "iscsi_csi" in openshift_options:
+            iscsi_host = first_present(
+                openshift.get("iscsi_dsm_host"),
+                openshift.get("ocp_iscsi_storage_dsm_host"),
+            )
+            iscsi_user = first_present(
+                openshift.get("iscsi_dsm_username"),
+                openshift.get("ocp_iscsi_storage_dsm_username"),
+            )
+            iscsi_pass = first_present(
+                openshift.get("iscsi_dsm_password"),
+                openshift.get("ocp_iscsi_storage_dsm_password"),
+            )
+            if iscsi_host is not None:
+                vars_data["ocp_iscsi_storage_dsm_host"] = str(iscsi_host)
+                vars_data["iscsi_dsm_host"] = str(iscsi_host)
+            if iscsi_user is not None:
+                vault_data["ocp_iscsi_storage_dsm_username"] = str(iscsi_user)
+                vault_data["iscsi_dsm_username"] = str(iscsi_user)
+            if iscsi_pass is not None:
+                vault_data["ocp_iscsi_storage_dsm_password"] = str(iscsi_pass)
+                vault_data["iscsi_dsm_password"] = str(iscsi_pass)
+            vars_data["ocp_iscsi_storage_dsm_port"] = int(
+                first_present(
+                    openshift.get("iscsi_dsm_port"),
+                    openshift.get("ocp_iscsi_storage_dsm_port"),
+                    5000,
+                )
+            )
+            vars_data["ocp_iscsi_storage_dsm_https"] = as_bool(
+                openshift.get("iscsi_dsm_https"),
+                False,
+            )
+            vars_data["ocp_iscsi_storage_class_name"] = str(
+                first_present(
+                    openshift.get("iscsi_storage_class_name"),
+                    openshift.get("ocp_iscsi_storage_class_name"),
+                    "synology-iscsi-storage",
+                )
+            )
+            vars_data["ocp_iscsi_storage_location"] = str(
+                first_present(
+                    openshift.get("iscsi_location"),
+                    openshift.get("ocp_iscsi_storage_location"),
+                    "/volume1",
+                )
+            )
+            vars_data["ocp_iscsi_storage_is_default"] = as_bool(
+                openshift.get("iscsi_is_default"),
+                True,
+            )
+            vars_data["ocp_iscsi_storage_install_snapshotter"] = as_bool(
+                openshift.get("iscsi_install_snapshotter"),
+                True,
+            )
+        else:
+            for iscsi_key in (
+                "ocp_iscsi_storage_dsm_host",
+                "iscsi_dsm_host",
+                "ocp_iscsi_storage_dsm_port",
+                "ocp_iscsi_storage_dsm_https",
+                "ocp_iscsi_storage_class_name",
+                "ocp_iscsi_storage_location",
+                "ocp_iscsi_storage_is_default",
+                "ocp_iscsi_storage_install_snapshotter",
+            ):
+                vars_data.pop(iscsi_key, None)
+            for iscsi_vault_key in (
+                "ocp_iscsi_storage_dsm_username",
+                "iscsi_dsm_username",
+                "ocp_iscsi_storage_dsm_password",
+                "iscsi_dsm_password",
+            ):
+                vault_data.pop(iscsi_vault_key, None)
 
         if "admin_htpasswd" in openshift_options and (
             openshift.get("admin_username") or openshift.get("admin_password")
@@ -1467,6 +2112,11 @@
         bootstrap_generate_env_vars_force | bool
         or bootstrap_generate_env_vars_preflight is defined
       }}
+  when:
+    - bootstrap_generate_env_vars_use_aap | bool
+
+- name: Generate AAP gateway authenticators from preflight auth
+  ansible.builtin.include_tasks: generate_gateway_auth.yml
   when:
     - bootstrap_generate_env_vars_use_aap | bool
 

@@ -3,7 +3,9 @@
 
 - name: Manifest Config
   ansible.builtin.include_tasks: manifest.yml
-  when: satellite_config_upload_manifest | default (false) | bool
+  when: >-
+    satellite_config_upload_manifest | default(false) | bool
+    or (satellite_config_manifest_file | default('') | length > 0)
 
 - name: Enable Repos
   ansible.builtin.include_tasks: enable_repos.yml

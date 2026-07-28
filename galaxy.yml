@@ -1,7 +1,7 @@
 ---
 namespace: "infra"
 name: "ado"
-version: 1.0.1
+version: 1.0.3
 readme: README.md
 authors:
   - Automation Development Office
@@ -33,4 +33,6 @@ issues: https://github.com/automation-development-office/ado/issues
 # File glob-like patterns to filter from the built collection artifact.
 build_ignore:
   - .gitignore
+  - .ansible
+  - .ansible/*
   - changelogs/.plugin-cache.yaml
