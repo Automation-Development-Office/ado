@@ -7,7 +7,6 @@ platforms:
     image: registry.access.redhat.com/ubi8/ubi:latest
     pre_build_image: true
     command: sleep infinity
-    user: root
     groups:
       - el8
 
@@ -15,7 +14,6 @@ platforms:
     image: registry.access.redhat.com/ubi9/ubi:latest
     pre_build_image: true
     command: sleep infinity
-    user: root
     groups:
       - el9
 
