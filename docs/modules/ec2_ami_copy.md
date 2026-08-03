@@ -4,11 +4,11 @@ Copy an Amazon Machine Image (AMI) from a source AWS region into a destination
 region. Returns the new AMI ID. Designed for environments that have
 `amazon.aws` available but **not** `community.aws`.
 
-Module source: [`../ec2_ami_copy.py`](../ec2_ami_copy.py)
+Module source: [`plugins/modules/ec2_ami_copy.py`](../../plugins/modules/ec2_ami_copy.py)
 
 ## Requirements
 
-- Ansible `>=2.16.0`
+- Ansible `>=2.17.0` (required by the `amazon.aws` dependency)
 - Collection dependency: [`amazon.aws`](https://docs.ansible.com/ansible/latest/collections/amazon/aws/index.html)
   `>=8.0.0` (declared in `galaxy.yml`; provides AWS authentication helpers)
 - Python packages on the controller / execution environment: `boto3`, `botocore`
@@ -35,20 +35,20 @@ Use the standard `amazon.aws` credential options (`access_key`, `secret_key`,
 
 ## Parameters
 
-| Parameter | Required | Default | Description |
-| --- | --- | --- | --- |
-| `source_region` | yes | | Source AWS region of the AMI. |
-| `source_image_id` | yes | | AMI ID in the source region. |
-| `region` | yes* | | Destination AWS region (*via `amazon.aws` region options / env). |
-| `name` | no | `default` | Name for the new AMI. |
-| `description` | no | `""` | Description for the new AMI. |
-| `encrypted` | no | `false` | Encrypt destination EBS snapshots. |
-| `kms_key_id` | no | | KMS key ID/ARN/alias for encryption; account default EBS CMK if omitted when `encrypted=true`. |
-| `copy_image_tags` | no | `false` | Also copy tags from the source AMI. |
-| `tags` | no | | Tags to apply to the new AMI. |
-| `tag_equality` | no | `false` | If `true`, skip copy when a destination AMI already has the same `tags` (requires `tags`). |
-| `wait` | no | `false` | Wait until the AMI is `available`. |
-| `wait_timeout` | no | `600` | Seconds to wait when `wait=true`. |
+| Parameter         | Required | Default   | Description                                                                                    |
+| ----------------- | -------- | --------- | ---------------------------------------------------------------------------------------------- |
+| `source_region`   | yes      |           | Source AWS region of the AMI.                                                                  |
+| `source_image_id` | yes      |           | AMI ID in the source region.                                                                   |
+| `region`          | yes\*    |           | Destination AWS region (\*via `amazon.aws` region options / env).                              |
+| `name`            | no       | `default` | Name for the new AMI.                                                                          |
+| `description`     | no       | `""`      | Description for the new AMI.                                                                   |
+| `encrypted`       | no       | `false`   | Encrypt destination EBS snapshots.                                                             |
+| `kms_key_id`      | no       |           | KMS key ID/ARN/alias for encryption; account default EBS CMK if omitted when `encrypted=true`. |
+| `copy_image_tags` | no       | `false`   | Also copy tags from the source AMI.                                                            |
+| `tags`            | no       |           | Tags to apply to the new AMI.                                                                  |
+| `tag_equality`    | no       | `false`   | If `true`, skip copy when a destination AMI already has the same `tags` (requires `tags`).     |
+| `wait`            | no       | `false`   | Wait until the AMI is `available`.                                                             |
+| `wait_timeout`    | no       | `600`     | Seconds to wait when `wait=true`.                                                              |
 
 Supports check mode (`ansible-playbook --check`).
 
@@ -107,7 +107,7 @@ Using an AWS named profile:
 
 ## Return values
 
-| Key | Description |
-| --- | --- |
+| Key        | Description                                                                         |
+| ---------- | ----------------------------------------------------------------------------------- |
 | `image_id` | AMI ID of the copied AMI, or the existing match when `tag_equality` skips the copy. |
-| `changed` | `true` when a new copy was started; `false` when an existing AMI was reused. |
+| `changed`  | `true` when a new copy was started; `false` when an existing AMI was reused.        |

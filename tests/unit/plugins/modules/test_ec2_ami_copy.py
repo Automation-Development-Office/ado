@@ -1,6 +1,9 @@
 """Unit tests for infra.ado.ec2_ami_copy helpers."""
 
-from __future__ import annotations
+from __future__ import absolute_import, division, print_function
+
+
+__metaclass__ = type
 
 import importlib.util
 import sys

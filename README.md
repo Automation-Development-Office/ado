@@ -33,7 +33,7 @@ infrastructure components consistently.
 <!--start requires_ansible-->
 ## Ansible version compatibility
 
-This collection has been tested against the following Ansible versions: **>=2.16.0**.
+This collection has been tested against the following Ansible versions: **>=2.17.0**.
 
 Plugins and modules within a collection may be tested with only specific Ansible versions.
 A collection may contain metadata that identifies these versions.
@@ -44,17 +44,17 @@ PEP440 is the schema used to describe the versions of Ansible.
 
 | Type | Name | Description |
 | --- | --- | --- |
-| Module | [`infra.ado.ec2_ami_copy`](plugins/modules/ec2_ami_copy/README.md) | Copy an AWS AMI from one region to another. |
+| Module | [`infra.ado.ec2_ami_copy`](docs/modules/ec2_ami_copy.md) | Copy an AWS AMI from one region to another. |
 | Role | See [Role documentation](#role-documentation) | Platform automation roles (AAP, OpenShift, RHEL, identity, and more). |
 
 ## Module documentation
 
-Each module keeps its detailed usage, parameters, and examples in its own README.
+Each module keeps its detailed usage, parameters, and examples under `docs/modules/`.
 Use this index as the starting point for operators and automation users.
 
 | Module | Description |
 | --- | --- |
-| [`infra.ado.ec2_ami_copy`](plugins/modules/ec2_ami_copy/README.md) | Copy an AWS AMI from one region to another. |
+| [`infra.ado.ec2_ami_copy`](docs/modules/ec2_ami_copy.md) | Copy an AWS AMI from one region to another. |
 
 ## Role documentation
 
