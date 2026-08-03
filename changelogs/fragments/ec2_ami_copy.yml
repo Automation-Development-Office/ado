@@ -1,0 +1,10 @@
+---
+minor_changes:
+  - >-
+    infra.ado.ec2_ami_copy - Added module to copy an AWS AMI between regions
+    with wait, encryption, optional source-tag copy, and tag-based idempotency.
+doc_changes:
+  - >-
+    README - Documented modules alongside roles, including end-user guidance
+    for ``infra.ado.ec2_ami_copy`` (requirements, parameters, examples, and
+    return values).

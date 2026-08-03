@@ -4,5 +4,14 @@ changelogs/.plugin-cache.yaml
 # Ephemeral Molecule symlink created by CI/local runs (ln -sfn . molecule)
 extensions/molecule/molecule
 
+# Local collection install path (keeps collections/requirements.yml)
+collections/ansible_collections/
+
+# Python bytecode / caches from local test runs
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
 # VSCode
 .vscode/
