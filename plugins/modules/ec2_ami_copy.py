@@ -22,8 +22,8 @@ description:
   - Copies an Amazon Machine Image (AMI) from a source region
     to the destination region selected by O(region).
   - Returns the new AMI ID in the destination region.
-  - This module depends on the C(amazon.aws) collection for AWS
-    authentication helpers and does not require C(community.aws).
+  - This module requires the C(amazon.aws) collection for AWS authentication
+    helpers and does not require C(community.aws).
 options:
   source_region:
     description:
@@ -91,7 +91,7 @@ options:
     type: bool
     default: false
 author:
-  - Automation Development Office
+  - Automation Development Office (@Automation-Development-Office)
 extends_documentation_fragment:
   - amazon.aws.common.modules
   - amazon.aws.region.modules
@@ -99,6 +99,7 @@ extends_documentation_fragment:
 requirements:
   - boto3
   - botocore
+  - amazon.aws
 """
 
 EXAMPLES = r"""
