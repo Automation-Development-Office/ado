@@ -7,35 +7,54 @@ Automation Development Office (`infra.ado`) Ansible collection for building and
 operating platform automation across Ansible Automation Platform, OpenShift,
 RHEL, Satellite, identity services, and supporting tooling.
 
-This collection packages reusable roles used by ADO bootstrap and day-2
-workflows so teams can install, configure, and operate infrastructure components
-consistently.
+This collection packages reusable **roles** and **modules** used by ADO
+bootstrap and day-2 workflows so teams can install, configure, and operate
+infrastructure components consistently.
 
 ## Collection purpose
 
-`infra.ado` provides opinionated Ansible roles for:
+`infra.ado` provides:
 
-- **AAP and bootstrap** — install and configure Ansible Automation Platform,
-  build execution environments, and generate bootstrap playbook repositories and
-  controller objects
-- **OpenShift platform** — operators, namespaces, routes, storage, logging,
-  security, GitOps, virtualization, and related cluster services
-- **Identity** — Red Hat IdM (FreeIPA), Red Hat build of Keycloak (RHBK), LDAP,
-  and OIDC authentication integrations
-- **RHEL and Satellite** — repositories, patching, registration, services,
-  mounts, and Satellite install/content-view management
-- **Observability and devops tooling** — Grafana, Elastic, Kafka, GitLab, Jira,
-  and related helpers
+- **Roles** for opinionated platform automation:
+  - **AAP and bootstrap** — install and configure Ansible Automation Platform,
+    build execution environments, and generate bootstrap playbook repositories
+    and controller objects
+  - **OpenShift platform** — operators, namespaces, routes, storage, logging,
+    security, GitOps, virtualization, and related cluster services
+  - **Identity** — Red Hat IdM (FreeIPA), Red Hat build of Keycloak (RHBK),
+    LDAP, and OIDC authentication integrations
+  - **RHEL and Satellite** — repositories, patching, registration, services,
+    mounts, and Satellite install/content-view management
+  - **Observability and devops tooling** — Grafana, Elastic, Kafka, GitLab,
+    Jira, and related helpers
+- **Modules** for focused tasks that do not fit a role, such as copying an AWS
+  AMI between regions without depending on `community.aws`
 
 <!--start requires_ansible-->
 ## Ansible version compatibility
 
-This collection has been tested against the following Ansible versions: **>=2.16.0**.
+This collection has been tested against the following Ansible versions: **>=2.17.0**.
 
 Plugins and modules within a collection may be tested with only specific Ansible versions.
 A collection may contain metadata that identifies these versions.
 PEP440 is the schema used to describe the versions of Ansible.
 <!--end requires_ansible-->
+
+## Content index
+
+| Type | Name | Description |
+| --- | --- | --- |
+| Module | [`infra.ado.ec2_ami_copy`](docs/modules/ec2_ami_copy.md) | Copy an AWS AMI from one region to another. |
+| Role | See [Role documentation](#role-documentation) | Platform automation roles (AAP, OpenShift, RHEL, identity, and more). |
+
+## Module documentation
+
+Each module keeps its detailed usage, parameters, and examples under `docs/modules/`.
+Use this index as the starting point for operators and automation users.
+
+| Module | Description |
+| --- | --- |
+| [`infra.ado.ec2_ami_copy`](docs/modules/ec2_ami_copy.md) | Copy an AWS AMI from one region to another. |
 
 ## Role documentation
 
@@ -186,7 +205,7 @@ From the collection root:
 
 ```bash
 cd /path/to/your/git/checkout/infra.ado
-ansible-galaxy collection install . --force -p ~/.ansible/collections
+ansible-galaxy collection install . --force --no-deps -p ~/.ansible/collections
 ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
 ```
 

@@ -387,7 +387,7 @@ To run `ocp_*` scenarios in CI:
 From the collection root:
 
 ```bash
-ansible-galaxy collection install . --force -p ~/.ansible/collections
+ansible-galaxy collection install . --force --no-deps -p ~/.ansible/collections
 ansible-galaxy collection install ansible.posix community.general containers.podman \
   --force -p ~/.ansible/collections
 export ANSIBLE_COLLECTIONS_PATH="$HOME/.ansible/collections:/usr/share/ansible/collections"
@@ -397,7 +397,9 @@ ln -sfn . molecule
 molecule test -s <scenario_name>
 ```
 
-Per-scenario dependency collections may be declared in
+Use ``--no-deps`` when installing the local collection so Molecule does not
+resolve ``galaxy.yml`` runtime dependencies (for example ``amazon.aws``) from
+Galaxy. Install any scenario-specific collections from
 `extensions/molecule/<scenario>/requirements.yml`.
 
 ## Local development checklist

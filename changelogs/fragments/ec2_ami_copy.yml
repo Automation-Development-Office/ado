@@ -1,0 +1,29 @@
+---
+minor_changes:
+  - >-
+    infra.ado.ec2_ami_copy - Added module to copy an AWS AMI between regions
+    with wait, encryption, optional source-tag copy, and tag-based idempotency.
+bugfixes:
+  - >-
+    infra.ado.ec2_ami_copy - Declare ``amazon.aws`` as a collection dependency
+    and fix module documentation metadata so ansible-test validate-modules
+    passes.
+  - >-
+    ci - Install the local collection with ``--no-deps`` in Molecule jobs so
+    ``galaxy.yml`` runtime dependencies are not resolved from Galaxy during
+    role scenario runs.
+  - >-
+    ci - Skip Ansible 2.16 and ``py3.12-milestone`` tox-ansible sanity/unit
+    matrix entries; ``amazon.aws`` requires Ansible ``>=2.17`` and current
+    ansible-core milestone requires Python ``>=3.13``.
+breaking_changes:
+  - >-
+    Dropped Ansible 2.16 support (EOL). ``meta/runtime.yml``
+    ``requires_ansible`` is now ``>=2.17.0``, matching CI and the
+    ``amazon.aws`` dependency.
+doc_changes:
+  - >-
+    README - Documented modules alongside roles; detailed module usage lives
+    under ``docs/modules/``.
+  - >-
+    README / docs - Ansible version compatibility updated to ``>=2.17.0``.

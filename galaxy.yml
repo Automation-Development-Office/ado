@@ -19,10 +19,11 @@ tags:
   - openshift
   - rhel
   - satellite
-# Runtime collections are installed by the execution environment/container.
-# Keeping this empty lets offline local artifact installs use the already
-# bundled collection tarballs instead of trying to resolve Galaxy dependencies.
-dependencies: {}
+# amazon.aws is required by infra.ado.ec2_ami_copy (AnsibleAWSModule / doc
+# fragments). Other runtime collections remain EE/container-bundled so offline
+# artifact installs are not forced to resolve them from Galaxy.
+dependencies:
+  amazon.aws: ">=8.0.0"
 
 repository: https://github.com/automation-development-office/ado
 documentation: >-

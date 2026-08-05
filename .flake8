@@ -1,0 +1,8 @@
+[flake8]
+max-line-length = 100
+# E203: black compatibility (whitespace before ':')
+# W503: black compatibility (line break before binary operator)
+extend-ignore = E203, W503
+# Ansible modules keep DOCUMENTATION/EXAMPLES/RETURN above imports.
+per-file-ignores =
+    plugins/modules/*.py: E402

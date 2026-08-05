@@ -438,7 +438,10 @@ jobs:
 
       - name: Install collection from local source
         run: |
-          ansible-galaxy collection install . --force -p ~/.ansible/collections
+          # --no-deps: infra.ado galaxy.yml may declare runtime deps (e.g. amazon.aws)
+          # for modules/sanity; Molecule role scenarios do not need those resolved
+          # from Galaxy and offline/rate-limit failures would break unrelated tests.
+          ansible-galaxy collection install . --force --no-deps -p ~/.ansible/collections
           ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
           ansible-galaxy collection install community.general --force -p ~/.ansible/collections
           ansible-galaxy collection install containers.podman --force -p ~/.ansible/collections
