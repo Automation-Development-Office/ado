@@ -1,0 +1,28 @@
+---
+controller_workflow_job_templates:
+  - name: ADO | Dynamic Survey Refresh Workflow
+    description: >-
+      Bootstrap workflow - sync Satellite inventory source and refresh a target
+      job template survey with current inventory groups
+    organization: "{{ bootstrap_controller_organization }}"
+    inventory: "{{ bootstrap_controller_rhel_inventory_name }}"
+    state: present
+    destroy_current_nodes: true
+    labels:
+      - ADO | bootstrap
+      - ADO | aap
+    simplified_workflow_nodes:
+      - identifier: Sync Inventory Source
+        unified_job_template: "{{ bootstrap_controller_satellite_inventory_source_name }}"
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        inventory: "{{ bootstrap_controller_rhel_inventory_name }}"
+        success_nodes:
+          - Refresh Survey
+
+      - identifier: Refresh Survey
+        unified_job_template: ADO | Refresh Survey from Inventory Groups
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        extra_data:
+          survey_refresh_inventory_name: "{{ bootstrap_controller_rhel_inventory_name }}"
+          survey_refresh_target_job_template: "{{ bootstrap_controller_survey_refresh_target_job_template }}"
+          survey_refresh_survey_variable: "{{ bootstrap_controller_survey_refresh_survey_variable }}"

@@ -1,0 +1,4 @@
+minor_changes:
+  - aap_configuration - Added ``refresh_survey_from_inventory_groups`` tasks to update job template survey choices from inventory groups via the Controller API.
+  - bootstrap_controller - Added bootstrap job template, playbook, and workflow wiring for dynamic survey refresh after inventory source sync.
+  - bootstrap_generate_env_vars - Added optional Controller OAuth credential generation for survey refresh jobs.

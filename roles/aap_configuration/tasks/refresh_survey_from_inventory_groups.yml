@@ -1,0 +1,219 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+- name: Resolve Controller API connection settings
+  ansible.builtin.set_fact:
+    __aap_configuration_survey_refresh_api_host: >-
+      {{
+        aap_configuration_survey_refresh_controller_host
+        | default(lookup('env', 'CONTROLLER_HOST'), true)
+        | default(controller_host | default(aap_hostname | default(''), true), true)
+        | trim
+        | regex_replace('/$', '')
+      }}
+    __aap_configuration_survey_refresh_api_token: >-
+      {{
+        aap_configuration_survey_refresh_controller_token
+        | default(lookup('env', 'CONTROLLER_OAUTH_TOKEN'), true)
+        | default(controller_oauthtoken | default(aap_oauthtoken | default(''), true), true)
+        | trim
+      }}
+    __aap_configuration_survey_refresh_validate_certs: >-
+      {{
+        aap_configuration_survey_refresh_validate_certs
+        | default(controller_validate_certs | default(false), true)
+        | bool
+      }}
+
+- name: Assert survey refresh inputs are provided
+  ansible.builtin.assert:
+    that:
+      - __aap_configuration_survey_refresh_api_host | length > 0
+      - __aap_configuration_survey_refresh_api_token | length > 0
+      - aap_configuration_survey_refresh_inventory_name | default('', true) | trim | length > 0
+      - aap_configuration_survey_refresh_target_job_template | default('', true) | trim | length > 0
+      - aap_configuration_survey_refresh_survey_variable | default('', true) | trim | length > 0
+    fail_msg: >-
+      Survey refresh requires Controller API host/token, inventory name, target
+      job template name, and survey variable name.
+
+- name: Lookup inventory by name
+  ansible.builtin.uri:
+    url: >-
+      {{ __aap_configuration_survey_refresh_api_host }}/api/controller/v2/inventories/?name={{
+      aap_configuration_survey_refresh_inventory_name | trim | urlencode
+      }}
+    method: GET
+    headers:
+      Authorization: "Bearer {{ __aap_configuration_survey_refresh_api_token }}"
+    validate_certs: "{{ __aap_configuration_survey_refresh_validate_certs }}"
+    return_content: true
+  register: __aap_configuration_survey_refresh_inventory_lookup
+
+- name: Assert inventory lookup succeeded
+  ansible.builtin.assert:
+    that:
+      - __aap_configuration_survey_refresh_inventory_lookup.status == 200
+      - __aap_configuration_survey_refresh_inventory_lookup.json.count | default(0) | int >= 1
+    fail_msg: >-
+      Inventory not found:
+      {{ aap_configuration_survey_refresh_inventory_name }}
+
+- name: Save inventory id
+  ansible.builtin.set_fact:
+    __aap_configuration_survey_refresh_inventory_id: >-
+      {{ __aap_configuration_survey_refresh_inventory_lookup.json.results[0].id }}
+
+- name: Get inventory groups
+  ansible.builtin.uri:
+    url: >-
+      {{ __aap_configuration_survey_refresh_api_host }}/api/controller/v2/inventories/{{
+      __aap_configuration_survey_refresh_inventory_id
+      }}/groups/
+    method: GET
+    headers:
+      Authorization: "Bearer {{ __aap_configuration_survey_refresh_api_token }}"
+    validate_certs: "{{ __aap_configuration_survey_refresh_validate_certs }}"
+    return_content: true
+  register: __aap_configuration_survey_refresh_groups
+
+- name: Build survey choices from inventory groups
+  ansible.builtin.set_fact:
+    __aap_configuration_survey_refresh_choices: >-
+      {{
+        __aap_configuration_survey_refresh_groups.json.results
+        | default([])
+        | map(attribute='name')
+        | reject('equalto', '')
+        | difference(aap_configuration_survey_refresh_excluded_groups | default(['all', 'ungrouped'], true))
+        | sort
+        | join('\n')
+      }}
+
+- name: Lookup target job template by name
+  ansible.builtin.uri:
+    url: >-
+      {{ __aap_configuration_survey_refresh_api_host }}/api/controller/v2/job_templates/?name={{
+      aap_configuration_survey_refresh_target_job_template | trim | urlencode
+      }}
+    method: GET
+    headers:
+      Authorization: "Bearer {{ __aap_configuration_survey_refresh_api_token }}"
+    validate_certs: "{{ __aap_configuration_survey_refresh_validate_certs }}"
+    return_content: true
+  register: __aap_configuration_survey_refresh_job_template_lookup
+
+- name: Assert target job template lookup succeeded
+  ansible.builtin.assert:
+    that:
+      - __aap_configuration_survey_refresh_job_template_lookup.status == 200
+      - __aap_configuration_survey_refresh_job_template_lookup.json.count | default(0) | int >= 1
+    fail_msg: >-
+      Target job template not found:
+      {{ aap_configuration_survey_refresh_target_job_template }}
+
+- name: Save target job template id
+  ansible.builtin.set_fact:
+    __aap_configuration_survey_refresh_job_template_id: >-
+      {{ __aap_configuration_survey_refresh_job_template_lookup.json.results[0].id }}
+
+- name: Get current target job template survey spec
+  ansible.builtin.uri:
+    url: >-
+      {{ __aap_configuration_survey_refresh_api_host }}/api/controller/v2/job_templates/{{
+      __aap_configuration_survey_refresh_job_template_id
+      }}/survey_spec/
+    method: GET
+    headers:
+      Authorization: "Bearer {{ __aap_configuration_survey_refresh_api_token }}"
+    validate_certs: "{{ __aap_configuration_survey_refresh_validate_certs }}"
+    return_content: true
+    status_code: [200, 404]
+  register: __aap_configuration_survey_refresh_current_survey
+
+- name: Merge inventory group choices into target survey question
+  ansible.builtin.set_fact:
+    __aap_configuration_survey_refresh_updated_survey: >-
+      {{
+        __aap_configuration_survey_refresh_merged_survey
+      }}
+  vars:
+    __aap_configuration_survey_refresh_existing_survey: >-
+      {{
+        __aap_configuration_survey_refresh_current_survey.json
+        if __aap_configuration_survey_refresh_current_survey.status | default(404) | int == 200
+        else {}
+      }}
+    __aap_configuration_survey_refresh_existing_spec: >-
+      {{
+        __aap_configuration_survey_refresh_existing_survey.get('spec', [])
+        | default([], true)
+      }}
+    __aap_configuration_survey_refresh_merged_spec: >-
+      {%- set result = [] -%}
+      {%- set found = false -%}
+      {%- for question in __aap_configuration_survey_refresh_existing_spec -%}
+      {%- if question.variable | default('') | string == aap_configuration_survey_refresh_survey_variable | string -%}
+      {%- set _ = result.append(question | combine({'choices': __aap_configuration_survey_refresh_choices})) -%}
+      {%- set found = true -%}
+      {%- else -%}
+      {%- set _ = result.append(question) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {%- if not found -%}
+      {%- set _ = result.append({
+        'question_name': aap_configuration_survey_refresh_question_name | default('Target Groups'),
+        'question_description': aap_configuration_survey_refresh_question_description | default('Select inventory groups to run against'),
+        'variable': aap_configuration_survey_refresh_survey_variable,
+        'required': aap_configuration_survey_refresh_question_required | default(true),
+        'type': aap_configuration_survey_refresh_question_type | default('multiselect'),
+        'default': aap_configuration_survey_refresh_question_default | default(''),
+        'choices': __aap_configuration_survey_refresh_choices
+      }) -%}
+      {%- endif -%}
+      {{ result }}
+    __aap_configuration_survey_refresh_merged_survey:
+      name: >-
+        {{
+          __aap_configuration_survey_refresh_existing_survey.get('name')
+          | default(aap_configuration_survey_refresh_survey_name | default('Dynamic Inventory Groups'), true)
+        }}
+      description: >-
+        {{
+          __aap_configuration_survey_refresh_existing_survey.get('description')
+          | default(
+            aap_configuration_survey_refresh_survey_description
+            | default('Generated automatically from inventory groups'),
+            true
+          )
+        }}
+      spec: "{{ __aap_configuration_survey_refresh_merged_spec }}"
+
+- name: Assert target survey variable is present after merge
+  ansible.builtin.assert:
+    that:
+      - >-
+        (
+          __aap_configuration_survey_refresh_updated_survey.spec
+          | default([])
+          | selectattr('variable', 'equalto', aap_configuration_survey_refresh_survey_variable)
+          | list
+          | length
+        ) == 1
+    fail_msg: >-
+      Failed to merge survey choices for variable
+      {{ aap_configuration_survey_refresh_survey_variable }}.
+
+- name: Update target job template survey spec
+  ansible.builtin.uri:
+    url: >-
+      {{ __aap_configuration_survey_refresh_api_host }}/api/controller/v2/job_templates/{{
+      __aap_configuration_survey_refresh_job_template_id
+      }}/survey_spec/
+    method: POST
+    headers:
+      Authorization: "Bearer {{ __aap_configuration_survey_refresh_api_token }}"
+    body_format: json
+    body: "{{ __aap_configuration_survey_refresh_updated_survey }}"
+    validate_certs: "{{ __aap_configuration_survey_refresh_validate_certs }}"
+    status_code: [200, 201]
+  register: __aap_configuration_survey_refresh_update_result
