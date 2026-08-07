@@ -500,3 +500,37 @@ releases:
     - pre-aap-openshift-htpasswd-nfs-kubeconfig.yml
     - satellite-manifest-upload.yml
     release_date: '2026-07-28'
+  1.1.0:
+    changes:
+      breaking_changes:
+      - Dropped Ansible 2.16 support (EOL). ``meta/runtime.yml`` ``requires_ansible``
+        is now ``>=2.17.0``, matching CI and the ``amazon.aws`` dependency.
+      bugfixes:
+      - ci - Install ``galaxy.yml`` collection dependencies before ``antsibull-changelog
+        release`` so modules that extend external doc fragments (for example ``amazon.aws``)
+        can be parsed during release builds.
+      - ci - Install the local collection with ``--no-deps`` in Molecule jobs so ``galaxy.yml``
+        runtime dependencies are not resolved from Galaxy during role scenario runs.
+      - ci - Skip Ansible 2.16 and ``py3.12-milestone`` tox-ansible sanity/unit matrix
+        entries; ``amazon.aws`` requires Ansible ``>=2.17`` and current ansible-core
+        milestone requires Python ``>=3.13``.
+      - infra.ado.ec2_ami_copy - Declare ``amazon.aws`` as a collection dependency
+        and fix module documentation metadata so ansible-test validate-modules passes.
+      doc_changes:
+      - README - Added collection purpose overview and a complete role index with
+        one-line descriptions and links to each role README.
+      - README - Documented modules alongside roles; detailed module usage lives under
+        ``docs/modules/``.
+      - README / docs - Ansible version compatibility updated to ``>=2.17.0``.
+      minor_changes:
+      - infra.ado.ec2_ami_copy - Added module to copy an AWS AMI between regions with
+        wait, encryption, optional source-tag copy, and tag-based idempotency.
+    fragments:
+    - ci-changelog-galaxy-deps.yml
+    - ec2_ami_copy.yml
+    - readme-collection-overview.yml
+    modules:
+    - description: Copy an AMI between AWS regions.
+      name: ec2_ami_copy
+      namespace: ''
+    release_date: '2026-08-07'
