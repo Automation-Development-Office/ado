@@ -47,6 +47,36 @@ runs:
         pip install antsibull-changelog pyyaml ansible-core semantic-version
         CHECK_VERSION="$VERSION" python3 "${GITHUB_WORKSPACE}/scripts/validate_release_version.py"
 
+        # Modules may extend doc_fragments from galaxy.yml dependencies (for
+        # example amazon.aws). antsibull-changelog must resolve those fragments
+        # when scanning plugins during release.
+        COLLECTIONS_PATH="${RUNNER_TEMP:-/tmp}/changelog-collections"
+        mkdir -p "$COLLECTIONS_PATH"
+        REQ_FILE="$(mktemp)"
+        DEP_COUNT="$(
+          REQ_FILE="$REQ_FILE" python3 -c '
+        import os
+        import pathlib
+        import yaml
+
+        galaxy = yaml.safe_load(pathlib.Path("galaxy.yml").read_text(encoding="utf-8")) or {}
+        deps = galaxy.get("dependencies") or {}
+        collections = [
+            {"name": name, "version": version} for name, version in deps.items()
+        ]
+        pathlib.Path(os.environ["REQ_FILE"]).write_text(
+            yaml.safe_dump({"collections": collections}, sort_keys=False),
+            encoding="utf-8",
+        )
+        print(len(collections))
+        '
+        )"
+        if [ "$DEP_COUNT" -gt 0 ]; then
+          echo "Installing ${DEP_COUNT} galaxy.yml dependenc(y/ies) for changelog doc fragments."
+          ansible-galaxy collection install -r "$REQ_FILE" -p "$COLLECTIONS_PATH"
+        fi
+        export ANSIBLE_COLLECTIONS_PATH="$COLLECTIONS_PATH"
+
         release_exists() {
           CHECK_VERSION="$VERSION" python3 -c '
         import os

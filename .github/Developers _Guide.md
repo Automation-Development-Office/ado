@@ -503,11 +503,14 @@ accumulated changelog fragments into release notes before the collection tarball
 
 **Behavior:**
 
-1. If the release version is already recorded in `changelogs/changelog.yaml`, render outputs only
-2. Otherwise, if `origin/main` already contains the release entry, sync those changelog files into the build workspace
-3. Otherwise, if fragments exist under `changelogs/fragments/`, run `antsibull-changelog release --version <version>`
-4. Render `CHANGELOG.rst` and per-release notes with `antsibull-changelog generate`
-5. Consumed fragments are removed in the runner workspace (`keep_fragments: false` in [`changelogs/config.yaml`](../changelogs/config.yaml))
+1. Install collections declared in `galaxy.yml` `dependencies` so
+   `antsibull-changelog` can resolve external `extends_documentation_fragment`
+   references (for example `amazon.aws` used by `infra.ado.ec2_ami_copy`)
+2. If the release version is already recorded in `changelogs/changelog.yaml`, render outputs only
+3. Otherwise, if `origin/main` already contains the release entry, sync those changelog files into the build workspace
+4. Otherwise, if fragments exist under `changelogs/fragments/`, run `antsibull-changelog release --version <version>`
+5. Render `CHANGELOG.rst` and per-release notes with `antsibull-changelog generate`
+6. Consumed fragments are removed in the runner workspace (`keep_fragments: false` in [`changelogs/config.yaml`](../changelogs/config.yaml))
 
 Set `consume_fragments: false` to sync an already-compiled changelog without deleting fragments.
 
