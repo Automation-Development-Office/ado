@@ -68,3 +68,7 @@
           {{ aap_configuration_verify_readme.stdout }}
           {{ aap_configuration_verify_readme.stderr }}
       when: aap_configuration_verify_readme.rc != 0
+
+    - name: Verify survey refresh task artifacts and merge behavior
+      ansible.builtin.import_playbook: aap_configuration_survey_refresh_verify.yml
+      when: not aap_configuration_enable_live_checks

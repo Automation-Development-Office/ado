@@ -208,6 +208,11 @@
 {% set bootstrap_generate_env_vars_aap_git_url = preflight_aap.git_url if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_project_scm_url.user_input %}
 {% set bootstrap_generate_env_vars_aap_git_branch = (preflight_aap.git_branch | default(bootstrap_generate_env_vars_default_git_branch | default('main'), true)) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project_scm_branch.user_input | default(bootstrap_generate_env_vars_default_git_branch | default('main'), true)) %}
 {% set bootstrap_generate_env_vars_aap_git_token_present = (preflight_git.token | default('') | length > 0) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project_scm_token.user_input | default('', true) | length > 0) %}
+{% set bootstrap_generate_env_vars_aap_oauth_token_present = (preflight_aap.oauth_token | default('', true) | length > 0) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_token.user_input | default('', true) | length > 0) %}
+{% set bootstrap_generate_env_vars_controller_hostname = preflight_aap.hostname | default(preflight_aap.controller_hostname | default(preflight_aap.url | default('', true), true), true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_hostname.user_input %}
+{% set bootstrap_generate_env_vars_controller_oauth_credential_name = bootstrap_generate_env_vars_aap_org ~ '-Controller-OAuth' %}
+{% set bootstrap_generate_env_vars_survey_refresh_target_job_template = preflight_aap.survey_refresh_target_job_template | default(bootstrap_generate_env_vars_survey_refresh_target_job_template | default('', true), true) %}
+{% set bootstrap_generate_env_vars_survey_refresh_survey_variable = preflight_aap.survey_refresh_survey_variable | default(bootstrap_generate_env_vars_survey_refresh_survey_variable | default('target_groups', true), true) %}
 {% set bootstrap_generate_env_vars_git_auto_push =
     (preflight_git.auto_push | default(false))
     if bootstrap_generate_env_vars_preflight is defined
@@ -270,6 +275,10 @@ bootstrap_controller_rhel_inventory_name: "{{ bootstrap_generate_env_vars_rhel_i
 bootstrap_controller_idm_inventory_name: "{{ bootstrap_generate_env_vars_idm_inventory }}"
 bootstrap_controller_satellite_inventory_name: "{{ bootstrap_generate_env_vars_satellite_inventory }}"
 bootstrap_controller_cert_manager_mode: "{{ preflight_cert_manager_config.mode | default('cert', true) }}"
+bootstrap_controller_satellite_inventory_source_name: "{{ bootstrap_generate_env_vars_satellite_inventory_source_name }}"
+bootstrap_controller_controller_oauth_credential_name: "{{ bootstrap_generate_env_vars_controller_oauth_credential_name }}"
+bootstrap_controller_survey_refresh_target_job_template: "{{ bootstrap_generate_env_vars_survey_refresh_target_job_template }}"
+bootstrap_controller_survey_refresh_survey_variable: "{{ bootstrap_generate_env_vars_survey_refresh_survey_variable }}"
 
 controller_bootstrap_creds: "{{ bootstrap_generate_env_vars_aap_cred }}"
 controller_bootstrap_name_prefix: "{{ bootstrap_generate_env_vars_aap_org }}"
@@ -334,6 +343,16 @@ controller_bootstrap_controller_credentials:
       host: "{{ bootstrap_generate_env_vars_satellite_server_url }}"
       username: "{% raw %}{{ '{{ vault_satellite_service_account_username }}' }}{% endraw %}"
       password: "{% raw %}{{ '{{ vault_satellite_service_account_password }}' }}{% endraw %}"
+{% endif %}
+{% if bootstrap_generate_env_vars_aap_oauth_token_present %}
+
+  - name: "{{ bootstrap_generate_env_vars_controller_oauth_credential_name }}"
+    description: Controller OAuth credential for survey refresh and Controller API jobs
+    organization: "{{ bootstrap_generate_env_vars_aap_org }}"
+    credential_type: Red Hat Ansible Automation Platform
+    inputs:
+      host: "{{ bootstrap_generate_env_vars_controller_hostname }}"
+      oauth_token: "{% raw %}{{ '{{ vault_controller_oauthtoken }}' }}{% endraw %}"
 {% endif %}
 {% for extra_credential in bootstrap_generate_env_vars_aap_additional_credentials %}
 {% if extra_credential.name | default('', true) | length > 0 %}

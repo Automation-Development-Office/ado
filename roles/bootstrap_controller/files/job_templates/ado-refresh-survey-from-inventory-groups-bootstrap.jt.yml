@@ -1,0 +1,46 @@
+---
+controller_templates:
+  - name: ADO | Refresh Survey from Inventory Groups
+    description: >-
+      Bootstrap - refresh a target job template survey with current inventory
+      group names
+    organization: '{{ bootstrap_controller_organization }}'
+    playbook: playbooks/aap/ado-refresh-survey-from-inventory-groups-bootstrap.yml
+    inventory: '{{ bootstrap_controller_local_inventory_name }}'
+    project: '{{ bootstrap_controller_project_name }}'
+    execution_environment: '{{ bootstrap_controller_execution_environment_name }}'
+    credentials:
+      - '{{ bootstrap_controller_creds }}'
+      # ADO_CONTROLLER_OAUTH_CREDENTIAL
+    related: null
+    labels:
+      - name: ADO | bootstrap
+        organization: '{{ bootstrap_controller_organization }}'
+      - name: ADO | aap
+        organization: '{{ bootstrap_controller_organization }}'
+    extra_vars: {}
+    survey_enabled: true
+    survey_spec:
+      name: ADO | Refresh Survey from Inventory Groups Survey
+      description: Configure dynamic survey refresh targets
+      spec:
+        - question_name: ADO | Inventory name
+          question_description: >-
+            Inventory to read groups from. Leave blank to use the default RHEL
+            inventory.
+          required: false
+          type: text
+          variable: survey_refresh_inventory_name
+          default: ""
+        - question_name: ADO | Target job template
+          question_description: Job template whose survey will be updated
+          required: true
+          type: text
+          variable: survey_refresh_target_job_template
+          default: ""
+        - question_name: ADO | Survey variable
+          question_description: Survey question variable to update
+          required: false
+          type: text
+          variable: survey_refresh_survey_variable
+          default: target_groups
