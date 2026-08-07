@@ -1,7 +1,0 @@
----
-bugfixes:
-  - >-
-    ci - Install ``galaxy.yml`` collection dependencies before
-    ``antsibull-changelog release`` so modules that extend external
-    doc fragments (for example ``amazon.aws``) can be parsed during
-    release builds.
