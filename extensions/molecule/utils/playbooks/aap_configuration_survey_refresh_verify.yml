@@ -1,0 +1,89 @@
+---
+- name: Verify aap_configuration survey refresh artifacts
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars:
+    repo_root: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/../.."
+    aap_configuration_refresh_tasks: >-
+      {{ repo_root }}/roles/aap_configuration/tasks/refresh_survey_from_inventory_groups.yml
+    aap_configuration_refresh_playbook: >-
+      {{ repo_root }}/roles/bootstrap_generate_playbook_repo/files/playbooks/aap/ado-refresh-survey-from-inventory-groups-bootstrap.yml
+
+  tasks:
+    - name: Assert survey refresh task file exists
+      ansible.builtin.assert:
+        that:
+          - aap_configuration_refresh_tasks is file
+        fail_msg: >-
+          Expected survey refresh tasks at {{ aap_configuration_refresh_tasks }}.
+
+    - name: Assert bootstrap survey refresh playbook exists
+      ansible.builtin.assert:
+        that:
+          - aap_configuration_refresh_playbook is file
+        fail_msg: >-
+          Expected bootstrap survey refresh playbook at
+          {{ aap_configuration_refresh_playbook }}.
+
+    - name: Validate bootstrap survey refresh playbook syntax
+      ansible.builtin.command:
+        argv:
+          - ansible-playbook
+          - --syntax-check
+          - "{{ aap_configuration_refresh_playbook }}"
+      changed_when: false
+
+    - name: Build expected survey choices from sample inventory groups
+      ansible.builtin.set_fact:
+        __survey_refresh_sample_choices: db\nweb
+
+    - name: Merge sample survey choices into an existing survey spec
+      ansible.builtin.set_fact:
+        __survey_refresh_merged_survey: "{{ __survey_refresh_merged_survey_body }}"
+      vars:
+        __survey_refresh_existing_spec:
+          - question_name: Environment
+            variable: env
+            type: multiplechoice
+            choices: dev\nprod
+            default: prod
+          - question_name: Target Groups
+            variable: target_groups
+            type: multiselect
+            choices: stale
+            default: ""
+        __survey_refresh_merged_spec: >-
+          {%- set result = [] -%}
+          {%- for question in __survey_refresh_existing_spec -%}
+          {%- if question.variable | default('') | string == 'target_groups' -%}
+          {%- set _ = result.append(question | combine({'choices': __survey_refresh_sample_choices})) -%}
+          {%- else -%}
+          {%- set _ = result.append(question) -%}
+          {%- endif -%}
+          {%- endfor -%}
+          {{ result }}
+        __survey_refresh_merged_survey_body:
+          name: Dynamic Inventory Groups
+          description: Generated automatically from inventory groups
+          spec: "{{ __survey_refresh_merged_spec }}"
+
+    - name: Assert survey merge preserves other questions and updates target choices
+      ansible.builtin.assert:
+        that:
+          - __survey_refresh_merged_survey.spec | length == 2
+          - >-
+            (
+              __survey_refresh_merged_survey.spec
+              | selectattr('variable', 'equalto', 'target_groups')
+              | map(attribute='choices')
+              | first
+            ) == __survey_refresh_sample_choices
+          - >-
+            (
+              __survey_refresh_merged_survey.spec
+              | selectattr('variable', 'equalto', 'env')
+              | list
+              | length
+            ) == 1

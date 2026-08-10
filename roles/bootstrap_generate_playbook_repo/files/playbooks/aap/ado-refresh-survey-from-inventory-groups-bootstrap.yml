@@ -1,0 +1,20 @@
+---
+- name: Refresh survey from inventory groups
+  hosts: localhost
+  gather_facts: false
+  vars:
+    aap_configuration_survey_refresh_inventory_name: >-
+      {{ survey_refresh_inventory_name
+      | default(bootstrap_controller_rhel_inventory_name, true) }}
+    aap_configuration_survey_refresh_target_job_template: >-
+      {{ survey_refresh_target_job_template }}
+    aap_configuration_survey_refresh_survey_variable: >-
+      {{ survey_refresh_survey_variable | default('target_groups') }}
+    aap_configuration_survey_refresh_validate_certs: >-
+      {{ controller_validate_certs | default(false) | bool }}
+
+  tasks:
+    - name: Run survey refresh tasks
+      ansible.builtin.include_role:
+        name: infra.ado.aap_configuration
+        tasks_from: refresh_survey_from_inventory_groups

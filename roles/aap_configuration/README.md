@@ -57,6 +57,19 @@ This role does not define role-specific defaults. Configuration is supplied thro
 | `aap_configuration_config_path` | Path passed to `infra.aap_configuration.dispatch`. Set automatically to `{{ role_path }}/configs` when the dispatcher role is invoked. |
 | Config file variables | Keys defined in one or more `*.yml` files placed in a `configs` directory next to your playbook. Files matching `*.yml` are copied into the role's `configs` directory and loaded before dispatch runs. |
 
+### Survey refresh variables
+
+These variables apply when invoking `tasks_from: refresh_survey_from_inventory_groups`.
+
+| Variable | Description |
+|---------|-------------|
+| `aap_configuration_survey_refresh_inventory_name` | Inventory to read groups from. **Required.** |
+| `aap_configuration_survey_refresh_target_job_template` | Job template whose survey is updated. **Required.** |
+| `aap_configuration_survey_refresh_survey_variable` | Survey question variable to update. Default: `target_groups`. |
+| `aap_configuration_survey_refresh_excluded_groups` | Group names to omit. Default: `all`, `ungrouped`. |
+| `aap_configuration_survey_refresh_controller_host` | Controller API host. Defaults to `CONTROLLER_HOST` or `controller_host`. |
+| `aap_configuration_survey_refresh_controller_token` | Controller OAuth token. Defaults to `CONTROLLER_OAUTH_TOKEN` or `controller_oauthtoken`. |
+
 To customize behavior, provide properly named keys in your config YAML files or wrap this role in a controlling playbook that sets additional variables.
 
 ## 🚀 Role Usage
@@ -107,6 +120,44 @@ Key implementation files:
 
 - `tasks/main.yml`: entrypoint that imports `dispatch.yml`
 - `tasks/dispatch.yml`: gathers and copies config files, loads them, and calls the upstream dispatcher
+- `tasks/refresh_survey_from_inventory_groups.yml`: refreshes a job template survey from inventory groups
+
+### Refresh survey from inventory groups
+
+Use `tasks_from` to update a target job template survey with current inventory group
+names via the Controller API. This supports the dynamic survey pattern described in
+[Dynamic AAP Survey Generation from Inventory Groups](https://github.com/user-attachments/files/28636979/Dynamic.AAP.Survey.Generation.pdf).
+
+Attach a Controller OAuth credential to the job template that injects:
+
+- `CONTROLLER_HOST`
+- `CONTROLLER_OAUTH_TOKEN`
+
+```yaml
+- hosts: localhost
+  gather_facts: false
+  vars:
+    aap_configuration_survey_refresh_inventory_name: Production
+    aap_configuration_survey_refresh_target_job_template: Deploy Application
+    aap_configuration_survey_refresh_survey_variable: target_groups
+  tasks:
+    - ansible.builtin.include_role:
+        name: infra.ado.aap_configuration
+        tasks_from: refresh_survey_from_inventory_groups
+```
+
+The task file merges choices into the existing survey question matching
+`survey_variable` and preserves all other survey questions.
+
+Target playbooks can consume multiselect values as a host pattern:
+
+```yaml
+- hosts: "{{ target_groups.split(',') | join(':') }}"
+  gather_facts: false
+  tasks:
+    - ansible.builtin.debug:
+        msg: "Running on {{ inventory_hostname }}"
+```
 
 ## 🧪 Role Molecule Testing
 
@@ -143,10 +194,12 @@ roles/
    ├─ handlers/
    │  └─ main.yml
    ├─ meta/
+   │  ├─ argument_specs.yml
    │  └─ main.yml
    ├─ tasks/
    │  ├─ dispatch.yml
-   │  └─ main.yml
+   │  ├─ main.yml
+   │  └─ refresh_survey_from_inventory_groups.yml
    ├─ tests/
    │  └─ inventory
    └─ vars/

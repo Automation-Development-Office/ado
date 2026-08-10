@@ -1,0 +1,71 @@
+---
+argument_specs:
+  refresh_survey_from_inventory_groups:
+    short_description: Refresh a job template survey from inventory groups.
+    description: |
+      Update a target job template survey question with current inventory group
+      names discovered through the Automation Controller API.
+    options:
+      aap_configuration_survey_refresh_inventory_name:
+        type: str
+        description: Inventory name to read groups from.
+        required: true
+      aap_configuration_survey_refresh_target_job_template:
+        type: str
+        description: Target job template whose survey will be updated.
+        required: true
+      aap_configuration_survey_refresh_survey_variable:
+        type: str
+        description: Survey question variable to update (for example target_groups).
+        default: target_groups
+      aap_configuration_survey_refresh_excluded_groups:
+        type: list
+        elements: str
+        description: Inventory group names to omit from generated survey choices.
+        default:
+          - all
+          - ungrouped
+      aap_configuration_survey_refresh_controller_host:
+        type: str
+        description: >-
+          Controller API host. Defaults to CONTROLLER_HOST, controller_host, or
+          aap_hostname.
+        default: ""
+      aap_configuration_survey_refresh_controller_token:
+        type: str
+        description: >-
+          Controller OAuth token. Defaults to CONTROLLER_OAUTH_TOKEN,
+          controller_oauthtoken, or aap_oauthtoken.
+        default: ""
+      aap_configuration_survey_refresh_validate_certs:
+        type: bool
+        description: Whether to validate Controller TLS certificates.
+        default: false
+      aap_configuration_survey_refresh_survey_name:
+        type: str
+        description: Survey name used when creating a new survey spec.
+        default: Dynamic Inventory Groups
+      aap_configuration_survey_refresh_survey_description:
+        type: str
+        description: Survey description used when creating a new survey spec.
+        default: Generated automatically from inventory groups
+      aap_configuration_survey_refresh_question_name:
+        type: str
+        description: Question label used when creating a missing survey question.
+        default: Target Groups
+      aap_configuration_survey_refresh_question_description:
+        type: str
+        description: Question help text used when creating a missing survey question.
+        default: Select inventory groups to run against
+      aap_configuration_survey_refresh_question_type:
+        type: str
+        description: Survey question type used when creating a missing survey question.
+        default: multiselect
+      aap_configuration_survey_refresh_question_required:
+        type: bool
+        description: Whether the survey question is required when creating it.
+        default: true
+      aap_configuration_survey_refresh_question_default:
+        type: str
+        description: Default value for the survey question when creating it.
+        default: ""

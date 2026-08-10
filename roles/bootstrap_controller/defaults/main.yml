@@ -60,6 +60,11 @@ bootstrap_controller_console_banner_state_choices:
   - delete
 bootstrap_controller_default_state: present
 
+bootstrap_controller_satellite_inventory_source_name: ""
+bootstrap_controller_controller_oauth_credential_name: ""
+bootstrap_controller_survey_refresh_target_job_template: ""
+bootstrap_controller_survey_refresh_survey_variable: target_groups
+
 # Job Template Defaults
 bootstrap_controller_job_templates_defaults:
   job_type: run

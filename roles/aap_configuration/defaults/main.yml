@@ -8,3 +8,20 @@ aap_configuration_configmap: "{{ lookup('env', 'AAP_CONFIGURATION_CONFIGMAP') }}
 aap_configuration_serviceaccount: "{{ lookup('env', 'AAP_CONFIGURATION_SERVICEACCOUNT') }}"
 aap_configuration_role: "{{ lookup('env', 'AAP_CONFIGURATION_ROLE') }}"
 aap_configuration_rolebinding: "{{ lookup('env', 'AAP_CONFIGURATION_ROLEBINDING') }}"
+
+aap_configuration_survey_refresh_inventory_name: ""
+aap_configuration_survey_refresh_target_job_template: ""
+aap_configuration_survey_refresh_survey_variable: target_groups
+aap_configuration_survey_refresh_excluded_groups:
+  - all
+  - ungrouped
+aap_configuration_survey_refresh_controller_host: ""
+aap_configuration_survey_refresh_controller_token: ""
+aap_configuration_survey_refresh_validate_certs: false
+aap_configuration_survey_refresh_survey_name: Dynamic Inventory Groups
+aap_configuration_survey_refresh_survey_description: Generated automatically from inventory groups
+aap_configuration_survey_refresh_question_name: Target Groups
+aap_configuration_survey_refresh_question_description: Select inventory groups to run against
+aap_configuration_survey_refresh_question_type: multiselect
+aap_configuration_survey_refresh_question_required: true
+aap_configuration_survey_refresh_question_default: ""

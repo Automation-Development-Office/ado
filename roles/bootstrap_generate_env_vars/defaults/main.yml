@@ -83,6 +83,8 @@ bootstrap_generate_env_vars_satellite_inventory_update_cache_timeout: 0
 bootstrap_generate_env_vars_satellite_inventory_verbosity: 0
 bootstrap_generate_env_vars_satellite_inventory_host_filter: ""
 bootstrap_generate_env_vars_satellite_inventory_source_vars: {}
+bootstrap_generate_env_vars_survey_refresh_target_job_template: ""
+bootstrap_generate_env_vars_survey_refresh_survey_variable: target_groups
 bootstrap_generate_env_vars_satellite_deployment_version: "6.19"
 bootstrap_generate_env_vars_satellite_location: ""
 bootstrap_generate_env_vars_satellite_rhn_org_id: ""
