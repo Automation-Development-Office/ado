@@ -52,6 +52,8 @@ satellite_install_rhn_connected: false
 satellite_install_rhn_org_id: ""
 satellite_install_rhn_activation_key: ""
 satellite_install_admin_username: "admin"
+satellite_install_admin_password: ""
+satellite_install_force_reinstall: false
 satellite_install_manifest_file: ""
 satellite_install_manifest_path: ""
 satellite_install_manifest_organization: ""
@@ -71,3 +73,6 @@ satellite_install_req_dirs:
 satellite_install_data_disk_min_size: "10G"
 satellite_install_data_device_name: ""
 satellite_install_data_device: "/dev"
+satellite_install_dns_device: ""
+satellite_install_dns_servers: []
+satellite_install_dns_search: []
