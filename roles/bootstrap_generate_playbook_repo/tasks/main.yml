@@ -46,6 +46,14 @@
     state: directory
     mode: "0755"
 
+- name: Generate playbook repo | Remove vendored infra.ado that shadows Hub installs
+  ansible.builtin.file:
+    path: >-
+      {{
+        bootstrap_generate_playbook_repo_dest_resolved
+      }}/collections/ansible_collections/infra/ado
+    state: absent
+
 - name: Generate playbook repo | Render collection requirements
   ansible.builtin.template:
     src: requirements.yml.j2

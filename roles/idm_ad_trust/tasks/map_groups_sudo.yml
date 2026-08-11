@@ -1,0 +1,102 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# Map AD identities into IdM POSIX groups + sudo (AvMC §2.8)
+
+- name: Create POSIX group for AD users
+  ansible.builtin.command: >
+    ipa group-add {{ idm_ad_trust_posix_group }}
+    --desc='IPA Internal Group mapped to AD Users'
+  register: idm_ad_trust_posix
+  changed_when: idm_ad_trust_posix.rc == 0
+  failed_when: >
+    idm_ad_trust_posix.rc != 0 and
+    ('already exists' not in (idm_ad_trust_posix.stderr | default('') + idm_ad_trust_posix.stdout | default('')))
+
+- name: Create external group for AD users
+  ansible.builtin.command: >
+    ipa group-add {{ idm_ad_trust_external_group }}
+    --desc='AD Users External Group'
+    --external
+  register: idm_ad_trust_ext
+  changed_when: idm_ad_trust_ext.rc == 0
+  failed_when: >
+    idm_ad_trust_ext.rc != 0 and
+    ('already exists' not in (idm_ad_trust_ext.stderr | default('') + idm_ad_trust_ext.stdout | default('')))
+
+- name: Nest external group under POSIX group (IdM AD trust pattern)
+  ansible.builtin.command: >
+    ipa group-add-member {{ idm_ad_trust_posix_group }}
+    --groups {{ idm_ad_trust_external_group }}
+  register: idm_ad_trust_nest
+  changed_when: idm_ad_trust_nest.rc == 0
+  failed_when: false
+
+- name: Map AD group into external group
+  when: idm_ad_trust_map_ad_group | length > 0
+  ansible.builtin.command: >
+    ipa -n group-add-member {{ idm_ad_trust_external_group }}
+    --external '{{ idm_ad_trust_map_ad_group }}'
+  register: idm_ad_trust_map
+  changed_when: idm_ad_trust_map.rc == 0
+  failed_when: false
+
+- name: Create linux_admins POSIX group
+  ansible.builtin.command: ipa group-add {{ idm_ad_trust_admins_posix_group }}
+  register: idm_ad_trust_admins
+  changed_when: idm_ad_trust_admins.rc == 0
+  failed_when: >
+    idm_ad_trust_admins.rc != 0 and
+    ('already exists' not in (idm_ad_trust_admins.stderr | default('') + idm_ad_trust_admins.stdout | default('')))
+
+- name: Create sudo rule for linux_admins
+  ansible.builtin.command: >
+    ipa sudorule-add {{ idm_ad_trust_sudorule }}
+    --hostcat=all
+    --runasusercat=all
+    --runasgroupcat=all
+    --cmdcat=all
+  register: idm_ad_trust_sudo
+  changed_when: idm_ad_trust_sudo.rc == 0
+  failed_when: >
+    idm_ad_trust_sudo.rc != 0 and
+    ('already exists' not in (idm_ad_trust_sudo.stderr | default('') + idm_ad_trust_sudo.stdout | default('')))
+
+- name: Attach linux_admins to sudo rule
+  ansible.builtin.command: >
+    ipa sudorule-add-user {{ idm_ad_trust_sudorule }}
+    --group {{ idm_ad_trust_admins_posix_group }}
+  register: idm_ad_trust_sudo_user
+  changed_when: idm_ad_trust_sudo_user.rc == 0
+  failed_when: false
+
+- name: Create external admins group
+  ansible.builtin.command: >
+    ipa group-add {{ idm_ad_trust_admins_external_group }} --external
+  register: idm_ad_trust_admins_ext
+  changed_when: idm_ad_trust_admins_ext.rc == 0
+  failed_when: >
+    idm_ad_trust_admins_ext.rc != 0 and
+    ('already exists' not in (idm_ad_trust_admins_ext.stderr | default('') + idm_ad_trust_admins_ext.stdout | default('')))
+
+- name: Nest external admins under linux_admins POSIX
+  ansible.builtin.command: >
+    ipa group-add-member {{ idm_ad_trust_admins_posix_group }}
+    --groups {{ idm_ad_trust_admins_external_group }}
+  failed_when: false
+  changed_when: true
+
+- name: Map AD admins group if provided
+  when: idm_ad_trust_map_ad_admins_group | length > 0
+  ansible.builtin.command: >
+    ipa -n group-add-member {{ idm_ad_trust_admins_external_group }}
+    --external '{{ idm_ad_trust_map_ad_admins_group }}'
+  failed_when: false
+  changed_when: true
+
+- name: Map individual AD users into sudo external group
+  ansible.builtin.command: >
+    ipa -n group-add-member {{ idm_ad_trust_admins_external_group }}
+    --external '{{ item }}'
+  loop: "{{ idm_ad_trust_sudo_ad_users }}"
+  failed_when: false
+  changed_when: true

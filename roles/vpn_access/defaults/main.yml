@@ -1,0 +1,53 @@
+---
+# SPDX-License-Identifier: GPL-3.0-or-later
+# defaults for infra.ado.vpn_access
+
+vpn_access_action: "{{ action | default('approve') }}"
+vpn_access_actor: "{{ actor | default('portal') }}"
+vpn_access_request_id: "{{ request_id | default('') }}"
+vpn_access_username: "{{ username | default('') }}"
+vpn_access_email: "{{ email | default('') }}"
+vpn_access_display_name: "{{ display_name | default(vpn_access_username) }}"
+vpn_access_profile: "{{ profile | default('lab-access') }}"
+vpn_access_reason: "{{ reason | default('') }}"
+vpn_access_deny_reason: "{{ deny_reason | default('Your lab / VPN access request was denied.') }}"
+
+vpn_access_create_idm: true
+vpn_access_create_unifi: true
+vpn_access_send_email: true
+
+# IdM / FreeIPA (community.general.ipa_user)
+vpn_access_ipa_host: "{{ idm_dns_ipa_host | default(ipa_host | default('idm.server.lab')) }}"
+vpn_access_ipa_user: "{{ idm_dns_ipa_user | default(ipa_user | default('admin')) }}"
+vpn_access_ipa_pass: "{{ vault_idm_admin_password | default(ipaadmin_password | default('')) }}"
+vpn_access_ipa_validate_certs: "{{ idm_validate_certs | default(false) }}"
+vpn_access_idm_groups: "{{ idm_groups | default(['vpn-users', 'lab-users']) }}"
+vpn_access_idm_password_length: 16
+
+# UniFi Network / UDM (ansible.builtin.uri)
+vpn_access_unifi_url: "{{ unifi_controller_url | default('https://192.168.1.1') }}"
+vpn_access_unifi_user: "{{ unifi_api_user | default('') }}"
+vpn_access_unifi_password: "{{ unifi_api_password | default('') }}"
+vpn_access_unifi_api_key: "{{ unifi_api_key | default('') }}"
+vpn_access_unifi_site: "{{ unifi_site | default('default') }}"
+vpn_access_unifi_validate_certs: false
+vpn_access_unifi_vpn_server: "{{ unifi_vpn_server | default('vpn.server.lab') }}"
+vpn_access_unifi_vpn_type: "{{ unifi_vpn_type | default('teleport') }}"
+# Optional network / firewall group name per portal profile
+vpn_access_unifi_profile_groups:
+  lab-access: vpn-lab
+  developer: vpn-developers
+  observability: vpn-observability
+  cluster-admin: vpn-admins
+  network-admin: vpn-netops
+
+# SMTP — same Mailjet path Grafana / portal use (prefer AAP credential injection)
+vpn_access_smtp_host: "{{ smtp_host | default('in-v3.mailjet.com') }}"
+vpn_access_smtp_port: "{{ smtp_port | default(587) }}"
+vpn_access_smtp_user: "{{ smtp_user | default('') }}"
+vpn_access_smtp_password: "{{ smtp_password | default('') }}"
+vpn_access_smtp_from: "{{ smtp_from | default('ado-cluster-portal@ocp.prod.rhlab') }}"
+vpn_access_smtp_secure: starttls
+
+vpn_access_portal_url: "{{ portal_public_url | default('https://ado-cluster-portal-ado-portal.apps.ocp.prod.rhlab') }}"
+vpn_access_password_chars: ascii_letters,digits

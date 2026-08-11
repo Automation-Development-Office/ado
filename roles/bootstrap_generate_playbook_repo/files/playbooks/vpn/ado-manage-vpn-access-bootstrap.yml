@@ -1,0 +1,53 @@
+---
+# SPDX-License-Identifier: GPL-3.0-or-later
+# AAP Job Template playbook: ADO | Manage VPN Access
+# Path in project: playbooks/vpn/ado-manage-vpn-access-bootstrap.yml
+- name: ADO | Manage VPN / lab access (approve or deny)
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  vars:
+    action: "{{ action | default(vpn_action | default('approve')) }}"
+    actor: "{{ actor | default('portal') }}"
+    request_id: "{{ request_id | default(request.id | default('')) }}"
+    username: "{{ username | default(request.username | default('')) }}"
+    email: "{{ email | default(request.email | default('')) }}"
+    display_name: >-
+      {{
+        display_name
+        | default(request.displayName | default(request.display_name | default(username)))
+      }}
+    profile: "{{ profile | default(request.profile | default('lab-access')) }}"
+    reason: "{{ reason | default(request.reason | default('')) }}"
+    deny_reason: "{{ deny_reason | default('Your lab / VPN access request was denied.') }}"
+    env: "{{ env | default('prod') }}"
+  pre_tasks:
+    - name: ADO | Load IdM / UniFi / SMTP group_vars when present
+      ansible.builtin.include_vars: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_idm.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_idm.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_unifi.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_unifi.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_smtp.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_smtp.yml"
+      failed_when: false
+
+    - name: ADO | Map common vault aliases into role defaults
+      ansible.builtin.set_fact:
+        vault_idm_admin_password: >-
+          {{ vault_idm_admin_password | default(ipaadmin_password | default('')) }}
+        unifi_controller_url: >-
+          {{ unifi_controller_url | default('https://192.168.1.1') }}
+        unifi_api_user: "{{ unifi_api_user | default('') }}"
+        unifi_api_password: "{{ unifi_api_password | default('') }}"
+        unifi_api_key: "{{ unifi_api_key | default('') }}"
+        smtp_host: "{{ smtp_host | default(SMTP_HOST | default('in-v3.mailjet.com')) }}"
+        smtp_port: "{{ smtp_port | default(SMTP_PORT | default(587)) }}"
+        smtp_user: "{{ smtp_user | default(SMTP_USER | default('')) }}"
+        smtp_password: "{{ smtp_password | default(SMTP_PASS | default(SMTP_PASSWORD | default(''))) }}"
+        smtp_from: "{{ smtp_from | default(SMTP_FROM | default('ado-cluster-portal@ocp.prod.rhlab')) }}"
+      no_log: true
+
+  roles:
+    - role: infra.ado.vpn_access

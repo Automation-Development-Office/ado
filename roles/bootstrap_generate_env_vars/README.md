@@ -57,6 +57,7 @@ Automation Development Office
 | `bootstrap_generate_env_vars_aap_hub_azure_secret` | Existing Azure object storage secret when Hub storage type is `azure`. |
 | `bootstrap_generate_env_vars_satellite_server_url` | Satellite server URL written to `vars_satellite.yml`. |
 | `bootstrap_generate_env_vars_satellite_organization` | Satellite organization written to `vars_satellite.yml`. |
+| `bootstrap_generate_env_vars_satellite_activation_key` | Client activation key used by `rhel_sat_reg` when registering hosts. |
 | `bootstrap_generate_env_vars_satellite_service_account_username` | Satellite service account username used by `satellite_config`. |
 | `bootstrap_generate_env_vars_satellite_service_account_password` | Satellite service account password written to `vault_satellite.yml`. |
 | `bootstrap_generate_env_vars_satellite_admin_password` | Satellite admin password written to `vault_satellite.yml`; defaults to the service account password when omitted. |
@@ -74,7 +75,7 @@ Automation Development Office
 | `bootstrap_generate_env_vars_satellite_data_device` | Satellite data disk path prefix written to `satellite_install_data_device`. Default `/dev`. |
 | `bootstrap_generate_env_vars_satellite_size` | Satellite sizing tier list used to derive install RAM/CPU checks and the installer tuning profile. |
 | `bootstrap_generate_env_vars_satellite_req_dirs` | Satellite storage mount definitions written to `satellite_install_req_dirs`. |
-| `bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled` | Creates a Satellite 6 dynamic inventory source in AAP when true. Default `false`; preflight JSON defaults to `true` when Satellite is selected and the setting is omitted. |
+| `bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled` | Creates a Satellite 6 dynamic inventory source in AAP when true. Default `false`; enable via preflight `component_options.satellite: [satellite_dynamic_inventory]` and/or `component_config.satellite.dynamic_inventory_enabled: true`. |
 | `bootstrap_generate_env_vars_satellite_credential_name` | AAP credential name for the Satellite 6 inventory source. |
 | `bootstrap_generate_env_vars_satellite_inventory_source_name` | AAP inventory source name for Satellite dynamic inventory. |
 | `bootstrap_generate_env_vars_satellite_inventory_overwrite` | Overwrite hosts during Satellite inventory sync. Default `true`. |
@@ -88,15 +89,32 @@ optional OpenShift configuration. `admin_htpasswd` writes HTPasswd admin user
 vault values, and `console_banner` writes console banner vars. When those
 options are omitted, stale generated HTPasswd and banner values are removed.
 
+Preflight `additional_environments` (space/comma-separated names) is combined
+with the primary `environment` value to build AAP survey
+`environment_choices`. Empty / `none` means only the primary environment is
+offered. The old hardcoded `dev/test/preprod/prod` survey list is not used when
+choices are generated from preflight.
+
+When IdM AD Trust is selected, this role overlays IdM AD trust settings into
+`vars_idm.yml` / IdM vault secrets (including
+`vault_ad_trust_admin_password`) and ensures the IdM inventory is present so
+`ADO | IdM Manage AD Trust` can target IdM hosts.
+
 Generated AAP inventories are split by purpose:
 
 - `<org>-inventory` contains only `localhost` for controller-side and local
   bootstrap jobs.
 - `<org>-RHEL-Inventory` contains RHEL managed hosts supplied through the
-  preflight form or CLI vars. Satellite dynamic inventory sources also attach
-  to this inventory because Satellite-sourced hosts are managed RHEL targets.
+  preflight RHEL or Patching form fields (`component_config.rhel` /
+  `component_config.patching`) or CLI vars. The inventory is also created when
+  only the Patching group is selected, because patching job templates target it.
+  Set ``component_config.patching.inventory_mode: existing`` with
+  ``inventory_name`` to reuse an inventory that already exists in AAP instead of
+  creating ``<org>-RHEL-Inventory`` or adding static hosts. Satellite dynamic
+  inventory sources also attach to this managed-host inventory because
+  Satellite-sourced hosts are managed RHEL targets.
 - `<org>-IDM-Inventory` contains IDM server and replica hosts when IDM is
-  selected.
+  selected under RHEL or Patching.
 - `<org>-Satellite-Server-Inventory` contains the Satellite server host when
   Satellite is selected.
 

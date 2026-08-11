@@ -47,7 +47,7 @@
     url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/components/{{ rhbk_setup_mapper_ldap_group_mapper_id }}"
     method: DELETE
     headers:
-      Authorization: "Bearer {{ rhbk_auth.json.access_token }}"
+      Authorization: "Bearer {{ rhbk_setup_mapper_auth.json.access_token }}"
     status_code: [204, 404]
     validate_certs: "{{ rhbk_verify_ssl }}"
   when: rhbk_setup_mapper_ldap_group_mapper_id != ""

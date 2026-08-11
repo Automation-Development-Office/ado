@@ -8,7 +8,10 @@ collections:
   # Galaxy. Token-auth AAP installs use kubernetes.core only; username/password
   # OpenShift login still needs redhat.openshift from AH at runtime.
   - name: community.grafana
+  # freeipa.ansible_freeipa kept for topology segment tasks; IdM install/client
+  # roles use redhat.rhel_idm (Automation Hub).
   - name: freeipa.ansible_freeipa
+  - name: redhat.rhel_idm
   - name: infra.aap_configuration
   - name: community.hashi_vault
   - name: amazon.aws

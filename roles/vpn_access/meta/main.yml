@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  author: Automation Development Office
+  description: Approve or deny ADO lab VPN access — IdM user, UniFi VPN account, requester email.
+  company: Automation Development Office
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.16.0"
+  galaxy_tags:
+    - vpn
+    - unifi
+    - idm
+    - portal
+dependencies: []

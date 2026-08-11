@@ -1,0 +1,5 @@
+bugfixes:
+  - infra.ado.bootstrap_controller - Treat ``ansible.hub.ah_collection`` approve ``IndexError`` as non-fatal so Hub publish does not stop bootstrap when force-update is enabled.
+  - infra.ado.bootstrap_generate_playbook_repo - Prefer ``/workspace/collections`` over vendored ``./collections`` and remove shadowed ``infra.ado`` copies from the generated project.
+  - infra.ado - Relax ``requires_ansible`` to ``>=2.15.0`` for preflight UI bootstrap hosts.
+  - ado-preflight-ui - Remove playbook-adjacent vendored ``infra.ado`` before bootstrap so Ansible cannot shadow the staged collection tarball.

@@ -1,0 +1,4 @@
+---
+minor_changes:
+  - vpn_access - Added ``infra.ado.vpn_access`` role and ``playbooks/vpn/ado-manage-vpn-access-bootstrap.yml`` for ADO Cluster Portal approve/deny (IdM user, UniFi VPN account, requester email).
+  - ci - Seeded AAP job template ``ADO | Manage VPN Access`` for portal webhook launches.

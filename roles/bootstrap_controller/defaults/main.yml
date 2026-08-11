@@ -43,11 +43,9 @@ bootstrap_controller_project_name: ""
 bootstrap_controller_execution_environment_name: ""
 bootstrap_controller_creds: ""
 
-# Survey defaults
+# Survey defaults (overridden by aap_config_vars from preflight:
+# primary environment + optional additional_environments)
 bootstrap_controller_environment_choices:
-  - dev
-  - test
-  - preprod
   - prod
 bootstrap_controller_default_environment: prod
 

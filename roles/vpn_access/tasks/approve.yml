@@ -1,0 +1,39 @@
+---
+# SPDX-License-Identifier: GPL-3.0-or-later
+- name: ADO | Generate IdM password
+  ansible.builtin.set_fact:
+    vpn_access_idm_password: >-
+      {{ lookup(
+           'ansible.builtin.password',
+           '/dev/null',
+           length=vpn_access_idm_password_length,
+           chars=vpn_access_password_chars
+         ) }}
+  no_log: true
+  when: vpn_access_create_idm | bool
+
+- name: ADO | Generate UniFi / VPN password
+  ansible.builtin.set_fact:
+    vpn_access_unifi_password_gen: >-
+      {{ lookup(
+           'ansible.builtin.password',
+           '/dev/null',
+           length=vpn_access_idm_password_length,
+           chars=vpn_access_password_chars
+         ) }}
+  no_log: true
+  when: vpn_access_create_unifi | bool
+
+- name: ADO | Create IdM account
+  ansible.builtin.include_tasks: idm_user.yml
+  when: vpn_access_create_idm | bool
+
+- name: ADO | Create UniFi VPN account
+  ansible.builtin.include_tasks: unifi_user.yml
+  when: vpn_access_create_unifi | bool
+
+- name: ADO | Email requester approval credentials
+  ansible.builtin.include_tasks: notify_email.yml
+  vars:
+    vpn_access_mail_kind: approve
+  when: vpn_access_send_email | bool

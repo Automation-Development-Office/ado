@@ -57,12 +57,12 @@
   register: rhbk_setup_mapper_ldap_mappers
   when: rhbk_setup_mapper_ldap_component_id != ""
 
-- name: Check if ldap-group-mapper2 already exists
+- name: Check if ldap-group-mapper already exists
   ansible.builtin.set_fact:
     rhbk_setup_mapper_ldap_group_mapper_exists: >-
       {{
         rhbk_setup_mapper_ldap_mappers.json
-        | selectattr('name', 'equalto', 'ldap-group-mapper2')
+        | selectattr('name', 'equalto', 'ldap-group-mapper')
         | list | length > 0
       }}
   when: rhbk_setup_mapper_ldap_mappers.json is defined
@@ -76,7 +76,7 @@
       Content-Type: "application/json"
     body_format: json
     body:
-      name: "ldap-group-mapper2"
+      name: "ldap-group-mapper"
       parentId: "{{ rhbk_setup_mapper_ldap_component_id }}"
       providerId: "group-ldap-mapper"
       providerType: "org.keycloak.storage.ldap.mappers.LDAPStorageMapper"

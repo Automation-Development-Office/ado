@@ -16,6 +16,11 @@ Automation Development Office
 
 | Variable | Description |
 |----------|-------------|
+| `rhel_sat_reg_org_admin_account` | Satellite API username. Defaults to `satellite_config_username` / vault service account. |
+| `rhel_sat_reg_org_admin_account_password` | Satellite API password. Defaults to `satellite_config_password` / vault service account password. |
+| `rhel_sat_reg_activation_key_name` | Client activation key used to register the host. Defaults to `satellite_activation_key`. |
+| `rhel_sat_reg_satellite_org_name` | Satellite organization name. Defaults to `satellite_config_organization`. |
+| `rhel_sat_reg_satellite_host` | Satellite server URL. Defaults to `satellite_config_server_url`. |
 | `rhel_sat_reg_validate_certs` | Validation or TLS verification setting used by this role. |
 | `rhel_sat_reg_insights_enabled` | Role input variable used to configure automation behavior. |
 | `rhel_sat_reg_update_packages` | Role input variable used to configure automation behavior. |

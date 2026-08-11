@@ -79,7 +79,10 @@ this role.
 
 Generated patching workflows are created when RHEL, Satellite, and IDM are
 selected. The workflow chain is `Register Host to Satellite` ->
-`RHEL Patch Host` -> `IdM Manage Client`.
+`RHEL Patch Host` -> `IdM Manage Client`. Selecting only the patching group
+(or RHEL without compliance/STIG) creates the patch-host job template only;
+Compliance and STIG job templates are generated when those components (or the
+matching RHEL options) are selected.
 
 Generated RHEL bootstrap workflows are created when the selected component set
 includes RHEL, Satellite, IDM, compliance, and STIG. The workflow chain is
@@ -88,6 +91,13 @@ includes RHEL, Satellite, IDM, compliance, and STIG. The workflow chain is
 
 Generated Satellite workflows are created when Satellite is selected and run
 `Satellite Server Install` -> `Satellite Server Configure`.
+
+Generated IdM AD trust automation is created when the IdM AD Trust option is
+selected (`idm_ad_trust_install`). That adds the
+`ADO | IdM Manage AD Trust` job template from
+`playbooks/idm/ado-manage-ad-trust-bootstrap.yml` and targets the IdM inventory.
+See `roles/idm_ad_trust/README.md` for trust prerequisites (AD conditional
+forwarder for two-way trust) and client SSSD notes.
 
 Generated OpenShift workflows are created when OpenShift is selected. The
 workflow starts with generated OpenShift prep jobs, runs selected cert-manager

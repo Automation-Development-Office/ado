@@ -1,0 +1,4 @@
+---
+bugfixes:
+  - bootstrap_generate_playbook_repo - IdM manage-client playbook now loads ``vars_idm.yml``/``vault_idm.yml``, maps bootstrap IdM settings to ``redhat.rhel_idm.ipaclient`` inputs, and runs with ``become``.
+  - bootstrap_generate_env_vars - Generate ``ipaclient_*`` and ``ipaadmin_password`` mappings in IdM vars/vault so client-only bootstrap can join hosts without DNS autodiscovery.

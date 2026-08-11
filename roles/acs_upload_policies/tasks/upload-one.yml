@@ -1,0 +1,48 @@
+---
+- name: Ensure ACS upload temp dir
+  ansible.builtin.file:
+    path: /tmp/acs-upload
+    state: directory
+    mode: "0755"
+
+- name: Render ACS JSON Jinja
+  ansible.builtin.template:
+    src: "{{ acs_policy_file.path }}"
+    dest: "/tmp/acs-upload/{{ acs_policy_file.path | basename | regex_replace('\\.j2$', '') }}"
+    mode: "0644"
+  when: (acs_policy_file.path | basename | regex_search('\\.json\\.j2$')) is not none
+
+- name: Copy plain ACS JSON
+  ansible.builtin.copy:
+    src: "{{ acs_policy_file.path }}"
+    dest: "/tmp/acs-upload/{{ acs_policy_file.path | basename }}"
+    mode: "0644"
+    remote_src: true
+  when: (acs_policy_file.path | basename | regex_search('\\.json\\.j2$')) is none
+
+- name: POST ACS resource
+  ansible.builtin.uri:
+    url: >-
+      {{
+        acs_upload_policies_url.rstrip('/')
+        ~ (acs_upload_policies_endpoint | default('/v1/policies'))
+      }}
+    method: POST
+    body_format: json
+    body: >-
+      {{
+        lookup(
+          'ansible.builtin.file',
+          '/tmp/acs-upload/'
+          ~ (
+            acs_policy_file.path | basename | regex_replace('\\.j2$', '')
+          )
+        ) | from_json
+      }}
+    user: "{{ acs_admin_user | default(ocp_acs_admin_user | default('admin')) }}"
+    password: "{{ acs_admin_password | default(ocp_acs_admin_password | default('')) }}"
+    force_basic_auth: true
+    status_code: [200, 201, 202, 409]
+    validate_certs: false
+  no_log: true
+  failed_when: false

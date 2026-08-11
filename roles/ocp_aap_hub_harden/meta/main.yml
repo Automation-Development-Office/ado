@@ -1,0 +1,13 @@
+---
+# SPDX-License-Identifier: GPL-3.0-or-later
+galaxy_info:
+  role_name: ocp_aap_hub_harden
+  author: Automation Development Office
+  description: Harden AAP Automation Hub against shared-Postgres LWLock storms
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["9"]
+  galaxy_tags: [aap, hub, openshift]
+dependencies: []

@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+- name: Restart sssd for idm_ad_trust
+  ansible.builtin.service:
+    name: sssd
+    state: restarted

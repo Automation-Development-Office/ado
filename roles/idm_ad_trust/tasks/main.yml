@@ -1,0 +1,218 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+- name: Validate IdM/AD trust inputs
+  ansible.builtin.assert:
+    that:
+      - idm_ad_trust_ad_domain | length > 0
+      - idm_ad_trust_ad_dc_ip | length > 0
+      - idm_ad_trust_ipa_admin_password | length > 0
+      - idm_ad_trust_ad_admin_password | length > 0
+    fail_msg: >-
+      Set idm_ad_trust_ipa_admin_password (or vault_idm_admin_password) and
+      idm_ad_trust_ad_admin_password before establishing the trust.
+
+- name: Ensure ipa-server-trust-ad packages present
+  ansible.builtin.dnf:
+    name:
+      - ipa-server-trust-ad
+      - oddjob
+      - oddjob-mkhomedir
+    state: present
+
+- name: Optionally leave FIPS for trust creation (AvMC requirement)
+  when: idm_ad_trust_disable_fips_during_setup | bool
+  ansible.builtin.command: update-crypto-policies --set DEFAULT
+  changed_when: true
+
+- name: Obtain IdM admin Kerberos ticket
+  ansible.builtin.shell: |
+    set -euo pipefail
+    echo "{{ idm_ad_trust_ipa_admin_password }}" | kinit "{{ idm_ad_trust_ipa_admin }}"
+  no_log: true
+  changed_when: false
+
+- name: Detect whether AD trust support is already installed
+  ansible.builtin.command: systemctl is-active smb
+  register: idm_ad_trust_smb_active
+  changed_when: false
+  failed_when: false
+
+- name: Install AD trust support on IdM (ipa-adtrust-install)
+  when: idm_ad_trust_smb_active.rc != 0
+  ansible.builtin.command: >-
+    ipa-adtrust-install
+    -U
+    --netbios-name={{ idm_ad_trust_netbios_name }}
+    --add-sids
+  register: idm_ad_trust_adtrust_install
+  changed_when: idm_ad_trust_adtrust_install.rc == 0
+
+- name: Re-kinit IdM admin after ipa-adtrust-install
+  when: idm_ad_trust_adtrust_install is changed
+  ansible.builtin.shell: |
+    set -euo pipefail
+    echo "{{ idm_ad_trust_ipa_admin_password }}" | kinit "{{ idm_ad_trust_ipa_admin }}"
+  no_log: true
+  changed_when: false
+
+- name: Ensure SMB service is running for trust
+  ansible.builtin.service:
+    name: smb
+    state: started
+    enabled: true
+  failed_when: false
+
+- name: Open firewall ports required for AD trust
+  when: idm_ad_trust_configure_firewall | bool
+  ansible.builtin.firewalld:
+    service: freeipa-trust
+    permanent: true
+    immediate: true
+    state: enabled
+  failed_when: false
+
+- name: Disable DNSSEC validation so AD forward zones resolve
+  when: idm_ad_trust_disable_dnssec_validation | bool
+  block:
+    - name: Set dnssec-validation no in IPA named options
+      ansible.builtin.lineinfile:
+        path: /etc/named/ipa-options-ext.conf
+        regexp: '^dnssec-validation\s+'
+        line: 'dnssec-validation no;'
+      register: idm_ad_trust_dnssec
+
+    - name: Restart IPA DNS after DNSSEC change
+      when: idm_ad_trust_dnssec is changed
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: restarted
+      loop:
+        - named-pkcs11
+        - named
+      failed_when: false
+
+- name: Ensure /etc/hosts has AD DC entry when DNS cannot resolve it yet
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^\s*{{ idm_ad_trust_ad_dc_ip | regex_escape }}\s+'
+    line: "{{ idm_ad_trust_ad_dc_ip }} {{ idm_ad_trust_ad_dc_hostname }} {{ idm_ad_trust_ad_dc_hostname.split('.')[0] }}"
+    state: present
+
+- name: Configure DNS forward zone to AD DC
+  when: idm_ad_trust_configure_dns_forward_zone | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    DOMAIN="{{ idm_ad_trust_ad_domain | lower }}"
+    DC_IP="{{ idm_ad_trust_ad_dc_ip }}"
+    if ! ipa dnsforwardzone-show "$DOMAIN" >/dev/null 2>&1; then
+      ipa dnsforwardzone-add "$DOMAIN" --forwarder="$DC_IP" --forward-policy=only
+      echo CHANGED
+    else
+      ipa dnsforwardzone-mod "$DOMAIN" --forwarder="$DC_IP" --forward-policy=only || true
+    fi
+  register: idm_ad_trust_fwd
+  changed_when: "'CHANGED' in (idm_ad_trust_fwd.stdout | default(''))"
+
+- name: Ensure IdM can resolve AD DC
+  ansible.builtin.command: getent hosts {{ idm_ad_trust_ad_dc_hostname }}
+  register: idm_ad_trust_resolve_dc
+  changed_when: false
+  failed_when: idm_ad_trust_resolve_dc.rc != 0
+
+- name: Show existing trusts
+  ansible.builtin.command: ipa trust-find
+  register: idm_ad_trust_existing
+  changed_when: false
+  failed_when: false
+
+- name: Determine whether AD trust already exists
+  ansible.builtin.set_fact:
+    idm_ad_trust_already_present: >-
+      {{
+        (idm_ad_trust_ad_domain | lower) in (idm_ad_trust_existing.stdout | default('') | lower)
+        or (idm_ad_trust_ad_realm | lower) in (idm_ad_trust_existing.stdout | default('') | lower)
+      }}
+
+- name: Establish AD trust
+  when:
+    - idm_ad_trust_state == 'present'
+    - not (idm_ad_trust_already_present | bool)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    TWO_WAY="{% if idm_ad_trust_two_way | bool %}TRUE{% else %}FALSE{% endif %}"
+    echo "{{ idm_ad_trust_ad_admin_password }}" | \
+      ipa trust-add --type=ad "{{ idm_ad_trust_ad_domain }}" \
+        --two-way="$TWO_WAY" \
+        --server="{{ idm_ad_trust_ad_dc_hostname }}" \
+        --admin="{{ idm_ad_trust_ad_admin }}" \
+        --password
+  no_log: true
+  register: idm_ad_trust_add
+
+- name: Re-verify trust when already present
+  when:
+    - idm_ad_trust_state == 'present'
+    - idm_ad_trust_already_present | bool
+  ansible.builtin.command: ipa trust-show {{ idm_ad_trust_ad_domain }}
+  register: idm_ad_trust_show
+  changed_when: false
+  failed_when: false
+
+- name: Enlarge AD trust ID range (AvMC large RID fix)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    RANGE="$(ipa idrange-find --raw | awk -v d="{{ idm_ad_trust_ad_realm }}" '
+      BEGIN{IGNORECASE=1}
+      $0 ~ d && $0 ~ /_id_range/ {print $NF; exit}
+      /cn:/ && $0 ~ d {gsub(/cn: /,""); print; exit}
+    ')"
+    if [ -z "$RANGE" ]; then
+      RANGE="{{ idm_ad_trust_ad_realm }}_id_range"
+    fi
+    ipa idrange-mod --range-size={{ idm_ad_trust_idrange_size | int }} "$RANGE"
+  register: idm_ad_trust_idrange
+  changed_when: idm_ad_trust_idrange.rc == 0
+  failed_when: false
+
+- name: Patch sssd.conf ldap_idmap_range_size on IdM server
+  when: idm_ad_trust_patch_sssd | bool
+  block:
+    - name: Ensure sssd domain stanza has ldap_idmap_range_size
+      ansible.builtin.lineinfile:
+        path: /etc/sssd/sssd.conf
+        insertafter: '^\[domain/'
+        line: "ldap_idmap_range_size = {{ idm_ad_trust_sssd_ldap_idmap_range_size | int }}"
+        regexp: '^ldap_idmap_range_size\s*='
+      notify: Restart sssd for idm_ad_trust
+
+- name: Set crypto policy compatible with AD trust
+  ansible.builtin.command: update-crypto-policies --set {{ idm_ad_trust_crypto_policy_ad_support }}
+  changed_when: true
+  failed_when: false
+
+- name: Include AD group / sudo mapping
+  when:
+    - idm_ad_trust_state == 'present'
+    - idm_ad_trust_configure_groups | bool
+  ansible.builtin.include_tasks: map_groups_sudo.yml
+
+- name: Clear SSSD cache and restart
+  ansible.builtin.shell: |
+    set -euo pipefail
+    sss_cache -E || true
+    systemctl restart sssd
+  changed_when: true
+
+- name: Verify AD user resolution sample (Domain Users lookup smoke)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ipa trust-show "{{ idm_ad_trust_ad_domain }}"
+    getent passwd "Administrator@{{ idm_ad_trust_ad_realm }}" || true
+    getent passwd "administrator@{{ idm_ad_trust_ad_domain | lower }}" || true
+  register: idm_ad_trust_verify
+  changed_when: false
+  failed_when: false
+
+- name: Display verification output
+  ansible.builtin.debug:
+    var: idm_ad_trust_verify.stdout_lines

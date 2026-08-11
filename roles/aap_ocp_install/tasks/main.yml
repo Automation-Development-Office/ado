@@ -20,3 +20,7 @@
   ansible.builtin.include_role:
     name: infra.ado.aap_ocp_install_upstream
     public: true
+
+- name: Activate AAP subscription license when configured
+  ansible.builtin.include_tasks: activate_license.yml
+  when: (aap_ocp_install_license_mode | default('none') | lower) not in ['', 'none', 'skip']

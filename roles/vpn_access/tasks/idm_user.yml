@@ -1,0 +1,39 @@
+---
+# SPDX-License-Identifier: GPL-3.0-or-later
+- name: ADO | Assert IdM admin password is available
+  ansible.builtin.assert:
+    that:
+      - vpn_access_ipa_pass | length > 0
+    fail_msg: >-
+      IdM admin password missing. Set vault_idm_admin_password / ipaadmin_password
+      or inject via AAP credential into vpn_access_ipa_pass.
+
+- name: ADO | Ensure IdM user exists
+  community.general.ipa_user:
+    ipa_host: "{{ vpn_access_ipa_host }}"
+    ipa_user: "{{ vpn_access_ipa_user }}"
+    ipa_pass: "{{ vpn_access_ipa_pass }}"
+    validate_certs: "{{ vpn_access_ipa_validate_certs | bool }}"
+    name: "{{ vpn_access_username_safe }}"
+    givenname: "{{ vpn_access_givenname }}"
+    sn: "{{ vpn_access_sn }}"
+    mail:
+      - "{{ vpn_access_email }}"
+    password: "{{ vpn_access_idm_password }}"
+    state: present
+  no_log: true
+  register: vpn_access_idm_user_result
+
+- name: ADO | Ensure IdM groups exist and contain user
+  community.general.ipa_group:
+    ipa_host: "{{ vpn_access_ipa_host }}"
+    ipa_user: "{{ vpn_access_ipa_user }}"
+    ipa_pass: "{{ vpn_access_ipa_pass }}"
+    validate_certs: "{{ vpn_access_ipa_validate_certs | bool }}"
+    name: "{{ item }}"
+    user:
+      - "{{ vpn_access_username_safe }}"
+    append: true
+    state: present
+  loop: "{{ vpn_access_idm_groups }}"
+  when: vpn_access_idm_groups | length > 0

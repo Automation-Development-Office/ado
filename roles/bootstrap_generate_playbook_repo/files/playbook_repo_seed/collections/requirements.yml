@@ -1,6 +1,10 @@
 ---
 collections:
   - name: infra.ado
-    version: "1.0.1"
+    version: "1.0.3"
   - name: kubernetes.core
   - name: redhat.openshift
+  - name: redhat.rhel_idm
+  - name: freeipa.ansible_freeipa
+  - name: community.grafana
+  - name: grafana.grafana

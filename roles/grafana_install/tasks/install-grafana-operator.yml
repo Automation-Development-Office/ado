@@ -131,10 +131,36 @@
     - grafana_install_oidc_enabled | default(false) | bool
   no_log: true
 
-- name: Merge Grafana config (base + optional OIDC)
+- name: Normalize grafana_email from email alias
+  ansible.builtin.set_fact:
+    grafana_email: "{{ email }}"
+  when:
+    - grafana_email is not defined
+    - email is defined
+
+- name: Build Grafana SMTP config when email enabled
+  ansible.builtin.set_fact:
+    grafana_install_config_smtp:
+      smtp:
+        enabled: "true"
+        host: "{{ (grafana_email.host | default('')) ~ ':' ~ (grafana_email.port | default(587) | string) }}"
+        user: "{{ grafana_email.user | default('') }}"
+        password: "{{ grafana_email.password | default('') }}"
+        from_address: "{{ grafana_email.from_address | default('') }}"
+        from_name: "{{ grafana_email.from_name | default('Grafana') }}"
+  when:
+    - grafana_email is defined
+    - (grafana_email.enabled | default(false) | bool)
+  no_log: true
+
+- name: Merge Grafana config (base + optional OIDC + optional SMTP)
   ansible.builtin.set_fact:
     grafana_install_config: >-
-      {{ grafana_install_config_base | combine((grafana_install_config_oidc | default({})), recursive=True) }}
+      {{
+        grafana_install_config_base
+        | combine((grafana_install_config_oidc | default({})), recursive=True)
+        | combine((grafana_install_config_smtp | default({})), recursive=True)
+      }}
 
 # =========================================================
 # Grafana instance + SCC + route (your existing tasks)

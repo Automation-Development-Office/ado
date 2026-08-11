@@ -1,0 +1,34 @@
+---
+- name: Ensure alerts temp dir
+  ansible.builtin.file:
+    path: /tmp/grafana-alerts
+    state: directory
+    mode: "0755"
+
+- name: Render alert Jinja template
+  ansible.builtin.template:
+    src: "{{ grafana_alert_item.path }}"
+    dest: "/tmp/grafana-alerts/{{ grafana_alert_item.name }}.json"
+    mode: "0644"
+  when: (grafana_alert_item.path | basename | regex_search('\\.json\\.j2$')) is not none
+
+- name: Copy plain alert JSON
+  ansible.builtin.copy:
+    src: "{{ grafana_alert_item.path }}"
+    dest: "/tmp/grafana-alerts/{{ grafana_alert_item.name }}.json"
+    mode: "0644"
+    remote_src: true
+  when: (grafana_alert_item.path | basename | regex_search('\\.json\\.j2$')) is none
+
+- name: POST alert rule group to Grafana API
+  ansible.builtin.uri:
+    url: "https://{{ grafana_hostname }}/api/v1/provisioning/alert-rules"
+    method: POST
+    body_format: json
+    body: "{{ lookup('ansible.builtin.file', '/tmp/grafana-alerts/' ~ grafana_alert_item.name ~ '.json') | from_json }}"
+    headers:
+      Authorization: "Bearer {{ grafana_api_key }}"
+      Content-Type: application/json
+    status_code: [200, 201, 202, 409]
+    validate_certs: false
+  failed_when: false

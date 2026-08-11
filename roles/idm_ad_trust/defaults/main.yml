@@ -1,0 +1,69 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# Two-way IdM ↔ Active Directory trust (password path for SSH/sudo).
+# Based on SCRUBBED-AvMC-IPA-Installation-Configuration-v1.0.pdf §2.6 / §2.8
+# and the MFA lab lessons (DNS forwarders, idrange, external groups, sudo).
+
+idm_ad_trust_state: present
+# Two-way requires AD DNS to resolve the IdM domain (conditional forwarder).
+idm_ad_trust_two_way: true
+
+# IdM realm / domain (example: SERVER.LAB / server.lab)
+idm_ad_trust_ipa_realm: "{{ ansible_domain | upper | default('SERVER.LAB') }}"
+idm_ad_trust_ipa_domain: "{{ ansible_domain | default('server.lab') }}"
+
+# AD forest (override via group_vars / extra-vars; lab example: ad.lab / .61)
+idm_ad_trust_ad_domain: ad.lab
+idm_ad_trust_ad_realm: "{{ idm_ad_trust_ad_domain | upper }}"
+idm_ad_trust_ad_dc_hostname: adwindows.ad.lab
+idm_ad_trust_ad_dc_ip: 192.168.0.61
+
+# NetBIOS name for ipa-adtrust-install (max 15 chars; derived from IdM domain)
+idm_ad_trust_netbios_name: >-
+  {{
+    (idm_ad_trust_ipa_domain | default(ansible_facts['domain'] | default('DEV'), true))
+    | upper
+    | regex_replace('[^A-Z0-9]', '')
+    | truncate(15, true, '')
+  }}
+
+# Trust admin on AD (must be Domain Admin or Account Operator with trust rights)
+idm_ad_trust_ad_admin: Administrator
+idm_ad_trust_ad_admin_password: "{{ vault_ad_trust_admin_password | default('') }}"
+
+# IdM admin for kinit / ipa CLI
+idm_ad_trust_ipa_admin: admin
+idm_ad_trust_ipa_admin_password: "{{ vault_idm_admin_password | default(ipaadmin_password | default('')) }}"
+
+# DNS
+idm_ad_trust_configure_dns_forward_zone: true
+idm_ad_trust_configure_reverse_hint: true
+idm_ad_trust_configure_firewall: true
+# AD DNS is usually unsigned; leave validation on and forward zones SERVFAIL.
+idm_ad_trust_disable_dnssec_validation: true
+
+# FIPS: AvMC says two-way trust setup does not work in FIPS; optionally toggle
+idm_ad_trust_disable_fips_during_setup: false
+idm_ad_trust_crypto_policy_after: "DEFAULT"
+# After trust, MFA lab used: FIPS:AD-SUPPORT:SHA1 when staying FIPS-ish
+idm_ad_trust_crypto_policy_ad_support: "DEFAULT:AD-SUPPORT"
+
+# ID range (AvMC bugfix for large RIDs)
+idm_ad_trust_idrange_size: 1000000000
+idm_ad_trust_sssd_ldap_idmap_range_size: 2000000
+
+# POSIX / sudo mapping so AD-only users can SSH + sudo
+idm_ad_trust_configure_groups: true
+idm_ad_trust_posix_group: ad_users
+idm_ad_trust_external_group: ad_users_external
+idm_ad_trust_admins_posix_group: linux_admins
+idm_ad_trust_admins_external_group: linux_admins_external
+idm_ad_trust_sudorule: sysadmin_sudo
+# AD group or user to map (DOMAIN\group or user@REALM style for --external)
+idm_ad_trust_map_ad_group: "Domain Users@{{ idm_ad_trust_ad_realm }}"
+idm_ad_trust_map_ad_admins_group: ""
+# Optional explicit AD users for sudo (user@REALM)
+idm_ad_trust_sudo_ad_users: []
+
+# Client-side notes applied on IdM server sssd (domain section)
+idm_ad_trust_patch_sssd: true
