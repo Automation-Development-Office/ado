@@ -97,19 +97,6 @@
   changed_when: true
   notify: reboot system
 
-- name: preliminary_check | Get kernel args for all entries
-  ansible.builtin.command: grubby --info=ALL
-  register: satellite_install_grubby_all
-  changed_when: false
-
-- name: >-
-    preliminary_check | Remove ipv6.disable=1 from all kernels if present
-  ansible.builtin.command: >-
-    grubby --update-kernel ALL --remove-args="ipv6.disable=1"
-  when: "'ipv6.disable=1' in satellite_install_grubby_all.stdout"
-  changed_when: true
-  notify: reboot system
-
 - name: preliminary_check | Ensure SELinux is permissive (idempotent)
   ansible.posix.selinux:
     policy: targeted
