@@ -97,15 +97,15 @@
       - "*.json"
       - "*.json.j2"
     recurse: true
-  register: acs_upload_reports_found
+  register: acs_upload_policies_reports_found
   when: (acs_reports_source | default('') | length) > 0
   failed_when: false
 
 - name: Upload each ACS report config file
   ansible.builtin.include_tasks: upload-one.yml
-  loop: "{{ acs_upload_reports_found.files | default([]) }}"
+  loop: "{{ acs_upload_policies_reports_found.files | default([]) }}"
   loop_control:
     loop_var: acs_policy_file
   vars:
     acs_upload_policies_endpoint: /v1/report/configurations
-  when: acs_upload_reports_found is defined
+  when: acs_upload_policies_reports_found is defined

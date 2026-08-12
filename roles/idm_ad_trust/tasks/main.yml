@@ -32,7 +32,7 @@
   changed_when: false
 
 - name: Detect whether AD trust support is already installed
-  ansible.builtin.command: systemctl is-active smb
+  ansible.builtin.command: systemctl is-active smb  # noqa: command-instead-of-module
   register: idm_ad_trust_smb_active
   changed_when: false
   failed_when: false
@@ -48,7 +48,7 @@
   changed_when: idm_ad_trust_adtrust_install.rc == 0
 
 - name: Re-kinit IdM admin after ipa-adtrust-install
-  when: idm_ad_trust_adtrust_install is changed
+  when: idm_ad_trust_adtrust_install is changed  # noqa: no-handler
   ansible.builtin.shell: |
     set -euo pipefail
     echo "{{ idm_ad_trust_ipa_admin_password }}" | kinit "{{ idm_ad_trust_ipa_admin }}"
@@ -64,7 +64,7 @@
 
 - name: Open firewall ports required for AD trust
   when: idm_ad_trust_configure_firewall | bool
-  ansible.builtin.firewalld:
+  ansible.posix.firewalld:
     service: freeipa-trust
     permanent: true
     immediate: true
@@ -82,7 +82,7 @@
       register: idm_ad_trust_dnssec
 
     - name: Restart IPA DNS after DNSSEC change
-      when: idm_ad_trust_dnssec is changed
+      when: idm_ad_trust_dnssec is changed  # noqa: no-handler
       ansible.builtin.service:
         name: "{{ item }}"
         state: restarted
@@ -129,8 +129,10 @@
   ansible.builtin.set_fact:
     idm_ad_trust_already_present: >-
       {{
-        (idm_ad_trust_ad_domain | lower) in (idm_ad_trust_existing.stdout | default('') | lower)
-        or (idm_ad_trust_ad_realm | lower) in (idm_ad_trust_existing.stdout | default('') | lower)
+        (idm_ad_trust_ad_domain | default('') | lower)
+        in (idm_ad_trust_existing.stdout | default('') | lower)
+        or (idm_ad_trust_ad_realm | default('') | lower)
+        in (idm_ad_trust_existing.stdout | default('') | lower)
       }}
 
 - name: Establish AD trust
@@ -148,6 +150,7 @@
         --password
   no_log: true
   register: idm_ad_trust_add
+  changed_when: idm_ad_trust_add.rc == 0
 
 - name: Re-verify trust when already present
   when:

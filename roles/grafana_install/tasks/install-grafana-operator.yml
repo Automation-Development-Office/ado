@@ -133,7 +133,7 @@
 
 - name: Normalize grafana_email from email alias
   ansible.builtin.set_fact:
-    grafana_email: "{{ email }}"
+    grafana_email: "{{ email }}"  # noqa: var-naming[no-role-prefix]
   when:
     - grafana_email is not defined
     - email is defined

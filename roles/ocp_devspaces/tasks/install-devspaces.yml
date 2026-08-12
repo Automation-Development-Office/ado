@@ -2,40 +2,16 @@
 # ----------------------------
 # 0) Resolve namespaces and config from component_config / components_env
 # ----------------------------
-- name: Resolve DevSpaces namespaces and options
+- name: Resolve DevSpaces namespaces and options  # noqa: jinja[invalid]
   ansible.builtin.set_fact:
     ocp_devspaces_operator_ns: "{{ operator_namespace | default(name_space | default('openshift-operators')) }}"
-    ocp_devspaces_app_ns: >-
-      {{
-        app_namespace
-        | default(devspaces_namespace | default(namespace | default('openshift-devspaces')))
-      }}
-    ocp_devspaces_disable_default_samples: >-
-      {{
-        ocp_devspaces_disable_default_samples
-        | default(disable_default_samples | default(true))
-        | bool
-      }}
-    ocp_devspaces_customize_workspace: >-
-      {{
-        ocp_devspaces_customize_workspace
-        | default(customize_workspace | default(false))
-        | bool
-      }}
-    ocp_devspaces_default_devfile_url: >-
-      {{
-        ocp_devspaces_default_devfile_url
-        | default(default_devfile_url | default(''))
-      }}
-    ocp_devspaces_default_workspace_image: >-
-      {{
-        ocp_devspaces_default_workspace_image
-        | default(default_workspace_image | default(''))
-      }}
-    ocp_devspaces_che_image_tag: >-
-      {{ ocp_devspaces_che_image_tag | default(che_image_tag | default('')) }}
-    ocp_devspaces_dashboard_image: >-
-      {{ ocp_devspaces_dashboard_image | default(dashboard_image | default('')) }}
+    ocp_devspaces_app_ns: "{{ app_namespace | default(devspaces_namespace | default(namespace | default('openshift-devspaces'))) }}"
+    ocp_devspaces_disable_default_samples: "{{ ocp_devspaces_disable_default_samples | default(disable_default_samples | default(true)) | bool }}"
+    ocp_devspaces_customize_workspace: "{{ ocp_devspaces_customize_workspace | default(customize_workspace | default(false)) | bool }}"
+    ocp_devspaces_default_devfile_url: "{{ ocp_devspaces_default_devfile_url | default(default_devfile_url | default('')) }}"
+    ocp_devspaces_default_workspace_image: "{{ ocp_devspaces_default_workspace_image | default(default_workspace_image | default('')) }}"
+    ocp_devspaces_che_image_tag: "{{ ocp_devspaces_che_image_tag | default(che_image_tag | default('')) }}"
+    ocp_devspaces_dashboard_image: "{{ ocp_devspaces_dashboard_image | default(dashboard_image | default('')) }}"
 
 # ----------------------------
 # 1) Wait for Dev Spaces CSV (operator install namespace)

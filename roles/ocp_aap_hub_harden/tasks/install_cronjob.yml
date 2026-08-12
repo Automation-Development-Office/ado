@@ -146,4 +146,4 @@
                   - name: scripts
                     configMap:
                       name: "{{ ocp_aap_hub_harden_cronjob_name }}-script"
-                      defaultMode: 0755
+                      defaultMode: 493  # 0755
