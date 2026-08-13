@@ -9,7 +9,9 @@ Automation Development Office
 
 ## ✅ Role Requirements
 
-- Ansible Core on an IdM server or host with `ipa` CLI access
+- Ansible Core on the IdM server (role uses ``redhat.rhel_idm`` modules)
+- Collections: ``redhat.rhel_idm``, ``ansible.posix``
+- Same-collection role ``infra.ado.rhel_services_management`` for smb / named / sssd
 - IdM admin credentials (`vault_idm_admin_password` or `ipaadmin_password`)
 - AD Domain Admin credentials (`vault_ad_trust_admin_password`)
 - For two-way trust: AD DNS conditional forwarder for the IdM domain so AD can
@@ -27,9 +29,9 @@ Automation Development Office
 | `idm_ad_trust_ad_realm` | AD Kerberos realm. Default derived from `idm_ad_trust_ad_domain`. |
 | `idm_ad_trust_ad_dc_hostname` | AD domain controller hostname. |
 | `idm_ad_trust_ad_dc_ip` | AD domain controller IP for `/etc/hosts` hint and forward zone. |
-| `idm_ad_trust_ad_admin` | AD admin username for `ipa trust-add`. Default `Administrator`. |
+| `idm_ad_trust_ad_admin` | AD admin username for trust establish. Default `Administrator`. |
 | `idm_ad_trust_ad_admin_password` | AD admin password from vault or extra-vars. |
-| `idm_ad_trust_ipa_admin_password` | IdM admin password for kinit / ipa CLI. |
+| `idm_ad_trust_ipa_admin_password` | IdM admin password for ``redhat.rhel_idm`` modules. |
 | `idm_ad_trust_configure_groups` | Map AD external groups to POSIX groups and sudo. Default `true`. |
 | `idm_ad_trust_map_ad_admins_group` | AD group mapped for admin sudo (for example `Domain Admins@AD.LAB`). |
 | `idm_ad_trust_sudo_ad_users` | Optional list of AD users granted sudo (user@REALM). |

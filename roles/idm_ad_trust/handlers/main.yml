@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 ---
 - name: Restart sssd for idm_ad_trust
-  ansible.builtin.service:
-    name: sssd
-    state: restarted
+  ansible.builtin.include_role:
+    name: infra.ado.rhel_services_management
+  vars:
+    rhel_services_management_service_names:
+      - name: sssd
+        state: restarted

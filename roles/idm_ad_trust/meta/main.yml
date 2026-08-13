@@ -10,3 +10,6 @@ galaxy_info:
       versions: ["9"]
   galaxy_tags: [idm, ipa, ad, trust, sudo]
 dependencies: []
+collections:
+  - redhat.rhel_idm
+  - ansible.posix
