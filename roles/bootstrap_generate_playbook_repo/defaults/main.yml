@@ -13,7 +13,9 @@ bootstrap_generate_playbook_repo_git_token: ""
 bootstrap_generate_playbook_repo_git_sync_before_push: true
 bootstrap_generate_playbook_repo_pause_after_generate: false
 
-bootstrap_generate_playbook_repo_infra_ado_collection_version: "1.0.3"
+# Leave empty so generated collections/requirements.yml installs the latest
+# infra.ado from Hub (no version pin). Set only when you must pin.
+bootstrap_generate_playbook_repo_infra_ado_collection_version: ""
 
 bootstrap_generate_playbook_repo_component: all
 

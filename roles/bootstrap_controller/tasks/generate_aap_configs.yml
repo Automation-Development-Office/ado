@@ -211,8 +211,6 @@
 
       admin_htpasswd:
         - ado-openshift-create-htpass-user-bootstrap.jt.yml
-      vpn_access:
-        - ado-vpn-manage-access-bootstrap.jt.yml
       nfs_csi:
         - ado-openshift-install-nfs-csi-bootstrap.jt.yml
       iscsi_csi:

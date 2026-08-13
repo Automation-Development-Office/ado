@@ -5,10 +5,13 @@
 ocp_aap_hub_harden_namespace: aap
 ocp_aap_hub_harden_aap_name: aap
 ocp_aap_hub_harden_automationhub_name: aap-hub
-ocp_aap_hub_harden_postgres_pod: aap-postgres-15-0
+# Dedicated Hub Postgres (permanent separation from Controller DB).
+ocp_aap_hub_harden_postgres_pod: aap-hub-dedicated-postgres-0
 ocp_aap_hub_harden_postgres_db: automationhub
+ocp_aap_hub_harden_postgres_secret: external-hub-postgres-configuration
 
-# Keep Hub single-replica while sharing Postgres with Controller.
+# Keep Hub single-replica; dedicated DB removes shared-buffer storms, but
+# 1 worker still limits status-endpoint fan-out.
 ocp_aap_hub_harden_api_replicas: 1
 ocp_aap_hub_harden_content_replicas: 1
 ocp_aap_hub_harden_worker_replicas: 1
@@ -29,7 +32,7 @@ ocp_aap_hub_harden_api_readiness_period: 20
 ocp_aap_hub_harden_api_readiness_timeout: 15
 ocp_aap_hub_harden_api_readiness_failure: 15
 
-# Install CronJob that periodically vacuums status table + re-applies probe/worker env.
+# Install CronJob that periodically vacuums status table + re-applies worker env.
 ocp_aap_hub_harden_install_maintenance_cronjob: true
 ocp_aap_hub_harden_cronjob_name: aap-hub-stability
 ocp_aap_hub_harden_cron_schedule: "*/15 * * * *"

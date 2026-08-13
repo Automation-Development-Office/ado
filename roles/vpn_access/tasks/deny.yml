@@ -1,7 +1,0 @@
----
-# SPDX-License-Identifier: GPL-3.0-or-later
-- name: ADO | Email requester denial notice
-  ansible.builtin.include_tasks: notify_email.yml
-  vars:
-    vpn_access_mail_kind: deny
-  when: vpn_access_send_email | bool

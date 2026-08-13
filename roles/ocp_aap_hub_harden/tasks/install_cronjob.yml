@@ -61,25 +61,31 @@
           #!/bin/bash
           set -euo pipefail
           NS="${NAMESPACE:-aap}"
-          PG_POD="${POSTGRES_POD:-aap-postgres-15-0}"
+          PG_POD="${POSTGRES_POD:-aap-hub-dedicated-postgres-0}"
           DB="${POSTGRES_DB:-automationhub}"
-          echo "[hub-stability] $(date -u +%FT%TZ) start"
+          HUB_PG_SECRET="${HUB_POSTGRES_SECRET:-external-hub-postgres-configuration}"
+          echo "[hub-stability] $(date -u +%FT%TZ) start pg_pod=$PG_POD"
 
-          oc -n "$NS" patch ansibleautomationplatform aap --type=merge -p '{
-            "spec":{"hub":{"api":{"replicas":1},"content":{"replicas":1},"worker":{"replicas":1},"web":{"replicas":1}}}
-          }' >/dev/null || true
+          oc -n "$NS" patch ansibleautomationplatform aap --type=merge -p "{
+            \"spec\":{\"hub\":{
+              \"postgres_configuration_secret\":\"$HUB_PG_SECRET\",
+              \"api\":{\"replicas\":1},\"content\":{\"replicas\":1},
+              \"worker\":{\"replicas\":1},\"web\":{\"replicas\":1}
+            }}
+          }" >/dev/null || true
 
-          oc -n "$NS" patch automationhub aap-hub --type=merge -p '{
-            "spec":{
-              "gunicorn_api_workers":1,
-              "gunicorn_content_workers":1,
-              "gunicorn_timeout":180,
-              "haproxy_timeout":"180s",
-              "nginx_proxy_connect_timeout":"120s",
-              "nginx_proxy_read_timeout":"180s",
-              "nginx_proxy_send_timeout":"180s"
+          oc -n "$NS" patch automationhub aap-hub --type=merge -p "{
+            \"spec\":{
+              \"postgres_configuration_secret\":\"$HUB_PG_SECRET\",
+              \"gunicorn_api_workers\":1,
+              \"gunicorn_content_workers\":1,
+              \"gunicorn_timeout\":180,
+              \"haproxy_timeout\":\"180s\",
+              \"nginx_proxy_connect_timeout\":\"120s\",
+              \"nginx_proxy_read_timeout\":\"180s\",
+              \"nginx_proxy_send_timeout\":\"180s\"
             }
-          }' >/dev/null || true
+          }" >/dev/null || true
 
           if oc -n "$NS" get pod "$PG_POD" >/dev/null 2>&1; then
             oc -n "$NS" exec "$PG_POD" -- bash -lc "psql -U postgres -d '$DB' -v ON_ERROR_STOP=0 <<'SQL'
@@ -138,6 +144,8 @@
                         value: "{{ ocp_aap_hub_harden_postgres_pod }}"
                       - name: POSTGRES_DB
                         value: "{{ ocp_aap_hub_harden_postgres_db }}"
+                      - name: HUB_POSTGRES_SECRET
+                        value: "{{ ocp_aap_hub_harden_postgres_secret }}"
                     command: ["/bin/bash", "/scripts/maintain.sh"]
                     volumeMounts:
                       - name: scripts

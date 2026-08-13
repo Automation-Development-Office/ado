@@ -155,7 +155,6 @@ Use this index as the starting point for operators and automation users.
 | [`infra.ado.satellite_content_view`](roles/satellite_content_view/README.md) | Manage Red Hat Satellite Content Views with create, publish, and promote actions. |
 | [`infra.ado.satellite_install`](roles/satellite_install/README.md) | Prepare and install a Red Hat Satellite host on supported RHEL systems. |
 | [`infra.ado.vm_image_management`](roles/vm_image_management/README.md) | Create a qcow2 virtual machine image from an existing base image. |
-| [`infra.ado.vpn_access`](roles/vpn_access/README.md) | Manage VPN access approvals for the ADO Cluster Portal (IdM/UniFi/email). |
 
 ## Using this collection
 
