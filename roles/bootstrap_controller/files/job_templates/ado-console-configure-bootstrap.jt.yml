@@ -40,3 +40,34 @@ controller_templates:
           variable: env
           choices: '{{ bootstrap_controller_environment_choices }}'
           default: '{{ bootstrap_controller_default_environment }}'
+        - question_name: ADO | Banner text
+          question_description: Text displayed in the OpenShift console banner
+          required: true
+          type: textarea
+          variable: ocp_console_banner_text
+          default: Hello OpenShift Banner | UNCLASSIFIED
+        - question_name: ADO | Banner location
+          question_description: Where the banner appears in the console
+          required: true
+          type: multiplechoice
+          variable: ocp_console_banner_location
+          choices: "BannerTop\nBannerBottom"
+          default: BannerTop
+        - question_name: ADO | Banner background color
+          question_description: CSS hex color for banner background
+          required: true
+          type: text
+          variable: ocp_console_banner_background_color
+          default: '#1f7a1f'
+        - question_name: ADO | Banner text color
+          question_description: CSS hex color for banner text
+          required: true
+          type: text
+          variable: ocp_console_banner_text_color
+          default: '#ffffff'
+        - question_name: ADO | Banner name
+          question_description: Optional Consoles plugin banner resource name
+          required: false
+          type: text
+          variable: ocp_console_banner_name
+          default: ado-banner

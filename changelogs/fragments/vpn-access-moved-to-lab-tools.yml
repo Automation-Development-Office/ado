@@ -1,0 +1,3 @@
+removed_features:
+  - infra.ado.vpn_access - Removed from the collection; lab VPN / IdM user
+    provisioning lives outside ADO under lab-tools (Add user to lab).

@@ -96,14 +96,18 @@
       selected: "{{ bootstrap_resolve_component_selected }}"
   when: (bootstrap_resolve_component_debug | default(false)) | bool
 
-# Export EVERYTHING (scalars/lists/dicts), but NEVER clobber higher precedence vars
+# Export EVERYTHING (scalars/lists/dicts), but NEVER clobber higher precedence vars.
+# Skip dotted keys — Ansible fact names cannot contain '.' (e.g. legacy
+# ``infra.ado.ocp_operatorgroups`` registry entries). Prefer flattened aliases.
 - name: Resolve_component | Export resolved vars (top-level, don't clobber higher precedence vars)
   ansible.builtin.set_fact:
     "{{ item.key }}": "{{ item.value }}"
   loop: "{{ bootstrap_resolve_component_selected | dict2items }}"
   loop_control:
     label: "{{ item.key }}"
-  when: vars[item.key] is not defined
+  when:
+    - vars[item.key] is not defined
+    - "'.' not in (item.key | string)"
 # noqa: var-naming
 
 # Apply aliases safely:

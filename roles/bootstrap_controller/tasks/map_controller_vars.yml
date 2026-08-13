@@ -91,10 +91,15 @@
     bootstrap_controller_environment_choices: >-
       {{
         bootstrap_controller_environment_choices
-        | default(['dev', 'test', 'preprod', 'prod'])
+        | default(controller_bootstrap_environment_choices
+        | default([env | default('prod')]))
       }}
     bootstrap_controller_default_environment: >-
-      {{ bootstrap_controller_default_environment | default('prod') }}
+      {{
+        bootstrap_controller_default_environment
+        | default(controller_bootstrap_default_environment
+        | default(env | default('prod')))
+      }}
     bootstrap_controller_state_choices: >-
       {{ bootstrap_controller_state_choices | default(['present', 'absent']) }}
     bootstrap_controller_default_state: >-

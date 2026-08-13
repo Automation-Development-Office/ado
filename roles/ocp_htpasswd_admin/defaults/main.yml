@@ -1,3 +1,9 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
-# defaults file for advanced-cluster-management
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# defaults file for ocp_htpasswd_admin
+htpasswd_action: add
+htpasswd_remove_all: false
+htpasswd_users: []
+htpasswd_idp_name: htpasswd-admin
+htpasswd_secret: htpasswd-admin-secret
+name_space: openshift-config

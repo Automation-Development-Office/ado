@@ -1,0 +1,103 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# Map AD identities into IdM POSIX groups + sudo (AvMC §2.8)
+# Uses redhat.rhel_idm modules (freeipa.ansible_freeipa API) instead of ipa CLI.
+
+- name: Create POSIX group for AD users
+  redhat.rhel_idm.ipagroup:
+    ipaadmin_password: "{{ idm_ad_trust_ipa_admin_password }}"
+    name: "{{ idm_ad_trust_posix_group }}"
+    description: IPA Internal Group mapped to AD Users
+    state: present
+
+- name: Create external group for AD users
+  redhat.rhel_idm.ipagroup:
+    ipaadmin_password: "{{ idm_ad_trust_ipa_admin_password }}"
+    ipaapi_context: server
+    name: "{{ idm_ad_trust_external_group }}"
+    description: AD Users External Group
+    external: true
+    state: present
+
+- name: Nest external group under POSIX group (IdM AD trust pattern)
+  redhat.rhel_idm.ipagroup:
+    ipaadmin_password: "{{ idm_ad_trust_ipa_admin_password }}"
+    name: "{{ idm_ad_trust_posix_group }}"
+    group:
+      - "{{ idm_ad_trust_external_group }}"
+    action: member
+    state: present
+
+- name: Map AD group into external group
+  when: idm_ad_trust_map_ad_group | length > 0
+  redhat.rhel_idm.ipagroup:
+    ipaadmin_password: "{{ idm_ad_trust_ipa_admin_password }}"
+    ipaapi_context: server
+    name: "{{ idm_ad_trust_external_group }}"
+    externalmember:
+      - "{{ idm_ad_trust_map_ad_group }}"
+    action: member
+    state: present
+
+- name: Create linux_admins POSIX group
+  redhat.rhel_idm.ipagroup:
+    ipaadmin_password: "{{ idm_ad_trust_ipa_admin_password }}"
+    name: "{{ idm_ad_trust_admins_posix_group }}"
+    state: present
+
+- name: Create sudo rule for linux_admins
+  redhat.rhel_idm.ipasudorule:
+    ipaadmin_password: "{{ idm_ad_trust_ipa_admin_password }}"
+    name: "{{ idm_ad_trust_sudorule }}"
+    hostcategory: all
+    runasusercategory: all
+    runasgroupcategory: all
+    cmdcategory: all
+    state: present
+
+- name: Attach linux_admins to sudo rule
+  redhat.rhel_idm.ipasudorule:
+    ipaadmin_password: "{{ idm_ad_trust_ipa_admin_password }}"
+    name: "{{ idm_ad_trust_sudorule }}"
+    group:
+      - "{{ idm_ad_trust_admins_posix_group }}"
+    action: member
+    state: present
+
+- name: Create external admins group
+  redhat.rhel_idm.ipagroup:
+    ipaadmin_password: "{{ idm_ad_trust_ipa_admin_password }}"
+    ipaapi_context: server
+    name: "{{ idm_ad_trust_admins_external_group }}"
+    external: true
+    state: present
+
+- name: Nest external admins under linux_admins POSIX
+  redhat.rhel_idm.ipagroup:
+    ipaadmin_password: "{{ idm_ad_trust_ipa_admin_password }}"
+    name: "{{ idm_ad_trust_admins_posix_group }}"
+    group:
+      - "{{ idm_ad_trust_admins_external_group }}"
+    action: member
+    state: present
+
+- name: Map AD admins group if provided
+  when: idm_ad_trust_map_ad_admins_group | length > 0
+  redhat.rhel_idm.ipagroup:
+    ipaadmin_password: "{{ idm_ad_trust_ipa_admin_password }}"
+    ipaapi_context: server
+    name: "{{ idm_ad_trust_admins_external_group }}"
+    externalmember:
+      - "{{ idm_ad_trust_map_ad_admins_group }}"
+    action: member
+    state: present
+
+- name: Map individual AD users into sudo external group
+  when: idm_ad_trust_sudo_ad_users | length > 0
+  redhat.rhel_idm.ipagroup:
+    ipaadmin_password: "{{ idm_ad_trust_ipa_admin_password }}"
+    ipaapi_context: server
+    name: "{{ idm_ad_trust_admins_external_group }}"
+    externalmember: "{{ idm_ad_trust_sudo_ad_users }}"
+    action: member
+    state: present

@@ -117,6 +117,7 @@ mock_roles:
     - infra.ado.vm_image_management
 mock_modules:
     - ansible.posix.mount
+    - ansible.posix.firewalld
     - infra.ado.ocp_namespace
     - infra.ado.ocp_routes
     - infra.ado.ocp_operatorgroups

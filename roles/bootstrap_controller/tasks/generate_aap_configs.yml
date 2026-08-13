@@ -173,14 +173,25 @@
         - ado-grafana-deploy-bootstrap.jt.yml
         - ado-grafana-deploy-dashboards-bootstrap.jt.yml
 
-      idm:
-        - ado-idm-install-replica-bootstrap.jt.yml
+      idm_server_install:
         - ado-idm-install-server-bootstrap.jt.yml
-        - ado-idm-manage-client-bootstrap.jt.yml
-        - ado-idm-manage-dns-bootstrap.jt.yml
         - ado-idm-manage-server-settings-bootstrap.jt.yml
         - ado-idm-manage-sudo-bootstrap.jt.yml
         - ado-idm-manage-topology-bootstrap.jt.yml
+
+      idm_replica_install:
+        - ado-idm-install-replica-bootstrap.jt.yml
+
+      idm_client_tools:
+        - ado-idm-manage-client-bootstrap.jt.yml
+
+      idm_dns_install:
+        - ado-idm-manage-dns-bootstrap.jt.yml
+
+      idm_ad_trust_install:
+        - ado-idm-manage-ad-trust-bootstrap.jt.yml
+
+      idm: []
 
       jira:
         - ado-jira-create-stories-bootstrap.jt.yml
@@ -246,16 +257,25 @@
       rhbk_federation:
         - ado-rhbk-realm-bootstrap.jt.yml
 
-      rhel:
-        - ado-rhel-compliance-bootstrap.jt.yml
-        - ado-rhel-patch-host-bootstrap.jt.yml
-        - ado-rhel-stig-hardening-bootstrap.jt.yml
+      rhbk_mapper:
+        - ado-rhbk-setup-mapper-bootstrap.jt.yml
 
-      satellite:
+      rhel:
+        - ado-rhel-patch-host-bootstrap.jt.yml
+
+      satellite_server_install:
         - ado-satellite-install-bootstrap.jt.yml
         - ado-satellite-configure-bootstrap.jt.yml
+
+      satellite_content_view:
         - ado-satellite-content-view-bootstrap.jt.yml
+
+      satellite_client_tools:
         - ado-satellite-register-host-bootstrap.jt.yml
+
+      satellite_capsule_install: []
+
+      satellite: []
 
       patching:
         - ado-rhel-patch-host-bootstrap.jt.yml
@@ -318,11 +338,11 @@
     environment_choices = {{ (
         bootstrap_controller_environment_choices
         | default(controller_bootstrap_environment_choices
-        | default(['dev', 'test', 'preprod', 'prod']))
+        | default([env | default('prod')]))
         + [env | default('prod')]
       ) | unique | list | to_json }}
     environment_choices_yaml = "\n".join(environment_choices)
-    default_environment = "{{ env | default(bootstrap_controller_default_environment | default('prod'), true) }}"
+    default_environment = "{{ env | default(bootstrap_controller_default_environment | default(controller_bootstrap_default_environment | default('prod')), true) }}"
 
     selected = {{ bootstrap_controller_job_template_files_selected | default([]) | to_json }}
     if not selected:
@@ -458,6 +478,7 @@
     replacements[f"'{lb} controller_bootstrap_default_environment {rb}'"] = default_environment
 
     copied = []
+    playbook_dir = Path("{{ playbook_dir }}")
     for name in selected:
         src = src_dir / name
         if not src.exists():
@@ -482,6 +503,20 @@
         text = text.replace(f"{organization} | ADO ", f"{organization} | ")
 
         data = yaml.safe_load(text)
+        templates = data.get("controller_templates", []) or []
+        missing_playbooks = []
+        for template in templates:
+            playbook = template.get("playbook")
+            if not playbook:
+                continue
+            if not (playbook_dir / playbook).exists():
+                missing_playbooks.append(playbook)
+        if missing_playbooks:
+            print(
+                f"Skipping {name}: playbook(s) not generated: "
+                + ", ".join(missing_playbooks)
+            )
+            continue
 
         def normalize_survey_choices(question):
             choices = question.get("choices")
@@ -543,12 +578,9 @@
   when:
     - >-
         'rhel' in bootstrap_controller_effective_components
-        and 'satellite' in bootstrap_controller_effective_components
-        and 'idm' in bootstrap_controller_effective_components
-        and (
-          'patching' in bootstrap_controller_effective_components
-          or 'rhel' in bootstrap_controller_effective_components
-        )
+        and 'satellite_client_tools' in
+          bootstrap_controller_effective_components
+        and 'idm_client_tools' in bootstrap_controller_effective_components
 
 - name: AAP configs | Copy RHEL workflow when selected
   ansible.builtin.copy:
@@ -561,8 +593,9 @@
   when:
     - >-
         'rhel' in bootstrap_controller_effective_components
-        and 'satellite' in bootstrap_controller_effective_components
-        and 'idm' in bootstrap_controller_effective_components
+        and 'satellite_client_tools' in
+          bootstrap_controller_effective_components
+        and 'idm_client_tools' in bootstrap_controller_effective_components
         and 'compliance' in bootstrap_controller_effective_components
         and 'stig' in bootstrap_controller_effective_components
 
@@ -575,7 +608,9 @@
       }}/configs/workflows/ado-satellite-workflow-bootstrap.wf.yml
     mode: "0644"
   when:
-    - "'satellite' in bootstrap_controller_effective_components"
+    - >-
+        'satellite_server_install' in
+        bootstrap_controller_effective_components
 
 - name: AAP configs | Copy OpenShift workflow when selected
   ansible.builtin.copy:
@@ -598,8 +633,10 @@
   when:
     - >-
         'rhel' not in bootstrap_controller_effective_components
-        or 'satellite' not in bootstrap_controller_effective_components
-        or 'idm' not in bootstrap_controller_effective_components
+        or 'satellite_client_tools' not in
+          bootstrap_controller_effective_components
+        or 'idm_client_tools' not in
+          bootstrap_controller_effective_components
 
 - name: AAP configs | Remove RHEL workflow when unselected
   ansible.builtin.file:
@@ -611,8 +648,10 @@
   when:
     - >-
         'rhel' not in bootstrap_controller_effective_components
-        or 'satellite' not in bootstrap_controller_effective_components
-        or 'idm' not in bootstrap_controller_effective_components
+        or 'satellite_client_tools' not in
+          bootstrap_controller_effective_components
+        or 'idm_client_tools' not in
+          bootstrap_controller_effective_components
         or 'compliance' not in bootstrap_controller_effective_components
         or 'stig' not in bootstrap_controller_effective_components
 
@@ -624,7 +663,9 @@
       }}/configs/workflows/ado-satellite-workflow-bootstrap.wf.yml
     state: absent
   when:
-    - "'satellite' not in bootstrap_controller_effective_components"
+    - >-
+        'satellite_server_install' not in
+        bootstrap_controller_effective_components
 
 - name: AAP configs | Remove OpenShift workflow when unselected
   ansible.builtin.file:

@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+galaxy_info:
+  author: Automation Development Office
+  description: Establish two-way IdM/AD trust and map AD users for SSH/sudo
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions: ["9"]
+  galaxy_tags: [idm, ipa, ad, trust, sudo]
+dependencies: []
+collections:
+  - redhat.rhel_idm
+  - ansible.posix

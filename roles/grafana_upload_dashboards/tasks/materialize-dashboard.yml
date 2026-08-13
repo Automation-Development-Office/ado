@@ -1,0 +1,39 @@
+---
+- name: Ensure rendered dashboard directory exists
+  ansible.builtin.file:
+    path: /tmp/grafana-dashboards
+    state: directory
+    mode: "0755"
+
+- name: Render Jinja dashboard template
+  ansible.builtin.template:
+    src: "{{ grafana_dashboard_item.template | default(grafana_dashboard_item.path) }}"
+    dest: "/tmp/grafana-dashboards/{{ grafana_dashboard_item.name }}.json"
+    mode: "0644"
+  when: >
+    (grafana_dashboard_item.template is defined)
+    or (
+      (grafana_dashboard_item.path | default('') | basename | regex_search('\\.json\\.j2$')) is not none
+    )
+  vars:
+    grafana_dashboard: "{{ grafana_dashboard_item.name }}"
+
+- name: Copy plain JSON dashboard
+  ansible.builtin.copy:
+    src: "{{ grafana_dashboard_item.path }}"
+    dest: "/tmp/grafana-dashboards/{{ grafana_dashboard_item.name }}.json"
+    mode: "0644"
+    remote_src: true
+  when: >
+    grafana_dashboard_item.path is defined
+    and (grafana_dashboard_item.template is not defined)
+    and (
+      (grafana_dashboard_item.path | basename | regex_search('\\.json\\.j2$')) is none
+    )
+
+- name: Replace datasource placeholders in rendered JSON
+  ansible.builtin.replace:
+    path: "/tmp/grafana-dashboards/{{ grafana_dashboard_item.name }}.json"
+    regexp: '"datasource"\s*:\s*".*?"'
+    replace: '"datasource": "{{ grafana_datasource }}"'
+  when: grafana_datasource is defined

@@ -4,3 +4,11 @@
 aap_ocp_install_ado_supported_versions:
   - "2.5"
   - "2.6"
+
+# none | manifest | rhn
+aap_ocp_install_license_mode: none
+aap_ocp_install_subscription_manifest_path: ""
+aap_ocp_install_subscription_manifest_content_base64: ""
+aap_ocp_install_subscription_manifest_filename: manifest.zip
+aap_ocp_install_rhn_username: ""
+aap_ocp_install_rhn_password: ""

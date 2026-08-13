@@ -1,0 +1,2 @@
+bugfixes:
+  - infra.ado.bootstrap_resolve_component - Skip dotted registry keys when exporting facts so components with legacy ``infra.ado.*`` entries no longer fail Ansible var naming.

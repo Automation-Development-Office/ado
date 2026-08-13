@@ -79,6 +79,7 @@ Use this index as the starting point for operators and automation users.
 | [`infra.ado.grafana_install`](roles/grafana_install/README.md) | Deploy Grafana on OpenShift with the Grafana Operator, storage, credentials, optional OIDC, and a Route. |
 | [`infra.ado.grafana_manage_folders`](roles/grafana_manage_folders/README.md) | Create and manage Grafana dashboard folders. |
 | [`infra.ado.grafana_upload_dashboards`](roles/grafana_upload_dashboards/README.md) | Render and upload Grafana dashboards with OpenShift datasource substitution. |
+| [`infra.ado.idm_ad_trust`](roles/idm_ad_trust/README.md) | Establish IdM ↔ Active Directory trust and map AD groups for SSH/sudo. |
 | [`infra.ado.idm_client`](roles/idm_client/README.md) | Register hosts as Red Hat IdM (FreeIPA) clients. |
 | [`infra.ado.idm_configure_replica`](roles/idm_configure_replica/README.md) | Install and configure an IdM replica server. |
 | [`infra.ado.idm_dns`](roles/idm_dns/README.md) | Manage IdM DNS records via redhat.rhel_idm. |
@@ -91,6 +92,7 @@ Use this index as the starting point for operators and automation users.
 | [`infra.ado.jira`](roles/jira/README.md) | Create Jira issues and subtasks from track templates for ADO automation workflows. |
 | [`infra.ado.jira_stories`](roles/jira_stories/README.md) | Create and manage Jira stories and optional subtasks from selected track templates. |
 | [`infra.ado.kafka_install`](roles/kafka_install/README.md) | Install the AMQ Streams / Kafka operator and related resources on OpenShift. |
+| [`infra.ado.ocp_aap_hub_harden`](roles/ocp_aap_hub_harden/README.md) | Harden AAP Hub for shared-Postgres LWLock stability (replicas/workers/maintenance). |
 | [`infra.ado.ocp_acm`](roles/ocp_acm/README.md) | Install Advanced Cluster Management (ACM) and deploy MultiClusterHub on OpenShift. |
 | [`infra.ado.ocp_acs`](roles/ocp_acs/README.md) | Install Red Hat Advanced Cluster Security (ACS) Central and related resources on OpenShift. |
 | [`infra.ado.ocp_alt_routes`](roles/ocp_alt_routes/README.md) | Ensure alternate OpenShift Routes exist from a configured candidate list. |

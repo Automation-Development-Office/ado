@@ -13,7 +13,9 @@ bootstrap_generate_playbook_repo_git_token: ""
 bootstrap_generate_playbook_repo_git_sync_before_push: true
 bootstrap_generate_playbook_repo_pause_after_generate: false
 
-bootstrap_generate_playbook_repo_infra_ado_collection_version: "1.0.1"
+# Leave empty so generated collections/requirements.yml installs the latest
+# infra.ado from Hub (no version pin). Set only when you must pin.
+bootstrap_generate_playbook_repo_infra_ado_collection_version: ""
 
 bootstrap_generate_playbook_repo_component: all
 
@@ -42,8 +44,14 @@ bootstrap_generate_playbook_repo_component_map:
 
   rhel:
     - rhel
-    - satellite
-    - idm
+    - satellite_server_install
+    - satellite_client_tools
+    - satellite_content_view
+    - satellite_capsule_install
+    - idm_server_install
+    - idm_replica_install
+    - idm_client_tools
+    - idm_dns_install
     - aap
     - dirsrv
     - eck
@@ -56,8 +64,14 @@ bootstrap_generate_playbook_repo_component_map:
 
   patching:
     - rhel
-    - satellite
-    - idm
+    - satellite_server_install
+    - satellite_client_tools
+    - satellite_content_view
+    - satellite_capsule_install
+    - idm_server_install
+    - idm_replica_install
+    - idm_client_tools
+    - idm_dns_install
 
   provision:
     - openshift_virt
@@ -81,10 +95,40 @@ bootstrap_generate_playbook_repo_component_map:
     - gitlab
 
   satellite:
-    - satellite
+    - satellite_server_install
+    - satellite_client_tools
+    - satellite_content_view
+    - satellite_capsule_install
 
   idm:
-    - idm
+    - idm_server_install
+    - idm_replica_install
+    - idm_client_tools
+    - idm_dns_install
+
+  satellite_server_install:
+    - satellite_server_install
+
+  satellite_client_tools:
+    - satellite_client_tools
+
+  satellite_content_view:
+    - satellite_content_view
+
+  satellite_capsule_install:
+    - satellite_capsule_install
+
+  idm_server_install:
+    - idm_server_install
+
+  idm_replica_install:
+    - idm_replica_install
+
+  idm_client_tools:
+    - idm_client_tools
+
+  idm_dns_install:
+    - idm_dns_install
 
   rhel-patching:
     - rhel
@@ -212,43 +256,49 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     dest: playbooks/idm/ado-install-replica-bootstrap.yml
     target_platform: linux
     category: patching
-    app: idm
+    app: idm_replica_install
 
   - src: idm/ado-install-server-bootstrap.yml
     dest: playbooks/idm/ado-install-server-bootstrap.yml
     target_platform: linux
     category: patching
-    app: idm
+    app: idm_server_install
 
   - src: idm/ado-manage-client-bootstrap.yml
     dest: playbooks/idm/ado-manage-client-bootstrap.yml
     target_platform: linux
     category: patching
-    app: idm
+    app: idm_client_tools
 
   - src: idm/ado-manage-dns-bootstrap.yml
     dest: playbooks/idm/ado-manage-dns-bootstrap.yml
     target_platform: linux
     category: patching
-    app: idm
+    app: idm_dns_install
 
   - src: idm/ado-manage-server-settings-bootstrap.yml
     dest: playbooks/idm/ado-manage-server-settings-bootstrap.yml
     target_platform: linux
     category: patching
-    app: idm
+    app: idm_server_install
 
   - src: idm/ado-manage-sudo-bootstrap.yml
     dest: playbooks/idm/ado-manage-sudo-bootstrap.yml
     target_platform: linux
     category: patching
-    app: idm
+    app: idm_server_install
+
+  - src: idm/ado-manage-ad-trust-bootstrap.yml
+    dest: playbooks/idm/ado-manage-ad-trust-bootstrap.yml
+    target_platform: linux
+    category: patching
+    app: idm_ad_trust_install
 
   - src: idm/ado-manage-topology-bootstrap.yml
     dest: playbooks/idm/ado-manage-topology-bootstrap.yml
     target_platform: linux
     category: patching
-    app: idm
+    app: idm_server_install
 
   - src: jira/ado-create-stories-bootstrap.yml
     dest: playbooks/jira/ado-create-stories-bootstrap.yml
@@ -291,6 +341,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     target_platform: openshift
     category: platform
     app: admin_htpasswd
+
+  - src: vpn/ado-manage-vpn-access-bootstrap.yml
+    dest: playbooks/vpn/ado-manage-vpn-access-bootstrap.yml
+    target_platform: localhost
+    category: platform
+    app: vpn_access
 
   - src: openshift/ado-install-nfs-csi-bootstrap.yml
     dest: playbooks/openshift/ado-install-nfs-csi-bootstrap.yml
@@ -370,6 +426,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     category: platform
     app: rhbk_federation
 
+  - src: rhbk/ado-setup-mapper-bootstrap.yml
+    dest: playbooks/rhbk/ado-setup-mapper-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: rhbk_mapper
+
   - src: rhel/ado-patch-host-bootstrap.yml
     dest: playbooks/rhel/ado-patch-host-bootstrap.yml
     target_platform: linux
@@ -392,22 +454,22 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     dest: playbooks/satellite/ado-install-satellite-bootstrap.yml
     target_platform: linux
     category: satellite
-    app: satellite
+    app: satellite_server_install
 
   - src: satellite/ado-configure-satellite-bootstrap.yml
     dest: playbooks/satellite/ado-configure-satellite-bootstrap.yml
     target_platform: linux
     category: satellite
-    app: satellite
+    app: satellite_server_install
 
   - src: satellite/ado-manage-content-view-bootstrap.yml
     dest: playbooks/satellite/ado-manage-content-view-bootstrap.yml
     target_platform: linux
     category: satellite
-    app: satellite
+    app: satellite_content_view
 
   - src: satellite/ado-register-to-satellite-bootstrap.yml
     dest: playbooks/satellite/ado-register-to-satellite-bootstrap.yml
     target_platform: linux
     category: patching
-    app: satellite
+    app: satellite_client_tools

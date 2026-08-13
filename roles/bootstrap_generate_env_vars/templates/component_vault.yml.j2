@@ -37,6 +37,17 @@ satellite_install_admin_password: "{% raw %}{{ vault_satellite_admin_password }}
 satellite_install_rhn_org_id: "{% raw %}{{ vault_satellite_rhn_org_id }}{% endraw %}"
 satellite_install_rhn_activation_key: "{% raw %}{{ vault_satellite_rhn_activation_key }}{% endraw %}"
 
+{% elif component_name == 'idm' %}
+vault_idm_admin_password: ""
+vault_idm_directory_manager_password: ""
+vault_ad_trust_admin_password: ""
+ipaadmin_password: "{% raw %}{{ vault_idm_admin_password }}{% endraw %}"
+idm_server_ipaadmin_password: "{% raw %}{{ vault_idm_admin_password }}{% endraw %}"
+idm_configure_replica_admin_password: "{% raw %}{{ vault_idm_admin_password }}{% endraw %}"
+idm_configure_replica_dm_password: "{% raw %}{{ vault_idm_directory_manager_password }}{% endraw %}"
+idm_ad_trust_ipa_admin_password: "{% raw %}{{ vault_idm_admin_password }}{% endraw %}"
+idm_ad_trust_ad_admin_password: "{% raw %}{{ vault_ad_trust_admin_password }}{% endraw %}"
+
 {% elif component_name == 'htpasswd' %}
 htpasswd_users:
   - name: admin

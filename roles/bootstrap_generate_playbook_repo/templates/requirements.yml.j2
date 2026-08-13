@@ -1,6 +1,13 @@
 ---
 collections:
   - name: infra.ado
+{% if bootstrap_generate_playbook_repo_infra_ado_collection_version | default('') | string | length > 0
+      and (bootstrap_generate_playbook_repo_infra_ado_collection_version | string) not in ['*', 'latest'] %}
     version: "{{ bootstrap_generate_playbook_repo_infra_ado_collection_version }}"
+{% endif %}
   - name: kubernetes.core
   - name: redhat.openshift
+  - name: redhat.rhel_idm
+  - name: freeipa.ansible_freeipa
+  - name: community.grafana
+  - name: grafana.grafana

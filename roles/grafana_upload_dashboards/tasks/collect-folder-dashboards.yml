@@ -1,0 +1,62 @@
+---
+- name: Ensure workspace directory exists
+  ansible.builtin.file:
+    path: /tmp/grafana-folder-src-{{ grafana_folder_item.name | regex_replace('[^A-Za-z0-9_-]', '_') }}
+    state: directory
+    mode: "0755"
+
+- name: Clone git dashboard source
+  ansible.builtin.git:
+    repo: "{{ grafana_folder_item.source }}"
+    dest: /tmp/grafana-folder-src-{{ grafana_folder_item.name | regex_replace('[^A-Za-z0-9_-]', '_') }}
+    version: "{{ grafana_folder_item.version | default('HEAD') }}"
+    force: true
+  when:
+    - (grafana_folder_item.source_type | default('path')) == 'git'
+    - grafana_folder_item.source | default('') | length > 0
+
+- name: Resolve local dashboard root
+  ansible.builtin.set_fact:
+    grafana_upload_dashboards_folder_root: >-
+      {{
+        (
+          '/tmp/grafana-folder-src-'
+          ~ (grafana_folder_item.name | regex_replace('[^A-Za-z0-9_-]', '_'))
+          ~ '/'
+          ~ (grafana_folder_item.dashboards_path | default('dashboards'))
+        )
+        if ((grafana_folder_item.source_type | default('path')) == 'git')
+        else (
+          grafana_folder_item.source
+          ~ '/'
+          ~ (grafana_folder_item.dashboards_path | default(''))
+        )
+      }}
+
+- name: Find dashboard files in folder source
+  ansible.builtin.find:
+    paths: "{{ grafana_upload_dashboards_folder_root | regex_replace('/$', '') }}"
+    patterns:
+      - "*.json"
+      - "*.json.j2"
+    recurse: true
+  register: grafana_upload_dashboards_found
+  when: grafana_upload_dashboards_folder_root | length > 0
+  failed_when: false
+
+- name: Append discovered dashboards to work items
+  ansible.builtin.set_fact:
+    grafana_upload_dashboards_work_items: >-
+      {{
+        grafana_upload_dashboards_work_items
+        + [
+          {
+            'name': (item.path | basename | regex_replace('\\.json(\\.j2)?$', '')),
+            'path': item.path,
+            'folder': grafana_folder_item.name,
+            'template': item.path if (item.path | basename | regex_search('\\.json\\.j2$')) else omit
+          }
+        ]
+      }}
+  loop: "{{ grafana_upload_dashboards_found.files | default([]) }}"
+  when: grafana_upload_dashboards_found is defined

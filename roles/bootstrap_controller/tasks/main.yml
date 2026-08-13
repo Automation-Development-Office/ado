@@ -255,7 +255,10 @@
     name: infra.ado.bootstrap_generate_playbook_repo
   vars:
     bootstrap_generate_playbook_repo_selected_components: >-
-      {{ bootstrap_generate_env_vars_components | default(['openshift']) }}
+      {{
+        bootstrap_generate_env_vars_playbook_components
+        | default(bootstrap_generate_env_vars_components | default(['openshift']))
+      }}
   when:
     - bootstrap_controller_generate_playbooks | default(false) | bool
     - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
@@ -313,7 +316,10 @@
   ansible.builtin.include_tasks: generate_aap_configs.yml
   vars:
     bootstrap_controller_selected_components: >-
-      {{ bootstrap_generate_env_vars_components | default(['openshift']) }}
+      {{
+        bootstrap_generate_env_vars_playbook_components
+        | default(bootstrap_generate_env_vars_components | default(['openshift']))
+      }}
   when:
     - bootstrap_controller_generate_aap_configs | default(false) | bool
     - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)

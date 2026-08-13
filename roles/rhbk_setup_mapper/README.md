@@ -31,7 +31,7 @@ Automation Development Office.
 | `ldap_group_config` | Mapper `config` payload for `group-ldap-mapper` component creation (`present` flow). | Yes (`present`) | N/A |
 
 > **Notes:**
-> `state: present` creates mapper `ldap-group-mapper2` only when it does not already exist.
+> `state: present` creates mapper `ldap-group-mapper` only when it does not already exist.
 > `state: absent` removes mapper `ldap-group-mapper` when found.
 
 ## 🚀 Role Usage
