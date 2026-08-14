@@ -23,9 +23,8 @@
       - "RHN Organization ID: {{ capsule_install_rhn_org_id }}"
       - "RHN Activation Key: {{ capsule_install_rhn_activation_key }}"
     fail_msg: |
-      Create an Access Key and get Organization ID from
-      https://console.redhat.com/insights/connector/activation-keys
-  when: capsule_install_rhn_connected is true
+      Please define an organization and activation key for capsule registration
+
 
 - name: >-
     preliminary_check | Check location of where the Capsule will be located
