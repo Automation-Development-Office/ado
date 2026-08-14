@@ -4,6 +4,10 @@ argument_specs:
   main:
     short_description: Role to install Red Hat Satellite Capsule
     options:
+      capsule_install_os_version:
+        type: str
+        description: Capsule version referenced in OS validation messages.
+        default: ""
       capsule_install_min_cpu_count:
         type: int
         description: Minimum required CPU count for Capsule host validation.
@@ -78,12 +82,12 @@ argument_specs:
       capsule_install_admin_password:
         type: str
         description: Capsule/Satellite admin password.
-      capsule_install_rhn_org_id:
+      capsule_install_org_id:
         type: str
-        description: RHSM organization ID for host registration.
-      capsule_install_rhn_activation_key:
+        description: Organization ID for Capsule registration.
+      capsule_install_activation_key:
         type: str
-        description: RHSM activation key for host registration.
+        description: Activation key for Capsule registration.
       capsule_install_location:
         type: str
         description: Logical location label for Capsule deployment.

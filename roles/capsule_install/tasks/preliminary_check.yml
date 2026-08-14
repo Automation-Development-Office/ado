@@ -15,13 +15,13 @@
     preliminary_check | Check if RHN Organization and Activation Key is defined
   ansible.builtin.assert:
     that:
-      - capsule_install_rhn_org_id is defined
-      - capsule_install_rhn_org_id | length > 0
-      - capsule_install_rhn_activation_key is defined
-      - capsule_install_rhn_activation_key | length > 0
+      - capsule_install_org_id is defined
+      - capsule_install_org_id | length > 0
+      - capsule_install_activation_key is defined
+      - capsule_install_activation_key | length > 0
     success_msg: |
-      - "RHN Organization ID: {{ capsule_install_rhn_org_id }}"
-      - "RHN Activation Key: {{ capsule_install_rhn_activation_key }}"
+      - "Organization ID: {{ capsule_install_org_id }}"
+      - "Activation Key: {{ capsule_install_activation_key }}"
     fail_msg: |
       Please define an organization and activation key for capsule registration
 
