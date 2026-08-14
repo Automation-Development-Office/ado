@@ -1,0 +1,5 @@
+---
+bugfixes:
+  - ci - Remove committed ``infra-ado-*.tar.gz`` collection build artifacts that
+    caused unit-galaxy ``ade install`` to fail when multiple tarballs were
+    present in the repository.

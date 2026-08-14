@@ -1,0 +1,38 @@
+---
+# Harden AAP Hub against core_apiappstatus LWLock storms on shared Postgres.
+# Idempotent: safe to re-run; re-applies settings the operator may reset.
+
+ocp_aap_hub_harden_namespace: aap
+ocp_aap_hub_harden_aap_name: aap
+ocp_aap_hub_harden_automationhub_name: aap-hub
+# Dedicated Hub Postgres (permanent separation from Controller DB).
+ocp_aap_hub_harden_postgres_pod: aap-hub-dedicated-postgres-0
+ocp_aap_hub_harden_postgres_db: automationhub
+ocp_aap_hub_harden_postgres_secret: external-hub-postgres-configuration
+
+# Keep Hub single-replica; dedicated DB removes shared-buffer storms, but
+# 1 worker still limits status-endpoint fan-out.
+ocp_aap_hub_harden_api_replicas: 1
+ocp_aap_hub_harden_content_replicas: 1
+ocp_aap_hub_harden_worker_replicas: 1
+ocp_aap_hub_harden_web_replicas: 1
+
+ocp_aap_hub_harden_gunicorn_api_workers: 1
+ocp_aap_hub_harden_gunicorn_content_workers: 1
+ocp_aap_hub_harden_gunicorn_timeout: 180
+
+# Soft probes reduce status-endpoint feedback loops during DB stalls.
+ocp_aap_hub_harden_soft_probes: true
+ocp_aap_hub_harden_api_liveness_initial_delay: 180
+ocp_aap_hub_harden_api_liveness_period: 30
+ocp_aap_hub_harden_api_liveness_timeout: 15
+ocp_aap_hub_harden_api_liveness_failure: 10
+ocp_aap_hub_harden_api_readiness_initial_delay: 60
+ocp_aap_hub_harden_api_readiness_period: 20
+ocp_aap_hub_harden_api_readiness_timeout: 15
+ocp_aap_hub_harden_api_readiness_failure: 15
+
+# Install CronJob that periodically vacuums status table + re-applies worker env.
+ocp_aap_hub_harden_install_maintenance_cronjob: true
+ocp_aap_hub_harden_cronjob_name: aap-hub-stability
+ocp_aap_hub_harden_cron_schedule: "*/15 * * * *"

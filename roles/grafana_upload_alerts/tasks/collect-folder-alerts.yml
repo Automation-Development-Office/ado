@@ -1,0 +1,42 @@
+---
+- name: Resolve alerts root for folder
+  ansible.builtin.set_fact:
+    grafana_upload_alerts_root: >-
+      {{
+        (
+          '/tmp/grafana-folder-src-'
+          ~ (grafana_folder_item.name | regex_replace('[^A-Za-z0-9_-]', '_'))
+          ~ '/'
+          ~ (grafana_folder_item.alerts_path | default('alerts'))
+        )
+        if ((grafana_folder_item.source_type | default('path')) == 'git')
+        else (
+          (grafana_folder_item.source | default(''))
+          ~ '/'
+          ~ (grafana_folder_item.alerts_path | default('alerts'))
+        )
+      }}
+
+- name: Find alert files
+  ansible.builtin.find:
+    paths: "{{ grafana_upload_alerts_root | regex_replace('/$', '') }}"
+    patterns:
+      - "*.json"
+      - "*.json.j2"
+    recurse: true
+  register: grafana_upload_alerts_found
+  failed_when: false
+
+- name: Append alert work items
+  ansible.builtin.set_fact:
+    grafana_upload_alerts_work_items: >-
+      {{
+        grafana_upload_alerts_work_items
+        + [
+          {
+            'name': (item.path | basename | regex_replace('\\.json(\\.j2)?$', '')),
+            'path': item.path
+          }
+        ]
+      }}
+  loop: "{{ grafana_upload_alerts_found.files | default([]) }}"

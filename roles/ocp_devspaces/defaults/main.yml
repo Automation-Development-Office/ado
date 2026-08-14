@@ -1,3 +1,18 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
-# defaults file for advanced-cluster-management
+---
+# defaults for ocp_devspaces
+ocp_devspaces_operator_ns: "{{ operator_namespace | default(name_space | default('openshift-operators')) }}"
+ocp_devspaces_app_ns: "{{ app_namespace | default(devspaces_namespace | default('openshift-devspaces')) }}"
+
+# Dashboard getting-started samples
+ocp_devspaces_disable_default_samples: true
+# Optional custom samples JSON array (string or list). Empty + disable => empty sample list.
+ocp_devspaces_custom_samples: []
+
+# Workspace defaults
+ocp_devspaces_customize_workspace: false
+ocp_devspaces_default_devfile_url: ""
+ocp_devspaces_default_workspace_image: ""
+
+# Optional image overrides (empty = operator defaults)
+ocp_devspaces_che_image_tag: ""
+ocp_devspaces_dashboard_image: ""

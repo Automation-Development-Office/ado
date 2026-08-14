@@ -1,6 +1,20 @@
 components_aliases:
   storage_class: storage
   storage: storage_class
+  console_banner_text: ocp_console_banner_text
+  ocp_console_banner_text: console_banner_text
+  console_banner_location: ocp_console_banner_location
+  ocp_console_banner_location: console_banner_location
+  console_banner_background_color: ocp_console_banner_background_color
+  ocp_console_banner_background_color: console_banner_background_color
+  console_banner_text_color: ocp_console_banner_text_color
+  ocp_console_banner_text_color: console_banner_text_color
+  console_banner_name: ocp_console_banner_name
+  ocp_console_banner_name: console_banner_name
+  acs_namespace: ocp_acs_namespace
+  ocp_acs_namespace: acs_namespace
+  acs_admin_password: ocp_acs_admin_password
+  ocp_acs_admin_password: acs_admin_password
 
 components_defaults:
   # aap 2.6 latest stable
@@ -77,11 +91,16 @@ components_defaults:
     app_namespace: stackrox
     namespace: stackrox
     acs_namespace: stackrox
+    ocp_acs_namespace: stackrox
     acs_central_name: central
     acs_route_name: central
     acs_reinstall: true
     acs_delete_operator_generated_htpasswd: true
     acs_admin_password_secret: central-admin-htpasswd
+    acs_policies_source_type: ""
+    acs_policies_source: ""
+    acs_reports_source_type: ""
+    acs_reports_source: ""
 
     # standard operator vars (what your OLM roles expect)
     name_space: openshift-operators          # <-- set as a literal, not a Jinja ref
@@ -90,6 +109,17 @@ components_defaults:
     operator_channel: stable
     operator_source: redhat-operators
     operator_source_namespace: openshift-marketplace
+
+  acm:
+    name_space: open-cluster-management
+    operator_namespace: open-cluster-management
+    app_namespace: open-cluster-management
+    operator_name: advanced-cluster-management
+    operator_channel: release-2.14
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+    storage_class: ""
+    storage_size: 20Gi
 
   # cert manager
   cert_manager:
@@ -155,8 +185,8 @@ components_defaults:
     operator_namespace: openshift-operators
     name_space: openshift-operators
 
-    app_namespace: devspaces
-    devspaces_namespace: devspaces
+    app_namespace: openshift-devspaces
+    devspaces_namespace: openshift-devspaces
 
     all_namespaces_install: true
 
@@ -164,6 +194,17 @@ components_defaults:
     operator_channel: stable
     operator_source: redhat-operators
     operator_source_namespace: openshift-marketplace
+
+    disable_default_samples: true
+    customize_workspace: false
+    default_devfile_url: ""
+    default_workspace_image: ""
+    dashboard_image: ""
+    ocp_devspaces_disable_default_samples: true
+    ocp_devspaces_customize_workspace: false
+    ocp_devspaces_default_devfile_url: ""
+    ocp_devspaces_default_workspace_image: ""
+    ocp_devspaces_dashboard_image: ""
 
   389ds:
     name_space: dirsrv
@@ -307,6 +348,16 @@ components_defaults:
     dashboard_dir: "../templates"
     grafana_dashboards_type: templates
     grafana_dashboards_source: ""
+    grafana_folders: []
+    grafana_alerts_enabled: false
+    grafana_email:
+      enabled: false
+      host: ""
+      port: 587
+      user: ""
+      password: ""
+      from_address: ""
+      from_name: Grafana
 
     grafana_route_name: grafana
     grafana_route_name_alt: grafana-alt
@@ -342,6 +393,8 @@ components_defaults:
     htpasswd_idp_name: htpasswd-admin
     htpasswd_secret: htpasswd-admin-secret
     update_htpass: true
+    htpasswd_action: add
+    htpasswd_remove_all: false
 
   kafka:
     # Namespace for any related objects you want (optional)

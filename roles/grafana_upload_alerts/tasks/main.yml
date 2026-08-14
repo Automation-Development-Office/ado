@@ -1,0 +1,26 @@
+---
+# Upload Grafana alert rule JSON files from folder sources.
+# Plain .json uploaded as-is; .json.j2 templated first.
+
+- name: Skip alerts when disabled
+  ansible.builtin.meta: end_host
+  when: not (grafana_alerts_enabled | default(false) | bool)
+
+- name: Normalize alert work items
+  ansible.builtin.set_fact:
+    grafana_upload_alerts_work_items: []
+
+- name: Collect alerts from grafana_folders
+  ansible.builtin.include_tasks: collect-folder-alerts.yml
+  loop: "{{ grafana_folders | default([]) }}"
+  loop_control:
+    loop_var: grafana_folder_item
+  when: (grafana_folders | default([]) | length) > 0
+
+- name: Materialize and upload each alert file
+  ansible.builtin.include_tasks: upload-alert-file.yml
+  loop: "{{ grafana_upload_alerts_work_items }}"
+  loop_control:
+    loop_var: grafana_alert_item
+    label: "{{ grafana_alert_item.name | default('alert') }}"
+  when: (grafana_upload_alerts_work_items | length) > 0

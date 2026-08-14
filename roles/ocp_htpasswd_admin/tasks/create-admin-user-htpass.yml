@@ -1,13 +1,125 @@
 ---
-- name: Build htpasswd content from user list
+- name: Normalize htpasswd action
+  ansible.builtin.set_fact:
+    ocp_htpasswd_admin_action: "{{ htpasswd_action | default('add') | lower }}"
+
+- name: Assert htpasswd action is valid
+  ansible.builtin.assert:
+    that:
+      - ocp_htpasswd_admin_action in ['add', 'replace', 'remove']
+    fail_msg: "htpasswd_action must be add, replace, or remove (got {{ htpasswd_action | default('') }})"
+
+- name: Fetch existing htpasswd secret when merging or removing
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ htpasswd_secret }}"
+    namespace: "{{ name_space }}"
+  register: ocp_htpasswd_admin_existing_secret
+  when: ocp_htpasswd_admin_action in ['add', 'remove']
+
+- name: Parse existing htpasswd entries
+  ansible.builtin.set_fact:
+    ocp_htpasswd_admin_existing_map: >-
+      {{
+        {} if (
+          ocp_htpasswd_admin_existing_secret.resources | default([]) | length == 0
+        ) else (
+          (
+            (
+              ocp_htpasswd_admin_existing_secret.resources[0].data.htpasswd
+              | default('')
+              | b64decode
+            ).splitlines()
+            | select('match', '^[^:]+:.+$')
+            | map('regex_replace', '^([^:]+):(.*)$', '\1')
+            | list
+          )
+          | zip(
+            (
+              ocp_htpasswd_admin_existing_secret.resources[0].data.htpasswd
+              | default('')
+              | b64decode
+            ).splitlines()
+            | select('match', '^[^:]+:.+$')
+            | map('regex_replace', '^([^:]+):(.*)$', '\2')
+            | list
+          )
+          | items2dict(key_name=0, value_name=1)
+        )
+      }}
+  when: ocp_htpasswd_admin_action in ['add', 'remove']
+  no_log: true
+
+- name: Build effective htpasswd map for replace
+  ansible.builtin.set_fact:
+    ocp_htpasswd_admin_effective_map: {}
+  when: ocp_htpasswd_admin_action == 'replace'
+  no_log: true
+
+- name: Seed effective map from existing for add/remove
+  ansible.builtin.set_fact:
+    ocp_htpasswd_admin_effective_map: "{{ ocp_htpasswd_admin_existing_map | default({}) }}"
+  when: ocp_htpasswd_admin_action in ['add', 'remove']
+  no_log: true
+
+- name: Apply add/replace password hashes for requested users
+  ansible.builtin.set_fact:
+    ocp_htpasswd_admin_effective_map: >-
+      {{
+        ocp_htpasswd_admin_effective_map
+        | combine({
+            item.name: (
+              item.password
+              | password_hash('bcrypt', rounds=12)
+              | regex_replace('^\$2b\$', '$2y$')
+            )
+          }, recursive=True)
+      }}
+  loop: "{{ htpasswd_users | default([]) }}"
+  loop_control:
+    label: "{{ item.name | default('unnamed') }}"
+  when:
+    - ocp_htpasswd_admin_action in ['add', 'replace']
+    - item.name is defined
+    - item.password is defined
+  no_log: true
+
+- name: Remove requested users from map
+  ansible.builtin.set_fact:
+    ocp_htpasswd_admin_effective_map: >-
+      {{
+        ocp_htpasswd_admin_effective_map
+        | dict2items
+        | rejectattr('key', 'equalto', item.name)
+        | items2dict
+      }}
+  loop: "{{ htpasswd_users | default([]) }}"
+  loop_control:
+    label: "{{ item.name | default('unnamed') }}"
+  when:
+    - ocp_htpasswd_admin_action == 'remove'
+    - not (htpasswd_remove_all | default(false) | bool)
+    - item.name is defined
+  no_log: true
+
+- name: Clear all users when remove_all
+  ansible.builtin.set_fact:
+    ocp_htpasswd_admin_effective_map: {}
+  when:
+    - ocp_htpasswd_admin_action == 'remove'
+    - htpasswd_remove_all | default(false) | bool
+  no_log: true
+
+- name: Build htpasswd content from effective map
   ansible.builtin.set_fact:
     ocp_htpasswd_admin_htpasswd_content: |
-      {% for user in htpasswd_users %}
-      {{ user.name }}:{{ user.password | password_hash('bcrypt', rounds=12) | regex_replace('^\$2b\$', '$2y$') }}
+      {% for user_name, user_hash in (ocp_htpasswd_admin_effective_map | dictsort) %}
+      {{ user_name }}:{{ user_hash }}
       {% endfor %}
   no_log: true
 
-- name: Create htpasswd Secret
+- name: Create or update htpasswd Secret
   kubernetes.core.k8s:
     state: present
     namespace: "{{ name_space }}"
@@ -19,7 +131,19 @@
       type: Opaque
       stringData:
         htpasswd: "{{ ocp_htpasswd_admin_htpasswd_content | trim }}"
+  when: (ocp_htpasswd_admin_effective_map | length) > 0
   no_log: true
+
+- name: Delete htpasswd Secret when empty after remove
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Secret
+    name: "{{ htpasswd_secret }}"
+    namespace: "{{ name_space }}"
+  when:
+    - ocp_htpasswd_admin_action == 'remove'
+    - (ocp_htpasswd_admin_effective_map | length) == 0
 
 - name: Grant cluster-admin to selected htpasswd users
   kubernetes.core.k8s:
@@ -38,8 +162,23 @@
         kind: ClusterRole
         name: cluster-admin
         apiGroup: rbac.authorization.k8s.io
-  loop: "{{ htpasswd_users }}"
-  when: item.role is defined and item.role == "cluster-admin"
+  loop: "{{ htpasswd_users | default([]) }}"
+  when:
+    - ocp_htpasswd_admin_action in ['add', 'replace']
+    - item.role is defined
+    - item.role == "cluster-admin"
+  no_log: true
+
+- name: Remove cluster-admin bindings for removed users
+  kubernetes.core.k8s:
+    state: absent
+    kind: ClusterRoleBinding
+    api_version: rbac.authorization.k8s.io/v1
+    name: "htpasswd-{{ item.name }}-cluster-admin"
+  loop: "{{ htpasswd_users | default([]) }}"
+  when:
+    - ocp_htpasswd_admin_action == 'remove'
+    - item.name is defined
   no_log: true
 
 - name: Get current OAuth config
@@ -76,15 +215,28 @@
           name: "{{ htpasswd_secret }}"
   no_log: true
 
-- name: Add htpasswd provider if missing
+- name: Add htpasswd provider if missing and users remain
   ansible.builtin.set_fact:
     ocp_htpasswd_admin_updated_identity_providers: >
       {{
         ocp_htpasswd_admin_current_providers
         + [ocp_htpasswd_admin_htpasswd_provider_def]
-        if not ocp_htpasswd_admin_htpasswd_exists
+        if (not ocp_htpasswd_admin_htpasswd_exists and (ocp_htpasswd_admin_effective_map | length) > 0)
         else ocp_htpasswd_admin_current_providers
       }}
+  no_log: true
+
+- name: Drop htpasswd provider when no users remain
+  ansible.builtin.set_fact:
+    ocp_htpasswd_admin_updated_identity_providers: >-
+      {{
+        ocp_htpasswd_admin_current_providers
+        | rejectattr('name', 'equalto', htpasswd_idp_name)
+        | list
+      }}
+  when:
+    - ocp_htpasswd_admin_action == 'remove'
+    - (ocp_htpasswd_admin_effective_map | length) == 0
   no_log: true
 
 - name: Update OAuth config if needed
@@ -97,7 +249,9 @@
         name: cluster
       spec:
         identityProviders: "{{ ocp_htpasswd_admin_updated_identity_providers }}"
-  when: not ocp_htpasswd_admin_htpasswd_exists
+  when: >
+    (not ocp_htpasswd_admin_htpasswd_exists and (ocp_htpasswd_admin_effective_map | length) > 0)
+    or (ocp_htpasswd_admin_action == 'remove' and (ocp_htpasswd_admin_effective_map | length) == 0 and ocp_htpasswd_admin_htpasswd_exists)
 
 - name: Wait for authentication operator to finish rollout
   kubernetes.core.k8s_info:
@@ -116,7 +270,6 @@
   delay: 10
   changed_when: false
 
-# <-- Pauce to wait for provider to show up on console -->
 - name: Give the new identity providers a few seconds to propagate
   ansible.builtin.pause:
     seconds: 25

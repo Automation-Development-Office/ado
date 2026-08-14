@@ -1,0 +1,2 @@
+minor_changes:
+  - idm_ad_trust - Replaced ``ipa`` CLI / ``ansible.builtin`` shell wrappers with ``redhat.rhel_idm`` modules (``ipatrust``, ``ipadnsforwardzone``, ``ipaidrange``, ``ipagroup``, ``ipasudorule``). Service start/restart (smb, named, sssd) now uses ``infra.ado.rhel_services_management``. OS-level steps (packages, firewalld, crypto policy, ``ipa-adtrust-install``) remain builtin where no collection role exists.

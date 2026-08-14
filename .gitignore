@@ -13,5 +13,11 @@ __pycache__/
 *$py.class
 .pytest_cache/
 
+# Local collection build / importer artifacts (never commit)
+infra-ado-*.tar.gz
+collections/infra-ado-*.tar.gz
+*.tar.gz
+importer_result.json
+
 # VSCode
 .vscode/

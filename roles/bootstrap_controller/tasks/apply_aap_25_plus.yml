@@ -166,40 +166,31 @@
     # Looped failures put IndexError under results[].module_stderr, not top-level.
     - name: AAP 2.5+ | Collect Hub publish failure text
       ansible.builtin.set_fact:
-        bootstrap_controller_hub_publish_failure_text: >-
-          {{
-            [
-              ansible_failed_result.module_stderr | default(''),
-              ansible_failed_result.msg | default(''),
-              ansible_failed_result.results | default([])
-                | map(attribute='module_stderr')
-                | select('defined')
-                | list
-                | join('\n'),
-              ansible_failed_result.results | default([])
-                | map(attribute='msg')
-                | select('defined')
-                | list
-                | join('\n'),
-              ansible_failed_result | to_json
-            ] | join('\n')
-          }}
+        bootstrap_controller_hub_publish_failure_text: "{{ ansible_failed_result | string }}"
 
     - name: AAP 2.5+ | Detect Hub approve crash for already-published collection version
       ansible.builtin.set_fact:
+        # ansible.hub.ah_collection can upload successfully then crash in approve()
+        # with IndexError when staging has nothing left to move (already approved,
+        # auto-approved, or overwrite path). Treat that as non-fatal even when
+        # force update is enabled so bootstrap can continue.
         bootstrap_controller_hub_publish_already_present: >-
           {{
-            (bootstrap_controller_hub_publish_failure_text | default('') | string)
-              is search('IndexError|Awaiting approval not found')
-            and not (bootstrap_controller_hub_force_ado_collection_update | default(false) | bool)
+            (
+              'IndexError' in (bootstrap_controller_hub_publish_failure_text | default('') | string)
+            )
+            or
+            (
+              'Awaiting approval not found' in (bootstrap_controller_hub_publish_failure_text | default('') | string)
+            )
           }}
 
     - name: AAP 2.5+ | Warn when Hub collection version already present
       ansible.builtin.debug:
         msg: >-
-          AAP Hub already has this infra.ado version (or approve found nothing to move).
-          Bootstrap continued because Hub force update is off. To replace the Hub artifact,
-          enable "Force update infra.ado collection" (or bump the collection version) and rerun.
+          AAP Hub publish/approve returned no pending approval (IndexError or
+          awaiting-approval empty). Treating as success so bootstrap can continue.
+          If the collection is missing on Hub, bump galaxy.yml version and rerun.
           Artifact: {{ bootstrap_controller_hub_collection_artifacts | default([]) | join(', ') }}
           Repository: {{ bootstrap_controller_hub_publish_repository | default('validated') }}
       when: bootstrap_controller_hub_publish_already_present | default(false) | bool
@@ -846,9 +837,48 @@
     controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
     validate_certs: "{{ controller_validate_certs | default(false) }}"
   loop: "{{ controller_projects | default([]) }}"
+  register: bootstrap_controller_project_sync_result
+  failed_when: false
   when:
     - controller_projects | default([]) | length > 0
     - item.scm_type | default('') | length > 0
+
+- name: AAP 2.5+ | Collect failed project sync items
+  ansible.builtin.set_fact:
+    bootstrap_controller_project_sync_failures: >-
+      {{
+        bootstrap_controller_project_sync_result.results
+        | default([])
+        | selectattr('status', 'defined')
+        | selectattr('status', 'equalto', 'failed')
+        | list
+      }}
+  when:
+    - controller_projects | default([]) | length > 0
+    - bootstrap_controller_project_sync_result is defined
+
+- name: AAP 2.5+ | Fail with actionable project sync guidance
+  ansible.builtin.fail:
+    msg: >-
+      Contoller project sync failed for:
+      {{
+        bootstrap_controller_project_sync_failures
+        | map(attribute='item.name')
+        | list
+        | join(', ')
+      }}.
+      Common cause: collections/requirements.yml cannot install infra.ado from AAP Hub
+      (collection missing on Hub). Enable "Update ADO collection in AAP Hub" in preflight
+      and re-run, or publish infra.ado to Hub manually, then sync the project again.
+      Module message:
+      {{
+        bootstrap_controller_project_sync_failures
+        | map(attribute='msg')
+        | list
+        | join(' | ')
+      }}
+  when:
+    - bootstrap_controller_project_sync_failures | default([]) | length > 0
 
 - name: AAP 2.5+ | Wait for project playbooks to become available
   ansible.builtin.pause:

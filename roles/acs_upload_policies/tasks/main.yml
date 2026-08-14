@@ -1,0 +1,111 @@
+---
+# Upload ACS policies (and optional reports) from git or local path.
+# Plain .json posted as-is; .json.j2 templated first.
+
+- name: Skip when no policies source configured
+  ansible.builtin.meta: end_host
+  when: >
+    (acs_policies_source | default('') | length) == 0
+    and (acs_reports_source | default('') | length) == 0
+
+- name: Resolve ACS central URL
+  ansible.builtin.set_fact:
+    acs_upload_policies_url: >-
+      {{
+        acs_central_url
+        | default(
+            'https://'
+            ~ (acs_route_name | default('central'))
+            ~ '-'
+            ~ (acs_namespace | default(ocp_acs_namespace | default('stackrox')))
+            ~ '.'
+            ~ (app_domain | default(apps_domain | default('')))
+          )
+      }}
+
+- name: Prepare policies source directory
+  ansible.builtin.file:
+    path: /tmp/acs-policies-src
+    state: directory
+    mode: "0755"
+  when: (acs_policies_source | default('') | length) > 0
+
+- name: Clone ACS policies git source
+  ansible.builtin.git:
+    repo: "{{ acs_policies_source }}"
+    dest: /tmp/acs-policies-src
+    version: "{{ acs_policies_version | default('HEAD') }}"
+    force: true
+  when:
+    - (acs_policies_source | default('') | length) > 0
+    - (acs_policies_source_type | default('path')) == 'git'
+
+- name: Use local ACS policies path
+  ansible.builtin.set_fact:
+    acs_upload_policies_root: >-
+      {{
+        '/tmp/acs-policies-src'
+        if ((acs_policies_source_type | default('path')) == 'git')
+        else acs_policies_source
+      }}
+  when: (acs_policies_source | default('') | length) > 0
+
+- name: Find ACS policy files
+  ansible.builtin.find:
+    paths: "{{ acs_upload_policies_root }}"
+    patterns:
+      - "*.json"
+      - "*.json.j2"
+    recurse: true
+  register: acs_upload_policies_found
+  when: acs_upload_policies_root is defined
+  failed_when: false
+
+- name: Upload each ACS policy file
+  ansible.builtin.include_tasks: upload-one.yml
+  loop: "{{ acs_upload_policies_found.files | default([]) }}"
+  loop_control:
+    loop_var: acs_policy_file
+  when: acs_upload_policies_found is defined
+
+- name: Prepare reports source directory
+  ansible.builtin.file:
+    path: /tmp/acs-reports-src
+    state: directory
+    mode: "0755"
+  when: (acs_reports_source | default('') | length) > 0
+
+- name: Clone ACS reports git source
+  ansible.builtin.git:
+    repo: "{{ acs_reports_source }}"
+    dest: /tmp/acs-reports-src
+    version: "{{ acs_reports_version | default('HEAD') }}"
+    force: true
+  when:
+    - (acs_reports_source | default('') | length) > 0
+    - (acs_reports_source_type | default('path')) == 'git'
+
+- name: Find ACS report files
+  ansible.builtin.find:
+    paths: >-
+      {{
+        '/tmp/acs-reports-src'
+        if ((acs_reports_source_type | default('path')) == 'git')
+        else acs_reports_source
+      }}
+    patterns:
+      - "*.json"
+      - "*.json.j2"
+    recurse: true
+  register: acs_upload_policies_reports_found
+  when: (acs_reports_source | default('') | length) > 0
+  failed_when: false
+
+- name: Upload each ACS report config file
+  ansible.builtin.include_tasks: upload-one.yml
+  loop: "{{ acs_upload_policies_reports_found.files | default([]) }}"
+  loop_control:
+    loop_var: acs_policy_file
+  vars:
+    acs_upload_policies_endpoint: /v1/report/configurations
+  when: acs_upload_policies_reports_found is defined

@@ -1,35 +1,51 @@
-- name: Render dashboard templates to /tmp
-  ansible.builtin.template:
-    src: "{{ item.template }}"
-    dest: "/tmp/{{ item.name }}.json"
-    mode: '0644'
-  loop: "{{ grafana_dashboards }}"
-  loop_control:
-    label: "{{ item.name }}"
-  vars:
-    grafana_dashboard: "{{ item.name }}"
+---
+# Supports legacy grafana_dashboards list and multi-folder grafana_folders entries.
+# Files ending in .json.j2 are templated; plain .json files are uploaded as-is.
 
-- name: Replace datasource with Openshift in rendered JSON
-  ansible.builtin.replace:
-    path: "/tmp/{{ item.name }}.json"
-    regexp: '"datasource"\s*:\s*".*?"'
-    replace: '"datasource": "{{ grafana_datasource }}"'
-  loop: "{{ grafana_dashboards }}"
-  loop_control:
-    label: "{{ item.name }}"
+- name: Normalize dashboard sources from grafana_folders
+  ansible.builtin.set_fact:
+    grafana_upload_dashboards_work_items: []
 
-- name: Import Grafana dashboard
+- name: Build work items from grafana_folders
+  ansible.builtin.include_tasks: collect-folder-dashboards.yml
+  loop: "{{ grafana_folders | default([]) }}"
+  loop_control:
+    loop_var: grafana_folder_item
+  when: (grafana_folders | default([]) | length) > 0
+
+- name: Fall back to legacy grafana_dashboards list
+  ansible.builtin.set_fact:
+    grafana_upload_dashboards_work_items: "{{ grafana_dashboards | default([]) }}"
+  when:
+    - (grafana_folders | default([]) | length) == 0
+    - (grafana_dashboards | default([]) | length) > 0
+
+- name: Render or copy each dashboard into /tmp
+  ansible.builtin.include_tasks: materialize-dashboard.yml
+  loop: "{{ grafana_upload_dashboards_work_items }}"
+  loop_control:
+    loop_var: grafana_dashboard_item
+    label: "{{ grafana_dashboard_item.name | default(grafana_dashboard_item.path | default('dashboard')) }}"
+
+- name: Import Grafana dashboards
   grafana.grafana.dashboard:
     grafana_url: "https://{{ grafana_hostname }}"
     grafana_api_key: "{{ grafana_api_key }}"
     state: "{{ state | default('present') }}"
+    folder: "{{ grafana_dashboard_item.folder | default(grafana_folder | default(omit)) }}"
     dashboard: "{{ grafana_dashboard_payload }}"
-  loop: "{{ grafana_dashboards }}"
+  loop: "{{ grafana_upload_dashboards_work_items }}"
   loop_control:
-    label: "{{ item.name }}"
+    loop_var: grafana_dashboard_item
+    label: "{{ grafana_dashboard_item.name | default('dashboard') }}"
   vars:
     rendered_dashboard_json: >-
-      {{ lookup('ansible.builtin.file', '/tmp/%s.json' | format(item.name)) | from_json }}
+      {{
+        lookup(
+          'ansible.builtin.file',
+          '/tmp/grafana-dashboards/%s.json' | format(grafana_dashboard_item.name)
+        ) | from_json
+      }}
     grafana_dashboard_payload: >-
       {{
         rendered_dashboard_json
@@ -40,3 +56,4 @@
           'message': 'Updated by Ansible'
         }
       }}
+  when: (grafana_upload_dashboards_work_items | length) > 0

@@ -25,7 +25,7 @@ aap_ocp_install_controller:
   namespace: "{{ bootstrap_generate_env_vars_aap_namespace }}"
   install: {{ bootstrap_generate_env_vars_aap_install_controller | bool | lower }}
   admin_user: "{% raw %}{{ aap_admin_user | default('admin') }}{% endraw %}"
-  replicas: {{ bootstrap_generate_env_vars_aap_controller_replicas | int }}
+  replicas: {{ aap_cfg.replicas | default(aap_cfg.controller_replicas | default(bootstrap_generate_env_vars_aap_controller_replicas)) | int }}
 aap_ocp_install_hub:
   instance_name: "{{ bootstrap_generate_env_vars_aap_instance_name }}-hub"
   namespace: "{{ bootstrap_generate_env_vars_aap_namespace }}"
@@ -43,6 +43,10 @@ aap_ocp_install_lightspeed:
   install: {{ (false if aap_minimal else bootstrap_generate_env_vars_aap_install_lightspeed) | bool | lower }}
 aap_install_during_bootstrap: {{ aap_cfg.install_during_bootstrap | default(false) | bool | lower }}
 aap_minimal_footprint: {{ aap_minimal | bool | lower }}
+{% set pre_aap = (bootstrap_generate_env_vars_preflight.pre_installs.aap | default({})) if bootstrap_generate_env_vars_preflight is defined else {} %}
+aap_ocp_install_license_mode: "{{ aap_cfg.license_mode | default(pre_aap.license_mode | default('none')) }}"
+aap_ocp_install_subscription_manifest_filename: "{{ aap_cfg.subscription_manifest_file | default(pre_aap.subscription_manifest_file | default('manifest.zip')) }}"
+aap_ocp_install_rhn_username: "{{ aap_cfg.rhn_username | default(pre_aap.rhn_username | default('')) }}"
 
 {% elif component_name == 'aap24' %}
 components_env:
@@ -136,6 +140,19 @@ satellite_install_req_dirs:
 satellite_install_data_disk_min_size: "{{ bootstrap_generate_env_vars_satellite_data_disk_min_size | default('10G', true) }}"
 satellite_install_data_device_name: "{{ bootstrap_generate_env_vars_satellite_data_device_name | default('', true) }}"
 satellite_install_data_device: "{{ bootstrap_generate_env_vars_satellite_data_device | default('/dev', true) }}"
+# Client host registration (infra.ado.rhel_sat_reg)
+satellite_activation_key: "{{ bootstrap_generate_env_vars_satellite_activation_key | default('') }}"
+rhel_sat_reg_satellite_host: "{{ bootstrap_generate_env_vars_satellite_server_url | default('') }}"
+rhel_sat_reg_satellite_org_name: "{{ bootstrap_generate_env_vars_satellite_organization | default('') }}"
+{% if bootstrap_generate_env_vars_satellite_service_account_username is defined %}
+rhel_sat_reg_org_admin_account: "{{ bootstrap_generate_env_vars_satellite_service_account_username }}"
+{% else %}
+rhel_sat_reg_org_admin_account: "{% raw %}{{ vault_satellite_service_account_username | default('admin') }}{% endraw %}"
+{% endif %}
+rhel_sat_reg_org_admin_account_password: "{% raw %}{{ vault_satellite_service_account_password | default(vault_satellite_admin_password | default(omit)) }}{% endraw %}"
+rhel_sat_reg_activation_key_name: "{{ bootstrap_generate_env_vars_satellite_activation_key | default('') }}"
+rhel_sat_reg_validate_certs: {{ bootstrap_generate_env_vars_satellite_validate_certs | default(false) | bool | lower }}
+rhel_sat_reg_insecure: {{ (not (bootstrap_generate_env_vars_satellite_validate_certs | default(false) | bool)) | bool | lower }}
 
 {% elif component_name == 'eck' %}
 components_env:
@@ -275,6 +292,51 @@ components_env:
     hostname: ''
     compliance_profile: PCI-DSS
     stig_profile: RHEL 9 STIG
+
+{% elif component_name == 'idm' %}
+{% set idm_cfg = bootstrap_generate_env_vars_preflight.component_config.idm | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set idm_hostname = idm_cfg.hostname | default(bootstrap_generate_env_vars_idm_hostname | default(''), true) %}
+{% set idm_domain = idm_cfg.domain | default(bootstrap_generate_env_vars_idm_domain | default(''), true) %}
+{% set idm_realm = idm_cfg.realm | default(bootstrap_generate_env_vars_idm_realm | default(idm_domain | upper if idm_domain else ''), true) %}
+{% set idm_ad_domain = idm_cfg.ad_domain | default('ad.lab', true) %}
+{% set idm_ad_dc_hostname = idm_cfg.ad_dc_hostname | default('adwindows.ad.lab', true) %}
+{% set idm_ad_dc_ip = idm_cfg.ad_dc_ip | default('192.168.0.61', true) %}
+{% set idm_ad_admin = idm_cfg.ad_admin | default('Administrator', true) %}
+components_env:
+  idm:
+    hostname: "{{ idm_hostname }}"
+    domain: "{{ idm_domain }}"
+    realm: "{{ idm_realm }}"
+idm_hostname: "{{ idm_hostname }}"
+idm_server_name: "{{ idm_hostname }}"
+idm_domain: "{{ idm_domain }}"
+idm_realm: "{{ idm_realm }}"
+ipaclient_domain: "{{ idm_domain }}"
+ipaclient_realm: "{{ idm_realm }}"
+{% if idm_hostname | length > 0 %}
+ipaclient_servers:
+  - "{{ idm_hostname }}"
+ipaclient_no_dns_lookup: true
+{% endif %}
+idm_ad_trust_ad_domain: "{{ idm_ad_domain }}"
+idm_ad_trust_ad_realm: "{{ idm_ad_domain | upper }}"
+idm_ad_trust_ad_dc_hostname: "{{ idm_ad_dc_hostname }}"
+idm_ad_trust_ad_dc_ip: "{{ idm_ad_dc_ip }}"
+idm_ad_trust_ad_admin: "{{ idm_ad_admin }}"
+idm_ad_trust_ipa_domain: "{{ idm_domain }}"
+idm_ad_trust_ipa_realm: "{{ idm_realm }}"
+{% if idm_cfg.ad_two_way is defined %}
+idm_ad_trust_two_way: {{ idm_cfg.ad_two_way | bool | lower }}
+{% endif %}
+{% if idm_cfg.ad_map_group is defined and (idm_cfg.ad_map_group | string | length > 0) %}
+idm_ad_trust_map_ad_group: "{{ idm_cfg.ad_map_group }}"
+{% endif %}
+{% if idm_cfg.ad_map_admins_group is defined and (idm_cfg.ad_map_admins_group | string | length > 0) %}
+idm_ad_trust_map_ad_admins_group: "{{ idm_cfg.ad_map_admins_group }}"
+{% endif %}
+{% if idm_cfg.ad_configure_groups is defined %}
+idm_ad_trust_configure_groups: {{ idm_cfg.ad_configure_groups | bool | lower }}
+{% endif %}
 
 {% elif component_name == 'stig' %}
 compliance_profile: STIG

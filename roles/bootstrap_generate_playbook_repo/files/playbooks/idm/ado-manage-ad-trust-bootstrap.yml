@@ -1,0 +1,14 @@
+---
+# Bootstrap playbook: two-way IdM ↔ AD trust + AD user SSH/sudo mapping
+# Target the IdM inventory (hosts are IdM servers). Override with
+# idm_ad_trust_hosts if you need a specific group (for example ipaserver).
+- name: IdM AD two-way trust
+  hosts: "{{ idm_ad_trust_hosts | default('all') }}"
+  become: true
+  gather_facts: true
+  vars_files:
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_idm.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_idm.yml"
+  roles:
+    - role: infra.ado.idm_ad_trust

@@ -1,0 +1,3 @@
+bugfixes:
+  - rhel_sat_reg - Fall back to ``satellite_config_*`` / vault Satellite credentials when ``rhel_sat_reg_*`` is unset, and assert required registration inputs before calling the Satellite API.
+  - bootstrap_generate_env_vars - Write ``rhel_sat_reg_*`` and ``satellite_activation_key`` from preflight ``component_config.satellite.activation_key`` (client host registration) instead of reusing the RHN activation key.

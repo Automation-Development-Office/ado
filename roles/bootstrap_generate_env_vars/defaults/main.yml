@@ -72,6 +72,12 @@ bootstrap_generate_env_vars_aap_hub_azure_secret: ""
 
 # Satellite dynamic inventory defaults
 bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled: false
+bootstrap_generate_env_vars_satellite_server_url: ""
+bootstrap_generate_env_vars_satellite_organization: ""
+bootstrap_generate_env_vars_satellite_service_account_username: ""
+bootstrap_generate_env_vars_satellite_service_account_password: ""
+bootstrap_generate_env_vars_satellite_admin_password: ""
+bootstrap_generate_env_vars_satellite_validate_certs: false
 bootstrap_generate_env_vars_satellite_credential_name: >-
   ADO Satellite Service Account
 bootstrap_generate_env_vars_satellite_inventory_source_name: >-
@@ -87,6 +93,7 @@ bootstrap_generate_env_vars_satellite_deployment_version: "6.19"
 bootstrap_generate_env_vars_satellite_location: ""
 bootstrap_generate_env_vars_satellite_rhn_org_id: ""
 bootstrap_generate_env_vars_satellite_rhn_activation_key: ""
+bootstrap_generate_env_vars_satellite_activation_key: ""
 bootstrap_generate_env_vars_satellite_rhn_connected: true
 bootstrap_generate_env_vars_satellite_manifest_file: ""
 bootstrap_generate_env_vars_satellite_size_profile: "default"
