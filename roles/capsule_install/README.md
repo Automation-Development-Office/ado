@@ -97,6 +97,12 @@ Define the Capsule installation configuration in your playbook or inventory usin
     - role: infra.ado.capsule_install
 ```
 
+## 🧪 Role Molecule Testing
+
+This role does not currently include a dedicated Molecule scenario or platform-specific Molecule playbooks.
+
+> Molecule tests for `capsule_install` have not been added to the repository.
+
 ## 🔧 Tasks Overview
 
 - **Main Task File** (`main.yml`):
