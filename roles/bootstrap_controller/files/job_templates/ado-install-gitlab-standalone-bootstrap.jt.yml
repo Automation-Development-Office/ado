@@ -1,0 +1,77 @@
+---
+controller_templates:
+  - name: ADO | Install GitLab Standalone
+    description: >-
+      Bootstrap - Install GitLab CE/EE (Omnibus) on a RHEL VM
+      (e.g. gitlab-ado from OpenShift Virt). Prefer gitlab-ce without a license.
+    organization: '{{ bootstrap_controller_organization }}'
+    playbook: playbooks/gitlab/ado-install-gitlab-standalone-bootstrap.yml
+    inventory: '{{ bootstrap_controller_inventory_name }}'
+    project: '{{ bootstrap_controller_project_name }}'
+    execution_environment: '{{ bootstrap_controller_execution_environment_name }}'
+    credentials:
+      - '{{ bootstrap_controller_creds }}'
+      - '{{ bootstrap_controller_machine_credential | default(bootstrap_controller_organization ~ "-machine") }}'
+    ask_inventory_on_launch: true
+    ask_credential_on_launch: true
+    related: null
+    labels:
+      - name: ADO | bootstrap
+        organization: '{{ bootstrap_controller_organization }}'
+      - name: ADO | gitlab
+        organization: '{{ bootstrap_controller_organization }}'
+      - name: ADO | standalone
+        organization: '{{ bootstrap_controller_organization }}'
+    extra_vars: {}
+    survey_enabled: true
+    survey_spec:
+      name: ADO | Install GitLab Standalone Survey
+      description: Standalone GitLab Omnibus on RHEL (not OpenShift operator)
+      spec:
+        - question_name: ADO | Do you want to install or remove?
+          question_description: Install (present) or remove service unit (absent)
+          required: true
+          type: multiplechoice
+          variable: state
+          choices: '{{ bootstrap_controller_state_choices }}'
+          default: '{{ bootstrap_controller_default_state }}'
+        - question_name: ADO | What environment?
+          question_description: Target environment
+          required: true
+          type: multiplechoice
+          variable: env
+          choices: '{{ bootstrap_controller_environment_choices }}'
+          default: '{{ bootstrap_controller_default_environment }}'
+        - question_name: ADO | GitLab hostname
+          question_description: Hostname for external_url (e.g. gitlab-ado.server.lab)
+          required: true
+          type: text
+          variable: gitlab_hostname
+          default: gitlab-ado.server.lab
+        - question_name: ADO | Initial root password
+          required: true
+          type: password
+          variable: gitlab_root_password
+          default: redhat123
+        - question_name: ADO | Edition (ce or ee)
+          question_description: Prefer ce without a license; ee requires GitLab Enterprise license
+          required: true
+          type: multiplechoice
+          variable: gitlab_edition
+          choices:
+            - ce
+            - ee
+          default: ce
+        - question_name: ADO | Path to GitLab RPM on Contoller/runner
+          question_description: >-
+            Absolute path to gitlab-ce/ee RPM reachable by the Contoller EE, or
+            leave blank for packages.gitlab.com online install.
+          required: false
+          type: text
+          variable: gitlab_rpm_path
+          default: ''
+        - question_name: ADO | GitLab RPM URL (optional)
+          required: false
+          type: text
+          variable: gitlab_rpm_url
+          default: ''

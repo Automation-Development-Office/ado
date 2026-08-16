@@ -1,0 +1,28 @@
+---
+# Seed playbook: install GitLab CE/EE standalone on a RHEL VM.
+# Contoller path: playbooks/gitlab/ado-install-gitlab-standalone-bootstrap.yml
+# Prefer inventory host = gitlab-ado with machine credential.
+- name: ADO | Install GitLab standalone on RHEL
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    component: gitlab
+    # Contoller survey / -e may set: state, env, gitlab_hostname,
+    # gitlab_root_password, gitlab_edition, gitlab_rpm_path, gitlab_rpm_url
+    # (role defaults map those).
+  pre_tasks:
+    - name: Load env infra config when present
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/infra_config_vars.yml"
+      failed_when: false
+
+    - name: Load optional GitLab vault/vars when present
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vault_gitlab.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vars_gitlab.yml"
+      failed_when: false
+  roles:
+    - role: "{{ playbook_dir }}/../../collections/ansible_collections/infra/ado/roles/install_gitlab"

@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# Handlers for install_gitlab (standalone Omnibus).
+
+- name: Reconfigure GitLab
+  ansible.builtin.command: gitlab-ctl reconfigure
+  changed_when: true
+
+- name: Reload systemd for GitLab
+  ansible.builtin.systemd:
+    daemon_reload: true

@@ -13,8 +13,13 @@ bootstrap_generate_playbook_repo_git_token: ""
 bootstrap_generate_playbook_repo_git_sync_before_push: true
 bootstrap_generate_playbook_repo_pause_after_generate: false
 
-# Leave empty so generated collections/requirements.yml installs the latest
-# infra.ado from Hub (no version pin). Set only when you must pin.
+# When false (default), do not write Galaxy/Hub collections/requirements.yml.
+# Contoller project sync then skips install_collections. Set true only when
+# Hub publish/Galaxy is actually requested.
+bootstrap_generate_playbook_repo_write_galaxy_requirements: false
+
+# Leave empty so generated collections/requirements.yml (Hub path only) has
+# no version pin. Set only when you must pin.
 bootstrap_generate_playbook_repo_infra_ado_collection_version: ""
 
 bootstrap_generate_playbook_repo_component: all
@@ -35,6 +40,7 @@ bootstrap_generate_playbook_repo_component_map:
     - gitops
     - gitlab
     - grafana
+    - bookstack
     - kafka
     - oadp
     - openshift
@@ -84,15 +90,33 @@ bootstrap_generate_playbook_repo_component_map:
 
   rhbk:
     - rhbk
+    - rhbk_standalone
+
+  rhbk_standalone:
+    - rhbk_standalone
 
   grafana:
     - grafana
+    - grafana_standalone
+
+  grafana_standalone:
+    - grafana_standalone
+
+  bookstack:
+    - bookstack
+
+  netbox:
+    - netbox
 
   kafka:
     - kafka
 
   gitlab:
     - gitlab
+    - gitlab_standalone
+
+  gitlab_standalone:
+    - gitlab_standalone
 
   satellite:
     - satellite_server_install
@@ -158,6 +182,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
 
   - src: acs/ado-deploy-and-configure-bootstrap.yml
     dest: playbooks/acs/ado-deploy-and-configure-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: acs
+
+  - src: acs/ado-acs-report.yml
+    dest: playbooks/acs/ado-acs-report.yml
     target_platform: openshift
     category: platform
     app: acs
@@ -228,6 +258,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     category: applications
     app: gitlab
 
+  - src: gitlab/ado-install-gitlab-standalone-bootstrap.yml
+    dest: playbooks/gitlab/ado-install-gitlab-standalone-bootstrap.yml
+    target_platform: linux
+    category: applications
+    app: gitlab_standalone
+
   - src: gitops/ado-deploy-bootstrap.yml
     dest: playbooks/gitops/ado-deploy-bootstrap.yml
     target_platform: openshift
@@ -251,6 +287,24 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     target_platform: openshift
     category: platform
     app: grafana
+
+  - src: grafana/ado-install-grafana-standalone-bootstrap.yml
+    dest: playbooks/grafana/ado-install-grafana-standalone-bootstrap.yml
+    target_platform: linux
+    category: platform
+    app: grafana_standalone
+
+  - src: docs/ado-deploy-bookstack-bootstrap.yml
+    dest: playbooks/docs/ado-deploy-bookstack-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: bookstack
+
+  - src: netbox/ado-configure-netbox-oidc-bootstrap.yml
+    dest: playbooks/netbox/ado-configure-netbox-oidc-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: netbox
 
   - src: idm/ado-install-replica-bootstrap.yml
     dest: playbooks/idm/ado-install-replica-bootstrap.yml
@@ -401,6 +455,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     target_platform: openshift
     category: platform
     app: rhbk
+
+  - src: rhbk/ado-install-rhbk-standalone-bootstrap.yml
+    dest: playbooks/rhbk/ado-install-rhbk-standalone-bootstrap.yml
+    target_platform: linux
+    category: platform
+    app: rhbk_standalone
 
   - src: rhbk/ado-manage-client-bootstrap.yml
     dest: playbooks/rhbk/ado-manage-client-bootstrap.yml
