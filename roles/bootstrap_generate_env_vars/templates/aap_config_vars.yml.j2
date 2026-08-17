@@ -1,6 +1,16 @@
 {% set preflight_aap = bootstrap_generate_env_vars_preflight.aap | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
 {% set preflight_git = bootstrap_generate_env_vars_preflight.git | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
 {% set preflight_machine_credential = preflight_aap.machine_credential | default({}) %}
+{% set preflight_galaxy_setup_enabled = preflight_aap.galaxy_setup_enabled | default(false) | bool %}
+{% set preflight_galaxy_credentials = preflight_aap.galaxy_credentials | default([]) %}
+{% set preflight_galaxy_hub_token = preflight_aap.galaxy_hub_token | default('', true) %}
+{% set preflight_container_registry_credential = preflight_aap.container_registry_credential | default({}) %}
+{% set preflight_galaxy_user_account = preflight_aap.galaxy_user_account | default({}) %}
+{# Contoller org Galaxy search order: lower order number = first. #}
+{% set preflight_galaxy_credentials_ordered =
+     preflight_galaxy_credentials
+     | sort(attribute='order')
+%}
 {% set preflight_satellite_config = bootstrap_generate_env_vars_preflight.component_config.satellite | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
 {% set preflight_rhel_config = bootstrap_generate_env_vars_preflight.component_config.rhel | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
 {% set preflight_patching_config = bootstrap_generate_env_vars_preflight.component_config.patching | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
@@ -249,11 +259,16 @@
 {% set bootstrap_generate_env_vars_aap_project = bootstrap_generate_env_vars_aap_org ~ '-' ~ bootstrap_generate_env_vars_aap_project %}
 {% endif %}
 {% set bootstrap_generate_env_vars_aap_ee = preflight_aap.execution_environment | default('ee-supported-rhel9', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_ee.user_input | default('ee-supported-rhel9', true)) %}
+{% set bootstrap_generate_env_vars_aap_ee_image_default =
+    'registry.redhat.io/ansible-automation-platform-'
+    ~ (bootstrap_generate_env_vars_aap_version_number | default('27') | trim)
+    ~ '/ee-supported-rhel9:latest'
+%}
 {% set bootstrap_generate_env_vars_aap_ee_image =
     preflight_aap.execution_environment_image
-    | default(bootstrap_generate_env_vars_aap_ee_image | default('registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest'), true)
+    | default(bootstrap_generate_env_vars_aap_ee_image | default(bootstrap_generate_env_vars_aap_ee_image_default), true)
     if bootstrap_generate_env_vars_preflight is defined
-    else (bootstrap_generate_env_vars_aap_ee_image | default('registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest', true))
+    else (bootstrap_generate_env_vars_aap_ee_image | default(bootstrap_generate_env_vars_aap_ee_image_default, true))
 %}
 {% set bootstrap_generate_env_vars_aap_cred_raw = preflight_aap.vault_credential_name | default(bootstrap_generate_env_vars_aap_org ~ '-vault', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_vault_cred.user_input | default(bootstrap_generate_env_vars_aap_org ~ '-vault', true)) %}
 {% set bootstrap_generate_env_vars_aap_cred =
@@ -314,10 +329,49 @@
     preflight_openshift_config.api_host
     | default(preflight_openshift_config.host | default('', true), true)
 %}
-{% set bootstrap_generate_env_vars_hub_publish_ado_collection = preflight_aap.hub_publish_ado_collection | default(bootstrap_generate_env_vars_hub_publish_ado_collection | default(true)) | bool %}
+{% set bootstrap_generate_env_vars_hub_publish_ado_collection = preflight_aap.hub_publish_ado_collection | default(bootstrap_generate_env_vars_hub_publish_ado_collection | default(false)) | bool %}
 {% set bootstrap_generate_env_vars_hub_mark_ado_validated = true if bootstrap_generate_env_vars_hub_publish_ado_collection else false %}
 {% set bootstrap_generate_env_vars_hub_force_ado_collection_update = preflight_aap.hub_force_ado_collection_update | default(bootstrap_generate_env_vars_hub_force_ado_collection_update | default(true)) | bool %}
 {% set bootstrap_generate_env_vars_hub_update_collection_only = preflight_aap.hub_update_collection_only | default(bootstrap_generate_env_vars_hub_update_collection_only | default(false)) | bool %}
+{% set bootstrap_generate_env_vars_hub_push_ee = preflight_aap.hub_push_ee | default(bootstrap_generate_env_vars_hub_push_ee | default(false)) | bool %}
+{% set bootstrap_generate_env_vars_hub_ee_pull = preflight_aap.hub_ee_pull | default(bootstrap_generate_env_vars_hub_ee_pull | default(false)) | bool %}
+{% set bootstrap_generate_env_vars_hub_ee_create_execution_environment = preflight_aap.hub_ee_create_execution_environment | default(bootstrap_generate_env_vars_hub_ee_create_execution_environment | default(true)) | bool %}
+{% set bootstrap_generate_env_vars_hub_hostname_raw =
+    preflight_aap.hub_hostname
+    | default(preflight_aap.hub_ee_registry | default('', true), true)
+    | default('', true)
+    | string
+    | trim
+%}
+{% if bootstrap_generate_env_vars_hub_hostname_raw | length == 0 %}
+{% set bootstrap_generate_env_vars_hub_hostname_raw =
+    preflight_aap.hostname
+    | default('', true)
+    | string
+    | trim
+%}
+{% endif %}
+{% set bootstrap_generate_env_vars_hub_hostname =
+    bootstrap_generate_env_vars_hub_hostname_raw
+    | regex_replace('^https?://', '')
+    | regex_replace('/.*$', '')
+%}
+{% set bootstrap_generate_env_vars_hub_ee_registry =
+    (
+      preflight_aap.hub_ee_registry
+      | default(bootstrap_generate_env_vars_hub_hostname, true)
+      | default('', true)
+      | string
+      | trim
+    )
+    | regex_replace('^https?://', '')
+    | regex_replace('/.*$', '')
+%}
+{% set bootstrap_generate_env_vars_hub_ee_source_image = preflight_aap.hub_ee_source_image | default(bootstrap_generate_env_vars_hub_ee_source_image | default('ghcr.io/automation-development-office/ado-ee:latest'), true) %}
+{% set bootstrap_generate_env_vars_hub_ee_name = preflight_aap.hub_ee_name | default(bootstrap_generate_env_vars_aap_ee | default('ADO-ee'), true) %}
+{% set bootstrap_generate_env_vars_hub_ee_tag = preflight_aap.hub_ee_tag | default('latest', true) %}
+{% set bootstrap_generate_env_vars_hub_ee_execution_environment_name = preflight_aap.hub_ee_execution_environment_name | default(bootstrap_generate_env_vars_hub_ee_name, true) %}
+{% set bootstrap_generate_env_vars_hub_ee_description = preflight_aap.hub_ee_description | default('', true) %}
 {% set bootstrap_generate_env_vars_aap_skip_tls_verify =
     preflight_aap.skip_tls_verify
     | default(skip_tls_verify | default(false), true)
@@ -404,6 +458,17 @@ bootstrap_controller_hub_publish_ado_collection: {{ bootstrap_generate_env_vars_
 bootstrap_controller_hub_mark_ado_validated: {{ bootstrap_generate_env_vars_hub_mark_ado_validated | lower }}
 bootstrap_controller_hub_force_ado_collection_update: {{ bootstrap_generate_env_vars_hub_force_ado_collection_update | lower }}
 bootstrap_controller_hub_update_collection_only: {{ bootstrap_generate_env_vars_hub_update_collection_only | lower }}
+bootstrap_controller_hub_hostname: "{{ bootstrap_generate_env_vars_hub_hostname }}"
+bootstrap_controller_hub_push_ee: {{ bootstrap_generate_env_vars_hub_push_ee | lower }}
+bootstrap_controller_hub_ee_source_image: "{{ bootstrap_generate_env_vars_hub_ee_source_image }}"
+bootstrap_controller_hub_ee_name: "{{ bootstrap_generate_env_vars_hub_ee_name }}"
+bootstrap_controller_hub_ee_tag: "{{ bootstrap_generate_env_vars_hub_ee_tag }}"
+bootstrap_controller_hub_ee_registry: "{{ bootstrap_generate_env_vars_hub_ee_registry }}"
+bootstrap_controller_hub_ee_pull: {{ bootstrap_generate_env_vars_hub_ee_pull | lower }}
+bootstrap_controller_hub_ee_create_execution_environment: {{ bootstrap_generate_env_vars_hub_ee_create_execution_environment | lower }}
+bootstrap_controller_hub_ee_execution_environment_name: "{{ bootstrap_generate_env_vars_hub_ee_execution_environment_name }}"
+bootstrap_controller_hub_ee_description: {{ bootstrap_generate_env_vars_hub_ee_description | to_json }}
+bootstrap_generate_playbook_repo_write_galaxy_requirements: {{ bootstrap_generate_env_vars_hub_publish_ado_collection | lower }}
 hub_collections:
 {% if bootstrap_generate_env_vars_hub_publish_ado_collection %}
   - collection_name: infra_ado
@@ -416,6 +481,27 @@ hub_collections:
 controller_bootstrap_controller_organizations:
   - name: "{{ bootstrap_generate_env_vars_aap_org }}"
     description: "{{ bootstrap_generate_env_vars_aap_org }}"
+{% if preflight_galaxy_setup_enabled %}
+    galaxy_credentials:
+{% for galaxy_credential in preflight_galaxy_credentials_ordered %}
+{% if (galaxy_credential.enabled | default(true) | bool) and (galaxy_credential.attach_to_org | default(true) | bool) and (galaxy_credential.name | default('', true) | length > 0) %}
+      - "{{ galaxy_credential.name }}"
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{# Optional non-admin Contoller user from Galaxy tab (separate from General admin). #}
+controller_users:
+{% if preflight_galaxy_setup_enabled and (preflight_galaxy_user_account.enabled | default(false) | bool) and (preflight_galaxy_user_account.username | default('', true) | length > 0) and (preflight_galaxy_user_account.password | default('', true) | length > 0) %}
+  - username: "{{ preflight_galaxy_user_account.username }}"
+    password: "{% raw %}{{ '{{ vault_galaxy_user_password | default(vault_controller_password) }}' }}{% endraw %}"
+{% if preflight_galaxy_user_account.email | default('', true) | length > 0 %}
+    email: "{{ preflight_galaxy_user_account.email }}"
+{% endif %}
+    is_superuser: {{ preflight_galaxy_user_account.is_superuser | default(false) | bool | lower }}
+{% else %}
+  []
+{% endif %}
 
 controller_bootstrap_controller_credentials:
 {% if bootstrap_generate_env_vars_aap_git_token_present %}
@@ -457,6 +543,35 @@ controller_bootstrap_controller_credentials:
       host: "{{ bootstrap_generate_env_vars_satellite_server_url }}"
       username: "{% raw %}{{ '{{ vault_satellite_service_account_username }}' }}{% endraw %}"
       password: "{% raw %}{{ '{{ vault_satellite_service_account_password }}' }}{% endraw %}"
+{% endif %}
+{% if preflight_galaxy_setup_enabled %}
+{% for galaxy_credential in preflight_galaxy_credentials_ordered %}
+{% if (galaxy_credential.enabled | default(true) | bool) and (galaxy_credential.name | default('', true) | length > 0) and (galaxy_credential.url | default('', true) | length > 0) %}
+
+  - name: "{{ galaxy_credential.name }}"
+    description: "Galaxy/Hub credential {{ galaxy_credential.name }}"
+    organization: "{{ bootstrap_generate_env_vars_aap_org }}"
+    credential_type: "{{ galaxy_credential.credential_type | default('Ansible Galaxy/Automation Hub API Token', true) }}"
+    inputs:
+      url: "{{ galaxy_credential.url }}"
+{% if galaxy_credential.auth_url | default('', true) | length > 0 %}
+      auth: "{{ galaxy_credential.auth_url }}"
+{% endif %}
+      token: "{% raw %}{{ '{{ vault_galaxy_hub_token | default(vault_controller_oauthtoken | default(vault_controller_password)) }}' }}{% endraw %}"
+{% endif %}
+{% endfor %}
+{% if (preflight_container_registry_credential.enabled | default(true) | bool) and (preflight_container_registry_credential.name | default('', true) | length > 0) and (preflight_container_registry_credential.host | default('', true) | length > 0) %}
+
+  - name: "{{ preflight_container_registry_credential.name }}"
+    description: "Container registry credential for Hub EE pulls"
+    organization: "{{ bootstrap_generate_env_vars_aap_org }}"
+    credential_type: "{{ preflight_container_registry_credential.credential_type | default('Container Registry', true) }}"
+    inputs:
+      host: "{{ preflight_container_registry_credential.host | regex_replace('^https?://', '') }}"
+      username: "{% raw %}{{ '{{ vault_galaxy_registry_username | default(vault_controller_username | default(\"admin\")) }}' }}{% endraw %}"
+      password: "{% raw %}{{ '{{ vault_galaxy_registry_password | default(vault_galaxy_hub_token | default(vault_controller_oauthtoken | default(vault_controller_password))) }}' }}{% endraw %}"
+      verify_ssl: {{ preflight_container_registry_credential.verify_ssl | default(true) | bool | lower }}
+{% endif %}
 {% endif %}
 {% for extra_credential in bootstrap_generate_env_vars_aap_additional_credentials %}
 {% if extra_credential.name | default('', true) | length > 0 %}
@@ -541,8 +656,10 @@ controller_bootstrap_controller_projects:
 {% if bootstrap_generate_env_vars_aap_git_token_present %}
     credential: "{{ controller_bootstrap_scm_credential }}"
 {% endif %}
-    wait: true
-    update_project: true
+    wait: false
+    # Sync is a later bootstrap_controller step. Galaxy install only happens
+    # when collections/requirements.yml exists (Hub path).
+    update_project: false
 
 controller_bootstrap_controller_inventories:
   - name: "{{ bootstrap_generate_env_vars_aap_inventory }}"
@@ -594,6 +711,7 @@ controller_bootstrap_controller_inventories:
     preflight_satellite_options_for_inv | length == 0
     or 'satellite_server_install' in preflight_satellite_options_for_inv
     or 'satellite_capsule_install' in preflight_satellite_options_for_inv
+    or 'satellite_oidc' in preflight_satellite_options_for_inv
 %}
 {% if satellite_server_inventory_needed %}
 
@@ -635,6 +753,7 @@ bootstrap_controller_controller_hosts:
       preflight_satellite_options | length == 0
       or 'satellite_server_install' in preflight_satellite_options
       or 'satellite_capsule_install' in preflight_satellite_options
+      or 'satellite_oidc' in preflight_satellite_options
     )
 %}
 {% if satellite_server_inventory_selected and bootstrap_generate_env_vars_satellite_inventory_host | length > 0 %}

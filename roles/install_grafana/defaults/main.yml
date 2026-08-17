@@ -1,7 +1,9 @@
 # yamllint disable rule:line-length
 # SPDX-License-Identifier: GPL-3.0-or-later
 ---
-# Standalone Grafana on RHEL (official Grafana RPM repo or offline RPM).
+# Standalone Grafana on RHEL.
+# Lab default is disconnected: stage grafana RPM (Contoller path or internal URL).
+# Set install_grafana_allow_online_repo=true only for connected labs (rpm.grafana.com).
 state: present
 
 install_grafana_hostname: "{{ grafana_hostname | default('grafana-ado.server.lab') }}"
@@ -9,9 +11,10 @@ install_grafana_http_port: 3000
 install_grafana_admin_user: "{{ grafana_admin_user | default('admin') }}"
 install_grafana_admin_password: "{{ grafana_admin_password | default('redhat123') }}"
 
-# Airgap: local RPM on Contoller/runner, or download URL. Online uses Grafana yum repo.
+# Airgap (required unless allow_online_repo or package already installed).
 install_grafana_rpm_path: "{{ grafana_rpm_path | default('') }}"
 install_grafana_rpm_url: "{{ grafana_rpm_url | default('') }}"
+install_grafana_allow_online_repo: "{{ grafana_allow_online_repo | default(false) | bool }}"
 install_grafana_repo_url: https://rpm.grafana.com
 install_grafana_gpg_key_url: https://rpm.grafana.com/gpg.key
 

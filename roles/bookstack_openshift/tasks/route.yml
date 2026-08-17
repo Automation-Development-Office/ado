@@ -1,0 +1,27 @@
+---
+- name: Create BookStack Route
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: bookstack
+        namespace: "{{ bookstack_namespace }}"
+        labels:
+          app.kubernetes.io/name: bookstack
+          app.kubernetes.io/component: app
+        annotations: "{{ bookstack_route_annotations | default({}) }}"
+      spec:
+        host: "{{ bookstack_route_host_effective }}"
+        to:
+          kind: Service
+          name: "{{ bookstack_service_name }}"
+          weight: 100
+        port:
+          targetPort: http
+        tls:
+          termination: "{{ bookstack_route_tls_termination }}"
+          insecureEdgeTerminationPolicy: "{{ bookstack_route_insecure_policy }}"
+        wildcardPolicy: None
+    validate_certs: "{{ bookstack_validate_certs }}"

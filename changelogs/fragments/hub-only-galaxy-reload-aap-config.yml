@@ -1,0 +1,5 @@
+bugfixes:
+  - >-
+    bootstrap_controller - On hub-update-only runs, reload ``aap_config_vars.yml``
+    before applying Galaxy/Hub credentials so stale ``configs/controller`` does
+    not skip credential create/attach when Galaxy setup is enabled.

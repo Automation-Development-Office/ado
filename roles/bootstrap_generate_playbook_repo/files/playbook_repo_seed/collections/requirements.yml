@@ -1,9 +1,4 @@
 ---
-collections:
-  - name: infra.ado
-  - name: kubernetes.core
-  - name: redhat.openshift
-  - name: redhat.rhel_idm
-  - name: freeipa.ansible_freeipa
-  - name: community.grafana
-  - name: grafana.grafana
+# Galaxy/Hub requirements are written only when Hub collection update is
+# requested. An empty list keeps seed copy from forcing a Hub install.
+collections: []

@@ -1,9 +1,9 @@
 # yamllint disable rule:line-length
 # SPDX-License-Identifier: GPL-3.0-or-later
 ---
-# Standalone GitLab CE/EE on RHEL (packages.gitlab.com or offline RPM).
-# Prefer gitlab-ce when no Enterprise license; set install_gitlab_edition: ee
-# (package gitlab-ee) when licensed.
+# Standalone GitLab CE/EE on RHEL.
+# Lab default is disconnected: stage gitlab-ce/ee RPM (Contoller path or internal URL).
+# Set install_gitlab_allow_online_repo=true only for connected labs (packages.gitlab.com).
 state: present
 
 install_gitlab_hostname: "{{ gitlab_hostname | default('gitlab-ado.server.lab') }}"
@@ -24,9 +24,12 @@ install_gitlab_external_url: "{{ gitlab_external_url | default('') }}"
 install_gitlab_tls_crt: "{{ gitlab_tls_crt | default(tls_crt | default('')) }}"
 install_gitlab_tls_key: "{{ gitlab_tls_key | default(tls_key | default('')) }}"
 
-# Airgap: local RPM on Contoller/runner, or download URL. Online uses repo script.
+# Airgap (required unless allow_online_repo or package already installed):
+# local RPM on Contoller/runner, or internal mirror URL (Satellite/pulp/httpd).
 install_gitlab_rpm_path: "{{ gitlab_rpm_path | default('') }}"
 install_gitlab_rpm_url: "{{ gitlab_rpm_url | default('') }}"
+# Disconnected by default — do not hit packages.gitlab.com unless explicitly enabled.
+install_gitlab_allow_online_repo: "{{ gitlab_allow_online_repo | default(false) | bool }}"
 # Override only if mirroring packages.gitlab.com offline; otherwise derived from edition.
 install_gitlab_repo_script_url: ""
 
@@ -34,3 +37,8 @@ install_gitlab_repo_script_url: ""
 install_gitlab_skip_packages: false
 install_gitlab_tls_dir: /etc/gitlab/ssl
 install_gitlab_config_path: /etc/gitlab/gitlab.rb
+
+# initial_root_password in gitlab.rb only applies on first Omnibus bootstrap.
+# Always enforce root password via gitlab-rails after install (like Grafana
+# reset-admin-password) so Contoller survey password matches login.
+install_gitlab_manage_root_password: "{{ gitlab_manage_root_password | default(true) | bool }}"

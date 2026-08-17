@@ -65,13 +65,16 @@ controller_templates:
           default: redhat123
         - question_name: ADO | Path to Grafana RPM on Contoller/runner
           question_description: >-
-            Absolute path to grafana RPM reachable by the Contoller EE, or leave
-            blank for rpm.grafana.com online install.
+            Disconnected by default. Absolute path to a staged grafana RPM on
+            the Contoller EE (required unless package already installed).
+            Online rpm.grafana.com only if grafana_allow_online_repo=true.
           required: false
           type: text
           variable: grafana_rpm_path
           default: ''
         - question_name: ADO | Grafana RPM URL (optional)
+          question_description: >-
+            Internal/airgap mirror URL for the Grafana RPM (not rpm.grafana.com).
           required: false
           type: text
           variable: grafana_rpm_url

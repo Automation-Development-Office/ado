@@ -74,12 +74,40 @@
   ansible.builtin.fail:
     msg: >-
       Could not install GitLab dependencies via dnf (host may be unregistered).
-      Pre-install deps and set install_gitlab_skip_packages=true, or provide
-      install_gitlab_rpm_path / install_gitlab_rpm_url for airgap.
+      Pre-install deps via Satellite and set install_gitlab_skip_packages=true,
+      or provide install_gitlab_rpm_path / install_gitlab_rpm_url for airgap.
   when:
     - not (install_gitlab_skip_packages | default(false) | bool)
-    - (install_gitlab_deps.rc | default(0)) != 0
-      or (install_gitlab_deps.failed | default(false))
+    - install_gitlab_deps is failed
+
+- name: Detect already-installed GitLab package
+  ansible.builtin.command:
+    argv:
+      - rpm
+      - -q
+      - "{{ install_gitlab_package_effective }}"
+  register: install_gitlab_rpm_query
+  changed_when: false
+  failed_when: false
+
+- name: Set GitLab package already present fact
+  ansible.builtin.set_fact:
+    install_gitlab_package_present: "{{ install_gitlab_rpm_query.rc == 0 }}"
+
+- name: Guard — disconnected install needs staged RPM (or already installed)
+  ansible.builtin.assert:
+    that:
+      - >-
+        (install_gitlab_rpm_path | default('') | length > 0)
+        or (install_gitlab_rpm_url | default('') | length > 0)
+        or (install_gitlab_package_present | default(false) | bool)
+        or (install_gitlab_allow_online_repo | default(false) | bool)
+    fail_msg: >-
+      install_gitlab is disconnected by default (no packages.gitlab.com).
+      Stage a gitlab-ce/ee RPM on the Contoller EE path
+      (gitlab_rpm_path / install_gitlab_rpm_path), or an internal mirror URL
+      (gitlab_rpm_url), or set install_gitlab_allow_online_repo=true for
+      connected labs only.
 
 - name: Ensure staging directory for GitLab RPM
   ansible.builtin.file:
@@ -97,7 +125,7 @@
     mode: "0644"
   when: install_gitlab_rpm_path | default('') | length > 0
 
-- name: Download GitLab RPM (airgap / offline URL)
+- name: Download GitLab RPM (internal/airgap URL — not packages.gitlab.com)
   ansible.builtin.get_url:
     url: "{{ install_gitlab_rpm_url }}"
     dest: /var/lib/gitlab-stage/gitlab.rpm
@@ -117,25 +145,29 @@
     (install_gitlab_rpm_path | default('') | length > 0)
     or (install_gitlab_rpm_url | default('') | length > 0)
 
-- name: Add GitLab package repository (packages.gitlab.com)
+- name: Add GitLab package repository (packages.gitlab.com — connected labs only)
   ansible.builtin.shell: |
     set -euo pipefail
     curl -fsSL "{{ install_gitlab_repo_script_url_effective }}" | bash
   args:
     creates: "/etc/yum.repos.d/gitlab_{{ install_gitlab_package_effective }}.repo"
   when:
+    - install_gitlab_allow_online_repo | default(false) | bool
+    - not (install_gitlab_package_present | default(false) | bool)
     - install_gitlab_rpm_path | default('') | length == 0
     - install_gitlab_rpm_url | default('') | length == 0
     - not (install_gitlab_skip_packages | default(false) | bool)
   changed_when: true
 
-- name: Install GitLab package from packages.gitlab.com
+- name: Install GitLab package from packages.gitlab.com (connected labs only)
   ansible.builtin.dnf:
     name: "{{ install_gitlab_package_effective }}"
     state: present
   environment:
     EXTERNAL_URL: "{{ install_gitlab_external_url_effective }}"
   when:
+    - install_gitlab_allow_online_repo | default(false) | bool
+    - not (install_gitlab_package_present | default(false) | bool)
     - install_gitlab_rpm_path | default('') | length == 0
     - install_gitlab_rpm_url | default('') | length == 0
 
@@ -234,9 +266,33 @@
     state: started
     daemon_reload: true
 
+# gitlab.rb initial_root_password is ignored after first bootstrap; enforce via API.
+- name: Enforce GitLab root password (gitlab-rails)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    gitlab-rails runner "
+    u = User.find_by_username('root')
+    raise 'GitLab root user not found' unless u
+    u.password = ENV.fetch('GITLAB_ROOT_PASSWORD')
+    u.password_confirmation = ENV.fetch('GITLAB_ROOT_PASSWORD')
+    u.password_automatically_set = false
+    u.save!
+    puts 'root_password_updated'
+    "
+  environment:
+    GITLAB_ROOT_PASSWORD: "{{ install_gitlab_root_password }}"
+  register: install_gitlab_root_password_reset
+  changed_when: >-
+    'root_password_updated' in (install_gitlab_root_password_reset.stdout | default(''))
+  no_log: true
+  when:
+    - install_gitlab_manage_root_password | default(true) | bool
+    - install_gitlab_root_password | default('') | length > 0
+
 - name: Show GitLab standalone URL
   ansible.builtin.debug:
     msg: >-
       GitLab ({{ install_gitlab_package_effective }}) is available at
       {{ install_gitlab_external_url_effective }}/
-      (initial root password set via gitlab.rb / GITLAB_ROOT_PASSWORD pattern).
+      (root password enforced via install_gitlab_manage_root_password /
+      gitlab_root_password survey var).

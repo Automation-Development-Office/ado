@@ -1,8 +1,18 @@
 ---
-- name: Install RHBK operator
+- name: Install RHBK (Keycloak) on OpenShift via operator
   ansible.builtin.import_tasks: install-rhbk-operator.yml
-  when: state == "present"
+  when:
+    - state | default('present') == 'present'
+    - (install_rhbk_platform | default('openshift') | lower) in ['openshift', 'ocp', 'k8s']
 
-- name: Delete RHBK operator
+- name: Install RHBK (Keycloak) standalone on RHEL / VM
+  ansible.builtin.import_tasks: install-rhbk-standalone.yml
+  when:
+    - state | default('present') == 'present'
+    - (install_rhbk_platform | default('openshift') | lower) in ['rhel', 'standalone', 'vm', 'baremetal']
+
+- name: Delete RHBK operator resources on OpenShift
   ansible.builtin.import_tasks: delete-rhbk-operator.yml
-  when: state == "absent"
+  when:
+    - state | default('present') == 'absent'
+    - (install_rhbk_platform | default('openshift') | lower) in ['openshift', 'ocp', 'k8s']

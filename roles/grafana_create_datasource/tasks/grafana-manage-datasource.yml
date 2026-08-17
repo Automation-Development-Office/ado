@@ -1,49 +1,176 @@
+---
+# Creates one Grafana Prometheus datasource described by grafana_ds_item.
+# Discovers OpenShift prometheus-k8s Route + SA token unless prometheus_url /
+# bearer_token are provided on the item (for remote / Dev clusters).
+
+- name: Resolve per-datasource settings
+  ansible.builtin.set_fact:
+    grafana_create_datasource_item_name: "{{ grafana_ds_item.name }}"
+    grafana_create_datasource_item_prometheus_url: >-
+      {{ grafana_ds_item.prometheus_url | default(grafana_ds_item.ds_url | default(''), true) }}
+    grafana_create_datasource_item_bearer_token: >-
+      {{ grafana_ds_item.bearer_token | default('', true) }}
+    grafana_create_datasource_item_bearer_token_secret: >-
+      {{ grafana_ds_item.bearer_token_secret | default({}, true) }}
+    grafana_create_datasource_item_route_name: >-
+      {{
+        grafana_ds_item.prometheus_route_name
+        | default(grafana_create_datasource_prometheus_route_name)
+      }}
+    grafana_create_datasource_item_route_namespace: >-
+      {{
+        grafana_ds_item.prometheus_route_namespace
+        | default(grafana_create_datasource_prometheus_route_namespace)
+      }}
+    grafana_create_datasource_item_sa_name: >-
+      {{
+        grafana_ds_item.serviceaccount_name
+        | default(grafana_create_datasource_serviceaccount_name)
+      }}
+    grafana_create_datasource_item_sa_secret: >-
+      {{
+        grafana_ds_item.serviceaccount_token_secret_name
+        | default(grafana_create_datasource_serviceaccount_token_secret_name)
+      }}
+
+- name: Read bearer token from Kubernetes Secret when configured
+  when:
+    - grafana_create_datasource_item_bearer_token | length == 0
+    - grafana_create_datasource_item_bearer_token_secret.name is defined
+    - grafana_create_datasource_item_bearer_token_secret.name | length > 0
+  block:
+    - name: Fetch bearer token Secret
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: "{{ grafana_create_datasource_item_bearer_token_secret.name }}"
+        namespace: >-
+          {{
+            grafana_create_datasource_item_bearer_token_secret.namespace
+            | default('grafana')
+          }}
+      register: grafana_create_datasource_bearer_secret_info
+      no_log: true
+
+    - name: Set bearer token from Secret key
+      ansible.builtin.set_fact:
+        grafana_create_datasource_item_bearer_token: >-
+          {{
+            grafana_create_datasource_bearer_secret_info.resources[0].data[
+              grafana_create_datasource_item_bearer_token_secret.key | default('token')
+            ] | b64decode
+            | regex_replace('^Bearer\\s+', '')
+          }}
+      no_log: true
+      when:
+        - grafana_create_datasource_bearer_secret_info.resources is defined
+        - grafana_create_datasource_bearer_secret_info.resources | length > 0
+
 - name: Fetch Prometheus Route information
   kubernetes.core.k8s_info:
     api_version: route.openshift.io/v1
     kind: Route
-    name: "{{ grafana_create_datasource_prometheus_route_name }}"
-    namespace: "{{ grafana_create_datasource_prometheus_route_namespace }}"
+    name: "{{ grafana_create_datasource_item_route_name }}"
+    namespace: "{{ grafana_create_datasource_item_route_namespace }}"
   register: grafana_create_datasource_prometheus_route_info
+  when: grafana_create_datasource_item_prometheus_url | length == 0
 
-- name: Extract Prometheus hostname
+- name: Extract Prometheus hostname from Route
   ansible.builtin.set_fact:
     grafana_create_datasource_prometheus_source_hostname: >-
       {{ grafana_create_datasource_prometheus_route_info.resources[0].spec.host }}
   when:
+    - grafana_create_datasource_item_prometheus_url | length == 0
     - grafana_create_datasource_prometheus_route_info.resources is defined
     - grafana_create_datasource_prometheus_route_info.resources | length > 0
-    - grafana_create_datasource_prometheus_route_info.resources[0].spec is defined
     - grafana_create_datasource_prometheus_route_info.resources[0].spec.host is defined
 
-- name: Display Prometheus hostname
+- name: Use explicit Prometheus URL when provided
+  ansible.builtin.set_fact:
+    grafana_create_datasource_prometheus_source_hostname: >-
+      {{
+        grafana_create_datasource_item_prometheus_url
+        | regex_replace('^https?://', '')
+        | regex_replace('/$', '')
+      }}
+  when: grafana_create_datasource_item_prometheus_url | length > 0
+
+- name: Assert Prometheus target was resolved
+  ansible.builtin.assert:
+    that:
+      - grafana_create_datasource_prometheus_source_hostname | default('') | length > 0
+    fail_msg: >-
+      Could not resolve Prometheus for datasource {{ grafana_create_datasource_item_name }}.
+      Set prometheus_url on the grafana_datasources item or ensure Route
+      {{ grafana_create_datasource_item_route_name }} exists in
+      {{ grafana_create_datasource_item_route_namespace }}.
+
+- name: Display Prometheus target
   ansible.builtin.debug:
-    msg: "OpenShift Prometheus Hostname: {{ grafana_create_datasource_prometheus_source_hostname }}"
-  when: grafana_create_datasource_prometheus_source_hostname is defined
+    msg: >-
+      Datasource {{ grafana_create_datasource_item_name }} ->
+      https://{{ grafana_create_datasource_prometheus_source_hostname }}
+
+- name: Ensure ServiceAccount for Prometheus scrape exists
+  kubernetes.core.k8s:
+    namespace: "{{ grafana_create_datasource_item_route_namespace }}"
+    definition:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: "{{ grafana_create_datasource_item_sa_name }}"
+  when: grafana_create_datasource_item_bearer_token | length == 0
+
+- name: Ensure ServiceAccount can view cluster monitoring
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: "{{ grafana_create_datasource_item_sa_name }}-binding"
+      subjects:
+        - kind: ServiceAccount
+          name: "{{ grafana_create_datasource_item_sa_name }}"
+          namespace: "{{ grafana_create_datasource_item_route_namespace }}"
+      roleRef:
+        kind: ClusterRole
+        name: cluster-monitoring-view
+        apiGroup: rbac.authorization.k8s.io
+  when: grafana_create_datasource_item_bearer_token | length == 0
 
 - name: Create ServiceAccount token secret
   kubernetes.core.k8s:
-    namespace: "{{ grafana_create_datasource_prometheus_route_namespace }}"
+    namespace: "{{ grafana_create_datasource_item_route_namespace }}"
     definition:
       apiVersion: v1
       kind: Secret
       metadata:
-        name: "{{ grafana_create_datasource_serviceaccount_token_secret_name }}"
+        name: "{{ grafana_create_datasource_item_sa_secret }}"
         annotations:
-          kubernetes.io/service-account.name: "{{ grafana_create_datasource_serviceaccount_name }}"
+          kubernetes.io/service-account.name: "{{ grafana_create_datasource_item_sa_name }}"
       type: kubernetes.io/service-account-token
+  when: grafana_create_datasource_item_bearer_token | length == 0
 
 - name: Get token from secret
   kubernetes.core.k8s_info:
     api_version: v1
     kind: Secret
-    namespace: "{{ grafana_create_datasource_prometheus_route_namespace }}"
-    name: "{{ grafana_create_datasource_serviceaccount_token_secret_name }}"
+    namespace: "{{ grafana_create_datasource_item_route_namespace }}"
+    name: "{{ grafana_create_datasource_item_sa_secret }}"
   register: grafana_create_datasource_sa_secret
+  when: grafana_create_datasource_item_bearer_token | length == 0
 
-- name: Set bearer token fact
+- name: Set bearer token fact from Secret
   ansible.builtin.set_fact:
-    grafana_create_datasource_prometheus_bearer_token: "{{ grafana_create_datasource_sa_secret.resources[0].data.token | b64decode }}"
+    grafana_create_datasource_prometheus_bearer_token: >-
+      {{ grafana_create_datasource_sa_secret.resources[0].data.token | b64decode }}
+  when: grafana_create_datasource_item_bearer_token | length == 0
+
+- name: Set bearer token fact from datasource item
+  ansible.builtin.set_fact:
+    grafana_create_datasource_prometheus_bearer_token: >-
+      {{ grafana_create_datasource_item_bearer_token }}
+  when: grafana_create_datasource_item_bearer_token | length > 0
 
 - name: Wait until Prometheus API is responsive
   ansible.builtin.uri:
@@ -58,13 +185,13 @@
   retries: 30
   delay: 5
   until: grafana_create_datasource_prometheus_ready.status == 200
-  when:
-    - grafana_create_datasource_prometheus_source_hostname is defined
-    - grafana_create_datasource_prometheus_bearer_token is defined
+  no_log: true
 
-- name: Update prometheus datasource
+- name: Create or update Prometheus datasource in Grafana
   community.grafana.grafana_datasource:
-    name: "{{ grafana_create_datasource_name }}"
+    name: "{{ grafana_create_datasource_item_name }}"
+    # Keep uid == display name so pinned dashboards (uid: Openshift-Prod) resolve.
+    uid: "{{ grafana_create_datasource_item_name }}"
     url: "https://{{ grafana_create_datasource_hostname }}"
     url_username: "{{ grafana_create_datasource_admin_user }}"
     url_password: "{{ grafana_create_datasource_admin_password }}"
@@ -78,3 +205,42 @@
     additional_secure_json_data:
       httpHeaderValue1: "Bearer {{ grafana_create_datasource_prometheus_bearer_token }}"
     enforce_secure_data: true
+  no_log: true
+
+# Grafana Operator CRs often own the same datasources and ignore API uid unless
+# spec.datasource.uid is set. Align CR uid to the display name when present.
+- name: Find GrafanaDatasource CRs matching this datasource name
+  kubernetes.core.k8s_info:
+    api_version: grafana.integreatly.org/v1beta1
+    kind: GrafanaDatasource
+    namespace: "{{ grafana_create_datasource_namespace | default('grafana') }}"
+  register: grafana_create_datasource_crs
+  failed_when: false
+
+- name: Ensure operator GrafanaDatasource uid matches display name
+  kubernetes.core.k8s_json_patch:
+    api_version: grafana.integreatly.org/v1beta1
+    kind: GrafanaDatasource
+    namespace: "{{ item.metadata.namespace }}"
+    name: "{{ item.metadata.name }}"
+    patch:
+      - op: "{{ 'replace' if (item.spec.datasource.uid | default('') | length) > 0 else 'add' }}"
+        path: /spec/datasource/uid
+        value: "{{ grafana_create_datasource_item_name }}"
+  loop: >-
+    {{
+      grafana_create_datasource_crs.resources
+      | default([])
+      | selectattr('spec.datasource.name', 'defined')
+      | selectattr('spec.datasource.name', 'equalto', grafana_create_datasource_item_name)
+      | list
+    }}
+  loop_control:
+    label: "{{ item.metadata.name | default('datasource') }}"
+  when:
+    - grafana_create_datasource_crs is defined
+    - grafana_create_datasource_crs.resources is defined
+    - (
+        item.spec.datasource.uid | default('') | string
+        != grafana_create_datasource_item_name
+      )

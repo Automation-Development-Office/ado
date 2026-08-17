@@ -19,6 +19,8 @@
   ansible.builtin.debug:
     var: bootstrap_controller_controller_organizations
 
+# Always create orgs — including hub-update-only. Contoller EE / Galaxy attach
+# need the General organization even when playbook scaffolding is skipped.
 - name: AAP 2.5+ | Create organizations directly
   ansible.controller.organization:
     name: "{{ item.name }}"
@@ -30,9 +32,23 @@
     controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
     validate_certs: "{{ controller_validate_certs | default(false) }}"
   loop: "{{ bootstrap_controller_controller_organizations | default([]) }}"
+  when: bootstrap_controller_controller_organizations | default([]) | length > 0
+
+- name: AAP 2.5+ | Ensure General organization exists (hub-only / missing from configs)
+  ansible.controller.organization:
+    name: "{{ controller_bootstrap_organization }}"
+    description: "{{ controller_bootstrap_organization }}"
+    state: present
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
   when:
-    - bootstrap_controller_controller_organizations | default([]) | length > 0
-    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
+    - controller_bootstrap_organization | default('') | length > 0
+    - >-
+      controller_bootstrap_organization not in
+      (bootstrap_controller_controller_organizations | default([]) | map(attribute='name') | list)
 
 # Inventories direct because infra.aap_configuration 4.6.19 stringifies variables
 - name: AAP 2.5+ | Create inventories directly
@@ -57,7 +73,7 @@
     bootstrap_controller_hub_publish_repository: "{{ (hub_collections | first).repository | default('validated') }}"
     bootstrap_controller_hub_publish_working_dir: "/var/tmp/ado-hub-publish"
   when:
-    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
 
 - name: AAP 2.5+ | Reset AAP Hub collection publish working dir
@@ -65,7 +81,7 @@
     path: "{{ bootstrap_controller_hub_publish_working_dir }}"
     state: absent
   when:
-    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
 
 - name: AAP 2.5+ | Create AAP Hub collection publish working dir
@@ -74,7 +90,7 @@
     state: directory
     mode: "0755"
   when:
-    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
 
 - name: AAP 2.5+ | Copy ADO collection source for AAP Hub publish
@@ -87,7 +103,7 @@
   loop_control:
     loop_var: __hub_collection_item
   when:
-    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
     - __hub_collection_item.collection_local_path is defined
 
@@ -101,7 +117,7 @@
   loop_control:
     loop_var: __hub_collection_item
   when:
-    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
 
 - name: AAP 2.5+ | Check built ADO collection artifact path
@@ -112,7 +128,7 @@
   loop_control:
     loop_var: __hub_build_result_item
   when:
-    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
 
 - name: AAP 2.5+ | Find built ADO collection artifact
@@ -124,19 +140,42 @@
   loop_control:
     loop_var: __hub_build_stat_item
   when:
-    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
 
 - name: AAP 2.5+ | Set built ADO collection artifact list
   ansible.builtin.set_fact:
     bootstrap_controller_hub_collection_artifacts: "{{ bootstrap_controller_hub_find_results.results | default([]) | map(attribute='files') | flatten | map(attribute='path') | list }}"
   when:
-    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
+
+# Fresh Private Automation Hub has no namespaces; ah_collection fails with
+# "Namespace in filename not found." until `infra` exists.
+- name: AAP 2.5+ | Ensure Hub namespace exists for ADO collection
+  ansible.hub.ah_namespace:
+    name: "{{ (__hub_collection_file | basename).split('-')[0] }}"
+    state: present
+    ah_host: >-
+      {{
+        ('https://' ~ (bootstrap_controller_hub_hostname | regex_replace('^https?://', '') | regex_replace('/.*$', '')))
+        if (bootstrap_controller_hub_hostname | default('') | string | trim | length > 0)
+        else (controller_host | default(vault_controller_hostname))
+      }}
+    ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    ah_token: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ bootstrap_controller_hub_collection_artifacts | default([]) }}"
+  loop_control:
+    loop_var: __hub_collection_file
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
+    - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
 
 - name: AAP 2.5+ | Publish ADO collection to validated AAP Hub repository
   when:
-    - bootstrap_controller_hub_publish_ado_collection | default(true) | bool
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
     - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
   block:
@@ -152,7 +191,12 @@
         wait: "{{ bootstrap_controller_hub_publish_wait | default(false) | bool }}"
         timeout: "{{ bootstrap_controller_hub_publish_timeout | default(300) | int }}"
         request_timeout: "{{ bootstrap_controller_hub_publish_request_timeout | default(60) | int }}"
-        ah_host: "{{ controller_host | default(vault_controller_hostname) }}"
+        ah_host: >-
+          {{
+            ('https://' ~ (bootstrap_controller_hub_hostname | regex_replace('^https?://', '') | regex_replace('/.*$', '')))
+            if (bootstrap_controller_hub_hostname | default('') | string | trim | length > 0)
+            else (controller_host | default(vault_controller_hostname))
+          }}
         ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
         ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
         ah_token: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
@@ -189,9 +233,12 @@
       ansible.builtin.debug:
         msg: >-
           AAP Hub publish/approve returned no pending approval (IndexError or
-          awaiting-approval empty). Treating as success so bootstrap can continue.
-          If the collection is missing on Hub, bump galaxy.yml version and rerun.
-          Artifact: {{ bootstrap_controller_hub_collection_artifacts | default([]) | join(', ') }}
+          awaiting-approval empty). Usually means this infra.ado version is
+          already in repository
+          '{{ bootstrap_controller_hub_publish_repository | default('validated') }}'
+          — not a failed upload. To replace it: enable Force collection update,
+          or bump galaxy.yml version and rerun. Artifact:
+          {{ bootstrap_controller_hub_collection_artifacts | default([]) | join(', ') }}
           Repository: {{ bootstrap_controller_hub_publish_repository | default('validated') }}
       when: bootstrap_controller_hub_publish_already_present | default(false) | bool
 
@@ -202,7 +249,93 @@
           {{ ansible_failed_result.msg | default(ansible_failed_result) }}
       when: not (bootstrap_controller_hub_publish_already_present | default(false) | bool)
 
-- name: AAP 2.5+ | Stop after ADO Hub collection update
+- name: AAP 2.5+ | Push ADO EE image to AAP Hub registry
+  ansible.builtin.include_tasks: push_hub_ee.yml
+  when: bootstrap_controller_hub_push_ee | default(false) | bool
+
+# Hub-only skips generate_aap_configs, so configs/controller/*.yml can be stale and
+# clobber Galaxy creds that bootstrap_generate_env_vars just wrote into aap_config_vars.
+# Reload aap_config_vars and refresh org/credential facts before the Galaxy apply.
+- name: AAP 2.5+ | Resolve env dir for hub-only Galaxy refresh
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_only_env: >-
+      {{
+        env
+        | default(bootstrap_controller_generated_env | default(''), true)
+      }}
+  when: bootstrap_controller_hub_update_collection_only | default(false) | bool
+
+- name: AAP 2.5+ | Reload aap_config_vars for hub-only Galaxy/org refresh
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/group_vars/all/{{ bootstrap_controller_hub_only_env }}/aap_config_vars.yml"
+  when:
+    - bootstrap_controller_hub_update_collection_only | default(false) | bool
+    - bootstrap_controller_hub_only_env | default('') | length > 0
+    - >-
+      (
+        playbook_dir
+        ~ '/group_vars/all/'
+        ~ bootstrap_controller_hub_only_env
+        ~ '/aap_config_vars.yml'
+      ) is file
+
+- name: AAP 2.5+ | Refresh org/credential facts from aap_config_vars (hub-only)
+  ansible.builtin.set_fact:
+    bootstrap_controller_controller_organizations: >-
+      {{
+        controller_bootstrap_controller_organizations
+        | default(bootstrap_controller_controller_organizations | default([]), true)
+      }}
+    bootstrap_controller_controller_credentials: >-
+      {{
+        controller_bootstrap_controller_credentials
+        | default(bootstrap_controller_controller_credentials | default([]), true)
+      }}
+    controller_credentials: >-
+      {{
+        controller_bootstrap_controller_credentials
+        | default(controller_credentials | default([]), true)
+      }}
+    controller_organizations: >-
+      {{
+        controller_bootstrap_controller_organizations
+        | default(controller_organizations | default([]), true)
+      }}
+  when: bootstrap_controller_hub_update_collection_only | default(false) | bool
+
+# Hub-only ends before full Contoller credential dispatch — still apply Galaxy tab
+# credentials when enabled so Hub + Galaxy (or either alone) both work when selected.
+- name: AAP 2.5+ | Apply Galaxy/Hub credentials before hub-only stop
+  ansible.builtin.include_tasks: apply_galaxy_hub_credentials.yml
+  when:
+    - bootstrap_controller_hub_update_collection_only | default(false) | bool
+    - >-
+      (
+        (
+          (
+            bootstrap_generate_env_vars_preflight.aap.galaxy_setup_enabled
+            | default(false)
+            | bool
+          )
+          if bootstrap_generate_env_vars_preflight is defined
+          else false
+        )
+        or
+        (
+          bootstrap_controller_controller_credentials
+          | default(controller_credentials | default([]), true)
+          | selectattr('credential_type', 'defined')
+          | selectattr(
+              'credential_type',
+              'equalto',
+              'Ansible Galaxy/Automation Hub API Token'
+            )
+          | list
+          | length
+        ) > 0
+      )
+
+- name: AAP 2.5+ | Stop after ADO Hub collection / EE update
   ansible.builtin.meta: end_host
   when: bootstrap_controller_hub_update_collection_only | default(false) | bool
 
@@ -811,10 +944,26 @@
       - "controller_templates={{ controller_templates | default([]) | length }}"
       - "controller_workflow_job_templates={{ controller_workflow_job_templates | default([]) | length }}"
 
-# Create/update projects separately so we can force sync before job templates
+# Create/update projects separately so we can force sync before job templates.
+# Never sync during project create: Contoller runs install_collections then and
+# fails hard if Hub does not yet have infra.ado (or Hub update was skipped).
+- name: AAP 2.5+ | Sanitize controller projects (no sync-on-create)
+  ansible.builtin.set_fact:
+    bootstrap_controller_projects_sanitized: >-
+      {{
+        (
+          controller_projects
+          | default(controller_bootstrap_controller_projects | default([]), true)
+        )
+        | map('combine', {'update_project': false, 'wait': false})
+        | list
+      }}
+
 - name: AAP 2.5+ | Normalize controller projects before apply
   ansible.builtin.set_fact:
-    bootstrap_controller_controller_projects: "{{ controller_bootstrap_controller_projects | default(controller_projects | default([]), true) }}"
+    controller_projects: "{{ bootstrap_controller_projects_sanitized }}"
+    bootstrap_controller_controller_projects: "{{ bootstrap_controller_projects_sanitized }}"
+    controller_bootstrap_controller_projects: "{{ bootstrap_controller_projects_sanitized }}"
 
 - name: AAP 2.5+ | Debug controller projects before apply
   ansible.builtin.debug:
@@ -867,10 +1016,10 @@
         | list
         | join(', ')
       }}.
-      Common cause: collections/requirements.yml cannot install infra.ado from AAP Hub
-      (collection missing on Hub). Enable "Update ADO collection in AAP Hub" in preflight
-      and re-run, or publish infra.ado to Hub manually, then sync the project again.
-      Module message:
+      Contoller git project update failed. If Hub collection update was not
+      requested, bootstrap should not write collections/requirements.yml and
+      should not need Galaxy/Hub. Check the Contoller project update stdout
+      (git clone/auth vs leftover Galaxy requirements). Module message:
       {{
         bootstrap_controller_project_sync_failures
         | map(attribute='msg')

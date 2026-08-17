@@ -54,6 +54,7 @@ bootstrap_generate_playbook_repo_component_map:
     - satellite_client_tools
     - satellite_content_view
     - satellite_capsule_install
+    - satellite_oidc
     - idm_server_install
     - idm_replica_install
     - idm_client_tools
@@ -74,6 +75,7 @@ bootstrap_generate_playbook_repo_component_map:
     - satellite_client_tools
     - satellite_content_view
     - satellite_capsule_install
+    - satellite_oidc
     - idm_server_install
     - idm_replica_install
     - idm_client_tools
@@ -141,6 +143,9 @@ bootstrap_generate_playbook_repo_component_map:
 
   satellite_capsule_install:
     - satellite_capsule_install
+
+  satellite_oidc:
+    - satellite_oidc
 
   idm_server_install:
     - idm_server_install
@@ -533,3 +538,9 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     target_platform: linux
     category: patching
     app: satellite_client_tools
+
+  - src: satellite/ado-configure-satellite-oidc-bootstrap.yml
+    dest: playbooks/satellite/ado-configure-satellite-oidc-bootstrap.yml
+    target_platform: linux
+    category: satellite
+    app: satellite_oidc

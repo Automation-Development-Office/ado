@@ -1,0 +1,3 @@
+---
+minor_changes:
+  - bootstrap_generate_env_vars - Honor preflight ``component_config.aap.operator_scope`` (``all_namespaces`` or ``namespaced``) when choosing the AAP operator channel; explicit ``operator_channel`` still wins.

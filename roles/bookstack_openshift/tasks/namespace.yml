@@ -1,0 +1,37 @@
+---
+- name: Ensure BookStack namespace exists
+  kubernetes.core.k8s:
+    state: "{{ bookstack_state | default('present') }}"
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ bookstack_namespace }}"
+        labels:
+          app.kubernetes.io/name: bookstack
+          app.kubernetes.io/managed-by: infra.ado.bookstack_openshift
+    validate_certs: "{{ bookstack_validate_certs }}"
+  tags: [bookstack_namespace]
+
+- name: Optionally allow anyuid for incompatible images
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: bookstack-anyuid
+        namespace: "{{ bookstack_namespace }}"
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: system:openshift:scc:anyuid
+      subjects:
+        - kind: ServiceAccount
+          name: default
+          namespace: "{{ bookstack_namespace }}"
+    validate_certs: "{{ bookstack_validate_certs }}"
+  when:
+    - bookstack_state | default('present') == 'present'
+    - bookstack_use_anyuid | bool
+  tags: [bookstack_namespace]

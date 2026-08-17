@@ -46,6 +46,33 @@ Automation Development Office
 | `bootstrap_controller_workflow_job_templates` | Workflow job template definitions loaded from generated YAML. |
 | `bootstrap_controller_controller_labels` | Controller labels to create. Generated runs include an organization label such as `ADO` alongside component labels such as `ADO | rhel`. |
 
+## Install / configure matrix
+
+Generated job templates follow the same OpenShift vs RHEL split as the collection
+README. ✅ = JT / playbook generated when selected. ❌ = not generated.
+
+### Install
+
+| Component | OpenShift | RHEL / Linux |
+|-----------|:---------:|:------------:|
+| AAP | ✅ | ❌ |
+| ACS / ACM / Cert Manager / Dev Spaces / DirSrv / ECK / GitOps / GitLab / Grafana / Kafka / OADP / PEGA / Quay / RHBK | ✅ | ❌ |
+| Satellite | ❌ | ✅ |
+| IdM (server / replica) | ❌ | ✅ |
+| RHEL OS / patching / compliance / STIG | ❌ | ❌ |
+| OpenShift base cluster | ❌ | ❌ |
+
+### Configure
+
+| Component | OpenShift | RHEL / Linux |
+|-----------|:---------:|:------------:|
+| AAP Controller objects (org, project, inventories, JTs, workflows) | ✅ | ❌ |
+| OpenShift prep (htpasswd, banner, LDAP, OAuth, routes, pull secret, CSI) | ✅ | ❌ |
+| Platform apps above (deploy+configure / options) | ✅ | ❌ |
+| Satellite configure / content view / client registration | ❌ | ✅ |
+| IdM client / DNS / AD trust / settings / sudo / topology | ❌ | ✅ |
+| RHEL patch / compliance / STIG | ❌ | ✅ |
+
 ## 🚀 Role Usage
 
 ```yaml

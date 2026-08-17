@@ -3,8 +3,11 @@
   hosts: all
   gather_facts: true
   become: true
+  vars:
+    # Contoller survey may set state/env; role uses rhel_sat_reg_action.
+    rhel_sat_reg_action: "{{ 'deregister' if (state | default('present')) == 'absent' else 'register' }}"
   vars_files:
-    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_satellite.yml"
-    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_satellite.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vault_satellite.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vars_satellite.yml"
   roles:
-    - role: infra.ado.rhel_sat_reg
+    - role: "{{ playbook_dir }}/../../collections/ansible_collections/infra/ado/roles/rhel_sat_reg"

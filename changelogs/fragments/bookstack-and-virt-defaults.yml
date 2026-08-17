@@ -1,0 +1,10 @@
+---
+minor_changes:
+  - bookstack_openshift - New role to deploy BookStack + MariaDB on OpenShift (PVC, Route, Contoller JT).
+  - bootstrap_generate_playbook_repo / bootstrap_controller - Wire BookStack playbook and JT seed; selectable as ``bookstack`` OpenShift app.
+  - bootstrap_resolve_component - Register ``bookstack`` component defaults.
+bugfixes:
+  - ocp_virtualization - Default instance type ``u1.large`` (8Gi) to avoid ``ErrorUnschedulable`` from ``u1.xlarge`` memory pressure on busy lab workers.
+  - bookstack_openshift - Use ``mariadb-admin`` probes, port 8080, PVC initContainer/subPaths, and integer Service/Deployment fields for Contoller EE.
+doc_changes:
+  - bookstack_openshift / ocp_virtualization - Expand role READMEs for Contoller, images, and scheduling.

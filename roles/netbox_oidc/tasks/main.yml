@@ -1,0 +1,139 @@
+---
+# Wire NetBox ConfigMap OIDC settings (avoids helm upgrade PDB/StatefulSet conflicts).
+
+- name: Assert NetBox OIDC inputs
+  ansible.builtin.assert:
+    that:
+      - netbox_oidc_client_secret | default('') | length > 0
+      - netbox_oidc_issuer | default('') | length > 0
+      - netbox_oidc_client_id | default('') | length > 0
+    fail_msg: >-
+      netbox_oidc requires issuer, client_id, and client_secret
+      (create confidential client netbox in Keycloak realm rhlab first).
+  when: netbox_oidc_state | default('present') == 'present'
+
+- name: Create NetBox OIDC Secret (reference / audit)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ netbox_oidc_secret_name }}"
+        namespace: "{{ netbox_oidc_namespace }}"
+        labels:
+          app.kubernetes.io/name: netbox
+          app.kubernetes.io/component: oidc
+      type: Opaque
+      stringData:
+        SOCIAL_AUTH_OIDC_KEY: "{{ netbox_oidc_client_id }}"
+        SOCIAL_AUTH_OIDC_SECRET: "{{ netbox_oidc_client_secret }}"
+    validate_certs: "{{ netbox_oidc_validate_certs }}"
+  when: netbox_oidc_state | default('present') == 'present'
+  no_log: true
+
+- name: Read current NetBox ConfigMap
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: ConfigMap
+    name: netbox
+    namespace: "{{ netbox_oidc_namespace }}"
+    validate_certs: "{{ netbox_oidc_validate_certs }}"
+  register: netbox_cm
+  when: netbox_oidc_state | default('present') == 'present'
+
+- name: Create NetBox lab CA ConfigMap for OIDC TLS trust
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "{{ netbox_oidc_ca_configmap }}"
+        namespace: "{{ netbox_oidc_namespace }}"
+        labels:
+          app.kubernetes.io/name: netbox
+          app.kubernetes.io/component: oidc
+      data:
+        lab-ca.crt: "{{ netbox_oidc_ca_bundle }}"
+    validate_certs: "{{ netbox_oidc_validate_certs }}"
+  when:
+    - netbox_oidc_state | default('present') == 'present'
+    - netbox_oidc_ca_bundle | default('') | length > 0
+
+# NetBox wires SSO via REMOTE_AUTH_BACKEND → AUTHENTICATION_BACKENDS.
+# SOCIAL_AUTH_BACKENDS alone is ignored by LoginView (load_backends(AUTHENTICATION_BACKENDS)).
+- name: Merge OIDC keys into netbox.yaml
+  ansible.builtin.set_fact:
+    netbox_oidc_config_yaml: >-
+      {{
+        (
+          netbox_cm.resources[0].data['netbox.yaml'] | from_yaml
+        )
+        | combine({
+            'REMOTE_AUTH_BACKEND': ['social_core.backends.open_id_connect.OpenIdConnectAuth'],
+            'SOCIAL_AUTH_OIDC_OIDC_ENDPOINT': netbox_oidc_issuer,
+            'SOCIAL_AUTH_OIDC_KEY': netbox_oidc_client_id,
+            'SOCIAL_AUTH_OIDC_SECRET': netbox_oidc_client_secret,
+            'SOCIAL_AUTH_BACKEND_ATTRS': {
+              # NetBox prefixes icon with "mdi-" in the login template
+              'oidc': ['Keycloak', 'shield-key-outline']
+            },
+            'SOCIAL_AUTH_VERIFY_SSL': netbox_oidc_verify_ssl | bool,
+            'LOGIN_REQUIRED': netbox_oidc_login_required | bool
+          }, recursive=True)
+        | to_nice_yaml
+      }}
+  when:
+    - netbox_oidc_state | default('present') == 'present'
+    - netbox_cm.resources | default([]) | length > 0
+  no_log: true
+
+- name: Apply NetBox ConfigMap with OIDC
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: netbox
+        namespace: "{{ netbox_oidc_namespace }}"
+      data: >-
+        {{
+          netbox_cm.resources[0].data
+          | combine({'netbox.yaml': netbox_oidc_config_yaml})
+        }}
+    validate_certs: "{{ netbox_oidc_validate_certs }}"
+  when:
+    - netbox_oidc_state | default('present') == 'present'
+    - netbox_oidc_config_yaml is defined
+  no_log: true
+
+# NOTE: Mounting lab-ca + REQUESTS_CA_BUNDLE is done out-of-band / once on the
+# Helm Deployment (strategic-merge of partial containers is unsafe). When
+# netbox_oidc_verify_ssl is false, social_core skips TLS verify for discovery.
+
+- name: Restart NetBox Deployments to load OIDC config
+  kubernetes.core.k8s:
+    state: present
+    kind: Deployment
+    namespace: "{{ netbox_oidc_namespace }}"
+    name: "{{ item }}"
+    definition:
+      spec:
+        template:
+          metadata:
+            annotations:
+              ado.netbox/oidc-restart: "{{ ansible_date_time.epoch | default(lookup('pipe', 'date +%s')) }}"
+    validate_certs: "{{ netbox_oidc_validate_certs }}"
+  loop:
+    - netbox
+    - netbox-worker
+  when: netbox_oidc_state | default('present') == 'present'
+
+- name: Show NetBox OIDC status
+  ansible.builtin.debug:
+    msg: >-
+      NetBox OIDC configured for issuer {{ netbox_oidc_issuer }}
+      (client={{ netbox_oidc_client_id }}). Use OpenID Connect on the NetBox login page.
+  when: netbox_oidc_state | default('present') == 'present'

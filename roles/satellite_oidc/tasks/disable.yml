@@ -1,0 +1,67 @@
+---
+- name: Disable Satellite login delegation
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --username
+      - "{{ satellite_oidc_username }}"
+      - --password
+      - "{{ satellite_oidc_password }}"
+      - settings
+      - set
+      - --name
+      - "{{ item.name }}"
+      - --value
+      - "{{ item.value }}"
+  loop:
+    - name: authorize_login_delegation
+      value: "false"
+    - name: authorize_login_delegation_auth_source_user_autocreate
+      value: ""
+    - name: oidc_audience
+      value: "[]"
+    - name: oidc_issuer
+      value: ""
+    - name: oidc_jwks_url
+      value: ""
+    - name: login_delegation_logout_url
+      value: ""
+  register: satellite_oidc_hammer_disable
+  changed_when: satellite_oidc_hammer_disable.rc == 0
+  failed_when: false
+  no_log: "{{ satellite_oidc_no_log | bool }}"
+
+- name: Reset Foreman Keycloak via satellite-installer
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/satellite-installer
+      - --reset-foreman-keycloak
+  register: satellite_oidc_reset_installer
+  changed_when: satellite_oidc_reset_installer.rc == 0
+  failed_when: false
+  when: satellite_oidc_run_installer | bool
+  timeout: "{{ satellite_oidc_installer_timeout | int }}"
+
+- name: Delete Keycloak client when requested
+  ansible.builtin.include_role:
+    name: "{{ satellite_oidc_rhbk_client_role | default('infra.ado.rhbk_client') }}"
+    apply:
+      delegate_to: localhost
+      connection: local
+      become: false
+  vars:
+    state: absent
+    rhbk_hostname: "{{ satellite_oidc_keycloak_hostname_effective }}"
+    rhbk_admin_user: "{{ satellite_oidc_admin_user }}"
+    rhbk_admin_password: "{{ satellite_oidc_admin_password }}"
+    rhbk_realm: "{{ satellite_oidc_realm_effective }}"
+    rhbk_client: "{{ satellite_oidc_client_id_effective }}"
+    rhbk_verify_ssl: "{{ satellite_oidc_keycloak_validate_certs | bool }}"
+    rhbk_no_log: "{{ satellite_oidc_no_log | bool }}"
+    auth_realm: "{{ satellite_oidc_auth_realm }}"
+    auth_client_id: "{{ satellite_oidc_auth_client_id }}"
+  when:
+    - satellite_oidc_create_client | bool
+    - (satellite_oidc_admin_user | default('') | length) > 0
+    - (satellite_oidc_admin_password | default('') | length) > 0
+  run_once: true

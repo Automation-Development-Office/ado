@@ -1,0 +1,25 @@
+---
+# Configure NetBox OIDC against Keycloak (RHLAB realm) via Helm extraConfig.
+# Does not redeploy the full NetBox stack — helm upgrade --reuse-values.
+
+netbox_oidc_state: present
+netbox_oidc_namespace: netbox
+netbox_oidc_release: netbox
+netbox_oidc_validate_certs: "{{ validate_certs | default(true) }}"
+
+# Prod Keycloak RHLAB
+netbox_oidc_issuer: https://keycloak.apps.ocp.prod.rhlab/realms/rhlab
+netbox_oidc_client_id: netbox
+netbox_oidc_client_secret: ""
+netbox_oidc_login_required: false
+netbox_oidc_auto_create_user: true
+
+# Local admin remains available (Helm superuser); password managed outside this role.
+netbox_oidc_secret_name: netbox-oidc
+
+# Lab Keycloak uses IPA/router PEMs. Prefer CA trust via netbox_oidc_ca_bundle
+# (ConfigMap netbox-lab-ca + REQUESTS_CA_BUNDLE on the Deployment — applied live).
+# SOCIAL_AUTH_VERIFY_SSL defaults false so Contoller JT re-runs stay safe without a mount.
+netbox_oidc_ca_bundle: "{{ bookstack_oidc_ca_bundle | default('') }}"
+netbox_oidc_ca_configmap: netbox-lab-ca
+netbox_oidc_verify_ssl: false

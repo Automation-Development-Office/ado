@@ -1,0 +1,6 @@
+---
+minor_changes:
+  - aap_ocp_install - Accept AAP 2.7 operator channels (``stable-2.7`` / ``stable-2.7-cluster-scoped``) in addition to 2.5 and 2.6.
+  - bootstrap_controller - Accept ``aap_version: 27`` and use the AAP 2.5+ gateway apply path.
+  - bootstrap_generate_env_vars - Honor preflight AAP version ``2.7`` / ``27`` for generated ``aap_version``, operator channel, and EE image.
+  - ado-preflight-ui - Add AAP 2.7 to the version selector and pass it through to bootstrap.

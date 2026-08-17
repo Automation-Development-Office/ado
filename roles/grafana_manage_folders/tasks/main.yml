@@ -3,20 +3,40 @@
   ansible.builtin.set_fact:
     grafana_manage_folders_list: >-
       {{
-        grafana_folders
+        (
+          (
+            (grafana_folders | default([]))
+            | rejectattr('name', 'equalto', 'Openshift')
+            | list
+          )
+          + (
+            (grafana_folders | default([]) | selectattr('name', 'equalto', 'Openshift') | list)
+            if (grafana_group_cluster_dashboards | default(true) | bool)
+            else []
+          )
+        )
         if (grafana_folders | default([]) | length) > 0
         else ([{'name': grafana_folder}] if (grafana_folder | default('') | length) > 0 else [])
       }}
+    grafana_manage_folders_url: "https://{{ grafana_hostname }}"
+    grafana_manage_folders_user: "{{ grafana_admin_user | default('admin') }}"
+    grafana_manage_folders_password: "{{ grafana_admin_password | default('') }}"
+
+- name: Assert Grafana admin password for folder create
+  ansible.builtin.assert:
+    that:
+      - grafana_manage_folders_password | length > 0
+    fail_msg: >-
+      grafana_manage_folders needs grafana_hostname and grafana_admin_password.
+  when: (grafana_manage_folders_list | length) > 0
 
 - name: Create each Grafana folder
   ansible.builtin.include_tasks: grafana-manage-folder.yml
   loop: "{{ grafana_manage_folders_list }}"
   loop_control:
     loop_var: grafana_manage_folders_entry
+    label: "{{ grafana_manage_folders_entry.name | default('folder') }}"
   vars:
     grafana_manage_folders_state: "{{ state | default('present') }}"
     grafana_manage_folders_name: "{{ grafana_manage_folders_entry.name }}"
-    grafana_manage_folders_hostname: "{{ grafana_hostname }}"
-    grafana_manage_folders_api_key: "{{ grafana_api_key | default(grafana_admin_password | default('')) }}"
-    grafana_manage_folders_overwrite: "{{ grafana_folder_overwrite | default(true) }}"
   when: (grafana_manage_folders_list | length) > 0

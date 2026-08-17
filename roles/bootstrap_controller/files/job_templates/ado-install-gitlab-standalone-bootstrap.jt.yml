@@ -64,13 +64,16 @@ controller_templates:
           default: ce
         - question_name: ADO | Path to GitLab RPM on Contoller/runner
           question_description: >-
-            Absolute path to gitlab-ce/ee RPM reachable by the Contoller EE, or
-            leave blank for packages.gitlab.com online install.
+            Disconnected by default. Absolute path to a staged gitlab-ce/ee RPM
+            on the Contoller EE (required unless package already installed).
+            Online packages.gitlab.com only if gitlab_allow_online_repo=true.
           required: false
           type: text
           variable: gitlab_rpm_path
           default: ''
         - question_name: ADO | GitLab RPM URL (optional)
+          question_description: >-
+            Internal/airgap mirror URL for the GitLab RPM (not packages.gitlab.com).
           required: false
           type: text
           variable: gitlab_rpm_url

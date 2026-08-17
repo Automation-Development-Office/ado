@@ -11,6 +11,67 @@ This collection packages reusable **roles** and **modules** used by ADO
 bootstrap and day-2 workflows so teams can install, configure, and operate
 infrastructure components consistently.
 
+## Bootstrap coverage (OpenShift vs RHEL)
+
+What generated bootstrap playbooks / job templates support today.
+✅ = available. ❌ = not in the bootstrap path.
+
+### Install
+
+| Component | OpenShift | RHEL / Linux |
+|-----------|:---------:|:------------:|
+| AAP | ✅ | ❌ |
+| ACS (RHACS) | ✅ | ❌ |
+| ACM | ✅ | ❌ |
+| Cert Manager | ✅ | ❌ |
+| Dev Spaces | ✅ | ❌ |
+| Directory Server (389) | ✅ | ❌ |
+| ECK / Elastic | ✅ | ❌ |
+| GitOps | ✅ | ❌ |
+| GitLab | ✅ | ❌ |
+| Grafana | ✅ | ❌ |
+| Kafka | ✅ | ❌ |
+| OADP | ✅ | ❌ |
+| OpenShift (base cluster) | ❌¹ | ❌ |
+| PEGA | ✅ | ❌ |
+| Quay | ✅ | ❌ |
+| RHBK | ✅ | ❌ |
+| Satellite | ❌ | ✅ |
+| IdM | ❌ | ✅ |
+| RHEL / patching / compliance / STIG | ❌ | ❌² |
+| OpenShift Virtualization (VM) | ✅ | ❌ |
+
+### Configure
+
+| Component | OpenShift | RHEL / Linux |
+|-----------|:---------:|:------------:|
+| AAP (Controller / gateway) | ✅³ | ❌ |
+| ACS | ✅ | ❌ |
+| ACM | ✅ | ❌ |
+| Cert Manager | ✅ | ❌ |
+| Console / LDAP / OAuth / routes / pull secret / CSI | ✅ | ❌ |
+| Dev Spaces | ✅ | ❌ |
+| Directory Server | ✅ | ❌ |
+| ECK / Elastic | ✅ | ❌ |
+| GitOps | ✅ | ❌ |
+| GitLab | ✅ | ❌ |
+| Grafana | ✅ | ❌ |
+| Kafka | ✅ | ❌ |
+| OADP | ✅ | ❌ |
+| Quay | ✅ | ❌ |
+| RHBK | ✅ | ❌ |
+| Satellite | ❌ | ✅ |
+| IdM | ❌ | ✅ |
+| RHEL patch / compliance / STIG | ❌ | ✅ |
+
+¹ Assumes an existing cluster (agent install-config is separate).  
+² Hardens / patches existing hosts; does not install the OS.  
+³ Install target is OpenShift; Controller config talks to the AAP API URL.
+
+Details: [`bootstrap_controller`](roles/bootstrap_controller/README.md),
+[`bootstrap_generate_playbook_repo`](roles/bootstrap_generate_playbook_repo/README.md),
+and the [ADO Pre-Flight UI](https://github.com/automation-development-office/ado-preflight-ui).
+
 ## Collection purpose
 
 `infra.ado` provides:
@@ -65,7 +126,7 @@ Use this index as the starting point for operators and automation users.
 | --- | --- |
 | [`infra.ado.aap_build_ee`](roles/aap_build_ee/README.md) | Build a custom Ansible Execution Environment (EE) image with ansible-builder. |
 | [`infra.ado.aap_configuration`](roles/aap_configuration/README.md) | Collect user-provided AAP configuration files and dispatch them to the upstream infra.aap_configuration.dispatch role for processing. |
-| [`infra.ado.aap_ocp_install`](roles/aap_ocp_install/README.md) | Install Ansible Automation Platform 2.5 or 2.6 on OpenShift via a vendored aap_ocp_install implementation. |
+| [`infra.ado.aap_ocp_install`](roles/aap_ocp_install/README.md) | Install Ansible Automation Platform 2.5, 2.6, or 2.7 on OpenShift via a vendored aap_ocp_install implementation. |
 | [`infra.ado.aap_ocp_install_upstream`](roles/aap_ocp_install_upstream/README.md) | Vendored upstream infra.aap_utilities.aap_ocp_install implementation used by infra.ado.aap_ocp_install. |
 | [`infra.ado.bootstrap_controller`](roles/bootstrap_controller/README.md) | Generate and apply Ansible Automation Platform controller objects for an ADO bootstrap repository. |
 | [`infra.ado.bootstrap_flatten_vars`](roles/bootstrap_flatten_vars/README.md) | Flatten a named dictionary into top-level Ansible facts for bootstrap playbooks that expect direct variable names. |
@@ -154,6 +215,7 @@ Use this index as the starting point for operators and automation users.
 | [`infra.ado.satellite_config`](roles/satellite_config/README.md) | Configure a Red Hat Satellite server after installation. |
 | [`infra.ado.satellite_content_view`](roles/satellite_content_view/README.md) | Manage Red Hat Satellite Content Views with create, publish, and promote actions. |
 | [`infra.ado.satellite_install`](roles/satellite_install/README.md) | Prepare and install a Red Hat Satellite host on supported RHEL systems. |
+| [`infra.ado.satellite_oidc`](roles/satellite_oidc/README.md) | Wire Satellite login to Keycloak / RHBK OIDC (client `ado-satellite`). |
 | [`infra.ado.vm_image_management`](roles/vm_image_management/README.md) | Create a qcow2 virtual machine image from an existing base image. |
 
 ## Using this collection

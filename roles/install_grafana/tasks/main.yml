@@ -25,12 +25,40 @@
   ansible.builtin.fail:
     msg: >-
       Could not install Grafana dependencies via dnf (host may be unregistered).
-      Pre-install deps and set install_grafana_skip_packages=true, or provide
-      install_grafana_rpm_path / install_grafana_rpm_url for airgap.
+      Pre-install deps via Satellite and set install_grafana_skip_packages=true,
+      or provide install_grafana_rpm_path / install_grafana_rpm_url for airgap.
   when:
     - not (install_grafana_skip_packages | default(false) | bool)
-    - (install_grafana_deps.rc | default(0)) != 0
-      or (install_grafana_deps.failed | default(false))
+    - install_grafana_deps is failed
+
+- name: Detect already-installed Grafana package
+  ansible.builtin.command:
+    argv:
+      - rpm
+      - -q
+      - grafana
+  register: install_grafana_rpm_query
+  changed_when: false
+  failed_when: false
+
+- name: Set Grafana package already present fact
+  ansible.builtin.set_fact:
+    install_grafana_package_present: "{{ install_grafana_rpm_query.rc == 0 }}"
+
+- name: Guard — disconnected install needs staged RPM (or already installed)
+  ansible.builtin.assert:
+    that:
+      - >-
+        (install_grafana_rpm_path | default('') | length > 0)
+        or (install_grafana_rpm_url | default('') | length > 0)
+        or (install_grafana_package_present | default(false) | bool)
+        or (install_grafana_allow_online_repo | default(false) | bool)
+    fail_msg: >-
+      install_grafana is disconnected by default (no rpm.grafana.com).
+      Stage a grafana RPM on the Contoller EE path
+      (grafana_rpm_path / install_grafana_rpm_path), or an internal mirror URL
+      (grafana_rpm_url), or set install_grafana_allow_online_repo=true for
+      connected labs only.
 
 - name: Ensure staging directory for Grafana RPM
   ansible.builtin.file:
@@ -48,7 +76,7 @@
     mode: "0644"
   when: install_grafana_rpm_path | default('') | length > 0
 
-- name: Download Grafana RPM (airgap / offline URL)
+- name: Download Grafana RPM (internal/airgap URL — not rpm.grafana.com)
   ansible.builtin.get_url:
     url: "{{ install_grafana_rpm_url }}"
     dest: /var/lib/grafana-stage/grafana.rpm
@@ -66,7 +94,7 @@
     (install_grafana_rpm_path | default('') | length > 0)
     or (install_grafana_rpm_url | default('') | length > 0)
 
-- name: Add Grafana YUM repository
+- name: Add Grafana YUM repository (connected labs only)
   ansible.builtin.yum_repository:
     name: grafana
     description: Grafana OSS
@@ -76,15 +104,19 @@
     enabled: true
     state: present
   when:
+    - install_grafana_allow_online_repo | default(false) | bool
+    - not (install_grafana_package_present | default(false) | bool)
     - install_grafana_rpm_path | default('') | length == 0
     - install_grafana_rpm_url | default('') | length == 0
     - not (install_grafana_skip_packages | default(false) | bool)
 
-- name: Install Grafana package from Grafana repo
+- name: Install Grafana package from Grafana repo (connected labs only)
   ansible.builtin.dnf:
     name: grafana
     state: present
   when:
+    - install_grafana_allow_online_repo | default(false) | bool
+    - not (install_grafana_package_present | default(false) | bool)
     - install_grafana_rpm_path | default('') | length == 0
     - install_grafana_rpm_url | default('') | length == 0
 

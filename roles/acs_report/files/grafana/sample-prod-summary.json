@@ -1,0 +1,1246 @@
+{
+  "source": "RHACS_Prod_Vulnerability_Report_All_Columns_Scrubbed_2026-08-10.csv",
+  "note": "Scrubbed export is Critical+Important only; Moderate/Low are 0 until a full-severity export is used.",
+  "all_sources": {
+    "total": 21463,
+    "low": 0,
+    "moderate": 0,
+    "high": 15367,
+    "critical": 6096
+  },
+  "redhat_sources": {
+    "total": 2688,
+    "low": 0,
+    "moderate": 0,
+    "high": 2685,
+    "critical": 3
+  },
+  "aging_all": [
+    {
+      "bucket": "<30 days",
+      "low": 0,
+      "moderate": 0,
+      "high": 12055,
+      "critical": 5638,
+      "total": 17693
+    },
+    {
+      "bucket": "30-90 days",
+      "low": 0,
+      "moderate": 0,
+      "high": 2369,
+      "critical": 386,
+      "total": 2755
+    },
+    {
+      "bucket": "90-180 days",
+      "low": 0,
+      "moderate": 0,
+      "high": 943,
+      "critical": 72,
+      "total": 1015
+    },
+    {
+      "bucket": "180-365 days",
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    {
+      "bucket": ">1 year",
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  ],
+  "aging_rh": [
+    {
+      "bucket": "<30 days",
+      "low": 0,
+      "moderate": 0,
+      "high": 1184,
+      "critical": 0,
+      "total": 1184
+    },
+    {
+      "bucket": "30-90 days",
+      "low": 0,
+      "moderate": 0,
+      "high": 963,
+      "critical": 3,
+      "total": 966
+    },
+    {
+      "bucket": "90-180 days",
+      "low": 0,
+      "moderate": 0,
+      "high": 538,
+      "critical": 0,
+      "total": 538
+    },
+    {
+      "bucket": "180-365 days",
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    {
+      "bucket": ">1 year",
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  ],
+  "by_day_all": [
+    {
+      "date": "2026-03-05",
+      "low": 0,
+      "moderate": 0,
+      "high": 163,
+      "critical": 40,
+      "total": 203
+    },
+    {
+      "date": "2026-03-13",
+      "low": 0,
+      "moderate": 0,
+      "high": 6,
+      "critical": 0,
+      "total": 6
+    },
+    {
+      "date": "2026-03-16",
+      "low": 0,
+      "moderate": 0,
+      "high": 170,
+      "critical": 0,
+      "total": 170
+    },
+    {
+      "date": "2026-03-18",
+      "low": 0,
+      "moderate": 0,
+      "high": 16,
+      "critical": 0,
+      "total": 16
+    },
+    {
+      "date": "2026-03-19",
+      "low": 0,
+      "moderate": 0,
+      "high": 25,
+      "critical": 14,
+      "total": 39
+    },
+    {
+      "date": "2026-03-21",
+      "low": 0,
+      "moderate": 0,
+      "high": 16,
+      "critical": 0,
+      "total": 16
+    },
+    {
+      "date": "2026-03-23",
+      "low": 0,
+      "moderate": 0,
+      "high": 62,
+      "critical": 0,
+      "total": 62
+    },
+    {
+      "date": "2026-03-27",
+      "low": 0,
+      "moderate": 0,
+      "high": 4,
+      "critical": 1,
+      "total": 5
+    },
+    {
+      "date": "2026-03-28",
+      "low": 0,
+      "moderate": 0,
+      "high": 4,
+      "critical": 0,
+      "total": 4
+    },
+    {
+      "date": "2026-04-03",
+      "low": 0,
+      "moderate": 0,
+      "high": 7,
+      "critical": 0,
+      "total": 7
+    },
+    {
+      "date": "2026-04-04",
+      "low": 0,
+      "moderate": 0,
+      "high": 6,
+      "critical": 0,
+      "total": 6
+    },
+    {
+      "date": "2026-04-07",
+      "low": 0,
+      "moderate": 0,
+      "high": 21,
+      "critical": 2,
+      "total": 23
+    },
+    {
+      "date": "2026-04-08",
+      "low": 0,
+      "moderate": 0,
+      "high": 38,
+      "critical": 0,
+      "total": 38
+    },
+    {
+      "date": "2026-04-09",
+      "low": 0,
+      "moderate": 0,
+      "high": 23,
+      "critical": 0,
+      "total": 23
+    },
+    {
+      "date": "2026-04-10",
+      "low": 0,
+      "moderate": 0,
+      "high": 8,
+      "critical": 2,
+      "total": 10
+    },
+    {
+      "date": "2026-04-14",
+      "low": 0,
+      "moderate": 0,
+      "high": 39,
+      "critical": 0,
+      "total": 39
+    },
+    {
+      "date": "2026-04-17",
+      "low": 0,
+      "moderate": 0,
+      "high": 7,
+      "critical": 0,
+      "total": 7
+    },
+    {
+      "date": "2026-04-27",
+      "low": 0,
+      "moderate": 0,
+      "high": 5,
+      "critical": 0,
+      "total": 5
+    },
+    {
+      "date": "2026-04-28",
+      "low": 0,
+      "moderate": 0,
+      "high": 12,
+      "critical": 0,
+      "total": 12
+    },
+    {
+      "date": "2026-04-29",
+      "low": 0,
+      "moderate": 0,
+      "high": 62,
+      "critical": 8,
+      "total": 70
+    },
+    {
+      "date": "2026-04-30",
+      "low": 0,
+      "moderate": 0,
+      "high": 25,
+      "critical": 0,
+      "total": 25
+    },
+    {
+      "date": "2026-05-04",
+      "low": 0,
+      "moderate": 0,
+      "high": 19,
+      "critical": 0,
+      "total": 19
+    },
+    {
+      "date": "2026-05-05",
+      "low": 0,
+      "moderate": 0,
+      "high": 10,
+      "critical": 1,
+      "total": 11
+    },
+    {
+      "date": "2026-05-06",
+      "low": 0,
+      "moderate": 0,
+      "high": 2,
+      "critical": 1,
+      "total": 3
+    },
+    {
+      "date": "2026-05-07",
+      "low": 0,
+      "moderate": 0,
+      "high": 37,
+      "critical": 3,
+      "total": 40
+    },
+    {
+      "date": "2026-05-08",
+      "low": 0,
+      "moderate": 0,
+      "high": 138,
+      "critical": 0,
+      "total": 138
+    },
+    {
+      "date": "2026-05-14",
+      "low": 0,
+      "moderate": 0,
+      "high": 18,
+      "critical": 0,
+      "total": 18
+    },
+    {
+      "date": "2026-05-18",
+      "low": 0,
+      "moderate": 0,
+      "high": 28,
+      "critical": 0,
+      "total": 28
+    },
+    {
+      "date": "2026-05-20",
+      "low": 0,
+      "moderate": 0,
+      "high": 11,
+      "critical": 0,
+      "total": 11
+    },
+    {
+      "date": "2026-05-22",
+      "low": 0,
+      "moderate": 0,
+      "high": 56,
+      "critical": 189,
+      "total": 245
+    },
+    {
+      "date": "2026-05-26",
+      "low": 0,
+      "moderate": 0,
+      "high": 4,
+      "critical": 0,
+      "total": 4
+    },
+    {
+      "date": "2026-05-29",
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 0,
+      "total": 1
+    },
+    {
+      "date": "2026-06-13",
+      "low": 0,
+      "moderate": 0,
+      "high": 46,
+      "critical": 0,
+      "total": 46
+    },
+    {
+      "date": "2026-06-16",
+      "low": 0,
+      "moderate": 0,
+      "high": 2,
+      "critical": 0,
+      "total": 2
+    },
+    {
+      "date": "2026-06-18",
+      "low": 0,
+      "moderate": 0,
+      "high": 184,
+      "critical": 0,
+      "total": 184
+    },
+    {
+      "date": "2026-06-23",
+      "low": 0,
+      "moderate": 0,
+      "high": 15,
+      "critical": 0,
+      "total": 15
+    },
+    {
+      "date": "2026-06-24",
+      "low": 0,
+      "moderate": 0,
+      "high": 223,
+      "critical": 8,
+      "total": 231
+    },
+    {
+      "date": "2026-06-29",
+      "low": 0,
+      "moderate": 0,
+      "high": 4,
+      "critical": 0,
+      "total": 4
+    },
+    {
+      "date": "2026-06-30",
+      "low": 0,
+      "moderate": 0,
+      "high": 66,
+      "critical": 0,
+      "total": 66
+    },
+    {
+      "date": "2026-07-01",
+      "low": 0,
+      "moderate": 0,
+      "high": 836,
+      "critical": 154,
+      "total": 990
+    },
+    {
+      "date": "2026-07-02",
+      "low": 0,
+      "moderate": 0,
+      "high": 9,
+      "critical": 0,
+      "total": 9
+    },
+    {
+      "date": "2026-07-03",
+      "low": 0,
+      "moderate": 0,
+      "high": 6,
+      "critical": 0,
+      "total": 6
+    },
+    {
+      "date": "2026-07-07",
+      "low": 0,
+      "moderate": 0,
+      "high": 2,
+      "critical": 0,
+      "total": 2
+    },
+    {
+      "date": "2026-07-08",
+      "low": 0,
+      "moderate": 0,
+      "high": 3,
+      "critical": 0,
+      "total": 3
+    },
+    {
+      "date": "2026-07-10",
+      "low": 0,
+      "moderate": 0,
+      "high": 64,
+      "critical": 0,
+      "total": 64
+    },
+    {
+      "date": "2026-07-13",
+      "low": 0,
+      "moderate": 0,
+      "high": 803,
+      "critical": 31,
+      "total": 834
+    },
+    {
+      "date": "2026-07-15",
+      "low": 0,
+      "moderate": 0,
+      "high": 6,
+      "critical": 4,
+      "total": 10
+    },
+    {
+      "date": "2026-07-16",
+      "low": 0,
+      "moderate": 0,
+      "high": 34,
+      "critical": 14,
+      "total": 48
+    },
+    {
+      "date": "2026-07-17",
+      "low": 0,
+      "moderate": 0,
+      "high": 94,
+      "critical": 0,
+      "total": 94
+    },
+    {
+      "date": "2026-07-19",
+      "low": 0,
+      "moderate": 0,
+      "high": 2,
+      "critical": 0,
+      "total": 2
+    },
+    {
+      "date": "2026-07-21",
+      "low": 0,
+      "moderate": 0,
+      "high": 315,
+      "critical": 12,
+      "total": 327
+    },
+    {
+      "date": "2026-07-22",
+      "low": 0,
+      "moderate": 0,
+      "high": 68,
+      "critical": 0,
+      "total": 68
+    },
+    {
+      "date": "2026-07-23",
+      "low": 0,
+      "moderate": 0,
+      "high": 215,
+      "critical": 0,
+      "total": 215
+    },
+    {
+      "date": "2026-07-24",
+      "low": 0,
+      "moderate": 0,
+      "high": 106,
+      "critical": 0,
+      "total": 106
+    },
+    {
+      "date": "2026-07-25",
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 1,
+      "total": 2
+    },
+    {
+      "date": "2026-07-27",
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 0,
+      "total": 1
+    },
+    {
+      "date": "2026-07-28",
+      "low": 0,
+      "moderate": 0,
+      "high": 97,
+      "critical": 22,
+      "total": 119
+    },
+    {
+      "date": "2026-07-29",
+      "low": 0,
+      "moderate": 0,
+      "high": 25,
+      "critical": 9,
+      "total": 34
+    },
+    {
+      "date": "2026-07-30",
+      "low": 0,
+      "moderate": 0,
+      "high": 9070,
+      "critical": 5238,
+      "total": 14308
+    },
+    {
+      "date": "2026-07-31",
+      "low": 0,
+      "moderate": 0,
+      "high": 482,
+      "critical": 170,
+      "total": 652
+    },
+    {
+      "date": "2026-08-02",
+      "low": 0,
+      "moderate": 0,
+      "high": 11,
+      "critical": 0,
+      "total": 11
+    },
+    {
+      "date": "2026-08-03",
+      "low": 0,
+      "moderate": 0,
+      "high": 80,
+      "critical": 0,
+      "total": 80
+    },
+    {
+      "date": "2026-08-04",
+      "low": 0,
+      "moderate": 0,
+      "high": 3,
+      "critical": 0,
+      "total": 3
+    },
+    {
+      "date": "2026-08-05",
+      "low": 0,
+      "moderate": 0,
+      "high": 122,
+      "critical": 0,
+      "total": 122
+    },
+    {
+      "date": "2026-08-06",
+      "low": 0,
+      "moderate": 0,
+      "high": 674,
+      "critical": 89,
+      "total": 763
+    },
+    {
+      "date": "2026-08-07",
+      "low": 0,
+      "moderate": 0,
+      "high": 473,
+      "critical": 10,
+      "total": 483
+    },
+    {
+      "date": "2026-08-08",
+      "low": 0,
+      "moderate": 0,
+      "high": 32,
+      "critical": 0,
+      "total": 32
+    },
+    {
+      "date": "2026-08-10",
+      "low": 0,
+      "moderate": 0,
+      "high": 150,
+      "critical": 73,
+      "total": 223
+    }
+  ],
+  "by_day_rh": [
+    {
+      "date": "2026-03-05",
+      "low": 0,
+      "moderate": 0,
+      "high": 84,
+      "critical": 0,
+      "total": 84
+    },
+    {
+      "date": "2026-03-13",
+      "low": 0,
+      "moderate": 0,
+      "high": 6,
+      "critical": 0,
+      "total": 6
+    },
+    {
+      "date": "2026-03-16",
+      "low": 0,
+      "moderate": 0,
+      "high": 111,
+      "critical": 0,
+      "total": 111
+    },
+    {
+      "date": "2026-03-18",
+      "low": 0,
+      "moderate": 0,
+      "high": 16,
+      "critical": 0,
+      "total": 16
+    },
+    {
+      "date": "2026-03-19",
+      "low": 0,
+      "moderate": 0,
+      "high": 25,
+      "critical": 0,
+      "total": 25
+    },
+    {
+      "date": "2026-03-21",
+      "low": 0,
+      "moderate": 0,
+      "high": 16,
+      "critical": 0,
+      "total": 16
+    },
+    {
+      "date": "2026-03-23",
+      "low": 0,
+      "moderate": 0,
+      "high": 62,
+      "critical": 0,
+      "total": 62
+    },
+    {
+      "date": "2026-04-04",
+      "low": 0,
+      "moderate": 0,
+      "high": 6,
+      "critical": 0,
+      "total": 6
+    },
+    {
+      "date": "2026-04-07",
+      "low": 0,
+      "moderate": 0,
+      "high": 21,
+      "critical": 0,
+      "total": 21
+    },
+    {
+      "date": "2026-04-08",
+      "low": 0,
+      "moderate": 0,
+      "high": 4,
+      "critical": 0,
+      "total": 4
+    },
+    {
+      "date": "2026-04-09",
+      "low": 0,
+      "moderate": 0,
+      "high": 17,
+      "critical": 0,
+      "total": 17
+    },
+    {
+      "date": "2026-04-14",
+      "low": 0,
+      "moderate": 0,
+      "high": 38,
+      "critical": 0,
+      "total": 38
+    },
+    {
+      "date": "2026-04-17",
+      "low": 0,
+      "moderate": 0,
+      "high": 4,
+      "critical": 0,
+      "total": 4
+    },
+    {
+      "date": "2026-04-27",
+      "low": 0,
+      "moderate": 0,
+      "high": 5,
+      "critical": 0,
+      "total": 5
+    },
+    {
+      "date": "2026-04-28",
+      "low": 0,
+      "moderate": 0,
+      "high": 12,
+      "critical": 0,
+      "total": 12
+    },
+    {
+      "date": "2026-04-29",
+      "low": 0,
+      "moderate": 0,
+      "high": 26,
+      "critical": 0,
+      "total": 26
+    },
+    {
+      "date": "2026-04-30",
+      "low": 0,
+      "moderate": 0,
+      "high": 25,
+      "critical": 0,
+      "total": 25
+    },
+    {
+      "date": "2026-05-04",
+      "low": 0,
+      "moderate": 0,
+      "high": 15,
+      "critical": 0,
+      "total": 15
+    },
+    {
+      "date": "2026-05-07",
+      "low": 0,
+      "moderate": 0,
+      "high": 27,
+      "critical": 0,
+      "total": 27
+    },
+    {
+      "date": "2026-05-14",
+      "low": 0,
+      "moderate": 0,
+      "high": 18,
+      "critical": 0,
+      "total": 18
+    },
+    {
+      "date": "2026-05-18",
+      "low": 0,
+      "moderate": 0,
+      "high": 27,
+      "critical": 0,
+      "total": 27
+    },
+    {
+      "date": "2026-05-20",
+      "low": 0,
+      "moderate": 0,
+      "high": 11,
+      "critical": 0,
+      "total": 11
+    },
+    {
+      "date": "2026-05-22",
+      "low": 0,
+      "moderate": 0,
+      "high": 2,
+      "critical": 0,
+      "total": 2
+    },
+    {
+      "date": "2026-05-26",
+      "low": 0,
+      "moderate": 0,
+      "high": 4,
+      "critical": 0,
+      "total": 4
+    },
+    {
+      "date": "2026-05-29",
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 0,
+      "total": 1
+    },
+    {
+      "date": "2026-06-13",
+      "low": 0,
+      "moderate": 0,
+      "high": 38,
+      "critical": 0,
+      "total": 38
+    },
+    {
+      "date": "2026-06-18",
+      "low": 0,
+      "moderate": 0,
+      "high": 28,
+      "critical": 0,
+      "total": 28
+    },
+    {
+      "date": "2026-06-23",
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 0,
+      "total": 1
+    },
+    {
+      "date": "2026-06-24",
+      "low": 0,
+      "moderate": 0,
+      "high": 197,
+      "critical": 1,
+      "total": 198
+    },
+    {
+      "date": "2026-06-29",
+      "low": 0,
+      "moderate": 0,
+      "high": 4,
+      "critical": 0,
+      "total": 4
+    },
+    {
+      "date": "2026-06-30",
+      "low": 0,
+      "moderate": 0,
+      "high": 66,
+      "critical": 0,
+      "total": 66
+    },
+    {
+      "date": "2026-07-01",
+      "low": 0,
+      "moderate": 0,
+      "high": 478,
+      "critical": 2,
+      "total": 480
+    },
+    {
+      "date": "2026-07-03",
+      "low": 0,
+      "moderate": 0,
+      "high": 6,
+      "critical": 0,
+      "total": 6
+    },
+    {
+      "date": "2026-07-07",
+      "low": 0,
+      "moderate": 0,
+      "high": 2,
+      "critical": 0,
+      "total": 2
+    },
+    {
+      "date": "2026-07-08",
+      "low": 0,
+      "moderate": 0,
+      "high": 3,
+      "critical": 0,
+      "total": 3
+    },
+    {
+      "date": "2026-07-10",
+      "low": 0,
+      "moderate": 0,
+      "high": 64,
+      "critical": 0,
+      "total": 64
+    },
+    {
+      "date": "2026-07-13",
+      "low": 0,
+      "moderate": 0,
+      "high": 27,
+      "critical": 0,
+      "total": 27
+    },
+    {
+      "date": "2026-07-15",
+      "low": 0,
+      "moderate": 0,
+      "high": 4,
+      "critical": 0,
+      "total": 4
+    },
+    {
+      "date": "2026-07-16",
+      "low": 0,
+      "moderate": 0,
+      "high": 18,
+      "critical": 0,
+      "total": 18
+    },
+    {
+      "date": "2026-07-17",
+      "low": 0,
+      "moderate": 0,
+      "high": 90,
+      "critical": 0,
+      "total": 90
+    },
+    {
+      "date": "2026-07-21",
+      "low": 0,
+      "moderate": 0,
+      "high": 112,
+      "critical": 0,
+      "total": 112
+    },
+    {
+      "date": "2026-07-23",
+      "low": 0,
+      "moderate": 0,
+      "high": 117,
+      "critical": 0,
+      "total": 117
+    },
+    {
+      "date": "2026-07-24",
+      "low": 0,
+      "moderate": 0,
+      "high": 106,
+      "critical": 0,
+      "total": 106
+    },
+    {
+      "date": "2026-07-25",
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 0,
+      "total": 1
+    },
+    {
+      "date": "2026-07-27",
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 0,
+      "total": 1
+    },
+    {
+      "date": "2026-07-28",
+      "low": 0,
+      "moderate": 0,
+      "high": 69,
+      "critical": 0,
+      "total": 69
+    },
+    {
+      "date": "2026-07-29",
+      "low": 0,
+      "moderate": 0,
+      "high": 2,
+      "critical": 0,
+      "total": 2
+    },
+    {
+      "date": "2026-07-30",
+      "low": 0,
+      "moderate": 0,
+      "high": 62,
+      "critical": 0,
+      "total": 62
+    },
+    {
+      "date": "2026-07-31",
+      "low": 0,
+      "moderate": 0,
+      "high": 161,
+      "critical": 0,
+      "total": 161
+    },
+    {
+      "date": "2026-08-02",
+      "low": 0,
+      "moderate": 0,
+      "high": 11,
+      "critical": 0,
+      "total": 11
+    },
+    {
+      "date": "2026-08-03",
+      "low": 0,
+      "moderate": 0,
+      "high": 67,
+      "critical": 0,
+      "total": 67
+    },
+    {
+      "date": "2026-08-04",
+      "low": 0,
+      "moderate": 0,
+      "high": 1,
+      "critical": 0,
+      "total": 1
+    },
+    {
+      "date": "2026-08-05",
+      "low": 0,
+      "moderate": 0,
+      "high": 19,
+      "critical": 0,
+      "total": 19
+    },
+    {
+      "date": "2026-08-06",
+      "low": 0,
+      "moderate": 0,
+      "high": 164,
+      "critical": 0,
+      "total": 164
+    },
+    {
+      "date": "2026-08-07",
+      "low": 0,
+      "moderate": 0,
+      "high": 144,
+      "critical": 0,
+      "total": 144
+    },
+    {
+      "date": "2026-08-08",
+      "low": 0,
+      "moderate": 0,
+      "high": 18,
+      "critical": 0,
+      "total": 18
+    },
+    {
+      "date": "2026-08-10",
+      "low": 0,
+      "moderate": 0,
+      "high": 21,
+      "critical": 0,
+      "total": 21
+    }
+  ],
+  "components_all": [
+    {
+      "component": "ACM / MCE",
+      "total": 727,
+      "critical": 188,
+      "high": 539,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "Dev Spaces",
+      "total": 1868,
+      "critical": 177,
+      "high": 1691,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "cert-manager",
+      "total": 294,
+      "critical": 74,
+      "high": 220,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "Web Terminal",
+      "total": 228,
+      "critical": 0,
+      "high": 228,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "GitOps",
+      "total": 204,
+      "critical": 73,
+      "high": 131,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "Compliance",
+      "total": 204,
+      "critical": 0,
+      "high": 204,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "Kube Descheduler",
+      "total": 116,
+      "critical": 36,
+      "high": 80,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "Cluster Logging",
+      "total": 74,
+      "critical": 18,
+      "high": 56,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "RHACS",
+      "total": 64,
+      "critical": 0,
+      "high": 64,
+      "moderate": 0,
+      "low": 0
+    }
+  ],
+  "components_rh": [
+    {
+      "component": "ACM / MCE",
+      "total": 218,
+      "critical": 0,
+      "high": 218,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "Dev Spaces",
+      "total": 1162,
+      "critical": 3,
+      "high": 1159,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "cert-manager",
+      "total": 80,
+      "critical": 0,
+      "high": 80,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "Web Terminal",
+      "total": 228,
+      "critical": 0,
+      "high": 228,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "GitOps",
+      "total": 51,
+      "critical": 0,
+      "high": 51,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "Compliance",
+      "total": 68,
+      "critical": 0,
+      "high": 68,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "Kube Descheduler",
+      "total": 24,
+      "critical": 0,
+      "high": 24,
+      "moderate": 0,
+      "low": 0
+    },
+    {
+      "component": "RHACS",
+      "total": 22,
+      "critical": 0,
+      "high": 22,
+      "moderate": 0,
+      "low": 0
+    }
+  ]
+}

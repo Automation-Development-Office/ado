@@ -1,0 +1,8 @@
+---
+minor_changes:
+  - >
+    ``grafana_create_datasource`` now creates a list of Prometheus datasources
+    (default ``Openshift-Prod`` / ``Openshift-Dev``), ensures the monitoring SA
+    token Secret, and the dashboards playbook also runs datasource + folder
+    create. Folder/dashboard upload uses ``community.grafana`` with admin
+    basic-auth fallback so Deploy Grafana works without a pre-made API key.

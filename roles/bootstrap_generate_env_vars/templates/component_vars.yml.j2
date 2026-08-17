@@ -5,14 +5,21 @@
 {% if component_name == 'aap' %}
 {% set aap_cfg = bootstrap_generate_env_vars_preflight.component_config.aap | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
 {% set aap_minimal = aap_cfg.minimal_footprint | default(false) | bool %}
+{% set aap_scope_raw = (aap_cfg.operator_scope | default('all_namespaces') | string | lower | replace('-', '_')) %}
+{% if aap_scope_raw in ['namespaced', 'namespace', 'single_namespace'] %}
+{% set aap_operator_channel = aap_cfg.operator_channel | default('stable-' ~ bootstrap_generate_env_vars_aap_deployment_version) %}
+{% else %}
+{% set aap_operator_channel = aap_cfg.operator_channel | default('stable-' ~ bootstrap_generate_env_vars_aap_deployment_version ~ '-cluster-scoped') %}
+{% endif %}
 aap_ocp_install_namespace: "{{ bootstrap_generate_env_vars_aap_namespace }}"
 aap_ocp_install_create_namespace: {{ bootstrap_generate_env_vars_aap_create_namespace | bool | lower }}
 aap_ocp_install_connection:
   host: "{% raw %}{{ host }}{% endraw %}"
   api_key: "{% raw %}{{ token }}{% endraw %}"
   validate_certs: "{% raw %}{{ verify_ssl | default(false) | bool }}{% endraw %}"
+aap_operator_scope: "{{ 'namespaced' if aap_scope_raw in ['namespaced', 'namespace', 'single_namespace'] else 'all_namespaces' }}"
 aap_ocp_install_operator:
-  channel: "stable-{{ bootstrap_generate_env_vars_aap_deployment_version }}-cluster-scoped"
+  channel: "{{ aap_operator_channel }}"
   approval: automatic
 aap_ocp_install_platform:
   instance_name: "{{ bootstrap_generate_env_vars_aap_instance_name }}"
@@ -45,6 +52,7 @@ aap_install_during_bootstrap: {{ aap_cfg.install_during_bootstrap | default(fals
 aap_minimal_footprint: {{ aap_minimal | bool | lower }}
 {% set pre_aap = (bootstrap_generate_env_vars_preflight.pre_installs.aap | default({})) if bootstrap_generate_env_vars_preflight is defined else {} %}
 aap_ocp_install_license_mode: "{{ aap_cfg.license_mode | default(pre_aap.license_mode | default('none')) }}"
+aap_ocp_install_license_only: {{ aap_cfg.license_only | default(pre_aap.license_only | default(false)) | bool | lower }}
 aap_ocp_install_subscription_manifest_filename: "{{ aap_cfg.subscription_manifest_file | default(pre_aap.subscription_manifest_file | default('manifest.zip')) }}"
 aap_ocp_install_rhn_username: "{{ aap_cfg.rhn_username | default(pre_aap.rhn_username | default('')) }}"
 
@@ -153,6 +161,19 @@ rhel_sat_reg_org_admin_account_password: "{% raw %}{{ vault_satellite_service_ac
 rhel_sat_reg_activation_key_name: "{{ bootstrap_generate_env_vars_satellite_activation_key | default('') }}"
 rhel_sat_reg_validate_certs: {{ bootstrap_generate_env_vars_satellite_validate_certs | default(false) | bool | lower }}
 rhel_sat_reg_insecure: {{ (not (bootstrap_generate_env_vars_satellite_validate_certs | default(false) | bool)) | bool | lower }}
+satellite_oidc_client_id: "{{ bootstrap_generate_env_vars_satellite_oidc_client_id | default('ado-satellite') }}"
+satellite_oidc_realm: "{{ bootstrap_generate_env_vars_satellite_oidc_realm | default('rhlab') }}"
+satellite_oidc_keycloak_url: "{{ bootstrap_generate_env_vars_satellite_oidc_keycloak_url | default('https://keycloak.apps.ocp.prod.rhlab') }}"
+satellite_oidc_keycloak_hostname: "{{ bootstrap_generate_env_vars_satellite_oidc_keycloak_hostname | default('keycloak.apps.ocp.prod.rhlab') }}"
+satellite_oidc_issuer: "{{ bootstrap_generate_env_vars_satellite_oidc_issuer | default('https://keycloak.apps.ocp.prod.rhlab/realms/rhlab') }}"
+satellite_oidc_create_client: {{ bootstrap_generate_env_vars_satellite_oidc_create_client | default(true) | bool | lower }}
+satellite_oidc_server_url: "{{ bootstrap_generate_env_vars_satellite_server_url | default('') }}"
+satellite_oidc_validate_certs: {{ bootstrap_generate_env_vars_satellite_validate_certs | default(false) | bool | lower }}
+satellite_oidc_keycloak_validate_certs: {{ bootstrap_generate_env_vars_satellite_oidc_keycloak_validate_certs | default(false) | bool | lower }}
+rhbk_hostname: "{{ bootstrap_generate_env_vars_satellite_oidc_keycloak_hostname | default('keycloak.apps.ocp.prod.rhlab') }}"
+rhbk_realm: "{{ bootstrap_generate_env_vars_satellite_oidc_realm | default('rhlab') }}"
+rhbk_client: "{{ bootstrap_generate_env_vars_satellite_oidc_client_id | default('ado-satellite') }}"
+rhbk_verify_ssl: {{ bootstrap_generate_env_vars_satellite_oidc_keycloak_validate_certs | default(false) | bool | lower }}
 
 {% elif component_name == 'eck' %}
 components_env:

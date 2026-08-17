@@ -1,0 +1,6 @@
+---
+minor_changes:
+  - |
+    Grafana: deploy OpenshiftProd and OpenshiftDev folders (pinned datasources) plus
+    optional shared Openshift folder with a K8S Prod/Dev dropdown
+    (grafana_group_cluster_dashboards). Datasources Openshift-Prod/Dev use thanos-querier.

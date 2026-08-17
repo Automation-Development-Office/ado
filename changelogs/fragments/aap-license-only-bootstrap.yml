@@ -1,0 +1,11 @@
+---
+bugfixes:
+  - >
+    bootstrap_generate_env_vars / bootstrap_controller - license-only and
+    ``attach_aap_license`` preflight runs synthesize ``component_config.aap``
+    and treat attach as install-during-bootstrap so attach no longer skips
+    with empty ``component_config``.
+  - >
+    bootstrap_generate_playbook_repo - vendor ``infra.ado`` with ``rsync``
+    excludes (``.ansible/``, ``.git/``, etc.) so license-only bootstrap does
+    not hang on a full ``ansible.builtin.copy`` of the collection tree.

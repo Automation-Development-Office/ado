@@ -46,19 +46,19 @@ controller_templates:
           required: false
           type: text
           variable: provision_openshift_virt_namespace
-          default: rhel-vms
+          default: ado-built-vm
         - question_name: ADO | VM name
           question_description: Name of the VirtualMachine resource
           required: false
           type: text
           variable: provision_openshift_virt_vm_name
-          default: satellite-server
+          default: keycloak-ado
         - question_name: ADO | Guest hostname
           question_description: Hostname written into cloud-init for the guest
           required: false
           type: text
           variable: provision_openshift_virt_hostname
-          default: satellite-server
+          default: keycloak-ado.server.lab
         - question_name: ADO | Boot image
           question_description: OpenShift Virtualization boot image/DataSource
           required: false
@@ -93,19 +93,19 @@ controller_templates:
             - u1.xlarge
             - u1.2xlarge
             - custom
-          default: u1.xlarge
+          default: u1.large
         - question_name: ADO | CPU cores
           question_description: Used when instance type is custom
           required: false
           type: integer
           variable: provision_openshift_virt_cpu_cores
-          default: 4
+          default: 2
         - question_name: ADO | Memory
           question_description: Used when instance type is custom
           required: false
           type: text
           variable: provision_openshift_virt_memory
-          default: 20Gi
+          default: 8Gi
         - question_name: ADO | Root disk size
           question_description: Size of the VM root disk
           required: false

@@ -1,0 +1,55 @@
+---
+# Ensure cert-manager metrics are scraped by OpenShift user-workload monitoring
+# so Grafana cert-expiry dashboards can query
+# certmanager_certificate_expiration_timestamp_seconds.
+# honorLabels: true preserves Certificate namespace/name labels from the exporter.
+
+- name: Ensure cert-manager ServiceMonitor for user-workload Prometheus
+  kubernetes.core.k8s:
+    state: "{{ state | default('present') }}"
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: cert-manager
+        namespace: "{{ name_space | default('cert-manager') }}"
+        labels:
+          app: cert-manager
+          app.kubernetes.io/name: cert-manager
+          app.kubernetes.io/component: controller
+          app.kubernetes.io/part-of: ado
+      spec:
+        endpoints:
+          - interval: 30s
+            path: /metrics
+            port: tcp-prometheus-servicemonitor
+            honorLabels: true
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: cert-manager
+            app.kubernetes.io/component: controller
+  when: (ocp_cert_manager_servicemonitor_enabled | default(true) | bool)
+
+- name: Ensure cert-manager webhook ServiceMonitor
+  kubernetes.core.k8s:
+    state: "{{ state | default('present') }}"
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: cert-manager-webhook
+        namespace: "{{ name_space | default('cert-manager') }}"
+        labels:
+          app: cert-manager-webhook
+          app.kubernetes.io/part-of: ado
+      spec:
+        endpoints:
+          - interval: 60s
+            path: /metrics
+            port: metrics
+            honorLabels: true
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: webhook
+            app.kubernetes.io/component: webhook
+  when: (ocp_cert_manager_servicemonitor_enabled | default(true) | bool)

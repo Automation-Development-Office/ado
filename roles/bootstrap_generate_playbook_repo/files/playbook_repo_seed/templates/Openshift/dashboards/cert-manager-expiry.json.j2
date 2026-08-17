@@ -1,0 +1,921 @@
+{% raw %}
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "cert-manager Certificate expiry. Counts Certificate CRs only. Prod has a small Certificate set; many routes use wildcard-apps-both.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": [],
+      "title": "Certificate expiry overview",
+      "type": "row"
+    },
+    {
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "content": "1. Only **Certificate** CRs appear (`oc get certificate -A`). Route TLS secrets alone do not.\n2. This cluster currently has **3** Certificate CRs (keycloak-tls, controller24-route-cert, wildcard-apps-both). Many routes share the wildcard.\n3. Summary tiles show **0** when nothing is in that expiry window (not an error).\n4. `wildcard-apps-both` with timestamp 0 shows as already expired / needs renew.\n5. Use the **Cluster** dropdown (Openshift-Prod / Openshift-Dev).",
+        "mode": "markdown"
+      },
+      "title": "Main certs inventory (prod & dev expectations)",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "(count((certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\", name=~\"$certificate\"} or certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\", name=~\"$certificate\"}))) or on() vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Total Certificates",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "(count(((certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\", name=~\"$certificate\"} or certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\", name=~\"$certificate\"}) - time()) < 60*24*3600 and ((certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\", name=~\"$certificate\"} or certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\", name=~\"$certificate\"}) - time()) > 0)) or on() vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Expiring < 60 days",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "(count(((certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\", name=~\"$certificate\"} or certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\", name=~\"$certificate\"}) - time()) < 14*24*3600 and ((certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\", name=~\"$certificate\"} or certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\", name=~\"$certificate\"}) - time()) > 0)) or on() vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Expiring < 14 days",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "dark-red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "(count(((certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\", name=~\"$certificate\"} or certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\", name=~\"$certificate\"}) - time()) <= 0)) or on() vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Already expired",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 16,
+        "x": 8,
+        "y": 5
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum((certmanager_certificate_ready_status{namespace=~\"$namespace\", name=~\"$certificate\"} or certmanager_certificate_ready_status{exported_namespace=~\"$namespace\", name=~\"$certificate\"}) ) by (condition)",
+          "instant": false,
+          "legendFormat": "{{condition}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Certificate Ready Status",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "id": 10,
+      "panels": [],
+      "title": "Time left \u2014 main + all",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "color-background"
+            },
+            "inspect": false
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 1209600
+              },
+              {
+                "color": "green",
+                "value": 5184000
+              }
+            ]
+          },
+          "unit": "dtdurations"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Certificate"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 360
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "id": 11,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sort(\n  (\n    (certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\", name=~\"$certificate\", name=~\"(?i).*(keycloak|grafana|controller|aap|portal|ado|quay|gitlab|central|acs|idm|hub|eda|automation|rhlab|wildcard|ingress|router).*\"} - time())\n    or\n    label_replace(\n      certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\", name=~\"$certificate\", name=~\"(?i).*(keycloak|grafana|controller|aap|portal|ado|quay|gitlab|central|acs|idm|hub|eda|automation|rhlab|wildcard|ingress|router).*\"} - time(),\n      \"namespace\", \"$1\", \"exported_namespace\", \"(.*)\"\n    )\n  )\n)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{namespace}} / {{name}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Main ADO certificates \u2014 Time Left",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "Time Left"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Time Left"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "color-background"
+            },
+            "inspect": false
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 1209600
+              },
+              {
+                "color": "green",
+                "value": 5184000
+              }
+            ]
+          },
+          "unit": "dtdurations"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Certificate"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 360
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 12,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sort(\n  (\n    (certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\", name=~\"$certificate\"} - time())\n    or\n    label_replace(\n      certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\", name=~\"$certificate\"} - time(),\n      \"namespace\", \"$1\", \"exported_namespace\", \"(.*)\"\n    )\n  )\n)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{namespace}} / {{name}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "All certificates \u2014 Time Left",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "Time Left"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": false,
+                "field": "Time Left"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Count of Certificate metrics whose name matches Keycloak/Grafana/AAP/Portal/Quay/GitLab/ACS/\u2026 If this is 0 while those apps use cert-manager TLS, scrape ServiceMonitor / metrics may be missing.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 3
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 24
+      },
+      "id": 13,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "(count(((certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\", name=~\"$certificate\", name=~\"(?i).*(keycloak|grafana|controller|aap|portal|ado|quay|gitlab|central|acs|idm|hub|eda|automation|rhlab|wildcard|ingress|router).*\"} or certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\", name=~\"$certificate\", name=~\"(?i).*(keycloak|grafana|controller|aap|portal|ado|quay|gitlab|central|acs|idm|hub|eda|automation|rhlab|wildcard|ingress|router).*\"}) - time()))) or on() vector(0)",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Main-name matches in metrics",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 4,
+        "w": 16,
+        "x": 8,
+        "y": 24
+      },
+      "id": 14,
+      "options": {
+        "content": "1. Only **Certificate** CRs appear (`oc get certificate -A`). Route TLS secrets alone do not.\n2. This cluster currently has **3** Certificate CRs (keycloak-tls, controller24-route-cert, wildcard-apps-both). Many routes share the wildcard.\n3. Summary tiles show **0** when nothing is in that expiry window (not an error).\n4. `wildcard-apps-both` with timestamp 0 shows as already expired / needs renew.\n5. Use the **Cluster** dropdown (Openshift-Prod / Openshift-Dev).",
+        "mode": "markdown"
+      },
+      "title": "If a main cert does not show",
+      "type": "text"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 20,
+      "panels": [],
+      "title": "Time left trends",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "dtdurations"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "asc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "(\n  (certmanager_certificate_expiration_timestamp_seconds{namespace=~\"$namespace\", name=~\"$certificate\"} - time())\n  or\n  label_replace(\n    certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\", name=~\"$certificate\"} - time(),\n    \"namespace\", \"$1\", \"exported_namespace\", \"(.*)\"\n  )\n)",
+          "instant": false,
+          "legendFormat": "{{namespace}} / {{name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Time Left (all certificates)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "id": 30,
+      "panels": [],
+      "title": "ACME / controller health",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 1,
+            "showPoints": "never"
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "id": 31,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(certmanager_http_acme_client_request_count[5m])) by (status)",
+          "instant": false,
+          "legendFormat": "{{status}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "ACME client requests (rate)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": [
+    "ado",
+    "cert-manager",
+    "prod",
+    "tls"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "Openshift-Prod",
+          "value": "Openshift-Prod"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "K8S",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "/^Openshift-(Prod|Dev)$/",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(certmanager_certificate_expiration_timestamp_seconds, exported_namespace)",
+        "includeAll": true,
+        "label": "Namespace",
+        "multi": true,
+        "name": "namespace",
+        "query": {
+          "query": "label_values(certmanager_certificate_expiration_timestamp_seconds, exported_namespace)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\"}, name)",
+        "includeAll": true,
+        "label": "Certificate",
+        "multi": true,
+        "name": "certificate",
+        "query": {
+          "query": "label_values(certmanager_certificate_expiration_timestamp_seconds{exported_namespace=~\"$namespace\"}, name)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "OpenShift \u2014 cert-manager Expiry",
+  "uid": "ado-cert-manager-expiry",
+  "version": 4
+}
+{% endraw %}

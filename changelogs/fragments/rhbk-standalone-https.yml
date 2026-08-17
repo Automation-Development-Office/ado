@@ -1,0 +1,6 @@
+---
+minor_changes:
+  - >-
+    install_rhbk — optional standalone HTTPS on port 8443 using the same
+    tls_crt/tls_key PEM pattern as the OpenShift RHBK path
+    (install_rhbk_standalone_https_enabled).

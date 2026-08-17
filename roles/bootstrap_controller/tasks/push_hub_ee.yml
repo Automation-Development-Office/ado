@@ -272,28 +272,109 @@
       register: bootstrap_controller_hub_ee_push_result
       changed_when: true
 
+- name: Hub EE | Resolve Contoller org for EE (General organization)
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ee_org: >-
+      {{
+        controller_bootstrap_organization
+        | default(bootstrap_controller_organization | default('ADO'), true)
+      }}
+  when:
+    - not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+    - bootstrap_controller_hub_ee_create_execution_environment | default(true) | bool
+
+- name: Hub EE | Resolve Contoller registry credential name for EE
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ee_registry_cred_name: >-
+      {{
+        bootstrap_controller_hub_ee_registry_credential_name
+        | default(
+            (bootstrap_controller_hub_ee_org | default('ADO')) ~ '-EE',
+            true
+          )
+      }}
+  when:
+    - not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+    - bootstrap_controller_hub_ee_create_execution_environment | default(true) | bool
+
 - name: Hub EE | Create organization for Contoller EE (hub-only / missing org)
   ansible.controller.organization:
-    name: "{{ item.name }}"
-    description: "{{ item.description | default(omit) }}"
+    name: "{{ item }}"
+    description: "{{ item }}"
     state: present
     controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
     controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
     controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
     controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
     validate_certs: "{{ controller_validate_certs | default(false) }}"
-  loop: "{{ bootstrap_controller_controller_organizations | default([]) }}"
+  loop: >-
+    {{
+      (
+        [bootstrap_controller_hub_ee_org | default('')]
+        + (bootstrap_controller_controller_organizations | default([]) | map(attribute='name') | list)
+      )
+      | unique
+      | reject('equalto', '')
+      | list
+    }}
   when:
     - not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
     - bootstrap_controller_hub_ee_create_execution_environment | default(true) | bool
-    - bootstrap_controller_controller_organizations | default([]) | length > 0
+    - bootstrap_controller_hub_ee_org | default('') | length > 0
+
+- name: Hub EE | Ensure Contoller Container Registry credential for Hub pulls
+  ansible.controller.credential:
+    name: "{{ bootstrap_controller_hub_ee_registry_cred_name }}"
+    description: >-
+      Container registry credential for Hub EE pulls
+      ({{ bootstrap_controller_hub_ee_registry | default(bootstrap_controller_hub_hostname) }})
+    organization: "{{ bootstrap_controller_hub_ee_org }}"
+    credential_type: Container Registry
+    inputs:
+      host: >-
+        {{
+          (
+            bootstrap_controller_hub_ee_registry
+            | default(bootstrap_controller_hub_hostname)
+            | default(vault_controller_hostname)
+            | regex_replace('^https?://', '')
+            | regex_replace('/+$', '')
+          )
+        }}
+      username: "{{ vault_controller_username | default(controller_username | default('admin')) }}"
+      password: >-
+        {{
+          vault_galaxy_registry_password
+          | default(
+              vault_galaxy_hub_token
+              | default(
+                  vault_controller_oauthtoken
+                  | default(vault_controller_password | default(controller_password), true),
+                  true
+                ),
+              true
+            )
+        }}
+      verify_ssl: false
+    state: present
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  no_log: true
+  when:
+    - not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+    - bootstrap_controller_hub_ee_create_execution_environment | default(true) | bool
+    - bootstrap_controller_hub_ee_org | default('') | length > 0
 
 - name: Hub EE | Create Contoller execution environment after push
   ansible.controller.execution_environment:
     name: "{{ bootstrap_controller_hub_ee_execution_environment_name | default(bootstrap_controller_hub_ee_image_name) }}"
     image: "{{ bootstrap_controller_hub_ee_dest_image }}"
     description: "{{ bootstrap_controller_hub_ee_description | default(omit) }}"
-    organization: "{{ controller_bootstrap_organization | default(omit) }}"
+    organization: "{{ bootstrap_controller_hub_ee_org | default(omit) }}"
+    credential: "{{ bootstrap_controller_hub_ee_registry_cred_name }}"
     pull: missing
     state: present
     controller_host: "{{ controller_host | default(vault_controller_hostname) }}"

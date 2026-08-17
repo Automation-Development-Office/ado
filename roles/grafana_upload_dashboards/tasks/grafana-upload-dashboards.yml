@@ -1,24 +1,134 @@
 ---
 # Supports legacy grafana_dashboards list and multi-folder grafana_folders entries.
 # Files ending in .json.j2 are templated; plain .json files are uploaded as-is.
+#
+# Folder entries may include:
+#   datasource_mode: pin | multi | none
+#   datasource: Openshift-Prod | Openshift-Dev (for pin)
+#   uid_suffix: prod | dev
+#   title_cluster: Prod | Dev
+#
+# grafana_group_cluster_dashboards (default true) controls whether the shared
+# "Openshift" folder (multi / K8S dropdown) is created and uploaded.
+#
+# Upload uses Grafana HTTP API with folderUid (required for folder placement on
+# current Grafana versions; community.grafana folderId alone leaves boards in General).
 
 - name: Normalize dashboard sources from grafana_folders
   ansible.builtin.set_fact:
     grafana_upload_dashboards_work_items: []
+    grafana_folders_for_upload: >-
+      {{
+        (
+          (grafana_folders | default([]))
+          | rejectattr('name', 'equalto', 'Openshift')
+          | list
+        )
+        + (
+          (grafana_folders | default([]) | selectattr('name', 'equalto', 'Openshift') | list)
+          if (grafana_group_cluster_dashboards | default(true) | bool)
+          else []
+        )
+      }}
 
 - name: Build work items from grafana_folders
   ansible.builtin.include_tasks: collect-folder-dashboards.yml
-  loop: "{{ grafana_folders | default([]) }}"
+  loop: "{{ grafana_folders_for_upload }}"
   loop_control:
     loop_var: grafana_folder_item
-  when: (grafana_folders | default([]) | length) > 0
+  when: (grafana_folders_for_upload | length) > 0
 
 - name: Fall back to legacy grafana_dashboards list
   ansible.builtin.set_fact:
     grafana_upload_dashboards_work_items: "{{ grafana_dashboards | default([]) }}"
   when:
-    - (grafana_folders | default([]) | length) == 0
+    - (grafana_folders_for_upload | default([]) | length) == 0
     - (grafana_dashboards | default([]) | length) > 0
+
+- name: Resolve Grafana upload auth
+  ansible.builtin.set_fact:
+    grafana_upload_dashboards_url: "https://{{ grafana_hostname }}"
+    grafana_upload_dashboards_user: "{{ grafana_admin_user | default('admin') }}"
+    grafana_upload_dashboards_password: "{{ grafana_admin_password | default('') }}"
+
+- name: Assert Grafana credentials for dashboard upload
+  ansible.builtin.assert:
+    that:
+      - grafana_hostname | default('') | length > 0
+      - >-
+        (grafana_api_key | default('') | length > 0)
+        or (grafana_upload_dashboards_password | length > 0)
+    fail_msg: >-
+      grafana_upload_dashboards needs grafana_hostname and either grafana_api_key
+      or grafana_admin_password.
+  when: (grafana_upload_dashboards_work_items | length) > 0
+
+# Legacy templates use {{ grafana_datasource }}; Contoller group_vars often only
+# define grafana_datasources[]. Default to the first / Openshift-Prod.
+- name: Default grafana_datasource for Jinja dashboard templates
+  ansible.builtin.set_fact:
+    grafana_datasource: >-
+      {{
+        grafana_datasource
+        | default(
+            (
+              (grafana_datasources | default([]) | map(attribute='name') | list | first)
+              if (grafana_datasources | default([]) | length) > 0
+              else 'Openshift-Prod'
+            ),
+            true
+          )
+      }}
+  when: (grafana_upload_dashboards_work_items | length) > 0
+
+- name: List Grafana datasources to resolve name → uid
+  ansible.builtin.uri:
+    url: "{{ grafana_upload_dashboards_url }}/api/datasources"
+    method: GET
+    url_username: "{{ grafana_upload_dashboards_user if (grafana_api_key | default('') | length) == 0 else omit }}"
+    url_password: "{{ grafana_upload_dashboards_password if (grafana_api_key | default('') | length) == 0 else omit }}"
+    force_basic_auth: "{{ (grafana_api_key | default('') | length) == 0 }}"
+    headers: >-
+      {{
+        {'Authorization': 'Bearer ' ~ grafana_api_key}
+        if (grafana_api_key | default('') | length) > 0
+        else {}
+      }}
+    status_code: [200]
+    validate_certs: "{{ grafana_validate_certs | default(false) }}"
+  register: grafana_upload_dashboards_ds_list
+  when: (grafana_upload_dashboards_work_items | length) > 0
+
+- name: Build Grafana datasource name → uid map
+  ansible.builtin.set_fact:
+    grafana_upload_dashboards_uid_by_name: >-
+      {{
+        dict(
+          (
+            grafana_upload_dashboards_ds_list.json
+            | default([])
+            | selectattr('name', 'defined')
+            | list
+          )
+          | map(attribute='name')
+          | list
+          | zip(
+            (
+              grafana_upload_dashboards_ds_list.json
+              | default([])
+              | selectattr('name', 'defined')
+              | list
+            )
+            | map(attribute='uid')
+            | list
+          )
+          | list
+        )
+      }}
+  when:
+    - (grafana_upload_dashboards_work_items | length) > 0
+    - grafana_upload_dashboards_ds_list is defined
+    - grafana_upload_dashboards_ds_list is not skipped
 
 - name: Render or copy each dashboard into /tmp
   ansible.builtin.include_tasks: materialize-dashboard.yml
@@ -27,33 +137,36 @@
     loop_var: grafana_dashboard_item
     label: "{{ grafana_dashboard_item.name | default(grafana_dashboard_item.path | default('dashboard')) }}"
 
-- name: Import Grafana dashboards
-  grafana.grafana.dashboard:
-    grafana_url: "https://{{ grafana_hostname }}"
-    grafana_api_key: "{{ grafana_api_key }}"
-    state: "{{ state | default('present') }}"
-    folder: "{{ grafana_dashboard_item.folder | default(grafana_folder | default(omit)) }}"
-    dashboard: "{{ grafana_dashboard_payload }}"
+- name: Import Grafana dashboards into target folders (folderUid)
+  ansible.builtin.uri:
+    url: "{{ grafana_upload_dashboards_url }}/api/dashboards/db"
+    method: POST
+    url_username: "{{ grafana_upload_dashboards_user if (grafana_api_key | default('') | length) == 0 else omit }}"
+    url_password: "{{ grafana_upload_dashboards_password if (grafana_api_key | default('') | length) == 0 else omit }}"
+    force_basic_auth: "{{ (grafana_api_key | default('') | length) == 0 }}"
+    headers: >-
+      {{
+        {'Authorization': 'Bearer ' ~ grafana_api_key, 'Content-Type': 'application/json'}
+        if (grafana_api_key | default('') | length) > 0
+        else {'Content-Type': 'application/json'}
+      }}
+    body_format: json
+    body:
+      dashboard: "{{ lookup('ansible.builtin.file', '/tmp/grafana-dashboards/' ~ grafana_dashboard_item.name ~ '.json') | from_json }}"
+      folderUid: >-
+        {{
+          (
+            grafana_dashboard_item.folder
+            | default(grafana_folder | default('Openshift'))
+          )
+          ~ '-folder'
+        }}
+      overwrite: true
+      message: Updated by ADO grafana_upload_dashboards
+    status_code: [200]
+    validate_certs: "{{ grafana_validate_certs | default(false) }}"
   loop: "{{ grafana_upload_dashboards_work_items }}"
   loop_control:
     loop_var: grafana_dashboard_item
     label: "{{ grafana_dashboard_item.name | default('dashboard') }}"
-  vars:
-    rendered_dashboard_json: >-
-      {{
-        lookup(
-          'ansible.builtin.file',
-          '/tmp/grafana-dashboards/%s.json' | format(grafana_dashboard_item.name)
-        ) | from_json
-      }}
-    grafana_dashboard_payload: >-
-      {{
-        rendered_dashboard_json
-        if (rendered_dashboard_json.dashboard is defined)
-        else {
-          'dashboard': rendered_dashboard_json,
-          'overwrite': true,
-          'message': 'Updated by Ansible'
-        }
-      }}
   when: (grafana_upload_dashboards_work_items | length) > 0

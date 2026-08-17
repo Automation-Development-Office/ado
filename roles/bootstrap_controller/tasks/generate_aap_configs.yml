@@ -299,6 +299,9 @@
 
       satellite_capsule_install: []
 
+      satellite_oidc:
+        - ado-satellite-oidc-bootstrap.jt.yml
+
       satellite: []
 
       patching:

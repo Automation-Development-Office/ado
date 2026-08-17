@@ -1,0 +1,10 @@
+---
+minor_changes:
+  - infra.ado.satellite_oidc - Create Keycloak client ``ado-satellite`` in realm
+    ``rhlab`` with ``infra.ado.rhbk_client``, fetch the client secret, enable
+    Foreman Keycloak on Satellite, and apply OIDC login-delegation settings.
+  - bootstrap_controller - Add ``ADO | Satellite Keycloak OIDC`` job template for
+    ``satellite_oidc``.
+  - bootstrap_generate_playbook_repo - Add Satellite Keycloak OIDC bootstrap playbook.
+  - infra.ado.rhbk_client - Run Keycloak API tasks with ``connection: local`` so
+    client create works when the play targets a remote Satellite host.

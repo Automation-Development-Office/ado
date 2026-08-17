@@ -7,6 +7,13 @@ ADO component automation.
 
 Automation Development Office
 
+## Platform coverage
+
+Playbooks in `bootstrap_generate_playbook_repo_generated_playbooks` set
+`target_platform` to `openshift` or `linux`. See the collection
+[Bootstrap coverage](../../README.md#bootstrap-coverage-openshift-vs-rhel)
+tables for a simple OpenShift vs RHEL install/configure checklist.
+
 ## ✅ Role Requirements
 
 - Ansible Core
@@ -27,15 +34,17 @@ Automation Development Office
 | `bootstrap_generate_playbook_repo_git_message` | Commit message for generated content. |
 | `bootstrap_generate_playbook_repo_git_token` | Optional token used for non-interactive Git pushes. |
 | `bootstrap_generate_playbook_repo_git_sync_before_push` | Rebase on the remote branch before pushing generated commits. Defaults to `true`. |
-| `bootstrap_generate_playbook_repo_infra_ado_collection_version` | Optional. When empty (default), generated `collections/requirements.yml` lists `infra.ado` with no version so Contoller/Hub installs latest. Set only to force a pin. |
+| `bootstrap_generate_playbook_repo_write_galaxy_requirements` | When true, write `collections/requirements.yml` so Contoller installs collections from Hub/Galaxy. Default `false` (no Hub). |
+| `bootstrap_generate_playbook_repo_infra_ado_collection_version` | Optional pin used only when Galaxy requirements are written. Empty means latest. |
 | `bootstrap_generate_playbook_repo_component` | Component group to generate, such as `all`, `openshift`, or `rhel`. |
 | `bootstrap_generate_playbook_repo_component_map` | Maps component selections to generated playbook groups. |
 | `bootstrap_generate_playbook_repo_generated_playbooks` | Manifest of bundled playbooks copied into the generated repository. |
 
-Generated collection requirements pin `infra.ado` by version and also request
-`kubernetes.core` and `redhat.openshift` for OpenShift component installers.
-AAP resolves them through the content repositories configured for the project
-and execution environment.
+When Hub collection update is off (default), this role vendors `infra.ado`
+into `collections/ansible_collections/infra/ado` and does **not** write
+Galaxy `collections/requirements.yml`, so Contoller project sync does not
+talk to Hub. When Hub update is on, vendored `infra.ado` is removed and
+requirements.yml is written for Galaxy/Hub install.
 
 ## 🚀 Role Usage
 

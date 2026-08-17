@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: Automation Development Office
-  description: Install AAP 2.5 or 2.6 on OpenShift through infra.aap_utilities.
+  description: Install AAP 2.5, 2.6, or 2.7 on OpenShift through infra.aap_utilities.
   company: Red Hat
   license: GPL-3.0-or-later
   min_ansible_version: "2.15.0"

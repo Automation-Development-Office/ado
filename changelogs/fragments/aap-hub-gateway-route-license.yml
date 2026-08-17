@@ -1,0 +1,8 @@
+---
+bugfixes:
+  - aap_ocp_install_upstream - On AAP 2.5+ unified installs, Hub no longer gets a
+    dedicated ``*-hub`` Route (API is on the platform gateway). Stop failing the
+    install waiting for that missing route; fall back to the gateway URL for Hub
+    readiness checks so license activation can run.
+  - aap_ocp_install - Prefer the operator-discovered controller/platform route
+    host for RHN license attach instead of only the preflight hostname hint.

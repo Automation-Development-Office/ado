@@ -1,0 +1,33 @@
+---
+# Absent path: remove Deployments/Services/Route/Secrets but NEVER delete PVCs
+# unless bookstack_purge_storage is explicitly true.
+- name: Remove BookStack workloads and networking
+  kubernetes.core.k8s:
+    state: absent
+    api_version: "{{ item.api }}"
+    kind: "{{ item.kind }}"
+    name: "{{ item.name }}"
+    namespace: "{{ bookstack_namespace }}"
+    validate_certs: "{{ bookstack_validate_certs }}"
+  loop:
+    - {api: route.openshift.io/v1, kind: Route, name: bookstack}
+    - {api: apps/v1, kind: Deployment, name: bookstack}
+    - {api: apps/v1, kind: Deployment, name: bookstack-mariadb}
+    - {api: v1, kind: Service, name: "{{ bookstack_service_name }}"}
+    - {api: v1, kind: Service, name: "{{ bookstack_db_service_name }}"}
+    - {api: v1, kind: Secret, name: bookstack-app}
+    - {api: v1, kind: Secret, name: bookstack-db}
+    - {api: rbac.authorization.k8s.io/v1, kind: RoleBinding, name: bookstack-anyuid}
+
+- name: Optionally purge BookStack PVCs
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: PersistentVolumeClaim
+    name: "{{ item }}"
+    namespace: "{{ bookstack_namespace }}"
+    validate_certs: "{{ bookstack_validate_certs }}"
+  loop:
+    - bookstack-data
+    - bookstack-mariadb
+  when: bookstack_purge_storage | default(false) | bool
