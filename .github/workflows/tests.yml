@@ -22,6 +22,10 @@ jobs:
   ansible-lint:
     name: Ansible Lint
     runs-on: ubuntu-latest
+    env:
+      # pip --user and XDG caches must not land in the collection checkout
+      XDG_CACHE_HOME: ${{ runner.temp }}/xdg-cache
+      PYTHONUSERBASE: ${{ runner.temp }}/python-user
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

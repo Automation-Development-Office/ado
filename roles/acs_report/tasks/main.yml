@@ -57,24 +57,16 @@
     state: directory
     mode: "0755"
 
-- name: Stage RHACS report tools
+- name: Stage RHACS report parser
   ansible.builtin.copy:
-    src: "{{ item }}"
-    dest: "/tmp/{{ item }}"
+    src: rhacs_report_parser.py
+    dest: /tmp/rhacs_report_parser.py
     mode: "0644"
-  loop:
-    - rhacs_report_parser.py
-    - rhacs-report.sh
 
-- name: Add bash shebang after staging RHACS report script
-  ansible.builtin.lineinfile:
-    path: /tmp/rhacs-report.sh
-    insertbefore: BOF
-    line: '#!/bin/bash'
-
-- name: Make staged RHACS report script executable
-  ansible.builtin.file:
-    path: /tmp/rhacs-report.sh
+- name: Stage RHACS report script
+  ansible.builtin.copy:
+    src: rhacs-report.sh
+    dest: /tmp/rhacs-report.sh
     mode: "0755"
 
 - name: Build report CLI flags

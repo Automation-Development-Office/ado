@@ -52,9 +52,9 @@ Scope modifiers:
         acs_report_outdir: /tmp/acs-reports
 ```
 
-Local CLI (same files the role stages; invoke with bash because the
-collection copy has no shebang — ansible-test forbids `#!/bin/bash` on
-non-module files. The role adds the shebang after copy to `/tmp`):
+Local CLI (same files the role stages). The collection copy uses
+`#!/usr/bin/env bash` and is not marked executable in git; invoke with
+`bash` or rely on the role, which copies it to `/tmp` as mode 0755:
 
 ```bash
 export ROX_ENDPOINT=https://central-stackrox.apps.example.com

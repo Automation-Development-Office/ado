@@ -3,5 +3,5 @@ minor_changes:
   - >-
     install_gitlab / install_grafana — standalone RHEL Omnibus GitLab CE/EE
     and Grafana roles with Contoller bootstrap playbooks and job templates
-    (ado-install-*-standalone-bootstrap), airgap RPM path/url vars, and
+    (``ado-install-*-standalone-bootstrap``), airgap RPM path/url vars, and
     gitlab_standalone / grafana_standalone component wiring.

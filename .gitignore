@@ -25,4 +25,6 @@ importer_result.json
 
 # VSCode
 .vscode/
-.local/share/containers/storage/
+
+# Local pip/user installs and container storage (never commit)
+.local/

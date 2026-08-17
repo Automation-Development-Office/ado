@@ -1,0 +1,13 @@
+---
+description: Never create .local or .cache inside the collection git work tree
+alwaysApply: true
+---
+
+# No `.local` / `.cache` in the git work tree
+
+This environment may set `HOME` to the collection root. Then `pip install --user` writes `./.local` and XDG-aware tools write `./.cache`. Those directories must not be created here and must never be committed.
+
+- Before `pip install --user` (or any tool that uses `site.USER_BASE`), set `PYTHONUSERBASE` to a path **outside** the repo, e.g. `/tmp/ado-python-user`. Prefer a venv under `/tmp` instead of `--user`.
+- Set `XDG_CACHE_HOME=/tmp/ado-xdg-cache` (or `${RUNNER_TEMP}` in GitHub Actions) before pip, ansible-lint, or similar.
+- Do not `git add` `.local/` or `.cache/`. If they appear under the collection root, delete them.
+- Confirm with `python3 -c "import site; print(site.USER_BASE)"` that the user base is not inside the git work tree.

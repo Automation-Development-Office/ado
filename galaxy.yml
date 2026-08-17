@@ -46,6 +46,8 @@ build_ignore:
   - .cache/**
   - .kube
   - .kube/**
+  - .local
+  - .local/**
   - '**/__pycache__'
   - '**/__pycache__/**'
   - '*.pyc'

@@ -77,6 +77,7 @@ ACM_NAMESPACES = {
 # HELPERS
 # ============================================================
 
+
 def strings(obj):
     if isinstance(obj, dict):
         for v in obj.values():
@@ -87,6 +88,7 @@ def strings(obj):
     elif isinstance(obj, str):
         yield obj
 
+
 def walk(obj):
     if isinstance(obj, dict):
         yield obj
@@ -96,6 +98,7 @@ def walk(obj):
     elif isinstance(obj, list):
         for v in obj:
             yield from walk(v)
+
 
 def first_value(obj, keys):
     if not isinstance(obj, dict):
@@ -108,6 +111,7 @@ def first_value(obj, keys):
             return v
 
     return ""
+
 
 def deployment_info(result):
     d = result.get("deployment") or {}
@@ -172,6 +176,7 @@ def deployment_info(result):
 
     return cluster, namespace, deployment
 
+
 def image_identity(image):
     refs = []
     digests = []
@@ -216,6 +221,7 @@ def image_identity(image):
                 break
 
     return ref, digest
+
 
 def classify(namespace, image_text, deployment):
     ns = (namespace or "").lower()
@@ -339,6 +345,7 @@ def classify(namespace, image_text, deployment):
 # EXTENDED REPORT GROUPING
 # ============================================================
 
+
 ALL_GROUP_ORDER = [
     "ACM / MCE",
     "Dev Spaces",
@@ -409,6 +416,7 @@ RHSRE_EXCLUDED_PREFIXES = (
     "open-cluster-management",
     "ceelliott-devspaces",
 )
+
 
 def classify_all(namespace, image_text, deployment):
     """
@@ -555,6 +563,7 @@ def classify_all(namespace, image_text, deployment):
 
     return "Other"
 
+
 def is_rhsre(namespace, image_text, deployment):
     """
     Approximate the ROSA managed-service / Red Hat SRE responsibility
@@ -602,6 +611,7 @@ def is_rhsre(namespace, image_text, deployment):
         return False
 
     return True
+
 
 def classify_rhsre(namespace, image_text, deployment):
     ns = (namespace or "").lower()
@@ -670,6 +680,7 @@ def classify_rhsre(namespace, image_text, deployment):
 
     return "OpenShift Platform"
 
+
 def severity_name(v):
     s = str(v.get("severity") or "").upper()
 
@@ -687,11 +698,13 @@ def severity_name(v):
 
     return "Unknown"
 
+
 def high_enough(v):
     return severity_name(v) in {
         "Critical",
         "Important",
     }
+
 
 def vulnerability_sources(v):
     result = set()
@@ -713,6 +726,7 @@ def vulnerability_sources(v):
 
     return result
 
+
 def redhat_source(v):
     link = str(v.get("link") or "").lower()
 
@@ -720,6 +734,7 @@ def redhat_source(v):
         "access.redhat.com/security/cve/" in link
         or "access.redhat.com/errata/" in link
     )
+
 
 def parse_time(value):
     if not value:
@@ -730,6 +745,7 @@ def parse_time(value):
         return datetime.fromisoformat(value)
     except Exception:
         return None
+
 
 def age_days(v):
     # Use system occurrence first because that represents how long
@@ -751,6 +767,7 @@ def age_days(v):
         dt = dt.replace(tzinfo=timezone.utc)
 
     return (now - dt).total_seconds() / 86400.0
+
 
 def scrub(text):
     if text is None:
@@ -793,6 +810,7 @@ def scrub(text):
 
     return text
 
+
 def component_filter_matches(component):
     if not FILTER_COMPONENT:
         return True
@@ -807,6 +825,7 @@ def component_filter_matches(component):
 # ============================================================
 # FINDING EXTRACTION
 # ============================================================
+
 
 def component_objects(image):
     """
@@ -853,6 +872,7 @@ def component_objects(image):
 
         elif isinstance(obj, list):
             stack.extend(obj)
+
 
 def findings_from_record(result):
     live_pods = int(result.get("livePods") or 0)
@@ -959,6 +979,7 @@ def findings_from_record(result):
 # ============================================================
 # REPORT STATE
 # ============================================================
+
 
 counts = defaultdict(int)
 unique = defaultdict(set)
@@ -1233,7 +1254,6 @@ for line in sys.stdin:
 
             if age > 90:
                 age90[group] += 1
-
 
 
 # ============================================================

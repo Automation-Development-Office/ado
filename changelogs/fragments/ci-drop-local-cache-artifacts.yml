@@ -1,6 +1,7 @@
 ---
 bugfixes:
   - |
-    ci - Stop shipping local ``__pycache__``, ansible-lint ``.cache``, and
-    ``.ansible-tmp`` artifacts so ansible-test sanity extra-files checks pass.
-    Collection CI helpers under ``scripts/`` stay as Python (not Ansible).
+    ci - Keep ``.local`` pip installs and XDG/ansible-lint ``.cache`` out of
+    the collection work tree (gitignore, galaxy ``build_ignore``, lint
+    excludes). Collection CI helpers under ``scripts/`` stay as Python
+    (not Ansible).
