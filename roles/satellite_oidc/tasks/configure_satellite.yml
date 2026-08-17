@@ -141,7 +141,7 @@
     - name: oidc_algorithm
       value: "{{ satellite_oidc_oidc_algorithm }}"
     - name: oidc_audience
-      value: "{{ [satellite_oidc_client_id_effective] | to_json }}"
+      value: "{{ satellite_oidc_audience_effective | to_json }}"
     - name: oidc_issuer
       value: "{{ satellite_oidc_issuer_effective }}"
     - name: oidc_jwks_url

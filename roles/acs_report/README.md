@@ -52,12 +52,14 @@ Scope modifiers:
         acs_report_outdir: /tmp/acs-reports
 ```
 
-Local CLI (same files the role stages):
+Local CLI (same files the role stages; invoke with bash because the
+collection copy has no shebang — ansible-test forbids `#!/bin/bash` on
+non-module files. The role adds the shebang after copy to `/tmp`):
 
 ```bash
 export ROX_ENDPOINT=https://central-stackrox.apps.example.com
 export ROX_API_TOKEN=...
-./roles/acs_report/files/rhacs-report.sh --rhsource --sev
+bash roles/acs_report/files/rhacs-report.sh --rhsource --sev
 ```
 
 ## Grafana sample dashboard

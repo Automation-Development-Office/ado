@@ -898,6 +898,7 @@
     import copy
     import json
     import re
+    import shutil
     import yaml
 
     class NoAliasDumper(yaml.SafeDumper):
@@ -1064,6 +1065,15 @@
             target.write_bytes(raw)
         else:
             target.write_text(str(content), encoding="utf-8")
+        target.chmod(0o600)
+        return target
+
+    def copy_repo_file_from_path(src, filename, default_name):
+        project_dir = env_dir.parents[2] if len(env_dir.parents) >= 3 else env_dir
+        files_dir = project_dir / "files"
+        files_dir.mkdir(parents=True, exist_ok=True)
+        target = files_dir / safe_upload_filename(filename, default_name)
+        shutil.copy2(str(src), target)
         target.chmod(0o600)
         return target
 
@@ -1276,6 +1286,14 @@
                 passthrough_public_values.pop(aap_key, None)
                 vars_data.pop(aap_key, None)
             existing_satellite_config = {}
+        elif component == "rhbk":
+            for rhbk_key in (
+                "standalone_zip_upload_path",
+                "standalone_zip_content_base64",
+            ):
+                passthrough_public_values.pop(rhbk_key, None)
+                vars_data.pop(rhbk_key, None)
+            existing_satellite_config = {}
         else:
             existing_satellite_config = {}
 
@@ -1356,6 +1374,52 @@
                         vars_data["components_env"]["rhbk"]["rhbk_clients"] = copy.deepcopy(rhbk_clients)
                 if public_values.get("client"):
                     vars_data["rhbk_client"] = str(public_values.get("client"))
+                standalone_hostname = first_present(public_values.get("standalone_hostname"))
+                if standalone_hostname:
+                    vars_data["rhbk_standalone_hostname"] = str(standalone_hostname)
+                    vars_data["install_rhbk_standalone_hostname"] = str(standalone_hostname)
+                zip_url = first_present(public_values.get("standalone_zip_url"))
+                if zip_url:
+                    vars_data["rhbk_standalone_zip_url"] = str(zip_url)
+                zip_filename = first_present(
+                    public_values.get("standalone_zip_file"),
+                    Path(str(public_values.get("standalone_zip") or "")).name
+                    if public_values.get("standalone_zip")
+                    else None,
+                )
+                zip_upload = first_present(public_values.get("standalone_zip_upload_path"))
+                zip_content = first_present(secret_values.get("standalone_zip_content_base64"))
+                if zip_content:
+                    zip_target = write_repo_file_from_preflight(
+                        zip_filename,
+                        zip_content,
+                        "rhbk.zip",
+                        "base64",
+                    )
+                    vars_data["rhbk_standalone_zip"] = QuotedString(playbook_file_ref(zip_target.name))
+                elif zip_upload and Path(str(zip_upload)).is_file():
+                    zip_target = copy_repo_file_from_path(
+                        zip_upload,
+                        zip_filename,
+                        "rhbk.zip",
+                    )
+                    vars_data["rhbk_standalone_zip"] = QuotedString(playbook_file_ref(zip_target.name))
+                elif zip_filename and str(zip_filename).lower().endswith(".zip"):
+                    typed_zip = str(public_values.get("standalone_zip") or "")
+                    if typed_zip.startswith("/"):
+                        vars_data["rhbk_standalone_zip"] = typed_zip
+                    else:
+                        vars_data["rhbk_standalone_zip"] = QuotedString(
+                            playbook_file_ref(Path(str(zip_filename)).name)
+                        )
+                if public_values.get("standalone_admin_user"):
+                    vars_data["rhbk_admin_user"] = str(public_values.get("standalone_admin_user"))
+                if secret_values.get("standalone_admin_password"):
+                    vars_data["rhbk_admin_password"] = vault_ref("vault_rhbk_admin_password")
+                    vault_data["vault_rhbk_admin_password"] = QuotedString(
+                        str(secret_values.get("standalone_admin_password"))
+                    )
+                    vault_data_changed = True
                 for mapper_key in (
                     "group_mapper_name",
                     "group_mapper_claim",

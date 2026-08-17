@@ -44,6 +44,7 @@ Automation Development Office
 | `satellite_oidc_username` | Satellite API username. Default `admin`. |
 | `satellite_oidc_password` | Satellite API password. |
 | `satellite_oidc_run_installer` | Run `satellite-installer --foreman-keycloak`. Default `true`. |
+| `satellite_oidc_audience` | JWT audiences Foreman accepts. Empty defaults to client id plus Keycloak `account`. |
 
 `rhbk_hostname`, `rhbk_realm`, `rhbk_admin_user`, and `rhbk_admin_password`
 from the RHBK bootstrap vars are accepted as fallbacks.

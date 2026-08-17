@@ -9,9 +9,13 @@ collections/ansible_collections/
 
 # Python bytecode / caches from local test runs
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.cache/
+.ansible-tmp/
+.kube/
 
 # Local collection build / importer artifacts (never commit)
 infra-ado-*.tar.gz

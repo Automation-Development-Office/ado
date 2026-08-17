@@ -1,4 +1,3 @@
-#!/bin/bash
 set -euo pipefail
 
 ROX_ENDPOINT="${ROX_ENDPOINT:-}"

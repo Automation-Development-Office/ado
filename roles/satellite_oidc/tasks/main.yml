@@ -104,6 +104,12 @@
             satellite_oidc_server_url_effective ~ '/users/extlogin/redirect_uri'
           ], true)
       }}
+    satellite_oidc_audience_effective: >-
+      {{
+        satellite_oidc_audience
+        if (satellite_oidc_audience | default([]) | length) > 0
+        else [satellite_oidc_client_id_effective, 'account']
+      }}
 
 - name: Assert required Satellite OIDC inputs
   ansible.builtin.assert:
