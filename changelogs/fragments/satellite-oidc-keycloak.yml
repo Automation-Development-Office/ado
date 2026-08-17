@@ -6,5 +6,6 @@ minor_changes:
   - bootstrap_controller - Add ``ADO | Satellite Keycloak OIDC`` job template for
     ``satellite_oidc``.
   - bootstrap_generate_playbook_repo - Add Satellite Keycloak OIDC bootstrap playbook.
-  - infra.ado.rhbk_client - Run Keycloak API tasks with ``connection: local`` so
+  - |
+    infra.ado.rhbk_client - Run Keycloak API tasks with ``connection: local`` so
     client create works when the play targets a remote Satellite host.
