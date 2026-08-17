@@ -51,7 +51,7 @@
         satellite_oidc_server_url
         if (satellite_oidc_server_url | default('') | string | length) > 0
         else (
-          'https://' ~ (ansible_fqdn | default(inventory_hostname))
+          'https://' ~ (ansible_facts['fqdn'] | default(inventory_hostname))
         )
       }}
 

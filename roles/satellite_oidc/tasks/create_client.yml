@@ -8,12 +8,6 @@
       satellite_oidc_create_client requires satellite_oidc_admin_user and
       satellite_oidc_admin_password (or rhbk_admin_user / rhbk_admin_password).
 
-- name: Generate Satellite OIDC client secret when unset
-  ansible.builtin.set_fact:
-    satellite_oidc_client_secret: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=32) }}"
-  when: (satellite_oidc_client_secret | default('') | string | length) == 0
-  no_log: "{{ satellite_oidc_no_log | bool }}"
-
 - name: Create or update Keycloak client ado-satellite
   ansible.builtin.include_role:
     name: "{{ satellite_oidc_rhbk_client_role | default('infra.ado.rhbk_client') }}"

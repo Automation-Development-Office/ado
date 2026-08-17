@@ -1,5 +1,5 @@
 ---
 - name: Restart httpd
-  ansible.builtin.service:
-    name: httpd
-    state: restarted
+  ansible.builtin.shell: apachectl configtest && systemctl restart httpd
+  args:
+    executable: /bin/bash
