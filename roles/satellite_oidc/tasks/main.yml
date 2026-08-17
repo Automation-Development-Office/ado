@@ -84,6 +84,18 @@
   ansible.builtin.set_fact:
     satellite_oidc_jwks_url: "{{ satellite_oidc_issuer_effective }}/protocol/openid-connect/certs"
     satellite_oidc_logout_url: "{{ satellite_oidc_issuer_effective }}/protocol/openid-connect/logout"
+    satellite_oidc_keycloak_token_url: >-
+      {{
+        'https://' ~ satellite_oidc_keycloak_hostname_effective
+        ~ '/realms/' ~ satellite_oidc_auth_realm
+        ~ '/protocol/openid-connect/token'
+      }}
+    satellite_oidc_keycloak_clients_url: >-
+      {{
+        'https://' ~ satellite_oidc_keycloak_hostname_effective
+        ~ '/admin/realms/' ~ satellite_oidc_realm_effective
+        ~ '/clients?clientId=' ~ satellite_oidc_client_id_effective
+      }}
     satellite_oidc_redirect_uris_effective: >-
       {{
         satellite_oidc_redirect_uris

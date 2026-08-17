@@ -39,7 +39,7 @@
     name: netbox
     namespace: "{{ netbox_oidc_namespace }}"
     validate_certs: "{{ netbox_oidc_validate_certs }}"
-  register: netbox_cm
+  register: netbox_oidc_cm
   when: netbox_oidc_state | default('present') == 'present'
 
 - name: Create NetBox lab CA ConfigMap for OIDC TLS trust
@@ -68,7 +68,7 @@
     netbox_oidc_config_yaml: >-
       {{
         (
-          netbox_cm.resources[0].data['netbox.yaml'] | from_yaml
+          netbox_oidc_cm.resources[0].data['netbox.yaml'] | from_yaml
         )
         | combine({
             'REMOTE_AUTH_BACKEND': ['social_core.backends.open_id_connect.OpenIdConnectAuth'],
@@ -76,7 +76,6 @@
             'SOCIAL_AUTH_OIDC_KEY': netbox_oidc_client_id,
             'SOCIAL_AUTH_OIDC_SECRET': netbox_oidc_client_secret,
             'SOCIAL_AUTH_BACKEND_ATTRS': {
-              # NetBox prefixes icon with "mdi-" in the login template
               'oidc': ['Keycloak', 'shield-key-outline']
             },
             'SOCIAL_AUTH_VERIFY_SSL': netbox_oidc_verify_ssl | bool,
@@ -86,7 +85,7 @@
       }}
   when:
     - netbox_oidc_state | default('present') == 'present'
-    - netbox_cm.resources | default([]) | length > 0
+    - netbox_oidc_cm.resources | default([]) | length > 0
   no_log: true
 
 - name: Apply NetBox ConfigMap with OIDC
@@ -100,7 +99,7 @@
         namespace: "{{ netbox_oidc_namespace }}"
       data: >-
         {{
-          netbox_cm.resources[0].data
+          netbox_oidc_cm.resources[0].data
           | combine({'netbox.yaml': netbox_oidc_config_yaml})
         }}
     validate_certs: "{{ netbox_oidc_validate_certs }}"

@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  author: Automation Development Office
+  description: infra.ado.netbox_oidc Role
+  company: Automation Development Office
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.16.0"
+  galaxy_tags:
+    - netbox
+    - keycloak
+    - oidc
+    - rhbk
+
+dependencies: []

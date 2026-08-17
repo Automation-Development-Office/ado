@@ -153,6 +153,7 @@ Use this index as the starting point for operators and automation users.
 | [`infra.ado.jira`](roles/jira/README.md) | Create Jira issues and subtasks from track templates for ADO automation workflows. |
 | [`infra.ado.jira_stories`](roles/jira_stories/README.md) | Create and manage Jira stories and optional subtasks from selected track templates. |
 | [`infra.ado.kafka_install`](roles/kafka_install/README.md) | Install the AMQ Streams / Kafka operator and related resources on OpenShift. |
+| [`infra.ado.netbox_oidc`](roles/netbox_oidc/README.md) | Wire NetBox login to Keycloak / RHBK OIDC (client `netbox`). |
 | [`infra.ado.ocp_aap_hub_harden`](roles/ocp_aap_hub_harden/README.md) | Harden AAP Hub for shared-Postgres LWLock stability (replicas/workers/maintenance). |
 | [`infra.ado.ocp_acm`](roles/ocp_acm/README.md) | Install Advanced Cluster Management (ACM) and deploy MultiClusterHub on OpenShift. |
 | [`infra.ado.ocp_acs`](roles/ocp_acs/README.md) | Install Red Hat Advanced Cluster Security (ACS) Central and related resources on OpenShift. |

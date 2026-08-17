@@ -114,8 +114,16 @@ mock_roles:
     - infra.ado.satellite_config
     - infra.ado.satellite_content_view
     - infra.ado.satellite_install
+    - infra.ado.satellite_oidc
+    - infra.ado.netbox_oidc
+    - infra.ado.bookstack_openshift
+    - infra.ado.install_gitlab
+    - infra.ado.install_grafana
+    - infra.ado.acs_report
     - infra.ado.vm_image_management
 mock_modules:
+    - community.general.keycloak_clientsecret_info
+    - community.general.keycloak_clientsecret_regenerate
     - ansible.posix.mount
     - ansible.posix.firewalld
     - infra.ado.ocp_namespace
