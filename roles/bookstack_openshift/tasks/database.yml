@@ -1,7 +1,7 @@
 ---
 - name: Build MariaDB PVC spec
   ansible.builtin.set_fact:
-    bookstack_db_pvc_spec:
+    bookstack_openshift_db_pvc_spec:
       accessModes:
         - "{{ bookstack_db_storage_access_mode }}"
       resources:
@@ -10,7 +10,7 @@
 
 - name: Add MariaDB StorageClass when set
   ansible.builtin.set_fact:
-    bookstack_db_pvc_spec: "{{ bookstack_db_pvc_spec | combine({'storageClassName': bookstack_db_storage_class}) }}"
+    bookstack_openshift_db_pvc_spec: "{{ bookstack_openshift_db_pvc_spec | combine({'storageClassName': bookstack_db_storage_class}) }}"
   when: bookstack_db_storage_class | default('') | length > 0
 
 - name: Create MariaDB PVC
@@ -25,7 +25,7 @@
         labels:
           app.kubernetes.io/name: bookstack
           app.kubernetes.io/component: database
-      spec: "{{ bookstack_db_pvc_spec }}"
+      spec: "{{ bookstack_openshift_db_pvc_spec }}"
     validate_certs: "{{ bookstack_validate_certs }}"
 
 - name: Create MariaDB Service

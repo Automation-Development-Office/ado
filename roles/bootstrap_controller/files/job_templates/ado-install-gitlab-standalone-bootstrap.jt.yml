@@ -74,7 +74,35 @@ controller_templates:
         - question_name: ADO | GitLab RPM URL (optional)
           question_description: >-
             Internal/airgap mirror URL for the GitLab RPM (not packages.gitlab.com).
+            Optional RHN org/activation key registers the VM when dnf deps need a
+            subscription.
           required: false
           type: text
           variable: gitlab_rpm_url
+          default: ''
+        - question_name: ADO | RHN organization ID (optional)
+          question_description: >-
+            Used only when the VM is unregistered and an RPM URL/deps need RHN.
+            Skip when already registered or using Satellite.
+          required: false
+          type: text
+          variable: gitlab_rhn_org_id
+          default: ''
+        - question_name: ADO | RHN activation key (optional)
+          required: false
+          type: password
+          variable: gitlab_rhn_activation_key
+          default: ''
+        - question_name: ADO | tls.crt PEM (optional)
+          question_description: >-
+            PEM certificate written to /etc/gitlab/ssl/<hostname>.crt. Pair with
+            tls.key to enable HTTPS external_url.
+          required: false
+          type: textarea
+          variable: gitlab_tls_crt
+          default: ''
+        - question_name: ADO | tls.key PEM (optional)
+          required: false
+          type: textarea
+          variable: gitlab_tls_key
           default: ''

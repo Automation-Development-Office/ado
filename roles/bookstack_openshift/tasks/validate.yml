@@ -14,14 +14,14 @@
     - {api: v1, kind: PersistentVolumeClaim, name: bookstack-data}
     - {api: v1, kind: PersistentVolumeClaim, name: bookstack-mariadb}
     - {api: route.openshift.io/v1, kind: Route, name: bookstack}
-  register: bookstack_validation
+  register: bookstack_openshift_validation
 
 - name: Assert BookStack core objects exist
   ansible.builtin.assert:
     that:
       - item.resources | length > 0
     fail_msg: "Missing {{ item.item.kind }}/{{ item.item.name }} in {{ bookstack_namespace }}"
-  loop: "{{ bookstack_validation.results }}"
+  loop: "{{ bookstack_openshift_validation.results }}"
   loop_control:
     label: "{{ item.item.kind }}/{{ item.item.name }}"
 
@@ -37,7 +37,7 @@
           | default('False')
         ) == 'True'
     fail_msg: "Deployment {{ item.item.name }} is not Available"
-  loop: "{{ bookstack_validation.results }}"
+  loop: "{{ bookstack_openshift_validation.results }}"
   when: item.item.kind == 'Deployment'
   loop_control:
     label: "{{ item.item.name }}"
@@ -47,7 +47,7 @@
     that:
       - item.resources[0].status.phase == 'Bound'
     fail_msg: "PVC {{ item.item.name }} is not Bound ({{ item.resources[0].status.phase | default('unknown') }})"
-  loop: "{{ bookstack_validation.results }}"
+  loop: "{{ bookstack_openshift_validation.results }}"
   when: item.item.kind == 'PersistentVolumeClaim'
   loop_control:
     label: "{{ item.item.name }}"
@@ -56,7 +56,7 @@
   ansible.builtin.debug:
     msg: |
       BookStack available at:
-      {{ bookstack_app_url_effective }}
+      {{ bookstack_openshift_app_url_effective }}
 
       Default local login:
       {{ bookstack_admin_email }} / (set via bookstack_admin_password)

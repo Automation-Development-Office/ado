@@ -13,7 +13,7 @@
           app.kubernetes.io/component: app
         annotations: "{{ bookstack_route_annotations | default({}) }}"
       spec:
-        host: "{{ bookstack_route_host_effective }}"
+        host: "{{ bookstack_openshift_route_host_effective }}"
         to:
           kind: Service
           name: "{{ bookstack_service_name }}"

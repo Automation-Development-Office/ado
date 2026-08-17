@@ -148,6 +148,7 @@ Use this index as the starting point for operators and automation users.
 | [`infra.ado.install_aap`](roles/install_aap/README.md) | Install and configure Ansible Automation Platform (controller/hub), including subscription manifest upload. |
 | [`infra.ado.install_dirsrv`](roles/install_dirsrv/README.md) | Install and configure 389 Directory Server (DirSrv) on OpenShift. |
 | [`infra.ado.install_elastic`](roles/install_elastic/README.md) | Deploy Elastic Cloud on Kubernetes (ECK) operator and Elasticsearch/Kibana on OpenShift. |
+| [`infra.ado.install_gitlab`](roles/install_gitlab/README.md) | Install standalone GitLab CE/EE on RHEL (Omnibus packages or offline RPM). |
 | [`infra.ado.install_postfix`](roles/install_postfix/README.md) | Deploy a Postfix relay on OpenShift with ConfigMap, Secret, and Pod resources. |
 | [`infra.ado.install_rhbk`](roles/install_rhbk/README.md) | Install or tear down Red Hat build of Keycloak (RHBK) and its PostgreSQL store on OpenShift. |
 | [`infra.ado.jira`](roles/jira/README.md) | Create Jira issues and subtasks from track templates for ADO automation workflows. |

@@ -54,6 +54,20 @@
       install_gitlab needs hostname, root password, and a resolvable
       external_url (set install_gitlab_external_url or hostname + optional TLS).
 
+- name: GitLab | Register with RHN when optional org/activation key set
+  community.general.redhat_subscription:
+    state: present
+    org_id: "{{ install_gitlab_rhn_org_id }}"
+    activationkey: "{{ install_gitlab_rhn_activation_key }}"
+  register: install_gitlab_rhn
+  failed_when: >-
+    (install_gitlab_rhn.failed | default(false) | bool)
+    and ('already registered' not in (install_gitlab_rhn.msg | default('') | lower))
+    and ('already attached' not in (install_gitlab_rhn.msg | default('') | lower))
+  when:
+    - install_gitlab_rhn_org_id | default('') | length > 0
+    - install_gitlab_rhn_activation_key | default('') | length > 0
+
 - name: Ensure GitLab Omnibus dependencies
   ansible.builtin.dnf:
     name:
@@ -241,7 +255,7 @@
   register: install_gitlab_reconfigure
   changed_when: install_gitlab_reconfigure.rc == 0
 
-- name: Mark GitLab bootstrap complete
+- name: Mark GitLab bootstrap complete  # noqa: no-handler
   ansible.builtin.file:
     path: /var/opt/gitlab/bootstrapped
     state: touch

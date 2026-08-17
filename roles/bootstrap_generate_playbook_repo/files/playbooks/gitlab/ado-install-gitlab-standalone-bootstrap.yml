@@ -6,11 +6,12 @@
 - name: ADO | Install GitLab standalone on RHEL
   hosts: "{{ target_hosts | default('all:!localhost') }}"
   become: true
-  gather_facts: true
+  gather_facts: false
   vars:
     component: gitlab
     # Contoller survey / -e may set: state, env, gitlab_hostname,
-    # gitlab_root_password, gitlab_edition, gitlab_rpm_path, gitlab_rpm_url
+    # gitlab_root_password, gitlab_edition, gitlab_rpm_path, gitlab_rpm_url,
+    # gitlab_tls_crt, gitlab_tls_key, gitlab_rhn_org_id, gitlab_rhn_activation_key
     # (role defaults map those). Disconnected by default: stage an RPM.
   pre_tasks:
     - name: Skip local Contoller/EE connection hosts
@@ -18,6 +19,21 @@
       when: >-
         (inventory_hostname | lower) in ['localhost', '127.0.0.1']
         or (ansible_connection | default('')) == 'local'
+
+    - name: GitLab | Wait for SSH before facts
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host | default(inventory_hostname) }}"
+        port: 22
+        timeout: "{{ gitlab_connect_timeout | default(30) }}"
+        state: started
+      delegate_to: localhost
+      become: false
+
+    - name: GitLab | Ping host before install
+      ansible.builtin.ping:
+
+    - name: GitLab | Gather facts after connectivity check
+      ansible.builtin.setup:
 
     - name: Load env infra config when present
       ansible.builtin.include_vars:

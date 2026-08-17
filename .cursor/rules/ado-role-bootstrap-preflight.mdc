@@ -11,7 +11,7 @@ When you create or materially change an `infra.ado` role under `roles/`, do **al
 
 - Keep/update `roles/<role>/README.md` (purpose, requirements, variables, example playbook, tags)
 - Add an antsibull-changelog fragment under `changelogs/fragments/`
-- Run / fix `yamllint` and `ansible-lint` for touched role paths
+- Follow `ado-ci-local-checks.mdc` (changelog, README, main README link, yamllint/ansible-lint on changed files only)
 - Register the component in `bootstrap_resolve_component/files/components_defaults.yml` when Contoller playbooks use `component:` + resolve
 
 ## 2. Bootstrap templates (collection)

@@ -28,3 +28,6 @@ importer_result.json
 
 # Local pip/user installs and container storage (never commit)
 .local/
+.cache/
+.ansible/
+.config/

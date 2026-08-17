@@ -172,3 +172,4 @@ mock_modules:
     - kubernetes.core.k8s_exec
     - kubernetes.core.helm_repository
     - kubernetes.core.helm
+    - community.general.redhat_subscription

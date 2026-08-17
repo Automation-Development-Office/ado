@@ -923,7 +923,20 @@
         k = str(key or "").lower()
         if k in {"hub_s3_secret", "hub_azure_secret"}:
             return False
-        return any(x in k for x in ["password", "token", "secret", "vault", "credential", "tls_key", "manifest_content"])
+        return any(
+            x in k
+            for x in [
+                "password",
+                "token",
+                "secret",
+                "vault",
+                "credential",
+                "tls_key",
+                "tls_crt",
+                "activation_key",
+                "manifest_content",
+            ]
+        )
 
     def load_yaml(path):
         if not path.exists():
@@ -1342,6 +1355,91 @@
                     vars_data["components_env"]["grafana"]["grafana_group_cluster_dashboards"] = (
                         vars_data["grafana_group_cluster_dashboards"]
                     )
+                standalone_hostname = first_present(
+                    public_values.get("standalone_hostname"),
+                    public_values.get("hostname"),
+                )
+                if standalone_hostname:
+                    vars_data["grafana_hostname"] = str(standalone_hostname)
+                    vars_data["install_grafana_hostname"] = str(standalone_hostname)
+                rpm_path = first_present(public_values.get("standalone_rpm_path"))
+                if rpm_path:
+                    vars_data["grafana_rpm_path"] = str(rpm_path)
+                    vars_data["install_grafana_rpm_path"] = str(rpm_path)
+                rpm_url = first_present(public_values.get("standalone_rpm_url"))
+                if rpm_url:
+                    vars_data["grafana_rpm_url"] = str(rpm_url)
+                    vars_data["install_grafana_rpm_url"] = str(rpm_url)
+                rhn_org = first_present(public_values.get("standalone_rhn_org_id"))
+                if rhn_org:
+                    vars_data["install_grafana_rhn_org_id"] = str(rhn_org)
+                rhn_key = first_present(secret_values.get("standalone_rhn_activation_key"))
+                if rhn_key:
+                    vars_data["install_grafana_rhn_activation_key"] = vault_ref(
+                        "vault_grafana_rhn_activation_key"
+                    )
+                    vault_data["vault_grafana_rhn_activation_key"] = QuotedString(str(rhn_key))
+                    vault_data_changed = True
+
+            if component == "gitlab":
+                standalone_hostname = first_present(
+                    public_values.get("standalone_hostname"),
+                    public_values.get("hostname"),
+                )
+                if standalone_hostname:
+                    vars_data["gitlab_hostname"] = str(standalone_hostname)
+                    vars_data["install_gitlab_hostname"] = str(standalone_hostname)
+                external_url = first_present(public_values.get("standalone_external_url"))
+                if external_url:
+                    vars_data["gitlab_external_url"] = str(external_url)
+                    vars_data["install_gitlab_external_url"] = str(external_url)
+                edition = first_present(public_values.get("standalone_edition"))
+                if edition:
+                    vars_data["gitlab_edition"] = str(edition)
+                    vars_data["install_gitlab_edition"] = str(edition)
+                rpm_path = first_present(public_values.get("standalone_rpm_path"))
+                if rpm_path:
+                    vars_data["gitlab_rpm_path"] = str(rpm_path)
+                    vars_data["install_gitlab_rpm_path"] = str(rpm_path)
+                rpm_url = first_present(public_values.get("standalone_rpm_url"))
+                if rpm_url:
+                    vars_data["gitlab_rpm_url"] = str(rpm_url)
+                    vars_data["install_gitlab_rpm_url"] = str(rpm_url)
+                if secret_values.get("standalone_root_password"):
+                    vars_data["gitlab_root_password"] = vault_ref("vault_gitlab_root_password")
+                    vault_data["vault_gitlab_root_password"] = QuotedString(
+                        str(secret_values.get("standalone_root_password"))
+                    )
+                    vault_data["gitlab_root_password"] = QuotedString(
+                        str(secret_values.get("standalone_root_password"))
+                    )
+                    vault_data_changed = True
+                tls_crt = first_present(
+                    secret_values.get("standalone_tls_crt"),
+                    public_values.get("standalone_tls_crt"),
+                )
+                tls_key = first_present(secret_values.get("standalone_tls_key"))
+                if tls_crt:
+                    vars_data["gitlab_tls_crt"] = vault_ref("vault_gitlab_tls_crt")
+                    vault_data["vault_gitlab_tls_crt"] = QuotedString(str(tls_crt))
+                    vault_data["gitlab_tls_crt"] = QuotedString(str(tls_crt))
+                    vault_data_changed = True
+                if tls_key:
+                    vars_data["gitlab_tls_key"] = vault_ref("vault_gitlab_tls_key")
+                    vault_data["vault_gitlab_tls_key"] = QuotedString(str(tls_key))
+                    vault_data["gitlab_tls_key"] = QuotedString(str(tls_key))
+                    vault_data_changed = True
+                rhn_org = first_present(public_values.get("standalone_rhn_org_id"))
+                if rhn_org:
+                    vars_data["install_gitlab_rhn_org_id"] = str(rhn_org)
+                    vars_data["gitlab_rhn_org_id"] = str(rhn_org)
+                rhn_key = first_present(secret_values.get("standalone_rhn_activation_key"))
+                if rhn_key:
+                    vars_data["install_gitlab_rhn_activation_key"] = vault_ref(
+                        "vault_gitlab_rhn_activation_key"
+                    )
+                    vault_data["vault_gitlab_rhn_activation_key"] = QuotedString(str(rhn_key))
+                    vault_data_changed = True
 
             if component == "rhbk":
                 vars_data.setdefault("components_env", {}).setdefault("rhbk", {})
@@ -1419,6 +1517,34 @@
                     vault_data["vault_rhbk_admin_password"] = QuotedString(
                         str(secret_values.get("standalone_admin_password"))
                     )
+                    vault_data_changed = True
+                tls_crt = first_present(
+                    secret_values.get("standalone_tls_crt"),
+                    public_values.get("standalone_tls_crt"),
+                )
+                tls_key = first_present(secret_values.get("standalone_tls_key"))
+                if tls_crt:
+                    vars_data["rhbk_standalone_tls_crt"] = vault_ref("vault_rhbk_standalone_tls_crt")
+                    vars_data["tls_crt"] = vault_ref("vault_rhbk_standalone_tls_crt")
+                    vault_data["vault_rhbk_standalone_tls_crt"] = QuotedString(str(tls_crt))
+                    vault_data_changed = True
+                if tls_key:
+                    vars_data["rhbk_standalone_tls_key"] = vault_ref("vault_rhbk_standalone_tls_key")
+                    vars_data["tls_key"] = vault_ref("vault_rhbk_standalone_tls_key")
+                    vault_data["vault_rhbk_standalone_tls_key"] = QuotedString(str(tls_key))
+                    vault_data_changed = True
+                if tls_crt and tls_key:
+                    vars_data["rhbk_standalone_https_enabled"] = True
+                    vars_data["install_rhbk_standalone_https_enabled"] = True
+                rhn_org = first_present(public_values.get("standalone_rhn_org_id"))
+                if rhn_org:
+                    vars_data["install_rhbk_rhn_org_id"] = str(rhn_org)
+                rhn_key = first_present(secret_values.get("standalone_rhn_activation_key"))
+                if rhn_key:
+                    vars_data["install_rhbk_rhn_activation_key"] = vault_ref(
+                        "vault_rhbk_rhn_activation_key"
+                    )
+                    vault_data["vault_rhbk_rhn_activation_key"] = QuotedString(str(rhn_key))
                     vault_data_changed = True
                 for mapper_key in (
                     "group_mapper_name",

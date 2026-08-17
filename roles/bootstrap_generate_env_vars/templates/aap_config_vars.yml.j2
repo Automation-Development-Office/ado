@@ -547,6 +547,9 @@ controller_bootstrap_controller_credentials:
 {% if preflight_galaxy_setup_enabled %}
 {% for galaxy_credential in preflight_galaxy_credentials_ordered %}
 {% if (galaxy_credential.enabled | default(true) | bool) and (galaxy_credential.name | default('', true) | length > 0) and (galaxy_credential.url | default('', true) | length > 0) %}
+{# AAP ships a platform-global "Ansible Galaxy" credential (no org). Creating an
+   org-scoped duplicate fails with already-exists; attach it by name instead. #}
+{% if galaxy_credential.name != 'Ansible Galaxy' %}
 
   - name: "{{ galaxy_credential.name }}"
     description: "Galaxy/Hub credential {{ galaxy_credential.name }}"
@@ -558,6 +561,7 @@ controller_bootstrap_controller_credentials:
       auth: "{{ galaxy_credential.auth_url }}"
 {% endif %}
       token: "{% raw %}{{ '{{ vault_galaxy_hub_token | default(vault_controller_oauthtoken | default(vault_controller_password)) }}' }}{% endraw %}"
+{% endif %}
 {% endif %}
 {% endfor %}
 {% if (preflight_container_registry_credential.enabled | default(true) | bool) and (preflight_container_registry_credential.name | default('', true) | length > 0) and (preflight_container_registry_credential.host | default('', true) | length > 0) %}
@@ -831,6 +835,7 @@ controller_bootstrap_controller_execution_environments:
   - name: "{{ bootstrap_generate_env_vars_aap_ee }}"
     image: "{{ bootstrap_generate_env_vars_aap_ee_image }}"
     pull: missing
+    organization: "{{ bootstrap_generate_env_vars_aap_org }}"
 
 controller_bootstrap_controller_labels:
   - name: "{{ bootstrap_generate_env_vars_aap_org }}"

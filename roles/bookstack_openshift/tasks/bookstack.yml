@@ -1,7 +1,7 @@
 ---
 - name: Build BookStack PVC spec
   ansible.builtin.set_fact:
-    bookstack_app_pvc_spec:
+    bookstack_openshift_app_pvc_spec:
       accessModes:
         - "{{ bookstack_storage_access_mode }}"
       resources:
@@ -10,7 +10,7 @@
 
 - name: Add BookStack StorageClass when set
   ansible.builtin.set_fact:
-    bookstack_app_pvc_spec: "{{ bookstack_app_pvc_spec | combine({'storageClassName': bookstack_storage_class}) }}"
+    bookstack_openshift_app_pvc_spec: "{{ bookstack_openshift_app_pvc_spec | combine({'storageClassName': bookstack_storage_class}) }}"
   when: bookstack_storage_class | default('') | length > 0
 
 - name: Create BookStack content PVC
@@ -25,7 +25,7 @@
         labels:
           app.kubernetes.io/name: bookstack
           app.kubernetes.io/component: app
-      spec: "{{ bookstack_app_pvc_spec }}"
+      spec: "{{ bookstack_openshift_app_pvc_spec }}"
     validate_certs: "{{ bookstack_validate_certs }}"
 
 - name: Create BookStack Service
@@ -51,7 +51,7 @@
 
 - name: Build BookStack base container env
   ansible.builtin.set_fact:
-    bookstack_app_env:
+    bookstack_openshift_app_env:
       - name: APP_URL
         valueFrom:
           secretKeyRef:
@@ -90,7 +90,7 @@
 
 - name: Append BookStack OIDC env when enabled
   ansible.builtin.set_fact:
-    bookstack_app_env: "{{ bookstack_app_env + bookstack_oidc_env }}"
+    bookstack_openshift_app_env: "{{ bookstack_openshift_app_env + bookstack_oidc_env }}"
   vars:
     bookstack_oidc_env: >-
       {{
@@ -126,6 +126,18 @@
       }}
   when: bookstack_oidc_enabled | default(false) | bool
 
+- name: Build BookStack pod config hash annotation
+  ansible.builtin.set_fact:
+    bookstack_openshift_config_hash: >-
+      {{
+        (
+          bookstack_openshift_app_key_effective ~ '|'
+          ~ (bookstack_oidc_enabled | string) ~ '|'
+          ~ bookstack_oidc_issuer ~ '|'
+          ~ (bookstack_oidc_ca_bundle | default('') | hash('sha1'))
+        ) | hash('sha1')
+      }}
+
 - name: Create BookStack Deployment
   kubernetes.core.k8s:
     state: present
@@ -153,7 +165,7 @@
               app.kubernetes.io/name: bookstack
               app.kubernetes.io/component: app
             annotations:
-              ado.bookstack/config-hash: "{{ (bookstack_app_key_effective ~ '|' ~ (bookstack_oidc_enabled | string) ~ '|' ~ bookstack_oidc_issuer ~ '|' ~ (bookstack_oidc_ca_bundle | default('') | hash('sha1'))) | hash('sha1') }}"
+              ado.bookstack/config-hash: "{{ bookstack_openshift_config_hash }}"
           spec:
             # NFS PVC mounts are often root-owned; www-data (33) needs dirs prepared.
             initContainers:
@@ -214,7 +226,7 @@
                 image: "{{ bookstack_image }}"
                 imagePullPolicy: "{{ bookstack_image_pull_policy }}"
                 ports: "{{ [{'name': 'http', 'containerPort': bookstack_container_port | int}] }}"
-                env: "{{ bookstack_app_env }}"
+                env: "{{ bookstack_openshift_app_env }}"
                 resources: "{{ bookstack_resources }}"
                 volumeMounts:
                   - name: data

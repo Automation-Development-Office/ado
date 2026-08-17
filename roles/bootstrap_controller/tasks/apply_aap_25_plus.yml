@@ -279,7 +279,7 @@
         ~ '/aap_config_vars.yml'
       ) is file
 
-- name: AAP 2.5+ | Refresh org/credential facts from aap_config_vars (hub-only)
+- name: AAP 2.5+ | Refresh org/credential facts from aap_config_vars (hub-only)  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     bootstrap_controller_controller_organizations: >-
       {{
@@ -894,7 +894,40 @@
     - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
 
 # Create/update credentials and EEs first
-- name: AAP 2.5+ | Apply credentials and execution environments
+- name: AAP 2.5+ | Drop global Ansible Galaxy from credential create list  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_credentials: >-
+      {{
+        controller_credentials
+        | default([])
+        | rejectattr('name', 'defined')
+        | list
+        +
+        (
+          controller_credentials
+          | default([])
+          | selectattr('name', 'defined')
+          | rejectattr('name', 'equalto', 'Ansible Galaxy')
+          | list
+        )
+      }}
+    bootstrap_controller_controller_credentials: >-
+      {{
+        bootstrap_controller_controller_credentials
+        | default([])
+        | rejectattr('name', 'defined')
+        | list
+        +
+        (
+          bootstrap_controller_controller_credentials
+          | default([])
+          | selectattr('name', 'defined')
+          | rejectattr('name', 'equalto', 'Ansible Galaxy')
+          | list
+        )
+      }}
+
+- name: AAP 2.5+ | Apply credentials
   ansible.builtin.include_role:
     name: infra.aap_configuration.dispatch
   vars:
@@ -905,9 +938,24 @@
       - role: controller_credentials
         var: controller_credentials
         tags: credentials
+  when: controller_credentials | default([]) | length > 0
+
+- name: AAP 2.5+ | Skip existing execution environments
+  ansible.builtin.include_tasks: skip_existing_execution_environments.yml
+  when: controller_execution_environments | default([]) | length > 0
+
+- name: AAP 2.5+ | Apply execution environments
+  ansible.builtin.include_role:
+    name: infra.aap_configuration.dispatch
+  vars:
+    gateway_configuration_dispatcher_roles: []
+    hub_configuration_dispatcher_roles: []
+    eda_configuration_dispatcher_roles: []
+    controller_configuration_dispatcher_roles:
       - role: controller_execution_environments
         var: controller_execution_environments
         tags: execution_environments
+  when: controller_execution_environments | default([]) | length > 0
 
 - name: AAP 2.5+ | Apply inventory sources directly
   ansible.controller.inventory_source:
@@ -959,7 +1007,7 @@
         | list
       }}
 
-- name: AAP 2.5+ | Normalize controller projects before apply
+- name: AAP 2.5+ | Normalize controller projects before apply  # noqa: var-naming[no-role-prefix]
   ansible.builtin.set_fact:
     controller_projects: "{{ bootstrap_controller_projects_sanitized }}"
     bootstrap_controller_controller_projects: "{{ bootstrap_controller_projects_sanitized }}"
@@ -973,6 +1021,32 @@
   ansible.builtin.include_role:
     name: infra.aap_configuration.controller_projects
   when: controller_projects | default([]) | length > 0
+
+# controller_projects may no-op when the project already exists, leaving an
+# old scm_branch. Explicitly align URL/branch before sync.
+- name: AAP 2.5+ | Align existing project git URL and branch
+  ansible.controller.project:
+    name: "{{ item.name }}"
+    organization: "{{ item.organization | default(omit) }}"
+    scm_type: "{{ item.scm_type | default('git') }}"
+    scm_url: "{{ item.scm_url | default(omit) }}"
+    scm_branch: "{{ item.scm_branch | default(omit) }}"
+    scm_credential: "{{ item.credential | default(item.scm_credential | default(omit)) }}"
+    update_project: false
+    wait: false
+    state: present
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: "{{ controller_projects | default([]) }}"
+  loop_control:
+    label: "{{ item.name }} branch={{ item.scm_branch | default('') }}"
+  when:
+    - controller_projects | default([]) | length > 0
+    - item.scm_type | default('') | length > 0
+    - (item.scm_branch | default('') | length > 0) or (item.scm_url | default('') | length > 0)
 
 - name: AAP 2.5+ | Force project sync before creating job templates
   ansible.controller.project_update:

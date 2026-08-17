@@ -13,20 +13,20 @@
     field_selectors:
       - status.phase=Running
     validate_certs: "{{ bookstack_validate_certs }}"
-  register: bookstack_admin_pods
+  register: bookstack_openshift_admin_pods
   when: bookstack_admin_password | default('') | length > 0
 
 - name: Set BookStack admin pod name
   ansible.builtin.set_fact:
-    bookstack_app_pod_name: "{{ bookstack_admin_pods.resources[0].metadata.name }}"
+    bookstack_openshift_app_pod_name: "{{ bookstack_openshift_admin_pods.resources[0].metadata.name }}"
   when:
     - bookstack_admin_password | default('') | length > 0
-    - bookstack_admin_pods.resources | default([]) | length > 0
+    - bookstack_openshift_admin_pods.resources | default([]) | length > 0
 
 - name: Reset BookStack local admin password
   kubernetes.core.k8s_exec:
     namespace: "{{ bookstack_namespace }}"
-    pod: "{{ bookstack_app_pod_name }}"
+    pod: "{{ bookstack_openshift_app_pod_name }}"
     container: bookstack
     command: >-
       php -r
@@ -43,10 +43,10 @@
       echo "ok\n";'
     validate_certs: "{{ bookstack_validate_certs }}"
   no_log: true
-  register: bookstack_admin_password_result
+  register: bookstack_openshift_admin_password_result
   when:
     - bookstack_admin_password | default('') | length > 0
-    - bookstack_app_pod_name | default('') | length > 0
+    - bookstack_openshift_app_pod_name | default('') | length > 0
 
 - name: Show admin password update status
   ansible.builtin.debug:
@@ -55,5 +55,5 @@
       (OIDC enabled={{ bookstack_oidc_enabled | bool }}).
   when:
     - bookstack_admin_password | default('') | length > 0
-    - bookstack_admin_password_result is defined
-    - (bookstack_admin_password_result.rc | default(1)) == 0
+    - bookstack_openshift_admin_password_result is defined
+    - (bookstack_openshift_admin_password_result.rc | default(1)) == 0
