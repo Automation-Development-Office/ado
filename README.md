@@ -11,67 +11,6 @@ This collection packages reusable **roles** and **modules** used by ADO
 bootstrap and day-2 workflows so teams can install, configure, and operate
 infrastructure components consistently.
 
-## Bootstrap coverage (OpenShift vs RHEL)
-
-What generated bootstrap playbooks / job templates support today.
-✅ = available. ❌ = not in the bootstrap path.
-
-### Install
-
-| Component | OpenShift | RHEL / Linux |
-|-----------|:---------:|:------------:|
-| AAP | ✅ | ❌ |
-| ACS (RHACS) | ✅ | ❌ |
-| ACM | ✅ | ❌ |
-| Cert Manager | ✅ | ❌ |
-| Dev Spaces | ✅ | ❌ |
-| Directory Server (389) | ✅ | ❌ |
-| ECK / Elastic | ✅ | ❌ |
-| GitOps | ✅ | ❌ |
-| GitLab | ✅ | ❌ |
-| Grafana | ✅ | ❌ |
-| Kafka | ✅ | ❌ |
-| OADP | ✅ | ❌ |
-| OpenShift (base cluster) | ❌¹ | ❌ |
-| PEGA | ✅ | ❌ |
-| Quay | ✅ | ❌ |
-| RHBK | ✅ | ❌ |
-| Satellite | ❌ | ✅ |
-| IdM | ❌ | ✅ |
-| RHEL / patching / compliance / STIG | ❌ | ❌² |
-| OpenShift Virtualization (VM) | ✅ | ❌ |
-
-### Configure
-
-| Component | OpenShift | RHEL / Linux |
-|-----------|:---------:|:------------:|
-| AAP (Controller / gateway) | ✅³ | ❌ |
-| ACS | ✅ | ❌ |
-| ACM | ✅ | ❌ |
-| Cert Manager | ✅ | ❌ |
-| Console / LDAP / OAuth / routes / pull secret / CSI | ✅ | ❌ |
-| Dev Spaces | ✅ | ❌ |
-| Directory Server | ✅ | ❌ |
-| ECK / Elastic | ✅ | ❌ |
-| GitOps | ✅ | ❌ |
-| GitLab | ✅ | ❌ |
-| Grafana | ✅ | ❌ |
-| Kafka | ✅ | ❌ |
-| OADP | ✅ | ❌ |
-| Quay | ✅ | ❌ |
-| RHBK | ✅ | ❌ |
-| Satellite | ❌ | ✅ |
-| IdM | ❌ | ✅ |
-| RHEL patch / compliance / STIG | ❌ | ✅ |
-
-¹ Assumes an existing cluster (agent install-config is separate).  
-² Hardens / patches existing hosts; does not install the OS.  
-³ Install target is OpenShift; Controller config talks to the AAP API URL.
-
-Details: [`bootstrap_controller`](roles/bootstrap_controller/README.md),
-[`bootstrap_generate_playbook_repo`](roles/bootstrap_generate_playbook_repo/README.md),
-and the [ADO Pre-Flight UI](https://github.com/automation-development-office/ado-preflight-ui).
-
 ## Collection purpose
 
 `infra.ado` provides:
