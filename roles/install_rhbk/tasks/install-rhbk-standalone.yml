@@ -179,7 +179,7 @@
     creates: "{{ install_rhbk_dist_home }}/.ado-rhbk-built"
   register: install_rhbk_build
 
-- name: Mark RHBK build complete
+- name: Mark RHBK build complete  # noqa: no-handler
   ansible.builtin.file:
     path: "{{ install_rhbk_dist_home }}/.ado-rhbk-built"
     state: touch
@@ -228,6 +228,16 @@
   when: install_rhbk_standalone_https_enabled | bool
   notify: Reload systemd for RHBK
 
+- name: Build RHBK systemd ExecStart
+  ansible.builtin.set_fact:
+    install_rhbk_standalone_exec_start: >-
+      {{
+        (install_rhbk_dist_home | string)
+        ~ '/bin/kc.sh start --http-enabled='
+        ~ ((install_rhbk_standalone_http_enabled | bool) | ternary('true', 'false'))
+        ~ ' --hostname-strict=false'
+      }}
+
 - name: Install RHBK systemd unit
   ansible.builtin.copy:
     dest: /etc/systemd/system/rhbk.service
@@ -260,7 +270,7 @@
       Environment=KC_DB=dev-file
       Environment=JAVA_HOME={{ install_rhbk_standalone_java_home_effective | default('/usr') }}
       Environment=PATH={{ install_rhbk_standalone_java_home_effective | default('/usr') }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-      ExecStart={{ install_rhbk_dist_home }}/bin/kc.sh start --http-enabled={{ (install_rhbk_standalone_http_enabled | bool) | ternary('true', 'false') }} --hostname-strict=false
+      ExecStart={{ install_rhbk_standalone_exec_start }}
       Restart=on-failure
       RestartSec=5
       LimitNOFILE=102400

@@ -32,7 +32,16 @@
           {{
             (
               multus_nad_config
-              | default('{"cniVersion":"0.3.1","name":"br-ex-network","type":"ovn-k8s-cni-overlay","topology":"localnet","netAttachDefName":"' ~ vm_namespace ~ '/br-ex-network"}')
+              | default(
+                  '{'
+                  ~ '"cniVersion":"0.3.1",'
+                  ~ '"name":"br-ex-network",'
+                  ~ '"type":"ovn-k8s-cni-overlay",'
+                  ~ '"topology":"localnet",'
+                  ~ '"netAttachDefName":"'
+                  ~ vm_namespace
+                  ~ '/br-ex-network"}'
+                )
             )
             if (
               (

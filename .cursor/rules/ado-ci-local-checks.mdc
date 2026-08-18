@@ -15,11 +15,22 @@ Unless the user says otherwise, **lint and verify only what you changed** — no
 4. **Lint changed YAML** — `yamllint` + `ansible-lint --offline` on touched paths only.
 5. **README verify** — `python scripts/verify_readme.py roles/<role>/README.md` for each changed role README.
 
-## Match GitHub CI ([tests.yml](.github/workflows/tests.yml))
+## Before check-in (required)
 
-Blocking on PRs: `ansible-lint --offline` (full repo in CI; locally scope to changed files), `ansible-test sanity`, `build-import`, `unit-galaxy`.
+GitHub CI runs **full-repo** `ansible-lint --offline` (see `.github/workflows/tests.yml`).
+Linting only changed files is not enough — that is how PR 272 failed after check-in.
 
-Informational: `python scripts/verify_readme.py --template docs/templates/role_readme_format_template.md`.
+Before you tell the user the branch is ready:
+
+```bash
+export ANSIBLE_COLLECTIONS_PATH="$(pwd)/.ansible/collections"
+ansible-lint --offline
+```
+
+That command must exit 0. Fix every **error** it reports, including pre-existing ones in files you did not originally touch if CI would fail on them.
+
+During work you may still lint only touched paths for a fast loop.
+
 
 ## Local commands (collection root)
 
