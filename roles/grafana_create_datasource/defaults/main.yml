@@ -3,14 +3,26 @@
 # defaults file for grafana_create_datasource
 
 grafana_create_datasource_state: present
-grafana_create_datasource_name: prometheus
+grafana_create_datasource_name: Openshift-Prod
 grafana_create_datasource_hostname: ""
 grafana_create_datasource_admin_user: ""
 grafana_create_datasource_admin_password: ""
-grafana_create_datasource_validate_certs: true
-grafana_create_datasource_tls_skip_verify: false
+grafana_create_datasource_validate_certs: false
+grafana_create_datasource_tls_skip_verify: true
 
-grafana_create_datasource_prometheus_route_name: prometheus-k8s
+# Prefer thanos-querier so platform + user-workload metrics (cert-manager, etc.)
+# are visible. prometheus-k8s only has platform scrape targets.
+grafana_create_datasource_prometheus_route_name: thanos-querier
 grafana_create_datasource_prometheus_route_namespace: openshift-monitoring
 grafana_create_datasource_serviceaccount_name: grafana-prometheus-sa
 grafana_create_datasource_serviceaccount_token_secret_name: grafana-prometheus-sa-token
+
+# Optional multi-datasource list. When empty, a single datasource is created
+# from grafana_datasource / grafana_create_datasource_name.
+# Each item:
+#   name: Grafana datasource display name (Openshift-Prod / Openshift-Dev)
+#   prometheus_url: optional absolute URL (skip Route discovery when set)
+#   bearer_token: optional bearer token (skip SA token Secret when set)
+#   bearer_token_secret: optional {name, namespace, key} to read token from K8s Secret
+#   prometheus_route_name / prometheus_route_namespace / serviceaccount_* : optional overrides
+grafana_datasources: []

@@ -1,0 +1,95 @@
+---
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Role: infra.ado.bookstack_openshift
+#
+# Deploy BookStack + MariaDB on OpenShift (internal Confluence-style docs).
+
+bookstack_state: present
+bookstack_namespace: bookstack
+bookstack_validate_certs: "{{ validate_certs | default(true) }}"
+
+# Prefer images that actually pull today. bitnami/mariadb:11.4 is not a valid tag.
+# Official MariaDB needs anyuid on many OpenShift clusters — set bookstack_use_anyuid.
+bookstack_image: solidnerd/bookstack:24.12.1
+bookstack_mariadb_image: docker.io/library/mariadb:11
+bookstack_image_pull_policy: IfNotPresent
+
+bookstack_replicas: 1
+bookstack_db_replicas: 1
+
+bookstack_app_url: ""
+bookstack_route_host: ""
+bookstack_route_tls_termination: edge
+bookstack_route_insecure_policy: Redirect
+bookstack_route_annotations: {}
+
+bookstack_service_name: bookstack
+bookstack_service_port: 80
+# solidnerd/bookstack Apache listens on 8080
+bookstack_container_port: 8080
+
+bookstack_db_service_name: bookstack-mariadb
+bookstack_db_host: "{{ bookstack_db_service_name }}"
+bookstack_db_port: 3306
+bookstack_db_name: bookstack
+bookstack_db_user: bookstack
+bookstack_db_password: ""
+bookstack_db_root_password: ""
+
+bookstack_app_key: ""
+
+bookstack_storage_size: 20Gi
+bookstack_storage_class: ""
+bookstack_storage_access_mode: ReadWriteOnce
+
+bookstack_db_storage_size: 10Gi
+bookstack_db_storage_class: ""
+bookstack_db_storage_access_mode: ReadWriteOnce
+
+bookstack_resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+bookstack_db_resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# Wait / probe tuning (MariaDB init can be slow)
+bookstack_wait_retries: 60
+bookstack_wait_delay: 10
+
+# Local admin (seeded as admin@admin.com / password by the image; role can reset)
+bookstack_admin_email: admin@admin.com
+bookstack_admin_password: ""
+
+# OIDC / RHBK (Keycloak). Prefer issuer discovery against RHLAB realm.
+bookstack_oidc_enabled: false
+bookstack_oidc_name: Keycloak
+bookstack_oidc_display_name: Lab SSO
+bookstack_oidc_client_id: bookstack
+bookstack_oidc_client_secret: ""
+# Live realm name is lowercase rhlab (not RHLAB).
+bookstack_oidc_issuer: https://keycloak.apps.ocp.prod.rhlab/realms/rhlab
+bookstack_oidc_issuer_discover: true
+bookstack_oidc_auto_initiate: false
+bookstack_oidc_auto_register: true
+bookstack_oidc_authorize_url: ""
+bookstack_oidc_token_url: ""
+bookstack_oidc_userinfo_url: ""
+bookstack_oidc_end_session_url: ""
+
+# Lab Keycloak often uses a private CA (cURL error 60 without this).
+# Paste PEM (leaf optional; include issuing CA). Role mounts it and rebuilds trust store.
+bookstack_oidc_ca_bundle: ""
+bookstack_oidc_ca_configmap: bookstack-lab-ca
+
+# OpenShift SCC: official mariadb image typically needs anyuid under restricted-v2.
+bookstack_use_anyuid: true

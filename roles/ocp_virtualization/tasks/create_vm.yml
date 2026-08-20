@@ -14,36 +14,182 @@
       One or more required variables are missing.
       Please provide vm_name, vm_namespace, storage_class, and source_name.
 
-- name: Build VirtualMachine spec
+# Namespace creation is handled by infra.ado.ocp_namespace in the playbook
+# (do not create Namespace inline here — reuse the ADO role).
+
+- name: Ensure Multus NetworkAttachmentDefinition exists for bridge mode
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: k8s.cni.cncf.io/v1
+      kind: NetworkAttachmentDefinition
+      metadata:
+        name: "{{ multus_nad_name }}"
+        namespace: "{{ vm_namespace }}"
+      spec:
+        # NAD CRD requires config as a JSON *string*, not an object.
+        config: >-
+          {{
+            (
+              multus_nad_config
+              | default(
+                  '{'
+                  ~ '"cniVersion":"0.3.1",'
+                  ~ '"name":"br-ex-network",'
+                  ~ '"type":"ovn-k8s-cni-overlay",'
+                  ~ '"topology":"localnet",'
+                  ~ '"netAttachDefName":"'
+                  ~ vm_namespace
+                  ~ '/br-ex-network"}'
+                )
+            )
+            if (
+              (
+                multus_nad_config
+                | default('')
+              ) is string
+            )
+            else (
+              multus_nad_config | to_json
+            )
+          }}
+  when: (network_mode | default('masquerade') | lower) in ['bridge', 'multus']
+
+- name: Resolve Multus networkName for this namespace
+  ansible.builtin.set_fact:
+    ocp_virtualization_multus_ref: >-
+      {{
+        multus_network_name
+        if ('/' in (multus_network_name | default('')))
+        else (vm_namespace ~ '/' ~ (multus_nad_name | default('br-ex-network')))
+      }}
+  when: (network_mode | default('masquerade') | lower) in ['bridge', 'multus']
+
+- name: Create root disk DataVolume from cluster RHEL DataSource (async — no wait)
+  kubernetes.core.k8s:
+    state: "{{ vm_state | default('present') }}"
+    definition:
+      apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: "{{ vm_name }}-rootdisk"
+        namespace: "{{ vm_namespace }}"
+        labels:
+          app: "{{ app_label | default(vm_name) }}"
+          ado.role: virt-build
+        annotations:
+          # Start importer/clone without waiting for a consumer PVC bind first.
+          cdi.kubevirt.io/storage.bind.immediate.requested: "true"
+      spec:
+        sourceRef:
+          kind: "{{ source_kind | default('DataSource') }}"
+          name: "{{ source_name | default('rhel9') }}"
+          namespace: >-
+            {{
+              source_namespace
+              | default('openshift-virtualization-os-images')
+            }}
+        storage:
+          storageClassName: "{{ storage_class }}"
+          accessModes:
+            - "{{ root_disk_access_mode | default('ReadWriteOnce') }}"
+          resources:
+            requests:
+              storage: "{{ root_disk_size | default('40Gi') }}"
+  when: vm_state | default('present') == 'present'
+
+- name: Build VirtualMachine network + volumes (bridge / Multus)
   ansible.builtin.set_fact:
     ocp_virtualization_vm_spec:
-      domain:
-        devices:
-          interfaces:
-            - name: "{{ network_name | default('default') }}"
-              masquerade: {}
-      networks:
-        - name: "{{ network_name | default('default') }}"
-          pod: {}
-      volumes:
-        - dataVolume:
-            name: "{{ vm_name }}-datavolume"
-          name: rootdisk
-        - name: cloudinitdisk
-          cloudInitNoCloud:
-            userData: "{{ cloud_init_user_data }}"
-            networkData: "{{ cloud_init_network_data | default('') }}"
+      runStrategy: "{{ 'Always' if (vm_start | default(true) | bool) else 'Halted' }}"
+      template:
+        metadata:
+          labels:
+            app: "{{ app_label | default(vm_name) }}"
+            ado.role: virt-build
+        spec:
+          domain:
+            devices:
+              interfaces:
+                - name: "{{ network_name | default('lan') }}"
+                  bridge: {}
+                  model: virtio
+              disks:
+                - name: rootdisk
+                  disk:
+                    bus: virtio
+                  bootOrder: 1
+                - name: cloudinitdisk
+                  disk:
+                    bus: virtio
+            machine:
+              type: q35
+            resources: {}
+          networks:
+            - name: "{{ network_name | default('lan') }}"
+              multus:
+                networkName: "{{ ocp_virtualization_multus_ref }}"
+          volumes:
+            - name: rootdisk
+              dataVolume:
+                name: "{{ vm_name }}-rootdisk"
+            - name: cloudinitdisk
+              cloudInitNoCloud:
+                userData: "{{ cloud_init_user_data }}"
+                networkData: "{{ cloud_init_network_data | default('') }}"
+  when: (network_mode | default('masquerade') | lower) in ['bridge', 'multus']
 
-- name: Add custom compute settings when no instance type is selected
+- name: Build VirtualMachine network + volumes (pod / masquerade)
+  ansible.builtin.set_fact:
+    ocp_virtualization_vm_spec:
+      runStrategy: "{{ 'Always' if (vm_start | default(true) | bool) else 'Halted' }}"
+      template:
+        metadata:
+          labels:
+            app: "{{ app_label | default(vm_name) }}"
+            ado.role: virt-build
+        spec:
+          domain:
+            devices:
+              interfaces:
+                - name: "{{ network_name | default('default') }}"
+                  masquerade: {}
+              disks:
+                - name: rootdisk
+                  disk:
+                    bus: virtio
+                  bootOrder: 1
+                - name: cloudinitdisk
+                  disk:
+                    bus: virtio
+            machine:
+              type: q35
+            resources: {}
+          networks:
+            - name: "{{ network_name | default('default') }}"
+              pod: {}
+          volumes:
+            - name: rootdisk
+              dataVolume:
+                name: "{{ vm_name }}-rootdisk"
+            - name: cloudinitdisk
+              cloudInitNoCloud:
+                userData: "{{ cloud_init_user_data }}"
+                networkData: "{{ cloud_init_network_data | default('') }}"
+  when: (network_mode | default('masquerade') | lower) not in ['bridge', 'multus']
+
+- name: Add custom compute when no instance type is selected
   ansible.builtin.set_fact:
     ocp_virtualization_vm_spec: >-
       {{
         ocp_virtualization_vm_spec | combine(
           {
-            'domain': {
-              'cpu': {'cores': cpu_cores | default(4) | int},
-              'resources': {
-                'requests': {'memory': memory | default('20Gi')}
+            'template': {
+              'spec': {
+                'domain': {
+                  'cpu': {'cores': cpu_cores | default(4) | int},
+                  'memory': {'guest': memory | default('8Gi')}
+                }
               }
             }
           },
@@ -52,55 +198,61 @@
       }}
   when: instance_type | default('custom') | lower in ['', 'custom']
 
-- name: Add instance type when selected
-  ansible.builtin.set_fact:
-    ocp_virtualization_instance_type:
-      name: "{{ instance_type }}"
-  when: instance_type | default('custom') | lower not in ['', 'custom']
-
-- name: Create a VirtualMachine by cloning the existing datavolume
-  redhat.openshift_virtualization.kubevirt_vm:
-    validate_certs: >-
-      {{ validate_certs | default(verify_ssl | default(false)) | bool }}
+- name: Create VirtualMachine object (no wait on disk clone)
+  kubernetes.core.k8s:
     state: "{{ vm_state | default('present') }}"
-    name: "{{ vm_name }}"
-    namespace: "{{ vm_namespace }}"
-    running: "{{ vm_start | default(true) | bool }}"
-    labels:
-      app: "{{ app_label | default(vm_name) }}"
-    instancetype: "{{ ocp_virtualization_instance_type | default(omit) }}"
-    preference:
-      name: "{{ preference | default('rhel.9') }}"
-    data_volume_templates:
-      - metadata:
-          name: "{{ vm_name }}-datavolume"
-        spec:
-          sourceRef:
-            kind: "{{ source_kind | default('DataSource') }}"
-            name: "{{ source_name }}"
-            namespace: >-
-              {{
-                source_namespace
-                | default('openshift-virtualization-os-images')
-              }}
-          storage:
-            resources:
-              requests:
-                storage: "{{ root_disk_size | default('120Gi') }}"
-            storageClassName: "{{ storage_class }}"
-    spec: "{{ ocp_virtualization_vm_spec }}"
-    wait: true
-    wait_timeout: "{{ wait_timeout | default(3600) }}"
+    definition:
+      apiVersion: kubevirt.io/v1
+      kind: VirtualMachine
+      metadata:
+        name: "{{ vm_name }}"
+        namespace: "{{ vm_namespace }}"
+        labels:
+          app: "{{ app_label | default(vm_name) }}"
+          ado.role: virt-build
+      spec: >-
+        {{
+          ocp_virtualization_vm_spec
+          | combine(
+              (
+                {
+                  'instancetype': {'name': instance_type, 'kind': 'VirtualMachineClusterInstancetype'}
+                }
+                if (instance_type | default('custom') | lower) not in ['', 'custom']
+                else {}
+              ),
+              recursive=True
+            )
+          | combine(
+              {
+                'preference': {
+                  'name': preference | default('rhel.9'),
+                  'kind': 'VirtualMachineClusterPreference'
+                }
+              },
+              recursive=True
+            )
+        }}
 
-- name: Wait until the VirtualMachine is started
-  redhat.openshift_virtualization.kubevirt_vm:
+- name: Short status check (does not wait for full disk clone)
+  kubernetes.core.k8s_info:
+    api_version: kubevirt.io/v1
+    kind: VirtualMachine
     name: "{{ vm_name }}"
     namespace: "{{ vm_namespace }}"
-    running: true
   register: ocp_virtualization_vm_status
-  until: ocp_virtualization_vm_status.result.status.printableStatus == "Running"
-  retries: 60
+  retries: 12
   delay: 5
+  until: (ocp_virtualization_vm_status.resources | default([]) | length) > 0
+  when: vm_state | default('present') == 'present'
+
+- name: Report VM status (clone may still be importing in background)
+  ansible.builtin.debug:
+    msg: >-
+      Created VM {{ vm_name }} in {{ vm_namespace }}
+      (status={{ ocp_virtualization_vm_status.resources[0].status.printableStatus | default('Pending') }}).
+      Root disk DataVolume {{ vm_name }}-rootdisk is populated from DataSource
+      {{ source_name }} asynchronously — Contoller job no longer blocks on the clone.
   when:
-    - vm_start | default(true) | bool
     - vm_state | default('present') == 'present'
+    - (ocp_virtualization_vm_status.resources | default([]) | length) > 0

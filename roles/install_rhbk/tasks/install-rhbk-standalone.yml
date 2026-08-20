@@ -1,0 +1,338 @@
+---
+# Install Red Hat Build of Keycloak (RHBK) on RHEL from the official zip
+# (e.g. rhbk-26.6.5.zip). Does NOT install upstream Keycloak.
+
+- name: Stat existing RHBK unpack marker (idempotent Contoller re-runs)
+  ansible.builtin.stat:
+    path: "{{ install_rhbk_standalone_home }}/.ado-rhbk-unpacked"
+  register: install_rhbk_unpack_marker
+
+- name: Guard — standalone RHBK requires hostname, admin password, and zip (unless already unpacked)
+  ansible.builtin.assert:
+    that:
+      - install_rhbk_standalone_hostname | length > 0
+      - install_rhbk_standalone_admin_password | length > 0
+      - (
+          (install_rhbk_standalone_zip | default('') | length > 0)
+          or (install_rhbk_standalone_zip_url | default('') | length > 0)
+          or (install_rhbk_unpack_marker.stat.exists | default(false))
+        )
+    fail_msg: >-
+      Standalone RHBK needs hostname, admin password, and
+      install_rhbk_standalone_zip (local path) or install_rhbk_standalone_zip_url
+      (or an existing install at {{ install_rhbk_standalone_home }}/.ado-rhbk-unpacked).
+
+- name: Ensure Java and unzip are installed for RHBK
+  ansible.builtin.dnf:
+    name:
+      - java-21-openjdk-headless
+      - unzip
+      - tar
+      - firewalld
+    state: present
+  when: not (install_rhbk_standalone_skip_packages | default(false) | bool)
+  register: install_rhbk_packages
+  failed_when: false
+
+- name: Fail when packages missing and skip_packages is false
+  ansible.builtin.fail:
+    msg: >-
+      Could not install Java/unzip via dnf (host may be unregistered).
+      Pre-install Java 21, set install_rhbk_standalone_java_home, and
+      install_rhbk_standalone_skip_packages=true.
+  when:
+    - not (install_rhbk_standalone_skip_packages | default(false) | bool)
+    - (install_rhbk_packages.rc | default(0)) != 0
+      or (install_rhbk_packages.failed | default(false))
+
+- name: Stat optional pre-staged Java at /opt/java
+  ansible.builtin.stat:
+    path: /opt/java/bin/java
+  register: install_rhbk_opt_java
+
+- name: Resolve JAVA_HOME for standalone RHBK
+  ansible.builtin.set_fact:
+    install_rhbk_standalone_java_home_effective: >-
+      {{
+        install_rhbk_standalone_java_home
+        if (install_rhbk_standalone_java_home | default('') | length > 0)
+        else (
+          '/opt/java'
+          if (install_rhbk_opt_java.stat.exists | default(false))
+          else ''
+        )
+      }}
+
+- name: Ensure RHBK install directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ install_rhbk_standalone_home }}"
+    - "{{ install_rhbk_standalone_data_dir }}"
+    - /var/lib/rhbk-stage
+
+- name: Stage RHBK zip from controller/local path
+  ansible.builtin.copy:
+    src: "{{ install_rhbk_standalone_zip }}"
+    dest: /var/lib/rhbk-stage/rhbk.zip
+    mode: "0644"
+  when:
+    - not (install_rhbk_unpack_marker.stat.exists | default(false))
+    - install_rhbk_standalone_zip | default('') | length > 0
+
+- name: Download RHBK zip when URL provided
+  ansible.builtin.get_url:
+    url: "{{ install_rhbk_standalone_zip_url }}"
+    dest: /var/lib/rhbk-stage/rhbk.zip
+    mode: "0644"
+  when:
+    - not (install_rhbk_unpack_marker.stat.exists | default(false))
+    - install_rhbk_standalone_zip | default('') | length == 0
+    - install_rhbk_standalone_zip_url | default('') | length > 0
+
+- name: Unpack RHBK distribution with unzip when available
+  ansible.builtin.unarchive:
+    src: /var/lib/rhbk-stage/rhbk.zip
+    dest: "{{ install_rhbk_standalone_home }}"
+    remote_src: true
+    creates: "{{ install_rhbk_standalone_home }}/.ado-rhbk-unpacked"
+  register: install_rhbk_unarchive
+  failed_when: false
+  when: not (install_rhbk_unpack_marker.stat.exists | default(false))
+
+- name: Unpack RHBK distribution with Python when unzip is missing
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -m
+      - zipfile
+      - -e
+      - /var/lib/rhbk-stage/rhbk.zip
+      - "{{ install_rhbk_standalone_home }}"
+  args:
+    creates: "{{ install_rhbk_standalone_home }}/.ado-rhbk-unpacked"
+  when:
+    - not (install_rhbk_unpack_marker.stat.exists | default(false))
+    - (install_rhbk_unarchive is defined)
+    - (install_rhbk_unarchive.failed | default(false))
+      or ('Failed to find handler' in (install_rhbk_unarchive.msg | default('')))
+
+- name: Ensure RHBK scripts are executable after unpack
+  ansible.builtin.shell: |
+    set -euo pipefail
+    find "{{ install_rhbk_standalone_home }}" -type f \( -name 'kc.sh' -o -name '*.sh' \) -exec chmod a+x {} +
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when: not (install_rhbk_unpack_marker.stat.exists | default(false))
+
+- name: Locate RHBK kc.sh after unpack
+  ansible.builtin.shell: |
+    set -euo pipefail
+    find "{{ install_rhbk_standalone_home }}" -type f -name kc.sh | head -n1
+  args:
+    executable: /bin/bash
+  register: install_rhbk_kc_sh
+  changed_when: false
+
+- name: Assert kc.sh was found
+  ansible.builtin.assert:
+    that:
+      - install_rhbk_kc_sh.stdout | length > 0
+    fail_msg: Could not find kc.sh after unpacking the RHBK zip.
+
+- name: Mark RHBK unpack complete
+  ansible.builtin.file:
+    path: "{{ install_rhbk_standalone_home }}/.ado-rhbk-unpacked"
+    state: touch
+    mode: "0644"
+  when: not (install_rhbk_unpack_marker.stat.exists | default(false))
+
+- name: Set RHBK home from kc.sh location
+  ansible.builtin.set_fact:
+    install_rhbk_dist_home: "{{ install_rhbk_kc_sh.stdout | dirname | dirname }}"
+
+- name: Build RHBK optimized start (first install)
+  ansible.builtin.command:
+    argv:
+      - "{{ install_rhbk_dist_home }}/bin/kc.sh"
+      - build
+  environment: >-
+    {{
+      {'KC_DB': 'dev-file'}
+      | combine(
+          {'JAVA_HOME': install_rhbk_standalone_java_home_effective}
+          if (install_rhbk_standalone_java_home_effective | default('') | length > 0)
+          else {}
+        )
+      | combine(
+          {'PATH': install_rhbk_standalone_java_home_effective ~ '/bin:' ~ (ansible_env.PATH | default('/usr/bin'))}
+          if (install_rhbk_standalone_java_home_effective | default('') | length > 0)
+          else {}
+        )
+    }}
+  args:
+    creates: "{{ install_rhbk_dist_home }}/.ado-rhbk-built"
+  register: install_rhbk_build
+
+- name: Mark RHBK build complete  # noqa: no-handler
+  ansible.builtin.file:
+    path: "{{ install_rhbk_dist_home }}/.ado-rhbk-built"
+    state: touch
+    mode: "0644"
+  when: install_rhbk_build is changed
+
+- name: Guard — standalone HTTPS requires tls_crt + tls_key PEMs
+  ansible.builtin.assert:
+    that:
+      - install_rhbk_standalone_tls_crt | length > 0
+      - install_rhbk_standalone_tls_key | length > 0
+    fail_msg: >-
+      install_rhbk_standalone_https_enabled=true requires PEM material via
+      install_rhbk_standalone_tls_crt/key (or shared tls_crt/tls_key like the
+      OpenShift RHBK path).
+  when: install_rhbk_standalone_https_enabled | bool
+
+- name: Ensure RHBK TLS directory exists
+  ansible.builtin.file:
+    path: "{{ install_rhbk_standalone_tls_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  when: install_rhbk_standalone_https_enabled | bool
+
+- name: Install RHBK TLS certificate PEM
+  ansible.builtin.copy:
+    dest: "{{ install_rhbk_standalone_tls_dir }}/tls.crt"
+    content: "{{ install_rhbk_standalone_tls_crt }}"
+    owner: root
+    group: root
+    mode: "0640"
+  no_log: true
+  when: install_rhbk_standalone_https_enabled | bool
+  notify: Reload systemd for RHBK
+
+- name: Install RHBK TLS private key PEM
+  ansible.builtin.copy:
+    dest: "{{ install_rhbk_standalone_tls_dir }}/tls.key"
+    content: "{{ install_rhbk_standalone_tls_key }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  when: install_rhbk_standalone_https_enabled | bool
+  notify: Reload systemd for RHBK
+
+- name: Build RHBK systemd ExecStart
+  ansible.builtin.set_fact:
+    install_rhbk_standalone_exec_start: >-
+      {{
+        (install_rhbk_dist_home | string)
+        ~ '/bin/kc.sh start --http-enabled='
+        ~ ((install_rhbk_standalone_http_enabled | bool) | ternary('true', 'false'))
+        ~ ' --hostname-strict=false'
+      }}
+
+- name: Install RHBK systemd unit
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/rhbk.service
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Red Hat Build of Keycloak (RHBK)
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=simple
+      User=root
+      WorkingDirectory={{ install_rhbk_dist_home }}
+      Environment=KC_HTTP_PORT={{ install_rhbk_standalone_http_port }}
+      Environment=KC_HTTPS_PORT={{ install_rhbk_standalone_https_port }}
+      Environment=KC_HOSTNAME={{ install_rhbk_standalone_hostname }}
+      Environment=KC_HTTP_ENABLED={{ (install_rhbk_standalone_http_enabled | bool) | ternary('true', 'false') }}
+      Environment=KC_HOSTNAME_STRICT=false
+      Environment=KC_HEALTH_ENABLED=true
+      Environment=KC_BOOTSTRAP_ADMIN_USERNAME={{ install_rhbk_standalone_admin_user }}
+      Environment=KC_BOOTSTRAP_ADMIN_PASSWORD={{ install_rhbk_standalone_admin_password }}
+      Environment=KEYCLOAK_ADMIN={{ install_rhbk_standalone_admin_user }}
+      Environment=KEYCLOAK_ADMIN_PASSWORD={{ install_rhbk_standalone_admin_password }}
+      {% if install_rhbk_standalone_https_enabled | bool %}
+      Environment=KC_HTTPS_CERTIFICATE_FILE={{ install_rhbk_standalone_tls_dir }}/tls.crt
+      Environment=KC_HTTPS_CERTIFICATE_KEY_FILE={{ install_rhbk_standalone_tls_dir }}/tls.key
+      {% endif %}
+      # Lab-friendly embedded DB; swap to postgres via extra vars later if needed.
+      Environment=KC_DB=dev-file
+      Environment=JAVA_HOME={{ install_rhbk_standalone_java_home_effective | default('/usr') }}
+      Environment=PATH={{ install_rhbk_standalone_java_home_effective | default('/usr') }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+      ExecStart={{ install_rhbk_standalone_exec_start }}
+      Restart=on-failure
+      RestartSec=5
+      LimitNOFILE=102400
+
+      [Install]
+      WantedBy=multi-user.target
+  no_log: true
+  notify: Reload systemd for RHBK
+
+- name: Open firewall ports for RHBK (Keycloak)
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: >-
+    {{
+      ([install_rhbk_standalone_http_port ~ '/tcp'] if (install_rhbk_standalone_http_enabled | bool) else [])
+      + ([install_rhbk_standalone_https_port ~ '/tcp'] if (install_rhbk_standalone_https_enabled | bool) else [])
+    }}
+  failed_when: false
+  when: (install_rhbk_standalone_http_enabled | bool) or (install_rhbk_standalone_https_enabled | bool)
+
+- name: Enable and start RHBK service
+  ansible.builtin.systemd:
+    name: rhbk
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for RHBK HTTP readiness
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ install_rhbk_standalone_http_port }}/realms/master"
+    method: GET
+    status_code: [200]
+    validate_certs: false
+  register: install_rhbk_ready
+  retries: 60
+  delay: 5
+  until: install_rhbk_ready.status | default(0) == 200
+  when: install_rhbk_standalone_http_enabled | bool
+
+- name: Wait for RHBK HTTPS readiness
+  ansible.builtin.uri:
+    url: "https://127.0.0.1:{{ install_rhbk_standalone_https_port }}/realms/master"
+    method: GET
+    status_code: [200]
+    validate_certs: false
+  register: install_rhbk_ready_https
+  retries: 60
+  delay: 5
+  until: install_rhbk_ready_https.status | default(0) == 200
+  when: install_rhbk_standalone_https_enabled | bool
+
+- name: Show RHBK standalone URL
+  ansible.builtin.debug:
+    msg: >-
+      RHBK (Keycloak) is available at
+      {% if install_rhbk_standalone_http_enabled | bool %}
+      http://{{ install_rhbk_standalone_hostname }}:{{ install_rhbk_standalone_http_port }}/
+      {% endif %}
+      {% if install_rhbk_standalone_https_enabled | bool %}
+      https://{{ install_rhbk_standalone_hostname }}:{{ install_rhbk_standalone_https_port }}/
+      {% endif %}
+      (admin user {{ install_rhbk_standalone_admin_user }}).

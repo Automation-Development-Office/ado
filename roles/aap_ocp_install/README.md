@@ -1,6 +1,6 @@
 # Role: infra.ado.aap_ocp_install
 
-Installs Ansible Automation Platform 2.5 or 2.6 on OpenShift by validating the
+Installs Ansible Automation Platform 2.5, 2.6, or 2.7 on OpenShift by validating the
 ADO-supported inputs and delegating to the vendored
 `infra.aap_utilities.aap_ocp_install` 3.5.0 implementation. Vendoring keeps
 generated projects usable when disconnected from Automation Galaxy.
@@ -20,7 +20,7 @@ Automation Development Office
 ## 📦 Role Variables
 
 The wrapper intentionally uses the upstream `aap_ocp_install_*` interface.
-The operator channel must begin with `stable-2.5` or `stable-2.6`. See the
+The operator channel must begin with `stable-2.5`, `stable-2.6`, or `stable-2.7`. See the
 upstream `infra.aap_utilities.aap_ocp_install` documentation for all nested
 keys and manifest override options.
 

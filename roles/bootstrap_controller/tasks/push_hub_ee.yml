@@ -1,0 +1,406 @@
+---
+# yamllint disable rule:line-length
+# Push ADO EE image into Private Automation Hub registry, optionally create Contoller EE.
+#
+# Preferred disconnected path (preflight UI image):
+#   skopeo + docker-archive:/opt/ado-ee/ado-ee.docker.tar  →  Hub registry
+# Optional online path:
+#   hub_ee_pull=true + docker://ghcr.io/... (or internal mirror)
+
+- name: Hub EE | Resolve registry host and image refs
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ee_registry_host: >-
+      {{
+        (
+          bootstrap_controller_hub_ee_registry
+          | default(bootstrap_controller_hub_hostname | default('', true), true)
+          | default('', true)
+          | string
+          | trim
+        )
+        | regex_replace('^https?://', '')
+        | regex_replace('/.*$', '')
+      }}
+    bootstrap_controller_hub_ee_source: >-
+      {{ bootstrap_controller_hub_ee_source_image | default('') | string | trim }}
+    # Container registries require lowercase repository names; ADO-ee → ado-ee.
+    bootstrap_controller_hub_ee_image_name: >-
+      {{
+        bootstrap_controller_hub_ee_name
+        | default('ado-ee')
+        | string
+        | trim
+        | lower
+        | regex_replace('[^a-z0-9._-]', '-')
+      }}
+    bootstrap_controller_hub_ee_image_tag: >-
+      {{ bootstrap_controller_hub_ee_tag | default('latest') | string | trim | lower }}
+    bootstrap_controller_hub_ee_skipped_no_runtime: false
+    bootstrap_controller_hub_ee_baked_archive: "{{ lookup('env', 'ADO_EE_DOCKER_ARCHIVE') | default('/opt/ado-ee/ado-ee.docker.tar', true) }}"
+
+- name: Hub EE | Prefer baked docker-archive when source is empty or still the ghcr default
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ee_source: "docker-archive:{{ bootstrap_controller_hub_ee_baked_archive }}"
+  when:
+    - not (bootstrap_controller_hub_ee_pull | default(false) | bool)
+    - bootstrap_controller_hub_ee_baked_archive is file
+    - >-
+      (bootstrap_controller_hub_ee_source | length == 0)
+      or (bootstrap_controller_hub_ee_source is match('^ghcr\\.io/'))
+      or (bootstrap_controller_hub_ee_source == 'docker-archive:/opt/ado-ee/ado-ee.docker.tar')
+
+- name: Hub EE | Fail when registry host is missing
+  ansible.builtin.assert:
+    that:
+      - bootstrap_controller_hub_ee_registry_host | length > 0
+      - bootstrap_controller_hub_ee_source | length > 0
+      - bootstrap_controller_hub_ee_image_name | length > 0
+    fail_msg: >-
+      Hub EE push requires hub registry host (hub_hostname / hub_ee_registry) and
+      source image. Set Hub hostname on the Hub tab (defaults from AAP Hostname URL).
+
+- name: Hub EE | Set destination image reference
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ee_dest_image: >-
+      {{
+        bootstrap_controller_hub_ee_registry_host
+        ~ '/'
+        ~ bootstrap_controller_hub_ee_image_name
+        ~ ':'
+        ~ bootstrap_controller_hub_ee_image_tag
+      }}
+
+- name: Hub EE | Detect container runtime (prefer skopeo for in-pod / disconnected)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    # Prefer skopeo: works from baked docker-archive inside preflight UI with no host socket.
+    if command -v skopeo >/dev/null 2>&1; then
+      echo "skopeo $(command -v skopeo)"
+    elif command -v podman >/dev/null 2>&1; then
+      echo "podman $(command -v podman)"
+    elif command -v docker >/dev/null 2>&1; then
+      echo "docker $(command -v docker)"
+    else
+      exit 1
+    fi
+  args:
+    executable: /bin/bash
+  register: bootstrap_controller_hub_ee_runtime
+  changed_when: false
+  failed_when: false
+
+- name: Hub EE | Mark skipped when no container runtime
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ee_skipped_no_runtime: true
+  when: bootstrap_controller_hub_ee_runtime.rc | default(1) != 0
+
+- name: Hub EE | Warn and skip when podman/docker/skopeo missing
+  ansible.builtin.debug:
+    msg: >-
+      Hub EE push skipped: no skopeo/podman/docker on this bootstrap host.
+      Preflight UI images should ship skopeo plus /opt/ado-ee/ado-ee.docker.tar
+      for disconnected Hub pushes.
+  when: bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool
+
+- name: Hub EE | Fail when EE push is required but no runtime is available
+  ansible.builtin.fail:
+    msg: >-
+      Hub EE push is enabled but this host has no skopeo/podman/docker.
+      Rebuild ado-preflight-ui with skopeo and a baked ado-ee archive, or uncheck
+      Push EE for collection-only Hub updates.
+  when:
+    - bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool
+    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
+
+- name: Hub EE | Set runtime binary
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ee_cli: "{{ bootstrap_controller_hub_ee_runtime.stdout.split()[1] | trim }}"
+    bootstrap_controller_hub_ee_cli_kind: "{{ bootstrap_controller_hub_ee_runtime.stdout.split()[0] | trim }}"
+  when: not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+
+- name: Hub EE | Push with skopeo (baked archive or remote pull)
+  when:
+    - not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+    - bootstrap_controller_hub_ee_cli_kind | default('') == 'skopeo'
+  block:
+    - name: Hub EE | Resolve skopeo source transport
+      ansible.builtin.set_fact:
+        bootstrap_controller_hub_ee_skopeo_src: >-
+          {{
+            bootstrap_controller_hub_ee_source
+            if (
+              bootstrap_controller_hub_ee_source is match('^(docker-archive:|oci-archive:|dir:|containers-storage:|docker://)')
+            )
+            else (
+              'docker://' ~ bootstrap_controller_hub_ee_source
+            )
+          }}
+
+    - name: Hub EE | Require baked archive or pull when using docker-archive / local path
+      ansible.builtin.assert:
+        that:
+          - >-
+            (bootstrap_controller_hub_ee_pull | default(false) | bool)
+            or (bootstrap_controller_hub_ee_skopeo_src is match('^(docker-archive:|oci-archive:|dir:|containers-storage:)'))
+            or (bootstrap_controller_hub_ee_skopeo_src is match('^docker://') and (bootstrap_controller_hub_ee_pull | default(false) | bool))
+        fail_msg: >-
+          Disconnected skopeo push needs the baked archive
+          (docker-archive:/opt/ado-ee/ado-ee.docker.tar) or enable
+          "Pull source image…" for an online/mirror registry copy.
+
+    - name: Hub EE | skopeo copy source to Hub registry
+      ansible.builtin.shell: |
+        set -euo pipefail
+        SRC="{{ bootstrap_controller_hub_ee_skopeo_src }}"
+        DEST="docker://{{ bootstrap_controller_hub_ee_dest_image }}"
+        if [ -n "${HUB_EE_PASSWORD:-}" ]; then
+          CREDS="{{ controller_username | default(vault_controller_username | default('admin')) }}:${HUB_EE_PASSWORD}"
+        elif [ -n "${HUB_EE_TOKEN:-}" ]; then
+          CREDS="unused:${HUB_EE_TOKEN}"
+        else
+          echo "No Hub registry password or OAuth token available" >&2
+          exit 1
+        fi
+        # Source TLS only matters for docker:// pulls (optional online path).
+        SRC_TLS=()
+        if [[ "$SRC" == docker://* ]]; then
+          SRC_TLS+=(--src-tls-verify={{ (controller_validate_certs | default(false) | bool) | ternary('true', 'false') }})
+        fi
+        {{ bootstrap_controller_hub_ee_cli }} copy \
+          "${SRC_TLS[@]}" \
+          --dest-tls-verify={{ (controller_validate_certs | default(false) | bool) | ternary('true', 'false') }} \
+          --dest-creds "$CREDS" \
+          "$SRC" "$DEST"
+      args:
+        executable: /bin/bash
+      environment:
+        HUB_EE_PASSWORD: "{{ controller_password | default(vault_controller_password | default('')) }}"
+        HUB_EE_TOKEN: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default('')) }}"
+      # Keep credentials out of logs; surface skopeo stderr on failure for Hub TLS/auth diagnosis.
+      no_log: false
+      register: bootstrap_controller_hub_ee_push_result
+      changed_when: true
+      failed_when: bootstrap_controller_hub_ee_push_result.rc | default(1) != 0
+
+    - name: Hub EE | Show skopeo failure detail (no credentials)
+      ansible.builtin.fail:
+        msg: >-
+          skopeo Hub EE push failed (rc={{ bootstrap_controller_hub_ee_push_result.rc | default('?') }}).
+          dest={{ bootstrap_controller_hub_ee_dest_image }}
+          stderr={{ bootstrap_controller_hub_ee_push_result.stderr | default('') | regex_replace('(?i)(password|token|creds)=\\S+', '\\1=***') }}
+          stdout={{ bootstrap_controller_hub_ee_push_result.stdout | default('') | regex_replace('(?i)(password|token|creds)=\\S+', '\\1=***') }}
+      when: bootstrap_controller_hub_ee_push_result is failed
+
+- name: Hub EE | Push with podman/docker
+  when:
+    - not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+    - bootstrap_controller_hub_ee_cli_kind | default('') in ['podman', 'docker']
+  block:
+    - name: Hub EE | Login to Hub container registry
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if [ -n "${HUB_EE_PASSWORD:-}" ]; then
+          USER="{{ controller_username | default(vault_controller_username | default('admin')) }}"
+          PASS="$HUB_EE_PASSWORD"
+        elif [ -n "${HUB_EE_TOKEN:-}" ]; then
+          USER="unused"
+          PASS="$HUB_EE_TOKEN"
+        else
+          echo "No Hub registry password or OAuth token available" >&2
+          exit 1
+        fi
+        printf '%s' "$PASS" | {{ bootstrap_controller_hub_ee_cli }} login \
+          "{{ bootstrap_controller_hub_ee_registry_host }}" \
+          -u "$USER" \
+          --password-stdin
+      args:
+        executable: /bin/bash
+      environment:
+        HUB_EE_PASSWORD: "{{ controller_password | default(vault_controller_password | default('')) }}"
+        HUB_EE_TOKEN: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default('')) }}"
+      no_log: true
+      register: bootstrap_controller_hub_ee_login
+      changed_when: true
+
+    - name: Hub EE | Pull source image from remote registry
+      ansible.builtin.command:
+        argv:
+          - "{{ bootstrap_controller_hub_ee_cli }}"
+          - pull
+          - "{{ bootstrap_controller_hub_ee_source }}"
+      when: bootstrap_controller_hub_ee_pull | default(false) | bool
+      register: bootstrap_controller_hub_ee_pull_result
+      changed_when: true
+
+    - name: Hub EE | Ensure source image exists locally
+      ansible.builtin.command:
+        argv:
+          - "{{ bootstrap_controller_hub_ee_cli }}"
+          - image
+          - inspect
+          - "{{ bootstrap_controller_hub_ee_source }}"
+      register: bootstrap_controller_hub_ee_source_exists
+      changed_when: false
+      failed_when: false
+      when: not (bootstrap_controller_hub_ee_pull | default(false) | bool)
+
+    - name: Hub EE | Fail when local source image is missing
+      ansible.builtin.fail:
+        msg: >-
+          Source image {{ bootstrap_controller_hub_ee_source }} is not available locally.
+          Use the preflight baked archive path (skopeo) or enable pull from a mirror.
+      when:
+        - not (bootstrap_controller_hub_ee_pull | default(false) | bool)
+        - bootstrap_controller_hub_ee_source_exists.rc | default(1) != 0
+
+    - name: Hub EE | Tag source image for Hub registry
+      ansible.builtin.command:
+        argv:
+          - "{{ bootstrap_controller_hub_ee_cli }}"
+          - tag
+          - "{{ bootstrap_controller_hub_ee_source }}"
+          - "{{ bootstrap_controller_hub_ee_dest_image }}"
+      register: bootstrap_controller_hub_ee_tag_result
+      changed_when: true
+
+    - name: Hub EE | Push image to Hub registry
+      ansible.builtin.command:
+        argv:
+          - "{{ bootstrap_controller_hub_ee_cli }}"
+          - push
+          - "{{ bootstrap_controller_hub_ee_dest_image }}"
+      register: bootstrap_controller_hub_ee_push_result
+      changed_when: true
+
+- name: Hub EE | Resolve Contoller org for EE (General organization)
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ee_org: >-
+      {{
+        controller_bootstrap_organization
+        | default(bootstrap_controller_organization | default('ADO'), true)
+      }}
+  when:
+    - not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+    - bootstrap_controller_hub_ee_create_execution_environment | default(true) | bool
+
+- name: Hub EE | Resolve Contoller registry credential name for EE
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ee_registry_cred_name: >-
+      {{
+        bootstrap_controller_hub_ee_registry_credential_name
+        | default(
+            (bootstrap_controller_hub_ee_org | default('ADO')) ~ '-EE',
+            true
+          )
+      }}
+  when:
+    - not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+    - bootstrap_controller_hub_ee_create_execution_environment | default(true) | bool
+
+- name: Hub EE | Create organization for Contoller EE (hub-only / missing org)
+  ansible.controller.organization:
+    name: "{{ item }}"
+    description: "{{ item }}"
+    state: present
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  loop: >-
+    {{
+      (
+        [bootstrap_controller_hub_ee_org | default('')]
+        + (bootstrap_controller_controller_organizations | default([]) | map(attribute='name') | list)
+      )
+      | unique
+      | reject('equalto', '')
+      | list
+    }}
+  when:
+    - not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+    - bootstrap_controller_hub_ee_create_execution_environment | default(true) | bool
+    - bootstrap_controller_hub_ee_org | default('') | length > 0
+
+- name: Hub EE | Ensure Contoller Container Registry credential for Hub pulls
+  ansible.controller.credential:
+    name: "{{ bootstrap_controller_hub_ee_registry_cred_name }}"
+    description: >-
+      Container registry credential for Hub EE pulls
+      ({{ bootstrap_controller_hub_ee_registry | default(bootstrap_controller_hub_hostname) }})
+    organization: "{{ bootstrap_controller_hub_ee_org }}"
+    credential_type: Container Registry
+    inputs:
+      host: >-
+        {{
+          (
+            bootstrap_controller_hub_ee_registry
+            | default(bootstrap_controller_hub_hostname)
+            | default(vault_controller_hostname)
+            | regex_replace('^https?://', '')
+            | regex_replace('/+$', '')
+          )
+        }}
+      username: "{{ vault_controller_username | default(controller_username | default('admin')) }}"
+      password: >-
+        {{
+          vault_galaxy_registry_password
+          | default(
+              vault_galaxy_hub_token
+              | default(
+                  vault_controller_oauthtoken
+                  | default(vault_controller_password | default(controller_password), true),
+                  true
+                ),
+              true
+            )
+        }}
+      verify_ssl: false
+    state: present
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  no_log: true
+  when:
+    - not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+    - bootstrap_controller_hub_ee_create_execution_environment | default(true) | bool
+    - bootstrap_controller_hub_ee_org | default('') | length > 0
+
+- name: Hub EE | Create Contoller execution environment after push
+  ansible.controller.execution_environment:
+    name: "{{ bootstrap_controller_hub_ee_execution_environment_name | default(bootstrap_controller_hub_ee_image_name) }}"
+    image: "{{ bootstrap_controller_hub_ee_dest_image }}"
+    description: "{{ bootstrap_controller_hub_ee_description | default(omit) }}"
+    organization: "{{ bootstrap_controller_hub_ee_org | default(omit) }}"
+    credential: "{{ bootstrap_controller_hub_ee_registry_cred_name }}"
+    pull: missing
+    state: present
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  when:
+    - not (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+    - bootstrap_controller_hub_ee_create_execution_environment | default(true) | bool
+
+- name: Hub EE | Summarize push
+  ansible.builtin.debug:
+    msg: >-
+      {{
+        (
+          'Skipped Hub EE push (no container runtime on bootstrap host).'
+        )
+        if (bootstrap_controller_hub_ee_skipped_no_runtime | default(false) | bool)
+        else (
+          'Pushed '
+          ~ bootstrap_controller_hub_ee_dest_image
+          ~ ' (source='
+          ~ bootstrap_controller_hub_ee_source
+          ~ ', create_controller_ee='
+          ~ (bootstrap_controller_hub_ee_create_execution_environment | default(true) | bool | string)
+          ~ ')'
+        )
+      }}

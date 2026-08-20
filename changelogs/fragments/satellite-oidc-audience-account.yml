@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - |
+    satellite_oidc - Accept Keycloak access-token audience ``account`` in
+    addition to the client id. Foreman validates the access token, and RHBK
+    sets ``aud`` to ``account`` (client id is ``azp``), which caused SSO to
+    fail after a successful Keycloak login.

@@ -6,11 +6,11 @@
     that:
       - aap_version is defined
       - (aap_version | string) | length > 0
-      - (aap_version | int) in [24, 25, 26]
+      - (aap_version | int) in [24, 25, 26, 27]
     fail_msg: >-
-      aap_version is required and must be one of: 24, 25, 26.
-      Example: ansible-playbook ... -e aap_version=24
-      Or set it in group_vars/all/vars_*.yml: aap_version: 24
+      aap_version is required and must be one of: 24, 25, 26, 27.
+      Example: ansible-playbook ... -e aap_version=27
+      Or set it in group_vars/all/vars_*.yml: aap_version: 27
 
 - name: Set routing flags from aap_version
   ansible.builtin.set_fact:

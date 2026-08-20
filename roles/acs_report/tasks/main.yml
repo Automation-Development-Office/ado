@@ -1,0 +1,153 @@
+---
+# Generate RHACS vulnerability reports from Central workload export.
+# Modes: raw | rhsource | age | all  (+ all_scope / rhsre / component filters)
+
+- name: Validate acs_report mode
+  ansible.builtin.assert:
+    that:
+      - (acs_report_mode | default('')) | length > 0
+      - acs_report_mode is in ['raw', 'rhsource', 'age', 'all']
+    fail_msg: >-
+      Set acs_report_mode to one of: raw, rhsource, age, all.
+
+- name: Resolve ACS Central URL
+  ansible.builtin.set_fact:
+    acs_report_central_url: >-
+      {{
+        (
+          acs_central_url
+          | default(rox_endpoint | default(''), true)
+          | default(
+              'https://'
+              ~ (acs_route_name | default('central'))
+              ~ '-'
+              ~ (acs_namespace | default(ocp_acs_namespace | default('stackrox')))
+              ~ '.'
+              ~ (app_domain | default(apps_domain | default(''))),
+              true
+            )
+        )
+        | regex_replace('/$', '')
+      }}
+
+- name: Resolve ACS API token
+  ansible.builtin.set_fact:
+    acs_report_api_token: >-
+      {{
+        acs_api_token
+        | default(rox_api_token | default(''), true)
+        | default(lookup('env', 'ROX_API_TOKEN'), true)
+      }}
+  no_log: true
+
+- name: Assert ACS Central credentials
+  ansible.builtin.assert:
+    that:
+      - acs_report_central_url | length > 0
+      - >-
+        (acs_report_api_token | default('') | length > 0)
+        or (acs_admin_password | default(ocp_acs_admin_password | default('')) | length > 0)
+    fail_msg: >-
+      Provide acs_central_url (or app_domain for route derivation) and
+      acs_api_token / ROX_API_TOKEN, or acs_admin_password for basic auth.
+
+- name: Ensure report output directory exists
+  ansible.builtin.file:
+    path: "{{ acs_report_outdir }}"
+    state: directory
+    mode: "0755"
+
+- name: Stage RHACS report parser
+  ansible.builtin.copy:
+    src: rhacs_report_parser.py
+    dest: /tmp/rhacs_report_parser.py
+    mode: "0644"
+
+- name: Stage RHACS report script
+  ansible.builtin.copy:
+    src: rhacs-report.sh
+    dest: /tmp/rhacs-report.sh
+    mode: "0755"
+
+- name: Build report CLI flags
+  ansible.builtin.set_fact:
+    acs_report_cli_args: >-
+      {{
+        ['--' ~ acs_report_mode]
+        + (
+            ['--all']
+            if (
+              (acs_report_all_scope | default(false) | bool)
+              and (acs_report_mode | string) != 'all'
+            )
+            else []
+          )
+        + (['--rhsre'] if (acs_report_rhsre | default(false) | bool) else [])
+        + (['--sev'] if (acs_report_show_sev | default(false) | bool) else [])
+        + (
+            ['--component', acs_report_component]
+            if (acs_report_component | default('') | length > 0)
+            else []
+          )
+        + (
+            ['--clusters', (acs_report_clusters | default([]) | join(','))]
+            if ((acs_report_clusters | default([]) | length) > 0)
+            else []
+          )
+      }}
+    acs_report_stamp: "{{ now(utc=true).strftime('%Y-%m-%d_%H%M%S') }}"
+
+- name: Run RHACS report against Central
+  ansible.builtin.command:
+    argv: "{{ ['/tmp/rhacs-report.sh'] + acs_report_cli_args }}"
+  environment:
+    ROX_ENDPOINT: "{{ acs_report_central_url }}"
+    ROX_API_TOKEN: "{{ acs_report_api_token | default('') }}"
+    ROX_API_USER: "{{ acs_admin_user | default(ocp_acs_admin_user | default('admin')) }}"
+    ROX_API_PASSWORD: "{{ acs_admin_password | default(ocp_acs_admin_password | default('')) }}"
+    RHACS_REPORT_DIR: "{{ acs_report_outdir }}"
+  register: acs_report_run
+  no_log: true
+  changed_when: true
+
+- name: Write RHACS report text capture
+  ansible.builtin.copy:
+    content: "{{ acs_report_run.stdout | default('') }}"
+    dest: >-
+      {{ acs_report_outdir }}/RHACS_report_{{ acs_report_mode }}_{{ acs_report_stamp }}.txt
+    mode: "0644"
+  when: (acs_report_run.stdout | default('') | length) > 0
+
+- name: Show RHACS report stdout
+  ansible.builtin.debug:
+    msg: "{{ acs_report_run.stdout_lines | default([]) }}"
+  when: (acs_report_run.stdout_lines | default([]) | length) > 0
+
+- name: Stage sample Grafana dashboard into outdir
+  ansible.builtin.copy:
+    src: grafana/{{ item }}
+    dest: "{{ acs_report_outdir }}/{{ item }}"
+    mode: "0644"
+  loop:
+    - rhacs-vulnerability-overview.json
+    - sample-prod-summary.json
+  when: acs_report_stage_grafana_sample | default(true) | bool
+
+- name: Find generated report artifacts
+  ansible.builtin.find:
+    paths: "{{ acs_report_outdir }}"
+    patterns:
+      - "RHACS_*.csv"
+      - "RHACS_*.json"
+      - "RHACS_*.txt"
+      - "rhacs-vulnerability-overview.json"
+      - "sample-prod-summary.json"
+  register: acs_report_artifacts
+
+- name: Publish artifact paths
+  ansible.builtin.set_fact:
+    acs_report_artifact_paths: "{{ acs_report_artifacts.files | map(attribute='path') | list }}"
+
+- name: Report artifact paths
+  ansible.builtin.debug:
+    var: acs_report_artifact_paths

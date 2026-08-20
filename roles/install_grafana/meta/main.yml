@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: Chad Elliott
+  description: Install standalone Grafana on RHEL via official packages.
+  company: Automation Development Office
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.16.0"
+  platforms:
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+  galaxy_tags:
+    - grafana
+    - rhel
+    - standalone
+
+dependencies: []

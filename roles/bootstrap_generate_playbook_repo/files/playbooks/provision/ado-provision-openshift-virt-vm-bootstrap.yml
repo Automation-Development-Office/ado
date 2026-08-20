@@ -16,6 +16,12 @@
     storage_class: "{{ provision_openshift_virt_storage_class }}"
     root_disk_size: "{{ provision_openshift_virt_root_disk_size }}"
     network_name: "{{ provision_openshift_virt_network_name }}"
+    network_mode: "{{ provision_openshift_virt_network_mode | default('masquerade') }}"
+    multus_network_name: >-
+      {{
+        provision_openshift_virt_multus_network_name
+        | default('rhev-vms/br-ex-network')
+      }}
     app_label: "{{ provision_openshift_virt_app_label }}"
     vm_start: "{{ provision_openshift_virt_start }}"
     vm_state: "{{ state | default('present') }}"
@@ -183,5 +189,10 @@
     - name: Resolve vars for component from framework defaults + env overrides
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component
+
+    - name: Set namespace for infra.ado.ocp_namespace from survey / extra_vars
+      ansible.builtin.set_fact:
+        name_space: "{{ provision_openshift_virt_namespace | default('ado-built-vm') }}"
   roles:
+    - role: infra.ado.ocp_namespace
     - role: infra.ado.ocp_virtualization

@@ -65,7 +65,7 @@ Use this index as the starting point for operators and automation users.
 | --- | --- |
 | [`infra.ado.aap_build_ee`](roles/aap_build_ee/README.md) | Build a custom Ansible Execution Environment (EE) image with ansible-builder. |
 | [`infra.ado.aap_configuration`](roles/aap_configuration/README.md) | Collect user-provided AAP configuration files and dispatch them to the upstream infra.aap_configuration.dispatch role for processing. |
-| [`infra.ado.aap_ocp_install`](roles/aap_ocp_install/README.md) | Install Ansible Automation Platform 2.5 or 2.6 on OpenShift via a vendored aap_ocp_install implementation. |
+| [`infra.ado.aap_ocp_install`](roles/aap_ocp_install/README.md) | Install Ansible Automation Platform 2.5, 2.6, or 2.7 on OpenShift via a vendored aap_ocp_install implementation. |
 | [`infra.ado.aap_ocp_install_upstream`](roles/aap_ocp_install_upstream/README.md) | Vendored upstream infra.aap_utilities.aap_ocp_install implementation used by infra.ado.aap_ocp_install. |
 | [`infra.ado.bootstrap_controller`](roles/bootstrap_controller/README.md) | Generate and apply Ansible Automation Platform controller objects for an ADO bootstrap repository. |
 | [`infra.ado.bootstrap_flatten_vars`](roles/bootstrap_flatten_vars/README.md) | Flatten a named dictionary into top-level Ansible facts for bootstrap playbooks that expect direct variable names. |
@@ -87,11 +87,13 @@ Use this index as the starting point for operators and automation users.
 | [`infra.ado.install_aap`](roles/install_aap/README.md) | Install and configure Ansible Automation Platform (controller/hub), including subscription manifest upload. |
 | [`infra.ado.install_dirsrv`](roles/install_dirsrv/README.md) | Install and configure 389 Directory Server (DirSrv) on OpenShift. |
 | [`infra.ado.install_elastic`](roles/install_elastic/README.md) | Deploy Elastic Cloud on Kubernetes (ECK) operator and Elasticsearch/Kibana on OpenShift. |
+| [`infra.ado.install_gitlab`](roles/install_gitlab/README.md) | Install standalone GitLab CE/EE on RHEL (Omnibus packages or offline RPM). |
 | [`infra.ado.install_postfix`](roles/install_postfix/README.md) | Deploy a Postfix relay on OpenShift with ConfigMap, Secret, and Pod resources. |
 | [`infra.ado.install_rhbk`](roles/install_rhbk/README.md) | Install or tear down Red Hat build of Keycloak (RHBK) and its PostgreSQL store on OpenShift. |
 | [`infra.ado.jira`](roles/jira/README.md) | Create Jira issues and subtasks from track templates for ADO automation workflows. |
 | [`infra.ado.jira_stories`](roles/jira_stories/README.md) | Create and manage Jira stories and optional subtasks from selected track templates. |
 | [`infra.ado.kafka_install`](roles/kafka_install/README.md) | Install the AMQ Streams / Kafka operator and related resources on OpenShift. |
+| [`infra.ado.netbox_oidc`](roles/netbox_oidc/README.md) | Wire NetBox login to Keycloak / RHBK OIDC (client `netbox`). |
 | [`infra.ado.ocp_aap_hub_harden`](roles/ocp_aap_hub_harden/README.md) | Harden AAP Hub for shared-Postgres LWLock stability (replicas/workers/maintenance). |
 | [`infra.ado.ocp_acm`](roles/ocp_acm/README.md) | Install Advanced Cluster Management (ACM) and deploy MultiClusterHub on OpenShift. |
 | [`infra.ado.ocp_acs`](roles/ocp_acs/README.md) | Install Red Hat Advanced Cluster Security (ACS) Central and related resources on OpenShift. |
@@ -154,6 +156,7 @@ Use this index as the starting point for operators and automation users.
 | [`infra.ado.satellite_config`](roles/satellite_config/README.md) | Configure a Red Hat Satellite server after installation. |
 | [`infra.ado.satellite_content_view`](roles/satellite_content_view/README.md) | Manage Red Hat Satellite Content Views with create, publish, and promote actions. |
 | [`infra.ado.satellite_install`](roles/satellite_install/README.md) | Prepare and install a Red Hat Satellite host on supported RHEL systems. |
+| [`infra.ado.satellite_oidc`](roles/satellite_oidc/README.md) | Wire Satellite login to Keycloak / RHBK OIDC (client `ado-satellite`). |
 | [`infra.ado.vm_image_management`](roles/vm_image_management/README.md) | Create a qcow2 virtual machine image from an existing base image. |
 
 ## Using this collection

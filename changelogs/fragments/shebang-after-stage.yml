@@ -1,0 +1,10 @@
+---
+bugfixes:
+  - |
+    acs_report - Use ``#!/usr/bin/env bash`` on ``rhacs-report.sh`` (mode 0644
+    in git). ansible-test allows that shebang on non-module files and
+    shellcheck needs one; the role copies the script to ``/tmp`` as 0755.
+  - |
+    grafana_upload_dashboards - Drop ``#!/usr/bin/env python3`` from
+    ``adapt-dashboard-for-folder.py``. The task already runs it with
+    ``python3``, so a collection shebang is not required.

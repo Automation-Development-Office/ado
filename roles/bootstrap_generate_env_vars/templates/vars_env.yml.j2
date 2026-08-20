@@ -29,8 +29,8 @@ controller_bootstrap_controller_projects:
     scm_url: ""
     scm_branch: "{{ generate_env_vars_prompt_aap_project_scm_branch.user_input | default(bootstrap_generate_env_vars_default_git_branch | default('main'), true) }}"
     credential: ""
-    wait: true
-    update_project: true
+    wait: false
+    update_project: false
 
 controller_bootstrap_controller_inventories:
   - name: "{{ '{{ controller_bootstrap_inventory_name }}' }}"

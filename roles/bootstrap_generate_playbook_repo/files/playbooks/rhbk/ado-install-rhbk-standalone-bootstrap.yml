@@ -1,0 +1,30 @@
+---
+# Seed playbook: install Red Hat Build of Keycloak (RHBK) on a RHEL VM.
+# Contoller path: playbooks/rhbk/ado-install-rhbk-standalone-bootstrap.yml
+# Prefer inventory host = keycloak-ado (192.168.0.64) with machine credential.
+- name: ADO | Install RHBK (Keycloak) standalone on RHEL
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    component: rhbk
+    install_rhbk_platform: rhel
+    # Contoller survey / -e may set: state, env, rhbk_hostname, rhbk_admin_*,
+    # rhbk_standalone_zip, rhbk_standalone_zip_url (role defaults map those).
+  pre_tasks:
+    - name: Load env infra config when present
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/infra_config_vars.yml"
+      failed_when: false
+
+    - name: Load optional RHBK vault/vars when present
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vault_rhbk.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vars_rhbk.yml"
+      failed_when: false
+  roles:
+    - role: "{{ playbook_dir }}/../../collections/ansible_collections/infra/ado/roles/install_rhbk"
+      vars:
+        install_rhbk_platform: rhel

@@ -1,0 +1,749 @@
+---
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Contoller playbook path: playbooks/vpn/ado-manage-vpn-access-bootstrap.yml
+# Single self-contained playbook (no roles — Contoller role discovery is unreliable).
+- name: ADO | Manage VPN / lab access (approve or deny)
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  vars:
+    # Contoller/portal extra_vars supply action, email, username, env, etc.
+    # Do NOT define self-referential play vars (env: "{{ env | ... }}" recurses).
+    # action: approve | deny | reset_password
+    vpn_access_action: approve
+    vpn_access_actor: portal
+    vpn_access_request_id: ""
+    vpn_access_username: ""
+    vpn_access_email: ""
+    vpn_access_display_name: ""
+    vpn_access_profile: lab-access
+    vpn_access_reason: ""
+    vpn_access_deny_reason: Your lab / VPN access request was denied.
+    # Optional override for reset_password (otherwise lab default password is used).
+    vpn_access_new_password: ""
+    # Include plaintext password in reset email only when portal/operator opts in
+    # (admin-approved temp password). Self-service changes must leave this false.
+    vpn_access_email_include_password: false
+
+    vpn_access_create_idm: true
+    vpn_access_create_unifi: true
+    vpn_access_send_email: true
+    vpn_access_attach_ovpn: true
+
+    vpn_access_ipa_host: idm.server.lab
+    vpn_access_ipa_user: admin
+    vpn_access_ipa_pass: ""
+    vpn_access_ipa_validate_certs: false
+    vpn_access_idm_groups:
+      - vpn-users
+      - lab-users
+    vpn_access_default_password: redhat!23
+    vpn_access_idm_password: redhat!23
+    vpn_access_unifi_user_password: redhat!23
+
+    vpn_access_unifi_url: https://192.168.0.1
+    vpn_access_unifi_user: ""
+    vpn_access_unifi_password: ""
+    vpn_access_unifi_api_key: ""
+    vpn_access_unifi_site: default
+    vpn_access_unifi_validate_certs: false
+    vpn_access_unifi_vpn_server: 173.81.162.172
+    vpn_access_unifi_vpn_type: openvpn
+    # Required for OpenVPN "Local" users shown under VPN Server in UniFi UI.
+    vpn_access_unifi_tunnel_type: 3
+    vpn_access_unifi_tunnel_medium_type: 1
+    vpn_access_unifi_group_policy: GLOBAL
+    vpn_access_unifi_profile_groups:
+      lab-access: vpn-lab
+      developer: vpn-developers
+      observability: vpn-observability
+      cluster-admin: vpn-admins
+      network-admin: vpn-netops
+
+    vpn_access_smtp_host: in-v3.mailjet.com
+    vpn_access_smtp_port: 587
+    vpn_access_smtp_user: ""
+    vpn_access_smtp_password: ""
+    vpn_access_smtp_from: ado-cluster-portal@ocp.prod.rhlab
+    vpn_access_smtp_secure: starttls
+
+    vpn_access_portal_url: https://portal.rhlabchad.com
+    vpn_access_ovpn_content: ""
+    vpn_access_ovpn_path: "{{ playbook_dir }}/../../files/vpn/ado_lab.ovpn"
+    vpn_access_ovpn_filename: ado_lab.ovpn
+    vpn_access_ovpn_port: 1194
+    vpn_access_ovpn_proto: tcp
+    vpn_access_workdir: /tmp/ado-vpn-access
+
+  pre_tasks:
+    - name: ADO | Load IdM / UniFi / SMTP group_vars when present
+      ansible.builtin.include_vars: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vault_idm.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vars_idm.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vault_unifi.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vars_unifi.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vault_smtp.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vars_smtp.yml"
+      failed_when: false
+
+    - name: ADO | Map group_vars / extra_vars into playbook facts
+      ansible.builtin.set_fact:
+        # Contoller JT may pass extra_var "action"; prefer vpn_action when set
+        vpn_access_action: "{{ vpn_action | default(action | default(vpn_access_action)) }}"
+        vpn_access_actor: "{{ actor | default(vpn_access_actor) }}"
+        vpn_access_request_id: "{{ request_id | default(vpn_access_request_id) }}"
+        vpn_access_username: "{{ username | default(vpn_access_username) }}"
+        vpn_access_email: "{{ email | default(vpn_access_email) }}"
+        vpn_access_display_name: "{{ display_name | default(vpn_access_display_name) }}"
+        vpn_access_profile: "{{ profile | default(vpn_access_profile) }}"
+        vpn_access_reason: "{{ reason | default(vpn_access_reason) }}"
+        vpn_access_deny_reason: "{{ deny_reason | default(vpn_access_deny_reason) }}"
+        vpn_access_ipa_host: "{{ idm_dns_ipa_host | default(ipa_host | default(vpn_access_ipa_host)) }}"
+        vpn_access_ipa_user: "{{ idm_dns_ipa_user | default(ipa_user | default(vpn_access_ipa_user)) }}"
+        vpn_access_ipa_validate_certs: "{{ idm_validate_certs | default(vpn_access_ipa_validate_certs) }}"
+        vpn_access_idm_groups: "{{ idm_groups | default(vpn_access_idm_groups) }}"
+        vpn_access_unifi_url: "{{ unifi_controller_url | default(vpn_access_unifi_url) }}"
+        vpn_access_unifi_user: "{{ unifi_api_user | default(vpn_access_unifi_user) }}"
+        vpn_access_unifi_api_key: "{{ unifi_api_key | default(vpn_access_unifi_api_key) }}"
+        vpn_access_unifi_site: "{{ unifi_site | default(vpn_access_unifi_site) }}"
+        vpn_access_unifi_vpn_server: "{{ unifi_vpn_server | default(vpn_access_unifi_vpn_server) }}"
+        vpn_access_unifi_vpn_type: "{{ unifi_vpn_type | default(vpn_access_unifi_vpn_type) }}"
+        vpn_access_unifi_tunnel_type: "{{ unifi_vpn_tunnel_type | default(vpn_access_unifi_tunnel_type) }}"
+        vpn_access_unifi_tunnel_medium_type: "{{ unifi_vpn_tunnel_medium_type | default(vpn_access_unifi_tunnel_medium_type) }}"
+        vpn_access_unifi_group_policy: "{{ unifi_vpn_group_policy | default(vpn_access_unifi_group_policy) }}"
+        vpn_access_new_password: "{{ new_password | default(temp_password | default(vpn_access_new_password), true) }}"
+        vpn_access_email_include_password: "{{ email_include_password | default(vpn_access_email_include_password) }}"
+        vpn_access_smtp_host: "{{ smtp_host | default(vpn_access_smtp_host) }}"
+        vpn_access_smtp_port: "{{ smtp_port | default(vpn_access_smtp_port) }}"
+        vpn_access_smtp_user: "{{ smtp_user | default(vpn_access_smtp_user) }}"
+        vpn_access_smtp_from: "{{ smtp_from | default(vpn_access_smtp_from) }}"
+
+    - name: ADO | Map secret vault aliases into playbook facts
+      ansible.builtin.set_fact:
+        vpn_access_ipa_pass: "{{ vault_idm_admin_password | default(ipaadmin_password | default(vpn_access_ipa_pass), true) }}"
+        vpn_access_unifi_password: "{{ unifi_api_password | default(vpn_access_unifi_password, true) }}"
+        vpn_access_smtp_password: "{{ smtp_password | default(vpn_access_smtp_password, true) }}"
+        vpn_access_default_password: "{{ vault_lab_user_password | default(vpn_access_default_password) }}"
+        vpn_access_ovpn_content: "{{ vault_lab_ovpn_content | default(vpn_access_ovpn_content, true) }}"
+        vpn_access_idm_password: "{{ vault_lab_user_password | default(vpn_access_default_password) }}"
+        vpn_access_unifi_user_password: "{{ vault_lab_user_password | default(vpn_access_default_password) }}"
+      no_log: true
+
+  tasks:
+    - name: ADO | Derive username from email when missing
+      ansible.builtin.set_fact:
+        vpn_access_username: >-
+          {{
+            (vpn_access_email.split('@') | first)
+            if (vpn_access_username | length == 0 and vpn_access_email | length > 0)
+            else vpn_access_username
+          }}
+
+    - name: ADO | Validate VPN access request inputs
+      ansible.builtin.assert:
+        that:
+          - vpn_access_action in ['approve', 'deny', 'reset_password']
+          - vpn_access_email | length > 0 or vpn_access_action == 'reset_password'
+          - vpn_access_username | length > 0 or vpn_access_email | length > 0
+        fail_msg: >-
+          Requires action (approve|deny|reset_password) plus username and/or email
+          (from portal / AAP extra_vars). Username may be derived from the
+          email local-part when omitted.
+
+    - name: ADO | Normalize VPN access username
+      ansible.builtin.set_fact:
+        vpn_access_username_safe: >-
+          {{
+            vpn_access_username
+            | lower
+            | regex_replace('[^a-z0-9._-]', '')
+            | truncate(32, true, '', 0)
+          }}
+        vpn_access_ovpn_filename: ado_lab.ovpn
+
+    - name: ADO | Split display name for IdM given/sn
+      ansible.builtin.set_fact:
+        vpn_access_givenname: "{{ (vpn_access_display_name.split(' ') | first) | default(vpn_access_username_safe) }}"
+        vpn_access_sn: >-
+          {{
+            (vpn_access_display_name.split(' ')[1:] | join(' '))
+            if (vpn_access_display_name.split(' ') | length) > 1
+            else vpn_access_username_safe
+          }}
+
+    # ---------- approve path ----------
+    - name: ADO | Use lab default password for IdM
+      ansible.builtin.set_fact:
+        vpn_access_idm_password: "{{ vpn_access_default_password }}"
+      no_log: true
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_idm | bool
+
+    - name: ADO | Use lab default password for UniFi / VPN
+      ansible.builtin.set_fact:
+        vpn_access_unifi_password_gen: "{{ vpn_access_unifi_user_password }}"
+      no_log: true
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+
+    - name: ADO | Apply optional new_password override for reset/approve
+      ansible.builtin.set_fact:
+        vpn_access_idm_password: "{{ vpn_access_new_password }}"
+        vpn_access_unifi_password_gen: "{{ vpn_access_new_password }}"
+      no_log: true
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_new_password | length > 0
+
+    - name: ADO | Require explicit password when reset email will include it
+      ansible.builtin.assert:
+        that:
+          - vpn_access_new_password | length > 0
+        fail_msg: >-
+          email_include_password is true but new_password/temp_password was not
+          provided. Refusing to email the lab default password.
+      when:
+        - vpn_access_action == 'reset_password'
+        - vpn_access_send_email | bool
+        - vpn_access_email_include_password | default(false) | bool
+
+    - name: ADO | Assert IdM admin password is available
+      ansible.builtin.assert:
+        that:
+          - vpn_access_ipa_pass | length > 0
+        fail_msg: >-
+          IdM admin password missing. Set vault_idm_admin_password / ipaadmin_password
+          or inject via AAP credential into vpn_access_ipa_pass.
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_idm | bool
+
+    # IdM via HTTPS JSON-RPC from Contoller EE (no SSH, no ipalib on IdM host).
+    # redhat.rhel_idm requires ipalib on the IdM server and is blocked in this lab.
+    - name: ADO | Ensure IdM user exists
+      community.general.ipa_user:
+        ipa_host: "{{ vpn_access_ipa_host }}"
+        ipa_user: "{{ vpn_access_ipa_user }}"
+        ipa_pass: "{{ vpn_access_ipa_pass }}"
+        validate_certs: "{{ vpn_access_ipa_validate_certs | bool }}"
+        name: "{{ vpn_access_username_safe }}"
+        givenname: "{{ vpn_access_givenname }}"
+        sn: "{{ vpn_access_sn }}"
+        mail:
+          - "{{ vpn_access_email }}"
+        password: "{{ vpn_access_idm_password }}"
+        state: present
+      register: vpn_access_idm_user_result
+      when:
+        - vpn_access_action == 'approve'
+        - vpn_access_create_idm | bool
+
+    - name: ADO | Reset IdM user password
+      community.general.ipa_user:
+        ipa_host: "{{ vpn_access_ipa_host }}"
+        ipa_user: "{{ vpn_access_ipa_user }}"
+        ipa_pass: "{{ vpn_access_ipa_pass }}"
+        validate_certs: "{{ vpn_access_ipa_validate_certs | bool }}"
+        name: "{{ vpn_access_username_safe }}"
+        password: "{{ vpn_access_idm_password }}"
+        update_password: always
+        state: present
+      register: vpn_access_idm_reset_result
+      when:
+        - vpn_access_action == 'reset_password'
+        - vpn_access_create_idm | bool
+
+    - name: ADO | Ensure IdM groups exist
+      community.general.ipa_group:
+        ipa_host: "{{ vpn_access_ipa_host }}"
+        ipa_user: "{{ vpn_access_ipa_user }}"
+        ipa_pass: "{{ vpn_access_ipa_pass }}"
+        validate_certs: "{{ vpn_access_ipa_validate_certs | bool }}"
+        name: "{{ item }}"
+        state: present
+      loop: "{{ vpn_access_idm_groups }}"
+      when:
+        - vpn_access_action == 'approve'
+        - vpn_access_create_idm | bool
+        - vpn_access_idm_groups | length > 0
+
+    - name: ADO | Ensure IdM groups contain user
+      community.general.ipa_group:
+        ipa_host: "{{ vpn_access_ipa_host }}"
+        ipa_user: "{{ vpn_access_ipa_user }}"
+        ipa_pass: "{{ vpn_access_ipa_pass }}"
+        validate_certs: "{{ vpn_access_ipa_validate_certs | bool }}"
+        name: "{{ item }}"
+        user:
+          - "{{ vpn_access_username_safe }}"
+        append: true
+        state: present
+      loop: "{{ vpn_access_idm_groups }}"
+      register: vpn_access_idm_group_member
+      failed_when: false
+      when:
+        - vpn_access_action == 'approve'
+        - vpn_access_create_idm | bool
+        - vpn_access_idm_groups | length > 0
+
+    - name: ADO | Warn if IdM group membership did not apply
+      ansible.builtin.debug:
+        msg: >-
+          IdM user {{ vpn_access_username_safe }} was created, but group
+          membership may be incomplete: {{
+            vpn_access_idm_group_member.results
+            | default([])
+            | selectattr('failed', 'defined')
+            | selectattr('failed')
+            | map(attribute='item')
+            | list
+          }}. Continuing with UniFi / email.
+      when:
+        - vpn_access_action == 'approve'
+        - vpn_access_create_idm | bool
+        - vpn_access_idm_groups | length > 0
+        - (vpn_access_idm_group_member.results | default([]) | selectattr('failed', 'defined') | selectattr('failed') | list | length) > 0
+
+    - name: ADO | Assert UniFi credentials are available
+      ansible.builtin.assert:
+        that:
+          - (vpn_access_unifi_api_key | length > 0) or
+            (vpn_access_unifi_user | length > 0 and vpn_access_unifi_password | length > 0)
+        fail_msg: >-
+          UniFi credentials missing. Provide unifi_api_key or unifi_api_user +
+          unifi_api_password (AAP credential / vault).
+          The UniFi account MUST be allowed to create Network VPN / RADIUS
+          accounts (403 Forbidden means the account is read-only).
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+
+    - name: ADO | Resolve UniFi VPN group for profile
+      ansible.builtin.set_fact:
+        vpn_access_unifi_group: >-
+          {{
+            vpn_access_unifi_profile_groups[vpn_access_profile]
+            | default(vpn_access_unifi_profile_groups['lab-access'])
+          }}
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+
+    - name: ADO | Login to UniFi OS (cookie auth)
+      ansible.builtin.uri:
+        url: "{{ vpn_access_unifi_url | regex_replace('/$', '') }}/api/auth/login"
+        method: POST
+        body_format: json
+        body:
+          username: "{{ vpn_access_unifi_user }}"
+          password: "{{ vpn_access_unifi_password }}"
+        headers:
+          Origin: "{{ vpn_access_unifi_url | regex_replace('/$', '') }}"
+          Referer: "{{ vpn_access_unifi_url | regex_replace('/$', '') }}/manage"
+        validate_certs: "{{ vpn_access_unifi_validate_certs | bool }}"
+        status_code: [200]
+        return_content: true
+      register: vpn_access_unifi_login
+      no_log: true
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+        - vpn_access_unifi_api_key | length == 0
+
+    # UniFi OS expects X-CSRF-Token = csrfToken UUID from the TOKEN JWT payload
+    # (or login response x-csrf-token header). Sending the full JWT as CSRF
+    # returns HTTP 403 Forbidden on Network writes even for Super Admin.
+    - name: ADO | Extract UniFi CSRF token from login TOKEN cookie
+      ansible.builtin.set_fact:
+        vpn_access_unifi_csrf: >-
+          {{
+            (
+              (
+                (
+                  (vpn_access_unifi_login.cookies.TOKEN | default('')).split('.')[1]
+                  ~ '===='
+                )[:(
+                  (
+                    (
+                      (vpn_access_unifi_login.cookies.TOKEN | default('')).split('.')[1]
+                      | length
+                    ) + 3
+                  ) // 4 * 4
+                )]
+              )
+              | b64decode
+              | from_json
+            ).csrfToken
+            | default('')
+          }}
+      no_log: true
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+        - vpn_access_unifi_api_key | length == 0
+        - (vpn_access_unifi_login.cookies.TOKEN | default('') | length) > 0
+
+    - name: ADO | Assert UniFi CSRF token was extracted
+      ansible.builtin.assert:
+        that:
+          - vpn_access_unifi_csrf | default('') | length > 0
+        fail_msg: >-
+          UniFi login succeeded but CSRF token could not be extracted from the
+          TOKEN cookie. Check UniFi OS version / login response.
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+        - vpn_access_unifi_api_key | length == 0
+
+    - name: ADO | Build UniFi request headers
+      ansible.builtin.set_fact:
+        vpn_access_unifi_headers: >-
+          {{
+            (
+              {'X-API-KEY': vpn_access_unifi_api_key}
+              if (vpn_access_unifi_api_key | length > 0)
+              else {
+                'Cookie': (vpn_access_unifi_login.cookies_string | default('')),
+                'X-CSRF-Token': (vpn_access_unifi_csrf | default(''))
+              }
+            )
+            | combine({
+              'Origin': (vpn_access_unifi_url | regex_replace('/$', '')),
+              'Referer': (vpn_access_unifi_url | regex_replace('/$', '') ~ '/manage'),
+              'Accept': 'application/json'
+            })
+          }}
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+
+    - name: ADO | List UniFi accounts before create/reset
+      ansible.builtin.uri:
+        url: >-
+          {{ vpn_access_unifi_url | regex_replace('/$', '')
+          }}/proxy/network/api/s/{{ vpn_access_unifi_site }}/rest/account
+        method: GET
+        headers: "{{ vpn_access_unifi_headers }}"
+        validate_certs: "{{ vpn_access_unifi_validate_certs | bool }}"
+        status_code: [200]
+        return_content: true
+      register: vpn_access_unifi_accounts
+      no_log: true
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+
+    - name: ADO | Clear UniFi account id before match
+      ansible.builtin.set_fact:
+        vpn_access_unifi_account_id: ""
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+
+    - name: ADO | Match UniFi account id (case-insensitive name)
+      ansible.builtin.set_fact:
+        vpn_access_unifi_account_id: "{{ item._id }}"
+      loop: "{{ vpn_access_unifi_accounts.json.data | default([]) }}"
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+        - vpn_access_unifi_accounts is defined
+        - (item.name | default('') | lower) == vpn_access_username_safe
+      loop_control:
+        label: "{{ item.name | default('unknown') }}"
+
+    - name: ADO | Create UniFi OpenVPN local user when missing
+      ansible.builtin.uri:
+        url: >-
+          {{ vpn_access_unifi_url | regex_replace('/$', '')
+          }}/proxy/network/api/s/{{ vpn_access_unifi_site }}/rest/account
+        method: POST
+        headers: "{{ vpn_access_unifi_headers }}"
+        body_format: json
+        body:
+          name: "{{ vpn_access_username_safe }}"
+          x_password: "{{ vpn_access_unifi_password_gen }}"
+          tunnel_type: "{{ vpn_access_unifi_tunnel_type | int }}"
+          tunnel_medium_type: "{{ vpn_access_unifi_tunnel_medium_type | int }}"
+          group_policy: "{{ vpn_access_unifi_group_policy }}"
+          note: >-
+            ADO portal request {{ vpn_access_request_id }}
+            profile={{ vpn_access_profile }} group={{ vpn_access_unifi_group }}
+            actor={{ vpn_access_actor }} email={{ vpn_access_email }}
+        validate_certs: "{{ vpn_access_unifi_validate_certs | bool }}"
+        # Accept common failure codes so we can print a clear message (no_log
+        # otherwise censors the whole result and hides HTTP 403).
+        status_code: [200, 201, 400, 401, 403, 404, 409, 500]
+        return_content: true
+      register: vpn_access_unifi_create
+      failed_when: false
+      no_log: true
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+        - vpn_access_unifi_account_id | default('') | length == 0
+
+    - name: ADO | Fail clearly when UniFi VPN user create is forbidden or rejected
+      ansible.builtin.fail:
+        msg: >-
+          UniFi VPN account create for {{ vpn_access_username_safe }} returned
+          HTTP {{ vpn_access_unifi_create.status | default('n/a') }}
+          ({{
+            (
+              vpn_access_unifi_create.json.error.message
+              | default(vpn_access_unifi_create.json.meta.msg, true)
+              | default(vpn_access_unifi_create.msg, true)
+              | default('no body', true)
+            )
+            | string
+            | truncate(200)
+          }}).
+          HTTP 403 on create usually means the CSRF token is wrong (must be the
+          csrfToken UUID from the login TOKEN JWT, not the full JWT) or the
+          account lacks Network write. Prefer cookie auth with portal-admin, or
+          set unifi_api_key (UniFi OS → Admins → API key with Network permission).
+          IdM may already exist; fix UniFi credentials and re-run approve.
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+        - vpn_access_unifi_create is defined
+        - vpn_access_unifi_create is not skipped
+        - (vpn_access_unifi_create.status | default(0) | int) not in [200, 201, 409]
+
+    - name: ADO | Treat UniFi 409 conflict as existing account success
+      ansible.builtin.debug:
+        msg: >-
+          UniFi account already exists for {{ vpn_access_username_safe }}
+          (HTTP {{ vpn_access_unifi_create.status | default('n/a') }}).
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+        - vpn_access_unifi_create is defined
+        - vpn_access_unifi_create is not skipped
+        - (vpn_access_unifi_create.status | default(0) | int) == 409
+
+    - name: ADO | Re-list UniFi accounts after create
+      ansible.builtin.uri:
+        url: >-
+          {{ vpn_access_unifi_url | regex_replace('/$', '')
+          }}/proxy/network/api/s/{{ vpn_access_unifi_site }}/rest/account
+        method: GET
+        headers: "{{ vpn_access_unifi_headers }}"
+        validate_certs: "{{ vpn_access_unifi_validate_certs | bool }}"
+        status_code: [200]
+        return_content: true
+      register: vpn_access_unifi_accounts
+      no_log: true
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+        - vpn_access_unifi_create is defined
+        - vpn_access_unifi_create is not skipped
+        - (vpn_access_unifi_create.status | default(0) | int) in [200, 201, 409]
+
+    - name: ADO | Rematch UniFi account id after create
+      ansible.builtin.set_fact:
+        vpn_access_unifi_account_id: "{{ item._id }}"
+      loop: "{{ vpn_access_unifi_accounts.json.data | default([]) }}"
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+        - vpn_access_unifi_create is defined
+        - vpn_access_unifi_create is not skipped
+        - (vpn_access_unifi_create.status | default(0) | int) in [200, 201, 409]
+        - (item.name | default('') | lower) == vpn_access_username_safe
+      loop_control:
+        label: "{{ item.name | default('unknown') }}"
+
+    - name: ADO | Assert UniFi account exists after create/list
+      ansible.builtin.assert:
+        that:
+          - vpn_access_unifi_account_id | default('') | length > 0
+        fail_msg: >-
+          No UniFi VPN account named {{ vpn_access_username_safe }} was found
+          after create/list. Check UniFi write credentials (unifi_api_key /
+          local admin) and re-run approve or reset_password.
+      when:
+        - vpn_access_action in ['approve', 'reset_password']
+        - vpn_access_create_unifi | bool
+
+    - name: ADO | Reset UniFi OpenVPN local user password
+      ansible.builtin.uri:
+        url: >-
+          {{ vpn_access_unifi_url | regex_replace('/$', '')
+          }}/proxy/network/api/s/{{ vpn_access_unifi_site }}/rest/account/{{ vpn_access_unifi_account_id }}
+        method: PUT
+        headers: "{{ vpn_access_unifi_headers }}"
+        body_format: json
+        body:
+          _id: "{{ vpn_access_unifi_account_id }}"
+          name: "{{ vpn_access_username_safe }}"
+          x_password: "{{ vpn_access_unifi_password_gen }}"
+          tunnel_type: "{{ vpn_access_unifi_tunnel_type | int }}"
+          tunnel_medium_type: "{{ vpn_access_unifi_tunnel_medium_type | int }}"
+          group_policy: "{{ vpn_access_unifi_group_policy }}"
+        validate_certs: "{{ vpn_access_unifi_validate_certs | bool }}"
+        status_code: [200]
+        return_content: true
+      register: vpn_access_unifi_reset
+      no_log: true
+      when:
+        - vpn_access_action == 'reset_password'
+        - vpn_access_create_unifi | bool
+
+    - name: ADO | Ensure VPN workdir exists
+      ansible.builtin.file:
+        path: "{{ vpn_access_workdir }}"
+        state: directory
+        mode: "0700"
+      when:
+        - vpn_access_action == 'approve'
+        - vpn_access_send_email | bool
+        - vpn_access_attach_ovpn | bool
+
+    - name: ADO | Resolve OVPN attachment path
+      ansible.builtin.set_fact:
+        vpn_access_ovpn_attach_path: >-
+          {{ vpn_access_workdir }}/{{ vpn_access_ovpn_filename }}
+      when:
+        - vpn_access_action == 'approve'
+        - vpn_access_send_email | bool
+        - vpn_access_attach_ovpn | bool
+
+    - name: ADO | Copy OVPN from configured path
+      ansible.builtin.copy:
+        src: "{{ vpn_access_ovpn_path }}"
+        dest: "{{ vpn_access_ovpn_attach_path }}"
+        mode: "0600"
+      when:
+        - vpn_access_action == 'approve'
+        - vpn_access_send_email | bool
+        - vpn_access_attach_ovpn | bool
+        - vpn_access_ovpn_path | length > 0
+        - vpn_access_ovpn_content | length == 0
+
+    - name: ADO | Write OVPN from vault / extra-var content
+      ansible.builtin.copy:
+        content: "{{ vpn_access_ovpn_content }}"
+        dest: "{{ vpn_access_ovpn_attach_path }}"
+        mode: "0600"
+      no_log: true
+      when:
+        - vpn_access_action == 'approve'
+        - vpn_access_send_email | bool
+        - vpn_access_attach_ovpn | bool
+        - vpn_access_ovpn_content | length > 0
+
+    - name: ADO | Warn when OVPN profile is missing
+      ansible.builtin.debug:
+        msg: >-
+          No OVPN content configured (vpn_access_ovpn_content / vpn_access_ovpn_path).
+          Approval email will include setup instructions without an attachment.
+      when:
+        - vpn_access_action == 'approve'
+        - vpn_access_send_email | bool
+        - vpn_access_attach_ovpn | bool
+        - vpn_access_ovpn_content | length == 0
+        - vpn_access_ovpn_path | length == 0
+
+    - name: ADO | Record whether OVPN attachment exists
+      ansible.builtin.stat:
+        path: "{{ vpn_access_ovpn_attach_path }}"
+      register: vpn_access_ovpn_stat
+      failed_when: false
+      when:
+        - vpn_access_action == 'approve'
+        - vpn_access_send_email | bool
+        - vpn_access_attach_ovpn | bool
+
+    - name: ADO | Assert SMTP settings for requester notify
+      ansible.builtin.assert:
+        that:
+          - vpn_access_smtp_host | length > 0
+          - vpn_access_smtp_from | length > 0
+          - vpn_access_email | length > 0
+        fail_msg: SMTP host/from and requester email are required to send notifications.
+      when:
+        - vpn_access_send_email | bool
+        - vpn_access_action in ['approve', 'deny', 'reset_password']
+
+    - name: ADO | Render approval notification body
+      ansible.builtin.set_fact:
+        vpn_access_mail_kind: approve
+        vpn_access_mail_body: >-
+          {{
+            lookup(
+              'ansible.builtin.template',
+              playbook_dir ~ '/../../files/email/email_approve.txt.j2'
+            )
+          }}
+      when:
+        - vpn_access_send_email | bool
+        - vpn_access_action == 'approve'
+
+    - name: ADO | Render denial notification body
+      ansible.builtin.set_fact:
+        vpn_access_mail_kind: deny
+        vpn_access_mail_body: >-
+          {{
+            lookup(
+              'ansible.builtin.template',
+              playbook_dir ~ '/../../files/email/email_deny.txt.j2'
+            )
+          }}
+      when:
+        - vpn_access_send_email | bool
+        - vpn_access_action == 'deny'
+
+    - name: ADO | Render password-reset notification body
+      ansible.builtin.set_fact:
+        vpn_access_mail_kind: reset_password
+        vpn_access_mail_body: >-
+          {{
+            lookup(
+              'ansible.builtin.template',
+              playbook_dir ~ '/../../files/email/email_reset.txt.j2'
+            )
+          }}
+      when:
+        - vpn_access_send_email | bool
+        - vpn_access_action == 'reset_password'
+
+    - name: ADO | Send notification email to requester
+      community.general.mail:
+        host: "{{ vpn_access_smtp_host }}"
+        port: "{{ vpn_access_smtp_port | int }}"
+        username: "{{ vpn_access_smtp_user | default(omit, true) }}"
+        password: "{{ vpn_access_smtp_password | default(omit, true) }}"
+        from: "{{ vpn_access_smtp_from }}"
+        to: "{{ vpn_access_email }}"
+        subject: >-
+          {{
+            {
+              'approve': '[ADO Lab] Access approved — IdM + VPN credentials and OVPN',
+              'deny': '[ADO Lab] VPN / lab access denied',
+              'reset_password': (
+                '[ADO Lab] Password reset — temporary password'
+                if (vpn_access_email_include_password | default(false) | bool)
+                else '[ADO Lab] Password reset confirmation — IdM + VPN'
+              )
+            }[vpn_access_mail_kind]
+          }}
+        body: "{{ vpn_access_mail_body }}"
+        subtype: plain
+        secure: "{{ vpn_access_smtp_secure }}"
+        attach: >-
+          {{
+            [vpn_access_ovpn_attach_path]
+            if (
+              vpn_access_mail_kind == 'approve'
+              and (vpn_access_attach_ovpn | bool)
+              and (vpn_access_ovpn_stat is defined)
+              and (vpn_access_ovpn_stat.stat.exists | default(false))
+            )
+            else omit
+          }}
+      when: vpn_access_send_email | bool

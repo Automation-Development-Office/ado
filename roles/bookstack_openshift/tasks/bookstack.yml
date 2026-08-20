@@ -1,0 +1,287 @@
+---
+- name: Build BookStack PVC spec
+  ansible.builtin.set_fact:
+    bookstack_openshift_app_pvc_spec:
+      accessModes:
+        - "{{ bookstack_storage_access_mode }}"
+      resources:
+        requests:
+          storage: "{{ bookstack_storage_size }}"
+
+- name: Add BookStack StorageClass when set
+  ansible.builtin.set_fact:
+    bookstack_openshift_app_pvc_spec: "{{ bookstack_openshift_app_pvc_spec | combine({'storageClassName': bookstack_storage_class}) }}"
+  when: bookstack_storage_class | default('') | length > 0
+
+- name: Create BookStack content PVC
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: bookstack-data
+        namespace: "{{ bookstack_namespace }}"
+        labels:
+          app.kubernetes.io/name: bookstack
+          app.kubernetes.io/component: app
+      spec: "{{ bookstack_openshift_app_pvc_spec }}"
+    validate_certs: "{{ bookstack_validate_certs }}"
+
+- name: Create BookStack Service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ bookstack_service_name }}"
+        namespace: "{{ bookstack_namespace }}"
+        labels:
+          app.kubernetes.io/name: bookstack
+          app.kubernetes.io/component: app
+      spec:
+        type: ClusterIP
+        selector:
+          app.kubernetes.io/name: bookstack
+          app.kubernetes.io/component: app
+        # Keep port as a real int (Contoller EE often stringifies "{{ x | int }}").
+        ports: "{{ [{'name': 'http', 'port': bookstack_service_port | int, 'targetPort': 'http'}] }}"
+    validate_certs: "{{ bookstack_validate_certs }}"
+
+- name: Build BookStack base container env
+  ansible.builtin.set_fact:
+    bookstack_openshift_app_env:
+      - name: APP_URL
+        valueFrom:
+          secretKeyRef:
+            name: bookstack-app
+            key: app-url
+      - name: APP_KEY
+        valueFrom:
+          secretKeyRef:
+            name: bookstack-app
+            key: app-key
+      - name: DB_HOST
+        valueFrom:
+          secretKeyRef:
+            name: bookstack-app
+            key: db-host
+      - name: DB_PORT
+        valueFrom:
+          secretKeyRef:
+            name: bookstack-app
+            key: db-port
+      - name: DB_DATABASE
+        valueFrom:
+          secretKeyRef:
+            name: bookstack-app
+            key: db-database
+      - name: DB_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: bookstack-app
+            key: db-username
+      - name: DB_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: bookstack-app
+            key: db-password
+
+- name: Append BookStack OIDC env when enabled
+  ansible.builtin.set_fact:
+    bookstack_openshift_app_env: "{{ bookstack_openshift_app_env + bookstack_oidc_env }}"
+  vars:
+    bookstack_oidc_env: >-
+      {{
+        [
+          {'name': 'AUTH_METHOD', 'value': 'oidc'},
+          {'name': 'OIDC_NAME', 'value': bookstack_oidc_name},
+          {'name': 'OIDC_DISPLAY_NAME', 'value': bookstack_oidc_display_name},
+          {'name': 'OIDC_CLIENT_ID', 'valueFrom': {'secretKeyRef': {'name': 'bookstack-app', 'key': 'oidc-client-id'}}},
+          {'name': 'OIDC_CLIENT_SECRET', 'valueFrom': {'secretKeyRef': {'name': 'bookstack-app', 'key': 'oidc-client-secret'}}},
+          {'name': 'OIDC_ISSUER', 'value': bookstack_oidc_issuer},
+          {'name': 'OIDC_ISSUER_DISCOVER', 'value': (bookstack_oidc_issuer_discover | bool) | ternary('true', 'false')},
+          {'name': 'AUTH_AUTO_INITIATE', 'value': (bookstack_oidc_auto_initiate | bool) | ternary('true', 'false')},
+          {'name': 'SSL_CERT_FILE', 'value': '/etc/ssl/certs/ca-certificates.crt'},
+          {'name': 'CURL_CA_BUNDLE', 'value': '/etc/ssl/certs/ca-certificates.crt'},
+          {'name': 'REQUESTS_CA_BUNDLE', 'value': '/etc/ssl/certs/ca-certificates.crt'}
+        ]
+        + (
+          [{'name': 'OIDC_AUTHORIZATION_ENDPOINT', 'value': bookstack_oidc_authorize_url}]
+          if (bookstack_oidc_authorize_url | default('') | length > 0) else []
+        )
+        + (
+          [{'name': 'OIDC_TOKEN_ENDPOINT', 'value': bookstack_oidc_token_url}]
+          if (bookstack_oidc_token_url | default('') | length > 0) else []
+        )
+        + (
+          [{'name': 'OIDC_USERINFO_ENDPOINT', 'value': bookstack_oidc_userinfo_url}]
+          if (bookstack_oidc_userinfo_url | default('') | length > 0) else []
+        )
+        + (
+          [{'name': 'OIDC_END_SESSION_ENDPOINT', 'value': bookstack_oidc_end_session_url}]
+          if (bookstack_oidc_end_session_url | default('') | length > 0) else []
+        )
+      }}
+  when: bookstack_oidc_enabled | default(false) | bool
+
+- name: Build BookStack pod config hash annotation
+  ansible.builtin.set_fact:
+    bookstack_openshift_config_hash: >-
+      {{
+        (
+          bookstack_openshift_app_key_effective ~ '|'
+          ~ (bookstack_oidc_enabled | string) ~ '|'
+          ~ bookstack_oidc_issuer ~ '|'
+          ~ (bookstack_oidc_ca_bundle | default('') | hash('sha1'))
+        ) | hash('sha1')
+      }}
+
+- name: Create BookStack Deployment
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: bookstack
+        namespace: "{{ bookstack_namespace }}"
+        labels:
+          app.kubernetes.io/name: bookstack
+          app.kubernetes.io/component: app
+      spec:
+        # Bare int required — Contoller EE stringifies "{{ n | int }}" and API rejects it.
+        replicas: 1
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: bookstack
+            app.kubernetes.io/component: app
+        strategy:
+          type: RollingUpdate
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/name: bookstack
+              app.kubernetes.io/component: app
+            annotations:
+              ado.bookstack/config-hash: "{{ bookstack_openshift_config_hash }}"
+          spec:
+            # NFS PVC mounts are often root-owned; www-data (33) needs dirs prepared.
+            initContainers:
+              - name: prepare-storage
+                image: "{{ bookstack_image }}"
+                imagePullPolicy: "{{ bookstack_image_pull_policy }}"
+                command:
+                  - bash
+                  - -ec
+                  - |
+                    mkdir -p /mnt/storage/logs \
+                      /mnt/storage/app \
+                      /mnt/storage/framework/cache \
+                      /mnt/storage/framework/sessions \
+                      /mnt/storage/framework/views \
+                      /mnt/uploads
+                    chown -R 33:33 /mnt/storage /mnt/uploads
+                    chmod -R ug+rwX /mnt/storage /mnt/uploads
+                securityContext:
+                  runAsUser: 0
+                volumeMounts:
+                  - name: data
+                    mountPath: /mnt
+              - name: trust-lab-ca
+                image: "{{ bookstack_image }}"
+                imagePullPolicy: "{{ bookstack_image_pull_policy }}"
+                command:
+                  - bash
+                  - -ec
+                  - |
+                    set -euo pipefail
+                    if [ -f /lab-ca/lab-ca.crt ]; then
+                      cp /lab-ca/lab-ca.crt /usr/local/share/ca-certificates/lab-ca.crt
+                      update-ca-certificates 2>/dev/null || true
+                      if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
+                        cp /etc/ssl/certs/ca-certificates.crt /ssl-out/ca-certificates.crt
+                      else
+                        cp /lab-ca/lab-ca.crt /ssl-out/ca-certificates.crt
+                      fi
+                    else
+                      # Optional ConfigMap absent — preserve image defaults for the main mount.
+                      if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
+                        cp /etc/ssl/certs/ca-certificates.crt /ssl-out/ca-certificates.crt
+                      else
+                        touch /ssl-out/ca-certificates.crt
+                      fi
+                    fi
+                securityContext:
+                  runAsUser: 0
+                volumeMounts:
+                  - name: lab-ca
+                    mountPath: /lab-ca
+                    readOnly: true
+                  - name: ssl-bundle
+                    mountPath: /ssl-out
+            containers:
+              - name: bookstack
+                image: "{{ bookstack_image }}"
+                imagePullPolicy: "{{ bookstack_image_pull_policy }}"
+                ports: "{{ [{'name': 'http', 'containerPort': bookstack_container_port | int}] }}"
+                env: "{{ bookstack_openshift_app_env }}"
+                resources: "{{ bookstack_resources }}"
+                volumeMounts:
+                  - name: data
+                    mountPath: /var/www/bookstack/storage
+                    subPath: storage
+                  - name: data
+                    mountPath: /var/www/bookstack/public/uploads
+                    subPath: uploads
+                  - name: ssl-bundle
+                    mountPath: /etc/ssl/certs/ca-certificates.crt
+                    subPath: ca-certificates.crt
+                    readOnly: true
+                startupProbe:
+                  httpGet:
+                    path: /login
+                    port: http
+                  failureThreshold: 30
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                readinessProbe:
+                  httpGet:
+                    path: /login
+                    port: http
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 6
+                livenessProbe:
+                  httpGet:
+                    path: /login
+                    port: http
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 6
+                  initialDelaySeconds: 60
+            volumes:
+              - name: data
+                persistentVolumeClaim:
+                  claimName: bookstack-data
+              - name: lab-ca
+                configMap:
+                  name: "{{ bookstack_oidc_ca_configmap }}"
+                  optional: true
+              - name: ssl-bundle
+                emptyDir: {}
+    validate_certs: "{{ bookstack_validate_certs }}"
+
+- name: Wait for BookStack Deployment Available
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: bookstack
+    namespace: "{{ bookstack_namespace }}"
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: 600
+    validate_certs: "{{ bookstack_validate_certs }}"

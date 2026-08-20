@@ -1,0 +1,21 @@
+---
+# Inject lab/ingress CA so BookStack OIDC (PHP/cURL) trusts Keycloak HTTPS.
+
+- name: Ensure BookStack lab CA ConfigMap when OIDC needs custom trust
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "{{ bookstack_oidc_ca_configmap }}"
+        namespace: "{{ bookstack_namespace }}"
+        labels:
+          app.kubernetes.io/name: bookstack
+          app.kubernetes.io/component: oidc-ca
+      data:
+        lab-ca.crt: "{{ bookstack_oidc_ca_bundle }}"
+    validate_certs: "{{ bookstack_validate_certs }}"
+  when:
+    - bookstack_oidc_enabled | default(false) | bool
+    - bookstack_oidc_ca_bundle | default('') | length > 0

@@ -1,0 +1,18 @@
+---
+- name: ADO | Deploy BookStack documentation on OpenShift
+  hosts: localhost
+  gather_facts: false
+  vars:
+    bookstack_namespace: bookstack
+    bookstack_validate_certs: false
+    bookstack_apps_domain: apps.ocp.prod.rhlab
+    bookstack_route_host: bookstack.apps.ocp.prod.rhlab
+    bookstack_storage_class: synology-nfs-csi
+    bookstack_db_storage_class: synology-nfs-csi
+    bookstack_image_pull_policy: IfNotPresent
+  environment:
+    K8S_AUTH_HOST: "{{ lookup('env', 'K8S_AUTH_HOST') | default(omit, true) }}"
+    K8S_AUTH_API_KEY: "{{ lookup('env', 'K8S_AUTH_API_KEY') | default(omit, true) }}"
+    K8S_AUTH_VERIFY_SSL: "no"
+  roles:
+    - role: bookstack_openshift

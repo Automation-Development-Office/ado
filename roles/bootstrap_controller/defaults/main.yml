@@ -35,6 +35,18 @@ bootstrap_controller_aap_install_during_bootstrap: false
 bootstrap_controller_hub_publish_wait: false
 bootstrap_controller_hub_publish_timeout: 300
 bootstrap_controller_hub_publish_request_timeout: 60
+bootstrap_controller_hub_hostname: ""
+bootstrap_controller_hub_push_ee: false
+bootstrap_controller_hub_ee_source_image: ""
+bootstrap_controller_hub_ee_name: ""
+bootstrap_controller_hub_ee_tag: latest
+bootstrap_controller_hub_ee_registry: ""
+bootstrap_controller_hub_ee_pull: false
+bootstrap_controller_hub_ee_create_execution_environment: true
+bootstrap_controller_hub_ee_execution_environment_name: ""
+bootstrap_controller_hub_ee_description: ""
+bootstrap_controller_hub_publish_ado_collection: false
+bootstrap_controller_hub_update_collection_only: false
 
 # Common placeholders. Real values belong in group_vars/all/vars_<env>.yml
 bootstrap_controller_organization: ""

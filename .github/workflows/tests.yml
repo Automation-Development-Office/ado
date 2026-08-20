@@ -22,6 +22,10 @@ jobs:
   ansible-lint:
     name: Ansible Lint
     runs-on: ubuntu-latest
+    env:
+      # Job-level env cannot use the runner context. /tmp is outside the checkout.
+      XDG_CACHE_HOME: /tmp/ado-xdg-cache
+      PYTHONUSERBASE: /tmp/ado-python-user
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

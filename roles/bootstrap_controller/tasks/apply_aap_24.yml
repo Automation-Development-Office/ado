@@ -9,6 +9,10 @@
     name: infra.controller_configuration.credentials
   when: controller_credentials | default([]) | length > 0
 
+- name: AAP 2.4 | Skip existing execution environments
+  ansible.builtin.include_tasks: skip_existing_execution_environments.yml
+  when: controller_execution_environments | default([]) | length > 0
+
 - name: AAP 2.4 | Execution environments
   ansible.builtin.include_role:
     name: infra.controller_configuration.execution_environments

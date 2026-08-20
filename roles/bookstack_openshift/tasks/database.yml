@@ -1,0 +1,156 @@
+---
+- name: Build MariaDB PVC spec
+  ansible.builtin.set_fact:
+    bookstack_openshift_db_pvc_spec:
+      accessModes:
+        - "{{ bookstack_db_storage_access_mode }}"
+      resources:
+        requests:
+          storage: "{{ bookstack_db_storage_size }}"
+
+- name: Add MariaDB StorageClass when set
+  ansible.builtin.set_fact:
+    bookstack_openshift_db_pvc_spec: "{{ bookstack_openshift_db_pvc_spec | combine({'storageClassName': bookstack_db_storage_class}) }}"
+  when: bookstack_db_storage_class | default('') | length > 0
+
+- name: Create MariaDB PVC
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: bookstack-mariadb
+        namespace: "{{ bookstack_namespace }}"
+        labels:
+          app.kubernetes.io/name: bookstack
+          app.kubernetes.io/component: database
+      spec: "{{ bookstack_openshift_db_pvc_spec }}"
+    validate_certs: "{{ bookstack_validate_certs }}"
+
+- name: Create MariaDB Service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ bookstack_db_service_name }}"
+        namespace: "{{ bookstack_namespace }}"
+        labels:
+          app.kubernetes.io/name: bookstack
+          app.kubernetes.io/component: database
+      spec:
+        type: ClusterIP
+        selector:
+          app.kubernetes.io/name: bookstack
+          app.kubernetes.io/component: database
+        # Keep port as a real int (Contoller EE often stringifies "{{ x | int }}").
+        ports: "{{ [{'name': 'mysql', 'port': bookstack_db_port | int, 'targetPort': 'mysql'}] }}"
+    validate_certs: "{{ bookstack_validate_certs }}"
+
+- name: Create MariaDB Deployment
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: bookstack-mariadb
+        namespace: "{{ bookstack_namespace }}"
+        labels:
+          app.kubernetes.io/name: bookstack
+          app.kubernetes.io/component: database
+      spec:
+        # Bare int required — Contoller EE stringifies "{{ n | int }}" and API rejects it.
+        replicas: 1
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: bookstack
+            app.kubernetes.io/component: database
+        strategy:
+          type: Recreate
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/name: bookstack
+              app.kubernetes.io/component: database
+          spec:
+            containers:
+              - name: mariadb
+                image: "{{ bookstack_mariadb_image }}"
+                imagePullPolicy: "{{ bookstack_image_pull_policy }}"
+                ports:
+                  - name: mysql
+                    containerPort: 3306
+                env:
+                  - name: MYSQL_DATABASE
+                    valueFrom:
+                      secretKeyRef:
+                        name: bookstack-db
+                        key: database-name
+                  - name: MYSQL_USER
+                    valueFrom:
+                      secretKeyRef:
+                        name: bookstack-db
+                        key: database-user
+                  - name: MYSQL_PASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: bookstack-db
+                        key: database-password
+                  - name: MYSQL_ROOT_PASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: bookstack-db
+                        key: root-password
+                resources: "{{ bookstack_db_resources }}"
+                volumeMounts:
+                  - name: data
+                    mountPath: /var/lib/mysql
+                startupProbe:
+                  exec:
+                    command:
+                      - bash
+                      - -ec
+                      - mariadb-admin ping -h127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"
+                  failureThreshold: 30
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                readinessProbe:
+                  exec:
+                    command:
+                      - bash
+                      - -ec
+                      - mariadb-admin ping -h127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 6
+                livenessProbe:
+                  exec:
+                    command:
+                      - bash
+                      - -ec
+                      - mariadb-admin ping -h127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 6
+                  initialDelaySeconds: 60
+            volumes:
+              - name: data
+                persistentVolumeClaim:
+                  claimName: bookstack-mariadb
+    validate_certs: "{{ bookstack_validate_certs }}"
+
+- name: Wait for MariaDB Deployment Available
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: bookstack-mariadb
+    namespace: "{{ bookstack_namespace }}"
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: 600
+    validate_certs: "{{ bookstack_validate_certs }}"

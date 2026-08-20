@@ -1,0 +1,8 @@
+---
+bugfixes:
+  - |
+    AAP license attach now posts ``subscriptions_client_id`` /
+    ``subscriptions_username`` field names expected by Controller
+    ``/config/subscriptions/`` (bare ``client_id`` / ``username`` caused
+    ``Missing subscription credentials`` on AAP 2.5+). Portal-style
+    values in client ID (e.g. ``rh-ee-*``) are remapped to username/password.

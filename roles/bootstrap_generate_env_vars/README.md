@@ -40,8 +40,8 @@ Automation Development Office
 | `bootstrap_generate_env_vars_hub_force_ado_collection_update` | Forces the ADO collection publish task to overwrite an existing Hub version when Hub allows it. Default `true`. |
 | `bootstrap_generate_env_vars_hub_update_collection_only` | Publishes or updates the ADO collection in AAP Hub without generating or applying normal component bootstrap content. Default `false`. |
 | `bootstrap_generate_env_vars_hub_ado_collection_path` | Local ADO collection path used by generated hub collection vars. Default `.`. |
-| `bootstrap_generate_env_vars_aap_ee_image` | Execution environment image used when creating or updating the default AAP execution environment. Default `registry.redhat.io/ansible-automation-platform-26/ee-supported-rhel9:latest`. |
-| `bootstrap_generate_env_vars_aap_deployment_version` | AAP OpenShift operator/platform version. Supported values: `2.5`, `2.6`; default `2.6`. |
+| `bootstrap_generate_env_vars_aap_ee_image` | Execution environment image used when creating or updating the default AAP execution environment. Default `registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest`. |
+| `bootstrap_generate_env_vars_aap_deployment_version` | AAP OpenShift operator/platform version. Supported values: `2.5`, `2.6`, `2.7`; default `2.7`. |
 | `bootstrap_generate_env_vars_aap_namespace` | Namespace for the AAP operator and platform. Default `aap`. |
 | `bootstrap_generate_env_vars_aap_instance_name` | AnsibleAutomationPlatform CR name. Default `aap`. |
 | `bootstrap_generate_env_vars_aap_component_deployment` | AAP 2.5+ deployment model: `unified` or `individual`. Default `unified`. |
@@ -51,6 +51,7 @@ Automation Development Office
 | `bootstrap_generate_env_vars_aap_install_lightspeed` | Enable Ansible Lightspeed in the platform. Default `false`. |
 | Preflight `component_config.aap.admin_password` | Platform admin password written to `vault_aap.yml` as `aap_admin_password`; bootstrap creates `{instance}-admin-password` and sets `spec.admin_password_secret`. |
 | Preflight `component_config.aap.minimal_footprint` | When true, disables Hub/EDA/Lightspeed (Controller + Gateway only). |
+| Preflight `component_config.aap.operator_scope` | AAP operator OperatorGroup scope: `all_namespaces` (default, uses `stable-X.Y-cluster-scoped`) or `namespaced` (uses `stable-X.Y`). Explicit `operator_channel` still wins when set. |
 | `bootstrap_generate_env_vars_aap_hub_storage_class` | StorageClass for file-backed Hub storage. |
 | `bootstrap_generate_env_vars_aap_hub_storage_size` | File-backed Hub PVC size. Default `20Gi`. |
 | `bootstrap_generate_env_vars_aap_hub_s3_secret` | Existing S3 object storage secret when Hub storage type is `S3`. |

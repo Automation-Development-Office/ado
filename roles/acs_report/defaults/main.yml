@@ -1,0 +1,41 @@
+---
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Mode mirrors rhacs-report.sh:
+#   raw | rhsource | age | all
+acs_report_mode: rhsource
+
+# Scope modifiers (same as --all / --rhsre / --sev / --component)
+acs_report_all_scope: false
+acs_report_rhsre: false
+acs_report_show_sev: false
+acs_report_component: ""
+
+# Limit table modes to these ACS cluster names.
+# Empty list = all clusters (recommended for lab / non-prod Centrals).
+# Example for historical prod reports: [prod, prod-infra]
+acs_report_clusters: []
+
+# Output directory for CSV / summary JSON / text capture
+acs_report_outdir: "{{ playbook_dir | default('/tmp') }}/acs-reports"
+
+# ACS Central connection
+# Prefer acs_api_token (Bearer). Falls back to basic auth admin user/password.
+acs_central_url: ""
+acs_api_token: ""
+acs_admin_user: admin
+acs_admin_password: ""
+acs_namespace: stackrox
+acs_route_name: central
+
+# Export API
+acs_report_export_path: /v1/export/vuln-mgmt/workloads
+acs_report_export_timeout: 900
+acs_report_curl_max_time: 1200
+acs_report_validate_certs: false
+
+# When true, also write a Grafana-friendly summary JSON next to text/CSV output
+acs_report_write_summary_json: true
+
+# Copy sample Grafana dashboard JSON into acs_report_outdir
+acs_report_stage_grafana_sample: true

@@ -1,0 +1,51 @@
+---
+# Seed playbook: install GitLab CE/EE standalone on a RHEL VM.
+# Contoller path: playbooks/gitlab/ado-install-gitlab-standalone-bootstrap.yml
+# Prefer inventory host = gitlab-ado with machine credential.
+# Exclude Contoller localhost (ansible_connection=local) — EE has no sudo.
+- name: ADO | Install GitLab standalone on RHEL
+  hosts: "{{ target_hosts | default('all:!localhost') }}"
+  become: true
+  gather_facts: false
+  vars:
+    component: gitlab
+    # Contoller survey / -e may set: state, env, gitlab_hostname,
+    # gitlab_root_password, gitlab_edition, gitlab_rpm_path, gitlab_rpm_url,
+    # gitlab_tls_crt, gitlab_tls_key, gitlab_rhn_org_id, gitlab_rhn_activation_key
+    # (role defaults map those). Disconnected by default: stage an RPM.
+  pre_tasks:
+    - name: Skip local Contoller/EE connection hosts
+      ansible.builtin.meta: end_host
+      when: >-
+        (inventory_hostname | lower) in ['localhost', '127.0.0.1']
+        or (ansible_connection | default('')) == 'local'
+
+    - name: GitLab | Wait for SSH before facts
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host | default(inventory_hostname) }}"
+        port: 22
+        timeout: "{{ gitlab_connect_timeout | default(30) }}"
+        state: started
+      delegate_to: localhost
+      become: false
+
+    - name: GitLab | Ping host before install
+      ansible.builtin.ping:
+
+    - name: GitLab | Gather facts after connectivity check
+      ansible.builtin.setup:
+
+    - name: Load env infra config when present
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/infra_config_vars.yml"
+      failed_when: false
+
+    - name: Load optional GitLab vault/vars when present
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vault_gitlab.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vars_gitlab.yml"
+      failed_when: false
+  roles:
+    - role: "{{ playbook_dir }}/../../collections/ansible_collections/infra/ado/roles/install_gitlab"

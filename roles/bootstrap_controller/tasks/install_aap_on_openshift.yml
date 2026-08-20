@@ -28,6 +28,11 @@
         + bootstrap_controller_aap_install_env
       ) is directory
 
+- name: Install AAP on OpenShift | Detect license-only attach
+  ansible.builtin.set_fact:
+    bootstrap_controller_aap_license_only: >-
+      {{ aap_ocp_install_license_only | default(false) | bool }}
+
 - name: Install AAP on OpenShift | Assert install vars are present
   ansible.builtin.assert:
     that:
@@ -40,13 +45,36 @@
       aap_install_during_bootstrap is enabled but vars_aap.yml install
       settings are missing. Select the OpenShift aap app in preflight and
       regenerate env vars.
+  when: not (bootstrap_controller_aap_license_only | bool)
+
+- name: Install AAP on OpenShift | Assert license-only vars are present
+  ansible.builtin.assert:
+    that:
+      - (aap_ocp_install_license_mode | default('none') | lower) not in ['', 'none', 'skip']
+      - >-
+        (
+          hostname | default('') | length > 0
+        )
+        or (aap_hostname | default('') | length > 0)
+        or (aap_ocp_install_controller_route_host | default('') | length > 0)
+    fail_msg: >-
+      License-only attach needs license_mode (manifest/rhn) and AAP hostname
+      on Core Environment → Ansible Automation Platform → License / General.
+  when: bootstrap_controller_aap_license_only | bool
 
 - name: Install AAP on OpenShift | Resolve admin credentials
   ansible.builtin.set_fact:
     bootstrap_controller_aap_admin_user: >-
       {{
         aap_admin_user
-        | default(aap_ocp_install_platform.admin_user | default('admin'), true)
+        | default(
+          (
+            aap_ocp_install_platform.admin_user
+            if (aap_ocp_install_platform is defined and aap_ocp_install_platform is mapping)
+            else 'admin'
+          ),
+          true
+        )
       }}
     bootstrap_controller_aap_admin_password: >-
       {{
@@ -55,9 +83,20 @@
       }}
     bootstrap_controller_aap_admin_password_secret: >-
       {{
-        aap_ocp_install_platform.admin_password_secret
+        (
+          aap_ocp_install_platform.admin_password_secret
+          if (aap_ocp_install_platform is defined and aap_ocp_install_platform is mapping)
+          else ''
+        )
         | default(
-          (aap_ocp_install_platform.instance_name | default('aap'))
+          (
+            (
+              aap_ocp_install_platform.instance_name
+              if (aap_ocp_install_platform is defined and aap_ocp_install_platform is mapping)
+              else 'aap'
+            )
+            | default('aap', true)
+          )
           ~ '-admin-password',
           true
         )
@@ -85,7 +124,7 @@
         bootstrap_controller_openshift_kubeconfig
         | default('', true)
       }}
-
+  when: not (bootstrap_controller_aap_license_only | bool)
 - name: Install AAP on OpenShift | Ensure namespace exists for admin secret
   kubernetes.core.k8s:
     host: "{{ bootstrap_controller_aap_install_k8s_host | default(omit) }}"
@@ -102,7 +141,9 @@
       kind: Namespace
       metadata:
         name: "{{ aap_ocp_install_namespace }}"
-  when: aap_ocp_install_create_namespace | default(true) | bool
+  when:
+    - not (bootstrap_controller_aap_license_only | bool)
+    - aap_ocp_install_create_namespace | default(true) | bool
 
 - name: Install AAP on OpenShift | Create or update admin password secret
   no_log: true
@@ -125,12 +166,13 @@
       type: Opaque
       stringData:
         password: "{{ bootstrap_controller_aap_admin_password }}"
+  when: not (bootstrap_controller_aap_license_only | bool)
 
 - name: Install AAP on OpenShift | Build platform vars with admin credentials
   ansible.builtin.set_fact:
     bootstrap_controller_aap_ocp_install_platform: >-
       {{
-        aap_ocp_install_platform
+        (aap_ocp_install_platform | default({}))
         | combine(
           {
             'admin_user': bootstrap_controller_aap_admin_user,
@@ -148,12 +190,55 @@
           recursive=true
         )
       }}
+  when: not (bootstrap_controller_aap_license_only | bool)
 
-- name: Install AAP on OpenShift | Run installer role
+- name: Install AAP on OpenShift | Resolve role inputs for include_role
+  ansible.builtin.set_fact:
+    # Resolve into distinct fact names first — do not default aap_ocp_install_*
+    # onto itself inside include_role vars (Ansible recursive template loop).
+    bootstrap_controller_aap_ocp_install_platform_effective: >-
+      {{
+        bootstrap_controller_aap_ocp_install_platform
+        | default(aap_ocp_install_platform | default({}), true)
+      }}
+    bootstrap_controller_aap_ocp_install_controller_effective: >-
+      {{
+        bootstrap_controller_aap_ocp_install_controller
+        | default(aap_ocp_install_controller | default({}), true)
+      }}
+    bootstrap_controller_aap_controller_route_host_effective: >-
+      {{
+        (
+          hostname
+          | default(aap_hostname | default(''), true)
+          | default(
+              (
+                aap_ocp_install_platform.route_host | default('')
+              )
+              if (
+                aap_ocp_install_platform is defined
+                and aap_ocp_install_platform is mapping
+              )
+              else '',
+              true
+            )
+          | default(aap_ocp_install_controller_route_host | default(''), true)
+        )
+        | regex_replace('^https?://', '')
+        | regex_replace('/$', '')
+      }}
+
+- name: Install AAP on OpenShift | Run installer / license-attach role
   ansible.builtin.include_role:
     name: infra.ado.aap_ocp_install
   vars:
+    aap_ocp_install_license_only: >-
+      {{ bootstrap_controller_aap_license_only | bool }}
     aap_ocp_install_platform: >-
-      {{ bootstrap_controller_aap_ocp_install_platform }}
+      {{ bootstrap_controller_aap_ocp_install_platform_effective }}
     aap_ocp_install_controller: >-
-      {{ bootstrap_controller_aap_ocp_install_controller }}
+      {{ bootstrap_controller_aap_ocp_install_controller_effective }}
+    aap_ocp_install_admin_user: "{{ bootstrap_controller_aap_admin_user }}"
+    aap_ocp_install_admin_password: "{{ bootstrap_controller_aap_admin_password }}"
+    aap_ocp_install_controller_route_host: >-
+      {{ bootstrap_controller_aap_controller_route_host_effective }}

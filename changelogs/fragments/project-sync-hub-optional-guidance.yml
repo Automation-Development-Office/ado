@@ -1,0 +1,2 @@
+bugfixes:
+  - bootstrap_controller - Contoller project sync failure guidance no longer implies Hub republish is required; Hub update remains optional when ``infra.ado`` is already present.

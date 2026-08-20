@@ -1,0 +1,7 @@
+---
+minor_changes:
+  - >
+    Add OpenShift Grafana dashboards for Keycloak metrics (community 10441),
+    K8S overview (community 15661), and cert-manager certificate expiry with
+    main ADO cert coverage for prod and dev under
+    ``templates/Openshift/dashboards/``.

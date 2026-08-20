@@ -1,0 +1,22 @@
+# Managed by infra.ado.satellite_oidc
+OIDCProviderMetadataURL {{ satellite_oidc_issuer_effective }}/.well-known/openid-configuration
+OIDCClientID {{ satellite_oidc_client_id_effective }}
+OIDCClientSecret {{ satellite_oidc_client_secret_effective }}
+OIDCRedirectURI {{ satellite_oidc_server_url_effective }}/users/extlogin/redirect_uri
+OIDCCryptoPassphrase {{ satellite_oidc_crypto_passphrase }}
+OIDCResponseType code
+OIDCProviderTokenEndpointAuth client_secret_basic
+OIDCScope "openid email profile"
+OIDCRemoteUserClaim preferred_username
+{% if not (satellite_oidc_keycloak_validate_certs | bool) %}
+OIDCSSLValidateServer Off
+{% endif %}
+
+<Location /users/extlogin>
+  AuthType openid-connect
+  Require valid-user
+</Location>
+<Location /users/extlogin/redirect_uri>
+  AuthType openid-connect
+  Require valid-user
+</Location>

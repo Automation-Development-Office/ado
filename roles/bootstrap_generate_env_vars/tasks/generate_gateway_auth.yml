@@ -60,6 +60,28 @@
                     "triggers": {"groups": {"has_or": org_groups}},
                 }
             )
+        # Multi org maps from preflight Keycloak tab
+        for idx, row in enumerate(method_cfg.get("organization_maps") or []):
+            if not isinstance(row, dict):
+                continue
+            row_org = str(row.get("organization") or org).strip()
+            row_groups = split_list(row.get("groups") or row.get("organization_groups"))
+            row_role = str(row.get("role") or row.get("organization_role") or "Organization Member").strip()
+            if not (row_org and row_groups):
+                continue
+            maps.append(
+                {
+                    "name": f"{authenticator_name} Organization {row_org}"
+                    if idx == 0
+                    else f"{authenticator_name} Organization {row_org} {idx + 1}",
+                    "authenticator": authenticator_name,
+                    "revoke": True,
+                    "map_type": "organization",
+                    "organization": row_org,
+                    "role": row_role or "Organization Member",
+                    "triggers": {"groups": {"has_or": row_groups}},
+                }
+            )
 
     oidc = auth.get("keycloak_oidc") or {}
     if oidc.get("enabled") is True:

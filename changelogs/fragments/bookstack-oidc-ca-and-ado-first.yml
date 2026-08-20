@@ -1,0 +1,6 @@
+---
+minor_changes:
+  - BookStack OIDC trusts lab CA via ConfigMap + initContainer (fixes cURL error 60).
+  - RHBK manage-client bootstrap passes standard OIDC client fields from ``rhbk_clients``.
+  - |
+    Process rule: prefer ADO roles + bootstrap Contoller JTs before ad-hoc API scripts.

@@ -1,13 +1,14 @@
+---
 - name: Normalize grafana_create_datasource variables
   ansible.builtin.set_fact:
     grafana_create_datasource_state: >-
       {{ grafana_create_datasource_state | default(state | default('present')) }}
     grafana_create_datasource_name: >-
-      {{ grafana_create_datasource_name | default(grafana_datasource | default('prometheus')) }}
+      {{ grafana_create_datasource_name | default(grafana_datasource | default('Openshift-Prod')) }}
     grafana_create_datasource_hostname: >-
       {{ grafana_create_datasource_hostname | default(grafana_hostname | default('')) }}
     grafana_create_datasource_admin_user: >-
-      {{ grafana_create_datasource_admin_user | default(grafana_admin_user | default('')) }}
+      {{ grafana_create_datasource_admin_user | default(grafana_admin_user | default('admin')) }}
     grafana_create_datasource_admin_password: >-
       {{ grafana_create_datasource_admin_password | default(grafana_admin_password | default('')) }}
     grafana_create_datasource_validate_certs: >-
@@ -41,6 +42,32 @@
         | default(grafana_prometheus_sa_token_secret_name | default('grafana-prometheus-sa-token'))
       }}
 
-- name: Create grafana datasource
-  ansible.builtin.import_tasks: grafana-manage-datasource.yml
+- name: Build grafana datasource work list
+  ansible.builtin.set_fact:
+    grafana_create_datasource_work_items: >-
+      {{
+        grafana_datasources
+        if (grafana_datasources | default([]) | length) > 0
+        else [
+          {
+            'name': grafana_create_datasource_name
+          }
+        ]
+      }}
+
+- name: Assert Grafana admin password is present for datasource create
+  ansible.builtin.assert:
+    that:
+      - grafana_create_datasource_admin_password | length > 0
+      - grafana_create_datasource_hostname | length > 0
+    fail_msg: >-
+      grafana_create_datasource needs grafana_hostname and grafana_admin_password
+      (vault_grafana.yml / component_config.grafana).
+
+- name: Create each Grafana Prometheus datasource
+  ansible.builtin.include_tasks: grafana-manage-datasource.yml
+  loop: "{{ grafana_create_datasource_work_items }}"
+  loop_control:
+    loop_var: grafana_ds_item
+    label: "{{ grafana_ds_item.name | default('datasource') }}"
   when: grafana_create_datasource_state == "present"

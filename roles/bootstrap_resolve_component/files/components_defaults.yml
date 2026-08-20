@@ -36,6 +36,23 @@ components_defaults:
     admin_password_secret: controller-admin-password
     component: aap
 
+  # aap 2.7
+  aap27:
+    name_space: aap27
+    operator_namespace: aap27
+    infra.ado.ocp_operatorgroups: aap27-operators
+
+    operator_name: ansible-automation-platform-operator
+    operator_channel: stable-2.7
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+
+    hostname: "aap27.{{ bootstrap_resolve_component_app_domain }}"
+    ingress_class: openshift-default
+
+    admin_password_secret: controller-admin-password
+    component: aap
+
   # aap 2.5
   aap25:
     name_space: aap25
@@ -301,6 +318,27 @@ components_defaults:
 
     root_password_secret: gitlab-root-password
 
+    # Standalone RHEL Omnibus (role: install_gitlab) — also see gitlab_standalone.
+    install_gitlab_hostname: gitlab-ado.server.lab
+    install_gitlab_external_url: http://gitlab-ado.server.lab
+    install_gitlab_root_password: redhat123
+    install_gitlab_http_port: 80
+    install_gitlab_https_port: 443
+    install_gitlab_edition: ce
+    install_gitlab_skip_packages: false
+
+  # Standalone GitLab on RHEL (install_gitlab). OpenShift operator remains under gitlab.
+  gitlab_standalone:
+    install_gitlab_hostname: gitlab-ado.server.lab
+    install_gitlab_external_url: http://gitlab-ado.server.lab
+    install_gitlab_root_password: redhat123
+    install_gitlab_http_port: 80
+    install_gitlab_https_port: 443
+    install_gitlab_edition: ce
+    install_gitlab_skip_packages: false
+    install_gitlab_rpm_path: ""
+    install_gitlab_rpm_url: ""
+
   gitops:
     # Operator install namespace (because subscription_operator uses name_space today)
     name_space: openshift-operators
@@ -342,13 +380,65 @@ components_defaults:
 
     grafana_hostname: grafana.{{ bootstrap_resolve_component_app_domain }}
     storage_size: 2Gi
-    prometheus_source: prometheus-k8s-openshift-monitoring.{{ bootstrap_resolve_component_app_domain }}
-    grafana_datasource: "Openshift"
+    # Prefer thanos-querier so platform + user-workload metrics are visible.
+    prometheus_source: thanos-querier-openshift-monitoring.{{ bootstrap_resolve_component_app_domain }}
+    # Legacy single-name alias (first entry of grafana_datasources).
+    grafana_datasource: "Openshift-Prod"
+    # Prod: local thanos-querier Route (or in-cluster URL via prometheus_url).
+    # Dev: remote thanos-querier + bearer token Secret (platform + user-workload).
+    # Override grafana_dev_prometheus_url / bearer in vars_grafana.yml or vault.
+    grafana_dev_prometheus_url: "https://thanos-querier-openshift-monitoring.apps.ocp-dev.dev.rhlab"
+    grafana_datasources:
+      - name: Openshift-Prod
+        prometheus_route_name: thanos-querier
+      - name: Openshift-Dev
+        # Remote Dev Thanos (Route). Token from Secret created by ops / vault.
+        prometheus_url: "https://thanos-querier-openshift-monitoring.apps.ocp-dev.dev.rhlab"
+        bearer_token_secret:
+          name: grafana-openshift-dev-prometheus
+          namespace: grafana
+          key: token
     grafana_folder: "Openshift"
     dashboard_dir: "../templates"
     grafana_dashboards_type: templates
     grafana_dashboards_source: ""
-    grafana_folders: []
+    # When true (default), also deploy shared "Openshift" folder whose dashboards
+    # use a K8S datasource dropdown (Openshift-Prod / Openshift-Dev).
+    # OpenshiftProd + OpenshiftDev folders are always deployed (pinned per cluster).
+    grafana_group_cluster_dashboards: true
+    # Seeded under playbook_repo_seed/templates/ (copied out with the playbook repo).
+    # Same templates/Openshift/dashboards files are uploaded three ways via
+    # datasource_mode (pin Prod, pin Dev, multi dropdown).
+    grafana_folders:
+      - name: OpenshiftProd
+        source_type: path
+        source: templates/Openshift
+        dashboards_path: dashboards
+        alerts_path: alerts
+        datasource_mode: pin
+        datasource: Openshift-Prod
+        uid_suffix: prod
+        title_cluster: Prod
+      - name: OpenshiftDev
+        source_type: path
+        source: templates/Openshift
+        dashboards_path: dashboards
+        alerts_path: alerts
+        datasource_mode: pin
+        datasource: Openshift-Dev
+        uid_suffix: dev
+        title_cluster: Dev
+      - name: Openshift
+        source_type: path
+        source: templates/Openshift
+        dashboards_path: dashboards
+        alerts_path: alerts
+        datasource_mode: multi
+      - name: RHACS
+        source_type: path
+        source: templates/RHACS
+        dashboards_path: dashboards
+        datasource_mode: none
     grafana_alerts_enabled: false
     grafana_email:
       enabled: false
@@ -385,6 +475,23 @@ components_defaults:
         email: email
         groups: groups
       oauth_auto_login: true   # optional: auto redirect to keycloak
+
+    # Standalone RHEL (role: install_grafana) — also see grafana_standalone.
+    install_grafana_hostname: grafana-ado.server.lab
+    install_grafana_http_port: 3000
+    install_grafana_admin_user: admin
+    install_grafana_admin_password: redhat123
+    install_grafana_skip_packages: false
+
+  # Standalone Grafana on RHEL (install_grafana). OpenShift operator remains under grafana.
+  grafana_standalone:
+    install_grafana_hostname: grafana-ado.server.lab
+    install_grafana_http_port: 3000
+    install_grafana_admin_user: admin
+    install_grafana_admin_password: redhat123
+    install_grafana_skip_packages: false
+    install_grafana_rpm_path: ""
+    install_grafana_rpm_url: ""
 
   # create htpasswd-admin user
   htpass_admin:
@@ -516,6 +623,23 @@ components_defaults:
   # provision_openshift_virt_* variables. Keep a registry entry so the common
   # resolver can merge optional components_env/overrides without failing.
   openshift_virt: {}
+
+  # BookStack docs platform on OpenShift (role: bookstack_openshift).
+  # OCP API auth comes from vault_openshift.yml / vars_openshift.yml (host + token),
+  # same as other OpenShift bootstrap playbooks.
+  bookstack:
+    name_space: bookstack
+    bookstack_namespace: bookstack
+    bookstack_route_host: "bookstack.{{ bootstrap_resolve_component_app_domain }}"
+    bookstack_storage_class: synology-nfs-csi
+    bookstack_db_storage_class: synology-nfs-csi
+    bookstack_use_anyuid: true
+    bookstack_container_port: 8080
+    bookstack_admin_email: admin@admin.com
+    bookstack_oidc_enabled: true
+    bookstack_oidc_client_id: bookstack
+    bookstack_oidc_issuer: "https://keycloak.apps.ocp.prod.rhlab/realms/rhlab"
+    bookstack_oidc_issuer_discover: true
 
   ldap_auth_openshift:
     enabled: true

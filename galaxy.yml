@@ -1,7 +1,7 @@
 ---
 namespace: "infra"
 name: "ado"
-version: 1.0.11
+version: 1.3.1
 readme: README.md
 authors:
   - Automation Development Office
@@ -36,4 +36,19 @@ build_ignore:
   - .gitignore
   - .ansible
   - .ansible/*
+  - '*/.ansible'
+  - '*/.ansible/*'
+  - '**/.ansible'
+  - '**/.ansible/**'
+  - .ansible-tmp
+  - .ansible-tmp/**
+  - .cache
+  - .cache/**
+  - .kube
+  - .kube/**
+  - .local
+  - .local/**
+  - '**/__pycache__'
+  - '**/__pycache__/**'
+  - '*.pyc'
   - changelogs/.plugin-cache.yaml

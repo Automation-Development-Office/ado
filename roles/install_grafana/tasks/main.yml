@@ -1,0 +1,227 @@
+# yamllint disable rule:line-length
+---
+# Install standalone Grafana on RHEL.
+
+- name: Guard — Grafana hostname and admin password required
+  ansible.builtin.assert:
+    that:
+      - install_grafana_hostname | length > 0
+      - install_grafana_admin_user | length > 0
+      - install_grafana_admin_password | length > 0
+    fail_msg: >-
+      install_grafana needs hostname, admin user, and admin password.
+
+- name: Ensure Grafana dependencies
+  ansible.builtin.dnf:
+    name:
+      - fontconfig
+      - firewalld
+    state: present
+  when: not (install_grafana_skip_packages | default(false) | bool)
+  register: install_grafana_deps
+  failed_when: false
+
+- name: Fail when deps missing and skip_packages is false
+  ansible.builtin.fail:
+    msg: >-
+      Could not install Grafana dependencies via dnf (host may be unregistered).
+      Pre-install deps via Satellite and set install_grafana_skip_packages=true,
+      or provide install_grafana_rpm_path / install_grafana_rpm_url for airgap.
+  when:
+    - not (install_grafana_skip_packages | default(false) | bool)
+    - install_grafana_deps is failed
+
+- name: Detect already-installed Grafana package
+  ansible.builtin.command:
+    argv:
+      - rpm
+      - -q
+      - grafana
+  register: install_grafana_rpm_query
+  changed_when: false
+  failed_when: false
+
+- name: Set Grafana package already present fact
+  ansible.builtin.set_fact:
+    install_grafana_package_present: "{{ install_grafana_rpm_query.rc == 0 }}"
+
+- name: Guard — disconnected install needs staged RPM (or already installed)
+  ansible.builtin.assert:
+    that:
+      - >-
+        (install_grafana_rpm_path | default('') | length > 0)
+        or (install_grafana_rpm_url | default('') | length > 0)
+        or (install_grafana_package_present | default(false) | bool)
+        or (install_grafana_allow_online_repo | default(false) | bool)
+    fail_msg: >-
+      install_grafana is disconnected by default (no rpm.grafana.com).
+      Stage a grafana RPM on the Contoller EE path
+      (grafana_rpm_path / install_grafana_rpm_path), or an internal mirror URL
+      (grafana_rpm_url), or set install_grafana_allow_online_repo=true for
+      connected labs only.
+
+- name: Ensure staging directory for Grafana RPM
+  ansible.builtin.file:
+    path: /var/lib/grafana-stage
+    state: directory
+    mode: "0750"
+  when: >-
+    (install_grafana_rpm_path | default('') | length > 0)
+    or (install_grafana_rpm_url | default('') | length > 0)
+
+- name: Copy Grafana RPM from Contoller (airgap)
+  ansible.builtin.copy:
+    src: "{{ install_grafana_rpm_path }}"
+    dest: /var/lib/grafana-stage/grafana.rpm
+    mode: "0644"
+  when: install_grafana_rpm_path | default('') | length > 0
+
+- name: Download Grafana RPM (internal/airgap URL — not rpm.grafana.com)
+  ansible.builtin.get_url:
+    url: "{{ install_grafana_rpm_url }}"
+    dest: /var/lib/grafana-stage/grafana.rpm
+    mode: "0644"
+  when:
+    - install_grafana_rpm_path | default('') | length == 0
+    - install_grafana_rpm_url | default('') | length > 0
+
+- name: Install Grafana from local RPM
+  ansible.builtin.dnf:
+    name: /var/lib/grafana-stage/grafana.rpm
+    state: present
+    disable_gpg_check: true
+  when: >-
+    (install_grafana_rpm_path | default('') | length > 0)
+    or (install_grafana_rpm_url | default('') | length > 0)
+
+- name: Add Grafana YUM repository (connected labs only)
+  ansible.builtin.yum_repository:
+    name: grafana
+    description: Grafana OSS
+    baseurl: "{{ install_grafana_repo_url }}"
+    gpgcheck: true
+    gpgkey: "{{ install_grafana_gpg_key_url }}"
+    enabled: true
+    state: present
+  when:
+    - install_grafana_allow_online_repo | default(false) | bool
+    - not (install_grafana_package_present | default(false) | bool)
+    - install_grafana_rpm_path | default('') | length == 0
+    - install_grafana_rpm_url | default('') | length == 0
+    - not (install_grafana_skip_packages | default(false) | bool)
+
+- name: Install Grafana package from Grafana repo (connected labs only)
+  ansible.builtin.dnf:
+    name: grafana
+    state: present
+  when:
+    - install_grafana_allow_online_repo | default(false) | bool
+    - not (install_grafana_package_present | default(false) | bool)
+    - install_grafana_rpm_path | default('') | length == 0
+    - install_grafana_rpm_url | default('') | length == 0
+
+- name: Configure Grafana server domain
+  community.general.ini_file:
+    path: "{{ install_grafana_config_path }}"
+    section: server
+    option: domain
+    value: "{{ install_grafana_hostname }}"
+    mode: "0640"
+    owner: root
+    group: grafana
+  notify: Restart Grafana
+
+- name: Configure Grafana HTTP port
+  community.general.ini_file:
+    path: "{{ install_grafana_config_path }}"
+    section: server
+    option: http_port
+    value: "{{ install_grafana_http_port }}"
+    mode: "0640"
+    owner: root
+    group: grafana
+  notify: Restart Grafana
+
+- name: Configure Grafana root_url
+  community.general.ini_file:
+    path: "{{ install_grafana_config_path }}"
+    section: server
+    option: root_url
+    value: "%(protocol)s://%(domain)s:%(http_port)s/"
+    mode: "0640"
+    owner: root
+    group: grafana
+  notify: Restart Grafana
+
+- name: Configure Grafana admin user
+  community.general.ini_file:
+    path: "{{ install_grafana_config_path }}"
+    section: security
+    option: admin_user
+    value: "{{ install_grafana_admin_user }}"
+    mode: "0640"
+    owner: root
+    group: grafana
+  notify: Restart Grafana
+
+- name: Configure Grafana admin password
+  community.general.ini_file:
+    path: "{{ install_grafana_config_path }}"
+    section: security
+    option: admin_password
+    value: "{{ install_grafana_admin_password }}"
+    mode: "0640"
+    owner: root
+    group: grafana
+  no_log: true
+  notify: Restart Grafana
+
+- name: Open firewall port for Grafana
+  ansible.posix.firewalld:
+    port: "{{ install_grafana_http_port }}/tcp"
+    permanent: true
+    state: enabled
+    immediate: true
+  failed_when: false
+
+- name: Enable and start Grafana systemd unit
+  ansible.builtin.systemd:
+    name: "{{ install_grafana_service_name }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Apply pending Grafana restarts
+  ansible.builtin.meta: flush_handlers
+
+- name: Reset Grafana admin password (idempotent after first boot)
+  ansible.builtin.command:
+    argv:
+      - grafana-cli
+      - admin
+      - reset-admin-password
+      - "{{ install_grafana_admin_password }}"
+  no_log: true
+  register: install_grafana_reset_admin
+  changed_when: >-
+    'Admin password changed successfully' in (install_grafana_reset_admin.stdout | default(''))
+    or install_grafana_reset_admin.rc == 0
+  failed_when: false
+
+- name: Wait for Grafana HTTP readiness
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ install_grafana_http_port }}/api/health"
+    method: GET
+    status_code: [200]
+    validate_certs: false
+  register: install_grafana_ready
+  retries: 30
+  delay: 5
+  until: install_grafana_ready.status | default(0) == 200
+
+- name: Show Grafana standalone URL
+  ansible.builtin.debug:
+    msg: >-
+      Grafana is available at
+      http://{{ install_grafana_hostname }}:{{ install_grafana_http_port }}/
+      (admin user {{ install_grafana_admin_user }}).

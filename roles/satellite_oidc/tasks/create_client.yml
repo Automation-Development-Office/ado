@@ -1,0 +1,46 @@
+---
+- name: Assert Keycloak admin credentials for client create
+  ansible.builtin.assert:
+    that:
+      - satellite_oidc_admin_user | default('') | length > 0
+      - satellite_oidc_admin_password | default('') | length > 0
+    fail_msg: >-
+      satellite_oidc_create_client requires satellite_oidc_admin_user and
+      satellite_oidc_admin_password (or rhbk_admin_user / rhbk_admin_password).
+
+- name: Create or update Keycloak client ado-satellite
+  ansible.builtin.include_role:
+    name: "{{ satellite_oidc_rhbk_client_role | default('infra.ado.rhbk_client') }}"
+    apply:
+      delegate_to: localhost
+      connection: local
+      become: false
+  vars:
+    state: present
+    rhbk_hostname: "{{ satellite_oidc_keycloak_hostname_effective }}"
+    rhbk_admin_user: "{{ satellite_oidc_admin_user }}"
+    rhbk_admin_password: "{{ satellite_oidc_admin_password }}"
+    rhbk_realm: "{{ satellite_oidc_realm_effective }}"
+    rhbk_client: "{{ satellite_oidc_client_id_effective }}"
+    rhbk_client_name: "{{ satellite_oidc_client_name | default(satellite_oidc_client_id_effective) }}"
+    rhbk_description: "ADO Satellite OIDC client"
+    rhbk_protocol: openid-connect
+    rhbk_public_client: false
+    rhbk_enabled: true
+    rhbk_standard_flow_enabled: true
+    rhbk_implicit_flow_enabled: false
+    rhbk_direct_access_grants_enabled: true
+    rhbk_service_accounts_enabled: false
+    rhbk_root_url: "{{ satellite_oidc_server_url_effective }}"
+    rhbk_base_url: "{{ satellite_oidc_server_url_effective }}"
+    rhbk_admin_url: "{{ satellite_oidc_server_url_effective }}"
+    rhbk_redirect_uris: "{{ satellite_oidc_redirect_uris_effective }}"
+    rhbk_web_origins:
+      - "{{ satellite_oidc_server_url_effective }}"
+      - "+"
+    rhbk_client_secret: "{{ satellite_oidc_client_secret | default(omit) }}"
+    rhbk_verify_ssl: "{{ satellite_oidc_keycloak_validate_certs | bool }}"
+    rhbk_no_log: "{{ satellite_oidc_no_log | bool }}"
+    auth_realm: "{{ satellite_oidc_auth_realm }}"
+    auth_client_id: "{{ satellite_oidc_auth_client_id }}"
+    rhbk_protocol_mappers: "{{ satellite_oidc_protocol_mappers | default(omit) }}"

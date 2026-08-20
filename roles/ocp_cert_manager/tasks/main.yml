@@ -125,3 +125,7 @@
         ca:
           secretName: "{{ ocp_cert_manager_root_ca_secret_name }}"
   when: state == 'present'
+
+- name: Ensure cert-manager Prometheus ServiceMonitors
+  ansible.builtin.include_tasks: servicemonitor.yml
+  when: state == 'present'
