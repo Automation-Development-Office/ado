@@ -1,3 +1,42 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
-# defaults file for advanced-cluster-management
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# Platform: openshift (operator + Keycloak CR) or rhel (standalone RHBK on VM/bare metal).
+# Always Red Hat Build of Keycloak — never upstream Keycloak.
+install_rhbk_platform: "{{ rhbk_platform | default('openshift') }}"
+state: present
+
+# --- OpenShift path (existing) ---
+name_space: keycloak
+ocp_rhbk_hostname: "{{ rhbk_hostname | default('keycloak.apps.example.com') }}"
+ocp_rhbk_admin_user: "{{ rhbk_admin_user | default('admin') }}"
+ocp_rhbk_admin_password: "{{ rhbk_admin_password | default('changeme') }}"
+ocp_rhbk_db_user: "{{ rhbk_db_user | default('keycloak') }}"
+ocp_rhbk_db_password: "{{ rhbk_db_password | default('changeme-db') }}"
+postgres_secret_name: keycloak-db-secret
+cert_manager: false
+ocp_rhbk_cert_name: keycloak-tls
+ocp_rhbk_tls_secret_name: keycloak-tls-secret
+ocp_rhbk_issuer_name: ""
+ocp_rhbk_issuer_kind: ClusterIssuer
+
+# --- RHEL / standalone path (official RHBK zip) ---
+install_rhbk_standalone_hostname: "{{ rhbk_hostname | default('keycloak-ado.server.lab') }}"
+install_rhbk_standalone_http_port: 8080
+install_rhbk_standalone_https_port: 8443
+# Optional HTTPS (same PEM pattern as OpenShift install_rhbk: tls_crt + tls_key).
+install_rhbk_standalone_https_enabled: "{{ rhbk_standalone_https_enabled | default(false) | bool }}"
+install_rhbk_standalone_http_enabled: "{{ rhbk_standalone_http_enabled | default(true) | bool }}"
+install_rhbk_standalone_tls_dir: /etc/rhbk/tls
+# Prefer role-specific vars; fall back to shared tls_crt/tls_key used by OCP path.
+install_rhbk_standalone_tls_crt: "{{ rhbk_standalone_tls_crt | default(tls_crt | default('')) }}"
+install_rhbk_standalone_tls_key: "{{ rhbk_standalone_tls_key | default(tls_key | default('')) }}"
+install_rhbk_standalone_admin_user: "{{ rhbk_admin_user | default('admin') }}"
+install_rhbk_standalone_admin_password: "{{ rhbk_admin_password | default('redhat123') }}"
+install_rhbk_standalone_home: /opt/rhbk
+install_rhbk_standalone_data_dir: /var/lib/rhbk
+# Local path on the Ansible controller (copied to the VM), e.g. ~/Downloads/rhbk-26.6.5.zip
+install_rhbk_standalone_zip: "{{ rhbk_standalone_zip | default('') }}"
+install_rhbk_standalone_zip_url: "{{ rhbk_standalone_zip_url | default('') }}"
+# When the VM has no Satellite/repos, pre-stage Java and set skip_packages.
+install_rhbk_standalone_skip_packages: false
+install_rhbk_standalone_java_home: ""

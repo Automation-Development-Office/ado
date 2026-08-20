@@ -1,0 +1,4 @@
+---
+bugfixes:
+  - |
+    bootstrap_controller - Contoller project create no longer sets ``update_project: true`` (sync-on-create), which failed during ``install_collections`` when Hub lacked ``infra.ado``. Projects are created first, then synced with actionable Hub guidance on failure.

@@ -1,0 +1,35 @@
+---
+# Seed playbook: install Grafana standalone on a RHEL VM.
+# Contoller path: playbooks/grafana/ado-install-grafana-standalone-bootstrap.yml
+# Prefer inventory host = grafana-ado with machine credential.
+# Exclude Contoller localhost (ansible_connection=local) — EE has no sudo.
+- name: ADO | Install Grafana standalone on RHEL
+  hosts: "{{ target_hosts | default('all:!localhost') }}"
+  become: true
+  gather_facts: true
+  vars:
+    component: grafana
+    # Contoller survey / -e may set: state, env, grafana_hostname,
+    # grafana_admin_*, grafana_rpm_path, grafana_rpm_url (role defaults map those).
+    # Disconnected by default: stage an RPM.
+  pre_tasks:
+    - name: Skip local Contoller/EE connection hosts
+      ansible.builtin.meta: end_host
+      when: >-
+        (inventory_hostname | lower) in ['localhost', '127.0.0.1']
+        or (ansible_connection | default('')) == 'local'
+
+    - name: Load env infra config when present
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/infra_config_vars.yml"
+      failed_when: false
+
+    - name: Load optional Grafana vault/vars when present
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vault_grafana.yml"
+        - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vars_grafana.yml"
+      failed_when: false
+  roles:
+    - role: "{{ playbook_dir }}/../../collections/ansible_collections/infra/ado/roles/install_grafana"

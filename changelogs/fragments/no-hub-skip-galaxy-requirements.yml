@@ -1,0 +1,2 @@
+bugfixes:
+  - bootstrap_generate_playbook_repo - When Hub collection update is not requested, omit ``collections/requirements.yml`` (so Contoller project sync does not call Galaxy/Hub) and vendor ``infra.ado`` into the git project for job runtime.

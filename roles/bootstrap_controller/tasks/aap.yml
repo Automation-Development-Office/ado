@@ -70,7 +70,10 @@
 
 - name: AAP | Run controller smoke test
   ansible.builtin.include_tasks: run_smoke_test.yml
-  when: bootstrap_controller_aap_smoke_test_enabled | default(true) | bool
+  when:
+    - bootstrap_controller_aap_smoke_test_enabled | default(true) | bool
+    # Hub-only runs publish collection / EE; skip Demo JT smoke on fresh hubs.
+    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
 
 - name: AAP | Detect AAP version
   ansible.builtin.include_tasks: detect_aap_version.yml

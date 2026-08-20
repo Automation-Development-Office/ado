@@ -1,0 +1,4 @@
+---
+bugfixes:
+  - bootstrap_controller - Install AAP during bootstrap when ``install_aap`` is set, without requiring the AAP platform component or Using AAP / Contoller API fields.
+  - bootstrap_generate_env_vars - Generate ``vars_aap.yml`` for Install AAP even when AAP is not a selected component, and skip Contoller API access for that install-only run.

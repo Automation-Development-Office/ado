@@ -684,9 +684,28 @@
   ansible.builtin.debug:
     var: bootstrap_generate_env_vars_components
 
-# Expand satellite/idm into option keys for playbook/JT selection only.
+- name: Skip Contoller API when installing AAP during bootstrap
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_use_aap: false
+  when:
+    - bootstrap_generate_env_vars_preflight is defined
+    - >-
+      (
+        (
+          bootstrap_generate_env_vars_preflight.pre_installs
+          | default({})
+        ).install_aap | default(false) | bool
+      )
+      or (
+        (
+          bootstrap_generate_env_vars_preflight.component_config.aap
+          | default({})
+        ).install_during_bootstrap | default(false) | bool
+      )
+
+# Expand satellite/idm/acs options into keys for playbook/JT selection only.
 # Keep bootstrap_generate_env_vars_components unchanged for vars_*.yml.
-- name: Build playbook/JT app selectors from Satellite and IdM options
+- name: Build playbook/JT app selectors from Satellite, IdM, and ACS options
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_playbook_components: >-
       {{
@@ -739,6 +758,27 @@
               []
             )
           )
+          +
+          (
+            (
+              bootstrap_generate_env_vars_preflight.component_options.acs
+              | default([])
+              | map('lower')
+              | list
+            )
+            if (
+              'acs' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and (
+                bootstrap_generate_env_vars_preflight.component_options.acs
+                | default([])
+                | length
+              ) > 0
+            )
+            else (
+              []
+            )
+          )
         )
         | unique
         | list
@@ -747,6 +787,30 @@
 - name: Show playbook/JT app selectors
   ansible.builtin.debug:
     var: bootstrap_generate_env_vars_playbook_components
+
+- name: Include AAP component vars when Install AAP is requested
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_components: >-
+      {{
+        (bootstrap_generate_env_vars_components + ['aap'])
+        | unique
+        | list
+      }}
+  when:
+    - bootstrap_generate_env_vars_preflight is defined
+    - >-
+      (
+        (
+          bootstrap_generate_env_vars_preflight.pre_installs
+          | default({})
+        ).install_aap | default(false) | bool
+      )
+      or (
+        (
+          bootstrap_generate_env_vars_preflight.component_config.aap
+          | default({})
+        ).install_during_bootstrap | default(false) | bool
+      )
 
 - name: Find existing generated component vars files
   ansible.builtin.find:
@@ -834,6 +898,7 @@
     import copy
     import json
     import re
+    import shutil
     import yaml
 
     class NoAliasDumper(yaml.SafeDumper):
@@ -858,7 +923,20 @@
         k = str(key or "").lower()
         if k in {"hub_s3_secret", "hub_azure_secret"}:
             return False
-        return any(x in k for x in ["password", "token", "secret", "vault", "credential", "tls_key", "manifest_content"])
+        return any(
+            x in k
+            for x in [
+                "password",
+                "token",
+                "secret",
+                "vault",
+                "credential",
+                "tls_key",
+                "tls_crt",
+                "activation_key",
+                "manifest_content",
+            ]
+        )
 
     def load_yaml(path):
         if not path.exists():
@@ -883,6 +961,89 @@
         if isinstance(value, bool):
             return value
         return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+    install_aap = as_bool(
+        (preflight.get("pre_installs") or {}).get("install_aap"),
+        False,
+    )
+    attach_aap_license = as_bool(
+        (preflight.get("pre_installs") or {}).get("attach_aap_license"),
+        False,
+    ) or as_bool(
+        ((preflight.get("pre_installs") or {}).get("aap") or {}).get("license_only"),
+        False,
+    ) or as_bool(
+        ((preflight.get("component_config") or {}).get("aap") or {}).get("license_only"),
+        False,
+    )
+    # install_during_bootstrap alone must not mean full operator install when
+    # attach/license_only is set (UI sets both for license-only attach).
+    if (
+        not install_aap
+        and not attach_aap_license
+        and as_bool(
+            ((preflight.get("component_config") or {}).get("aap") or {}).get(
+                "install_during_bootstrap"
+            ),
+            False,
+        )
+    ):
+        install_aap = True
+    if install_aap or attach_aap_license:
+        selected_components.add("aap")
+        # License-only / attach must still have a component_config.aap block so
+        # merge_component runs (hostname, RHN, license_mode).
+        preflight.setdefault("component_config", {})
+        aap_cfg = preflight["component_config"].setdefault("aap", {})
+        pre_aap = ((preflight.get("pre_installs") or {}).get("aap") or {})
+        preflight_aap = preflight.get("aap") or {}
+        if install_aap:
+            aap_cfg["install_during_bootstrap"] = True
+        if attach_aap_license and not install_aap:
+            aap_cfg["install_during_bootstrap"] = True
+            aap_cfg["license_only"] = True
+        for key in (
+            "license_mode",
+            "subscription_manifest_file",
+            "subscription_manifest_content_base64",
+            "subscription_manifest_encoding",
+            "rhn_username",
+            "rhn_password",
+            "rhn_subscription_id",
+            "rhn_client_id",
+            "rhn_client_secret",
+            "admin_password",
+            "hostname",
+            "namespace",
+        ):
+            if not aap_cfg.get(key) and pre_aap.get(key):
+                aap_cfg[key] = pre_aap.get(key)
+        # Attach/license-only: General tab aap.hostname / admin_password win over
+        # stale Install AAP component_config host fields.
+        if attach_aap_license and not install_aap:
+            if preflight_aap.get("hostname"):
+                aap_cfg["hostname"] = preflight_aap.get("hostname")
+            if preflight_aap.get("admin_password"):
+                aap_cfg["admin_password"] = preflight_aap.get("admin_password")
+        else:
+            if not aap_cfg.get("hostname") and preflight_aap.get("hostname"):
+                aap_cfg["hostname"] = preflight_aap.get("hostname")
+            if not aap_cfg.get("admin_password") and preflight_aap.get("admin_password"):
+                aap_cfg["admin_password"] = preflight_aap.get("admin_password")
+
+    aap_version_dotted = {"24": "2.4", "25": "2.5", "26": "2.6", "27": "2.7"}
+    aap_version_number = {"2.4": "24", "2.5": "25", "2.6": "26", "2.7": "27"}
+
+    def aap_dotted_version(*values, default="2.7"):
+        for value in values:
+            if value is None or value == "":
+                continue
+            text = str(value).strip()
+            if text in aap_version_dotted:
+                return aap_version_dotted[text]
+            if text in aap_version_number:
+                return text
+        return default
 
     jinja_open = "{" + "{"
     jinja_close = "}" + "}"
@@ -917,6 +1078,15 @@
             target.write_bytes(raw)
         else:
             target.write_text(str(content), encoding="utf-8")
+        target.chmod(0o600)
+        return target
+
+    def copy_repo_file_from_path(src, filename, default_name):
+        project_dir = env_dir.parents[2] if len(env_dir.parents) >= 3 else env_dir
+        files_dir = project_dir / "files"
+        files_dir.mkdir(parents=True, exist_ok=True)
+        target = files_dir / safe_upload_filename(filename, default_name)
+        shutil.copy2(str(src), target)
         target.chmod(0o600)
         return target
 
@@ -1004,6 +1174,13 @@
                 "req_dirs",
                 "vg_name",
                 "vgname",
+                "oidc",
+                "oidc_client_id",
+                "oidc_realm",
+                "oidc_keycloak_url",
+                "oidc_issuer",
+                "keycloak_url",
+                "keycloak_admin_user",
             }
             satellite_stale_raw_keys = {
                 "activation_key",
@@ -1055,6 +1232,13 @@
                 "req_dirs",
                 "vg_name",
                 "vgname",
+                "oidc",
+                "oidc_client_id",
+                "oidc_realm",
+                "oidc_keycloak_url",
+                "oidc_issuer",
+                "keycloak_url",
+                "keycloak_admin_user",
             }
             for satellite_key in satellite_role_only_keys:
                 passthrough_public_values.pop(satellite_key, None)
@@ -1082,6 +1266,7 @@
                 "create_namespace",
                 "operator_channel",
                 "operator_approval",
+                "operator_scope",
                 "instance_name",
                 "component_deployment",
                 "minimal_footprint",
@@ -1100,10 +1285,27 @@
                 "controller_manifest_overrides",
                 "hub_manifest_overrides",
                 "eda_manifest_overrides",
+                "license_mode",
+                "subscription_manifest_file",
+                "subscription_manifest_content_base64",
+                "subscription_manifest_encoding",
+                "rhn_username",
+                "rhn_password",
+                "rhn_subscription_id",
+                "rhn_client_id",
+                "rhn_client_secret",
             }
             for aap_key in aap_role_only_keys:
                 passthrough_public_values.pop(aap_key, None)
                 vars_data.pop(aap_key, None)
+            existing_satellite_config = {}
+        elif component == "rhbk":
+            for rhbk_key in (
+                "standalone_zip_upload_path",
+                "standalone_zip_content_base64",
+            ):
+                passthrough_public_values.pop(rhbk_key, None)
+                vars_data.pop(rhbk_key, None)
             existing_satellite_config = {}
         else:
             existing_satellite_config = {}
@@ -1146,6 +1348,98 @@
                 if "alerts_enabled" in public_values:
                     vars_data["grafana_alerts_enabled"] = as_bool(public_values.get("alerts_enabled"), False)
                     vars_data["components_env"]["grafana"]["grafana_alerts_enabled"] = vars_data["grafana_alerts_enabled"]
+                if "group_cluster_dashboards" in public_values:
+                    vars_data["grafana_group_cluster_dashboards"] = as_bool(
+                        public_values.get("group_cluster_dashboards"), True
+                    )
+                    vars_data["components_env"]["grafana"]["grafana_group_cluster_dashboards"] = (
+                        vars_data["grafana_group_cluster_dashboards"]
+                    )
+                standalone_hostname = first_present(
+                    public_values.get("standalone_hostname"),
+                    public_values.get("hostname"),
+                )
+                if standalone_hostname:
+                    vars_data["grafana_hostname"] = str(standalone_hostname)
+                    vars_data["install_grafana_hostname"] = str(standalone_hostname)
+                rpm_path = first_present(public_values.get("standalone_rpm_path"))
+                if rpm_path:
+                    vars_data["grafana_rpm_path"] = str(rpm_path)
+                    vars_data["install_grafana_rpm_path"] = str(rpm_path)
+                rpm_url = first_present(public_values.get("standalone_rpm_url"))
+                if rpm_url:
+                    vars_data["grafana_rpm_url"] = str(rpm_url)
+                    vars_data["install_grafana_rpm_url"] = str(rpm_url)
+                rhn_org = first_present(public_values.get("standalone_rhn_org_id"))
+                if rhn_org:
+                    vars_data["install_grafana_rhn_org_id"] = str(rhn_org)
+                rhn_key = first_present(secret_values.get("standalone_rhn_activation_key"))
+                if rhn_key:
+                    vars_data["install_grafana_rhn_activation_key"] = vault_ref(
+                        "vault_grafana_rhn_activation_key"
+                    )
+                    vault_data["vault_grafana_rhn_activation_key"] = QuotedString(str(rhn_key))
+                    vault_data_changed = True
+
+            if component == "gitlab":
+                standalone_hostname = first_present(
+                    public_values.get("standalone_hostname"),
+                    public_values.get("hostname"),
+                )
+                if standalone_hostname:
+                    vars_data["gitlab_hostname"] = str(standalone_hostname)
+                    vars_data["install_gitlab_hostname"] = str(standalone_hostname)
+                external_url = first_present(public_values.get("standalone_external_url"))
+                if external_url:
+                    vars_data["gitlab_external_url"] = str(external_url)
+                    vars_data["install_gitlab_external_url"] = str(external_url)
+                edition = first_present(public_values.get("standalone_edition"))
+                if edition:
+                    vars_data["gitlab_edition"] = str(edition)
+                    vars_data["install_gitlab_edition"] = str(edition)
+                rpm_path = first_present(public_values.get("standalone_rpm_path"))
+                if rpm_path:
+                    vars_data["gitlab_rpm_path"] = str(rpm_path)
+                    vars_data["install_gitlab_rpm_path"] = str(rpm_path)
+                rpm_url = first_present(public_values.get("standalone_rpm_url"))
+                if rpm_url:
+                    vars_data["gitlab_rpm_url"] = str(rpm_url)
+                    vars_data["install_gitlab_rpm_url"] = str(rpm_url)
+                if secret_values.get("standalone_root_password"):
+                    vars_data["gitlab_root_password"] = vault_ref("vault_gitlab_root_password")
+                    vault_data["vault_gitlab_root_password"] = QuotedString(
+                        str(secret_values.get("standalone_root_password"))
+                    )
+                    vault_data["gitlab_root_password"] = QuotedString(
+                        str(secret_values.get("standalone_root_password"))
+                    )
+                    vault_data_changed = True
+                tls_crt = first_present(
+                    secret_values.get("standalone_tls_crt"),
+                    public_values.get("standalone_tls_crt"),
+                )
+                tls_key = first_present(secret_values.get("standalone_tls_key"))
+                if tls_crt:
+                    vars_data["gitlab_tls_crt"] = vault_ref("vault_gitlab_tls_crt")
+                    vault_data["vault_gitlab_tls_crt"] = QuotedString(str(tls_crt))
+                    vault_data["gitlab_tls_crt"] = QuotedString(str(tls_crt))
+                    vault_data_changed = True
+                if tls_key:
+                    vars_data["gitlab_tls_key"] = vault_ref("vault_gitlab_tls_key")
+                    vault_data["vault_gitlab_tls_key"] = QuotedString(str(tls_key))
+                    vault_data["gitlab_tls_key"] = QuotedString(str(tls_key))
+                    vault_data_changed = True
+                rhn_org = first_present(public_values.get("standalone_rhn_org_id"))
+                if rhn_org:
+                    vars_data["install_gitlab_rhn_org_id"] = str(rhn_org)
+                    vars_data["gitlab_rhn_org_id"] = str(rhn_org)
+                rhn_key = first_present(secret_values.get("standalone_rhn_activation_key"))
+                if rhn_key:
+                    vars_data["install_gitlab_rhn_activation_key"] = vault_ref(
+                        "vault_gitlab_rhn_activation_key"
+                    )
+                    vault_data["vault_gitlab_rhn_activation_key"] = QuotedString(str(rhn_key))
+                    vault_data_changed = True
 
             if component == "rhbk":
                 vars_data.setdefault("components_env", {}).setdefault("rhbk", {})
@@ -1178,6 +1472,80 @@
                         vars_data["components_env"]["rhbk"]["rhbk_clients"] = copy.deepcopy(rhbk_clients)
                 if public_values.get("client"):
                     vars_data["rhbk_client"] = str(public_values.get("client"))
+                standalone_hostname = first_present(public_values.get("standalone_hostname"))
+                if standalone_hostname:
+                    vars_data["rhbk_standalone_hostname"] = str(standalone_hostname)
+                    vars_data["install_rhbk_standalone_hostname"] = str(standalone_hostname)
+                zip_url = first_present(public_values.get("standalone_zip_url"))
+                if zip_url:
+                    vars_data["rhbk_standalone_zip_url"] = str(zip_url)
+                zip_filename = first_present(
+                    public_values.get("standalone_zip_file"),
+                    Path(str(public_values.get("standalone_zip") or "")).name
+                    if public_values.get("standalone_zip")
+                    else None,
+                )
+                zip_upload = first_present(public_values.get("standalone_zip_upload_path"))
+                zip_content = first_present(secret_values.get("standalone_zip_content_base64"))
+                if zip_content:
+                    zip_target = write_repo_file_from_preflight(
+                        zip_filename,
+                        zip_content,
+                        "rhbk.zip",
+                        "base64",
+                    )
+                    vars_data["rhbk_standalone_zip"] = QuotedString(playbook_file_ref(zip_target.name))
+                elif zip_upload and Path(str(zip_upload)).is_file():
+                    zip_target = copy_repo_file_from_path(
+                        zip_upload,
+                        zip_filename,
+                        "rhbk.zip",
+                    )
+                    vars_data["rhbk_standalone_zip"] = QuotedString(playbook_file_ref(zip_target.name))
+                elif zip_filename and str(zip_filename).lower().endswith(".zip"):
+                    typed_zip = str(public_values.get("standalone_zip") or "")
+                    if typed_zip.startswith("/"):
+                        vars_data["rhbk_standalone_zip"] = typed_zip
+                    else:
+                        vars_data["rhbk_standalone_zip"] = QuotedString(
+                            playbook_file_ref(Path(str(zip_filename)).name)
+                        )
+                if public_values.get("standalone_admin_user"):
+                    vars_data["rhbk_admin_user"] = str(public_values.get("standalone_admin_user"))
+                if secret_values.get("standalone_admin_password"):
+                    vars_data["rhbk_admin_password"] = vault_ref("vault_rhbk_admin_password")
+                    vault_data["vault_rhbk_admin_password"] = QuotedString(
+                        str(secret_values.get("standalone_admin_password"))
+                    )
+                    vault_data_changed = True
+                tls_crt = first_present(
+                    secret_values.get("standalone_tls_crt"),
+                    public_values.get("standalone_tls_crt"),
+                )
+                tls_key = first_present(secret_values.get("standalone_tls_key"))
+                if tls_crt:
+                    vars_data["rhbk_standalone_tls_crt"] = vault_ref("vault_rhbk_standalone_tls_crt")
+                    vars_data["tls_crt"] = vault_ref("vault_rhbk_standalone_tls_crt")
+                    vault_data["vault_rhbk_standalone_tls_crt"] = QuotedString(str(tls_crt))
+                    vault_data_changed = True
+                if tls_key:
+                    vars_data["rhbk_standalone_tls_key"] = vault_ref("vault_rhbk_standalone_tls_key")
+                    vars_data["tls_key"] = vault_ref("vault_rhbk_standalone_tls_key")
+                    vault_data["vault_rhbk_standalone_tls_key"] = QuotedString(str(tls_key))
+                    vault_data_changed = True
+                if tls_crt and tls_key:
+                    vars_data["rhbk_standalone_https_enabled"] = True
+                    vars_data["install_rhbk_standalone_https_enabled"] = True
+                rhn_org = first_present(public_values.get("standalone_rhn_org_id"))
+                if rhn_org:
+                    vars_data["install_rhbk_rhn_org_id"] = str(rhn_org)
+                rhn_key = first_present(secret_values.get("standalone_rhn_activation_key"))
+                if rhn_key:
+                    vars_data["install_rhbk_rhn_activation_key"] = vault_ref(
+                        "vault_rhbk_rhn_activation_key"
+                    )
+                    vault_data["vault_rhbk_rhn_activation_key"] = QuotedString(str(rhn_key))
+                    vault_data_changed = True
                 for mapper_key in (
                     "group_mapper_name",
                     "group_mapper_claim",
@@ -1192,19 +1560,18 @@
                         vars_data[mapper_key] = public_values.get(mapper_key)
 
             if component == "aap":
-                deployment_version = str(
-                    first_present(
-                        public_values.get("deployment_version"),
-                        public_values.get("version"),
-                        "2.6",
-                    )
+                preflight_aap = preflight.get("aap") or {}
+                deployment_version = aap_dotted_version(
+                    public_values.get("deployment_version"),
+                    public_values.get("version"),
+                    preflight_aap.get("version"),
+                    default="2.7",
                 )
                 namespace = str(public_values.get("namespace") or "aap")
                 instance_name = str(
                     public_values.get("instance_name") or namespace
                 )
                 admin_password_secret = f"{instance_name}-admin-password"
-                preflight_aap = preflight.get("aap") or {}
                 admin_username = str(
                     first_present(
                         public_values.get("admin_username"),
@@ -1213,10 +1580,29 @@
                     )
                     or "admin"
                 )
-                admin_password = first_present(
-                    secret_values.get("admin_password"),
-                    preflight_aap.get("admin_password"),
-                )
+                # license_only may not be finalized until later in this block;
+                # detect attach early so General-tab password wins.
+                _attach_early = (
+                    isinstance(preflight.get("pre_installs"), dict)
+                    and as_bool(
+                        (preflight.get("pre_installs") or {}).get("attach_aap_license"),
+                        False,
+                    )
+                    and not as_bool(
+                        (preflight.get("pre_installs") or {}).get("install_aap"),
+                        False,
+                    )
+                ) or as_bool(public_values.get("license_only"), False)
+                if _attach_early:
+                    admin_password = first_present(
+                        preflight_aap.get("admin_password"),
+                        secret_values.get("admin_password"),
+                    )
+                else:
+                    admin_password = first_present(
+                        secret_values.get("admin_password"),
+                        preflight_aap.get("admin_password"),
+                    )
                 if admin_password is not None:
                     vault_data["aap_admin_password"] = admin_password
                     vault_data["vault_controller_password"] = admin_password
@@ -1264,11 +1650,33 @@
                     "api_key": vault_ref("token"),
                     "validate_certs": not skip_tls_verify,
                 }
+                operator_scope_raw = str(
+                    public_values.get("operator_scope") or "all_namespaces"
+                ).strip().lower().replace("-", "_")
+                if operator_scope_raw in (
+                    "namespaced",
+                    "namespace",
+                    "single_namespace",
+                ):
+                    operator_scope = "namespaced"
+                    default_operator_channel = f"stable-{deployment_version}"
+                else:
+                    operator_scope = "all_namespaces"
+                    default_operator_channel = (
+                        f"stable-{deployment_version}-cluster-scoped"
+                    )
+                operator_channel = str(
+                    public_values.get("operator_channel")
+                    or default_operator_channel
+                )
+                vars_data["aap_operator_scope"] = operator_scope
+                vars_data.setdefault("component_config", {}).setdefault("aap", {})
+                vars_data["component_config"]["aap"]["operator_scope"] = operator_scope
+                vars_data["component_config"]["aap"]["operator_channel"] = (
+                    operator_channel
+                )
                 vars_data["aap_ocp_install_operator"] = {
-                    "channel": str(
-                        public_values.get("operator_channel")
-                        or f"stable-{deployment_version}-cluster-scoped"
-                    ),
+                    "channel": operator_channel,
                     "approval": str(
                         public_values.get("operator_approval") or "automatic"
                     ),
@@ -1354,6 +1762,31 @@
                     or "none"
                 ).lower()
                 vars_data["aap_ocp_install_license_mode"] = license_mode
+                license_only = as_bool(
+                    first_present(
+                        public_values.get("license_only"),
+                        pre_aap.get("license_only"),
+                        pre_installs.get("attach_aap_license")
+                        if (
+                            isinstance(pre_installs, dict)
+                            and not as_bool(pre_installs.get("install_aap"), False)
+                            and as_bool(pre_installs.get("attach_aap_license"), False)
+                        )
+                        else False,
+                    ),
+                    False,
+                )
+                # Attach-only: run install path for license attach, skip operator.
+                if (
+                    isinstance(pre_installs, dict)
+                    and as_bool(pre_installs.get("attach_aap_license"), False)
+                    and not as_bool(pre_installs.get("install_aap"), False)
+                ):
+                    license_only = True
+                    vars_data["aap_install_during_bootstrap"] = True
+                    public_values["install_during_bootstrap"] = True
+                vars_data["aap_ocp_install_license_only"] = license_only
+                public_values["license_only"] = license_only
                 manifest_file = first_present(
                     public_values.get("subscription_manifest_file"),
                     pre_aap.get("subscription_manifest_file"),
@@ -1381,7 +1814,61 @@
                     vars_data["aap_ocp_install_rhn_username"] = str(rhn_user)
                 if rhn_pass:
                     vault_data["aap_ocp_install_rhn_password"] = rhn_pass
+                    vars_data["aap_ocp_install_rhn_password"] = vault_ref(
+                        "aap_ocp_install_rhn_password"
+                    )
                     vault_data_changed = True
+                rhn_subscription_id = first_present(
+                    public_values.get("rhn_subscription_id"),
+                    pre_aap.get("rhn_subscription_id"),
+                )
+                if rhn_subscription_id:
+                    vars_data["aap_ocp_install_rhn_subscription_id"] = str(
+                        rhn_subscription_id
+                    )
+                rhn_client_id = first_present(
+                    public_values.get("rhn_client_id"),
+                    pre_aap.get("rhn_client_id"),
+                )
+                rhn_client_secret = first_present(
+                    secret_values.get("rhn_client_secret"),
+                    public_values.get("rhn_client_secret"),
+                    pre_aap.get("rhn_client_secret"),
+                )
+                if rhn_client_id:
+                    vars_data["aap_ocp_install_rhn_client_id"] = str(rhn_client_id)
+                if rhn_client_secret:
+                    vault_data["aap_ocp_install_rhn_client_secret"] = rhn_client_secret
+                    vars_data["aap_ocp_install_rhn_client_secret"] = vault_ref(
+                        "aap_ocp_install_rhn_client_secret"
+                    )
+                    vault_data_changed = True
+                # License-only attach: prefer General tab aap.hostname over stale
+                # component_config.aap.hostname (e.g. default aap-aap.apps...).
+                if license_only:
+                    hostname_value = first_present(
+                        preflight_aap.get("hostname"),
+                        public_values.get("hostname"),
+                    )
+                else:
+                    hostname_value = first_present(
+                        public_values.get("hostname"),
+                        preflight_aap.get("hostname"),
+                    )
+                if hostname_value:
+                    host_clean = re.sub(
+                        r"^https?://", "", str(hostname_value)
+                    ).rstrip("/")
+                    vars_data["hostname"] = host_clean
+                    vars_data["aap_hostname"] = host_clean
+                    vars_data["aap_ocp_install_controller_route_host"] = host_clean
+                # Manifest base64 must be available to the license task as a var.
+                if manifest_b64:
+                    vars_data[
+                        "aap_ocp_install_subscription_manifest_content_base64"
+                    ] = vault_ref(
+                        "aap_ocp_install_subscription_manifest_content_base64"
+                    )
 
             if component == "devspaces":
                 vars_data.setdefault("components_env", {}).setdefault("devspaces", {})
@@ -1745,6 +2232,109 @@
                         vars_data["satellite_install_min_memory_size"] = int(selected_size["min_ram"]) * 1024
                     if selected_size.get("min_cpu") is not None:
                         vars_data["satellite_install_min_cpu_count"] = int(selected_size["min_cpu"])
+
+                oidc_cfg = public_values.get("oidc") if isinstance(public_values.get("oidc"), dict) else {}
+                oidc_client_id = first_present(
+                    oidc_cfg.get("client_id"),
+                    public_values.get("oidc_client_id"),
+                    public_values.get("satellite_oidc_client_id"),
+                    "ado-satellite",
+                )
+                oidc_realm = first_present(
+                    oidc_cfg.get("realm"),
+                    public_values.get("oidc_realm"),
+                    public_values.get("satellite_oidc_realm"),
+                    "rhlab",
+                )
+                oidc_keycloak_url = first_present(
+                    oidc_cfg.get("keycloak_url"),
+                    public_values.get("keycloak_url"),
+                    public_values.get("satellite_oidc_keycloak_url"),
+                    "https://keycloak.apps.ocp.prod.rhlab",
+                )
+                oidc_issuer = first_present(
+                    oidc_cfg.get("issuer"),
+                    public_values.get("oidc_issuer"),
+                    public_values.get("satellite_oidc_issuer"),
+                )
+                if oidc_issuer is None and oidc_keycloak_url and oidc_realm:
+                    oidc_issuer = str(oidc_keycloak_url).rstrip("/") + "/realms/" + str(oidc_realm)
+                oidc_hostname = str(oidc_keycloak_url or "").strip()
+                oidc_hostname = oidc_hostname.replace("https://", "").replace("http://", "")
+                oidc_hostname = oidc_hostname.split("/")[0]
+                if oidc_client_id:
+                    vars_data["satellite_oidc_client_id"] = str(oidc_client_id)
+                    vars_data["rhbk_client"] = str(oidc_client_id)
+                if oidc_realm:
+                    vars_data["satellite_oidc_realm"] = str(oidc_realm)
+                    vars_data["rhbk_realm"] = str(oidc_realm)
+                if oidc_keycloak_url:
+                    vars_data["satellite_oidc_keycloak_url"] = str(oidc_keycloak_url)
+                if oidc_hostname:
+                    vars_data["satellite_oidc_keycloak_hostname"] = oidc_hostname
+                    vars_data["rhbk_hostname"] = oidc_hostname
+                if oidc_issuer:
+                    vars_data["satellite_oidc_issuer"] = str(oidc_issuer)
+                vars_data["satellite_oidc_create_client"] = as_bool(
+                    first_present(
+                        oidc_cfg.get("create_client"),
+                        public_values.get("satellite_oidc_create_client"),
+                        True,
+                    ),
+                    True,
+                )
+                vars_data["satellite_oidc_keycloak_validate_certs"] = as_bool(
+                    first_present(
+                        oidc_cfg.get("validate_certs"),
+                        public_values.get("oidc_validate_certs"),
+                        False,
+                    ),
+                    False,
+                )
+                vars_data["rhbk_verify_ssl"] = vars_data["satellite_oidc_keycloak_validate_certs"]
+                if vars_data.get("satellite_config_server_url"):
+                    vars_data["satellite_oidc_server_url"] = vars_data["satellite_config_server_url"]
+                vars_data["satellite_oidc_validate_certs"] = vars_data.get(
+                    "satellite_config_validate_certs", False
+                )
+                oidc_client_secret = first_present(
+                    oidc_cfg.get("client_secret"),
+                    secret_values.get("oidc_client_secret"),
+                    secret_values.get("client_secret"),
+                    secret_values.get("satellite_oidc_client_secret"),
+                )
+                oidc_admin_user = first_present(
+                    oidc_cfg.get("admin_user"),
+                    oidc_cfg.get("keycloak_admin_user"),
+                    public_values.get("keycloak_admin_user"),
+                    "admin",
+                )
+                oidc_admin_password = first_present(
+                    oidc_cfg.get("admin_password"),
+                    oidc_cfg.get("keycloak_admin_password"),
+                    secret_values.get("keycloak_admin_password"),
+                    secret_values.get("rhbk_admin_password"),
+                    secret_values.get("oidc_admin_password"),
+                )
+                if oidc_admin_user:
+                    vars_data["satellite_oidc_admin_user"] = vault_ref("vault_rhbk_admin_user")
+                    vars_data["rhbk_admin_user"] = vault_ref("vault_rhbk_admin_user")
+                    vault_data["vault_rhbk_admin_user"] = QuotedString(str(oidc_admin_user))
+                    vault_data_changed = True
+                if oidc_admin_password is not None:
+                    vars_data["satellite_oidc_admin_password"] = vault_ref("vault_rhbk_admin_password")
+                    vars_data["rhbk_admin_password"] = vault_ref("vault_rhbk_admin_password")
+                    vault_data["vault_rhbk_admin_password"] = QuotedString(str(oidc_admin_password))
+                    vault_data_changed = True
+                if oidc_client_secret is not None:
+                    vars_data["satellite_oidc_client_secret"] = vault_ref(
+                        "vault_satellite_oidc_client_secret"
+                    )
+                    vault_data["vault_satellite_oidc_client_secret"] = QuotedString(
+                        str(oidc_client_secret)
+                    )
+                    vault_data_changed = True
+                vars_data.pop("oidc", None)
 
             if component == "cert_manager":
                 if public_values.get("mode"):
@@ -2284,7 +2874,7 @@
 
     - name: Ask AAP version
       ansible.builtin.pause:
-        prompt: "AAP version [2.4/2.5/2.6]"
+        prompt: "AAP version [2.4/2.5/2.6/2.7]"
       register: bootstrap_generate_env_vars_prompt_aap_version
 
     - name: Ask AAP organization
@@ -2395,26 +2985,52 @@
             echo: false
           register: bootstrap_generate_env_vars_prompt_jira_token
 
+- name: Normalize AAP version from preflight
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_aap_version_number: >-
+      {% set v = (
+        bootstrap_generate_env_vars_preflight.aap.version
+        | default('27', true)
+        | string
+        | replace(',', '.')
+        | trim
+      ) %}
+      {% if v in ['2.4', '24'] %}
+      24
+      {% elif v in ['2.5', '25'] %}
+      25
+      {% elif v in ['2.6', '26'] %}
+      26
+      {% elif v in ['2.7', '27'] %}
+      27
+      {% else %}
+      27
+      {% endif %}
+  when:
+    - bootstrap_generate_env_vars_use_aap | bool
+    - bootstrap_generate_env_vars_preflight is defined
+
 - name: Normalize AAP version interactive
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_aap_version_number: >-
       {% set v = (bootstrap_generate_env_vars_prompt_aap_version.user_input
-                  | default('2.6', true)
+                  | default('2.7', true)
                   | replace(',', '.')
                   | trim) %}
-      {% if v == '2.4' %}
+      {% if v in ['2.4', '24'] %}
       24
-      {% elif v == '2.5' %}
+      {% elif v in ['2.5', '25'] %}
       25
-      {% elif v == '2.6' %}
+      {% elif v in ['2.6', '26'] %}
       26
-      {% elif v == '2.7' %}
+      {% elif v in ['2.7', '27'] %}
       27
       {% else %}
-      26
+      27
       {% endif %}
   when:
     - bootstrap_generate_env_vars_use_aap | bool
+    - bootstrap_generate_env_vars_preflight is not defined
 
 - name: Write AAP config vars
   ansible.builtin.template:

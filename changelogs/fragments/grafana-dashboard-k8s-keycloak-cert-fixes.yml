@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - |
+    Grafana OpenShift dashboards: remove broken ``origin_prometheus`` filters from
+    K8S views (caused systemic No data on OCP), replace Keycloak SPI dashboards
+    with RHBK Micrometer metrics (``jvm_*`` / ``http_server_*``), and make
+    cert-manager expiry tiles show 0 instead of No data for empty windows.

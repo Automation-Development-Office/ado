@@ -1,0 +1,6 @@
+---
+bugfixes:
+  - aap_ocp_install - RHN license activation now lists subscriptions and POSTs ``/config/attach/`` with a ``subscription_id`` instead of only posting username/password to ``/config/`` (which left new AAP installs on the subscription wizard).
+minor_changes:
+  - aap_ocp_install - Support optional ``aap_ocp_install_rhn_subscription_id`` and service-account ``client_id``/``client_secret`` for license attach; auto-select an Ansible Automation Platform pool when subscription id is omitted.
+  - bootstrap_generate_env_vars / preflight - Pass hostname, vaulted RHN password, optional subscription id, and admin credentials through to license activation.

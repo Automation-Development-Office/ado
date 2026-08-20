@@ -70,4 +70,6 @@
     protocol_mappers: "{{ rhbk_protocol_mappers | default(omit) }}"
     attributes: "{{ rhbk_attributes | default(omit) }}"
   delegate_to: localhost
+  connection: local
+  become: false
   no_log: "{{ rhbk_no_log | default(true) }}"

@@ -1,0 +1,160 @@
+---
+# Skip create/update when the EE already exists (often global / other-org).
+# Org tokens can usually *use* that EE on job templates but cannot PATCH it
+# (HTTP 403). Looking it up by name and leaving it in place unblocks the rest
+# of bootstrap (projects, JTs).
+
+- name: AAP | Look up execution environments by name
+  ansible.builtin.uri:
+    url: >-
+      {{
+        (bootstrap_controller_aap_api_url | default(''))
+        ~ (bootstrap_controller_aap_effective_api_path | default('/api/controller/v2'))
+        ~ '/execution_environments/?name='
+        ~ (item.name | urlencode)
+      }}
+    method: GET
+    headers: >-
+      {{
+        {
+          'Authorization':
+          'Bearer ' ~ bootstrap_controller_controller_oauthtoken
+        }
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length > 0
+        )
+        else {}
+      }}
+    url_username: >-
+      {{
+        bootstrap_controller_controller_username
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    url_password: >-
+      {{
+        bootstrap_controller_controller_password
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    force_basic_auth: >-
+      {{
+        bootstrap_controller_controller_oauthtoken
+        | default('')
+        | length == 0
+      }}
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+    return_content: true
+    status_code: [200, 403]
+  loop: "{{ controller_execution_environments | default([]) }}"
+  loop_control:
+    label: "{{ item.name | default('ee') }}"
+  register: bootstrap_controller_ee_lookup
+  failed_when: false
+  when:
+    - controller_execution_environments | default([]) | length > 0
+    - item.name | default('') | length > 0
+    - bootstrap_controller_aap_api_url | default('') | length > 0
+
+- name: AAP | Reset existing EE name list
+  ansible.builtin.set_fact:
+    bootstrap_controller_existing_ee_names: []
+
+- name: AAP | Record EEs that already exist or cannot be changed
+  ansible.builtin.set_fact:
+    bootstrap_controller_existing_ee_names: >-
+      {{
+        (bootstrap_controller_existing_ee_names | default([]))
+        + [item.item.name]
+      }}
+  loop: "{{ bootstrap_controller_ee_lookup.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name | default('ee') }}"
+  when:
+    - item.item.name | default('') | length > 0
+    - >-
+      (item.status | default(0) | int == 403)
+      or (
+        (item.status | default(0) | int == 200)
+        and ((item.json.count | default(0) | int) > 0)
+      )
+
+- name: AAP | Drop existing execution environments from the create/update list  # noqa: var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    controller_execution_environments: >-
+      {{
+        controller_execution_environments
+        | default([])
+        | rejectattr('name', 'defined')
+        | list
+        +
+        (
+          controller_execution_environments
+          | default([])
+          | selectattr('name', 'defined')
+          | rejectattr(
+              'name',
+              'in',
+              bootstrap_controller_existing_ee_names | default([])
+            )
+          | list
+        )
+      }}
+    bootstrap_controller_controller_execution_environments: >-
+      {{
+        bootstrap_controller_controller_execution_environments
+        | default([])
+        | rejectattr('name', 'defined')
+        | list
+        +
+        (
+          bootstrap_controller_controller_execution_environments
+          | default([])
+          | selectattr('name', 'defined')
+          | rejectattr(
+              'name',
+              'in',
+              bootstrap_controller_existing_ee_names | default([])
+            )
+          | list
+        )
+      }}
+    controller_bootstrap_controller_execution_environments: >-
+      {{
+        controller_bootstrap_controller_execution_environments
+        | default([])
+        | rejectattr('name', 'defined')
+        | list
+        +
+        (
+          controller_bootstrap_controller_execution_environments
+          | default([])
+          | selectattr('name', 'defined')
+          | rejectattr(
+              'name',
+              'in',
+              bootstrap_controller_existing_ee_names | default([])
+            )
+          | list
+        )
+      }}
+  when: bootstrap_controller_existing_ee_names | default([]) | length > 0
+
+- name: AAP | Note skipped execution environments
+  ansible.builtin.debug:
+    msg: >-
+      Skipping create/update of existing execution environment(s)
+      {{ bootstrap_controller_existing_ee_names | join(', ') }}.
+      Job templates still reference those names. Org tokens often cannot
+      PATCH global or other-org EEs (HTTP 403).
+  when: bootstrap_controller_existing_ee_names | default([]) | length > 0

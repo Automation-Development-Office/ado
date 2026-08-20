@@ -88,6 +88,7 @@
     - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
   ansible.builtin.set_fact:
     aap_ocp_install_controller_route: "https://{{ __aap_ocp_install_controller_route_result['resources'][0]['status']['ingress'][0]['host'] }}"
+    aap_ocp_install_controller_route_host: "{{ __aap_ocp_install_controller_route_result['resources'][0]['status']['ingress'][0]['host'] }}"
 
 - name: install-platform | Ensure automation controller API is available
   when:
@@ -173,8 +174,20 @@
   register: __aap_ocp_install_hub_route_result
   until:
     - __aap_ocp_install_hub_route_result['resources'] | length > 0
-  retries: 60 # Wait for 15 minutes (60*15/60)
-  delay: 15
+  retries: 12
+  delay: 10
+  failed_when: false
+
+- name: install-platform | Fall back to platform gateway route for Hub on AAP 2.5+
+  when:
+    - aap_ocp_install_hub is defined
+    - aap_ocp_install_hub['install'] is defined
+    - aap_ocp_install_hub['install'] | bool
+    - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+    - (__aap_ocp_install_hub_route_result['resources'] | default([]) | length) == 0
+  ansible.builtin.set_fact:
+    aap_ocp_install_hub_route: "{{ aap_ocp_install_platform_route }}"
+    aap_ocp_install_hub_route_via_gateway: true
 
 - name: install-platform | Store automation hub route
   when:
@@ -182,8 +195,10 @@
     - aap_ocp_install_hub['install'] is defined
     - aap_ocp_install_hub['install'] | bool
     - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+    - (__aap_ocp_install_hub_route_result['resources'] | default([]) | length) > 0
   ansible.builtin.set_fact:
     aap_ocp_install_hub_route: "https://{{ __aap_ocp_install_hub_route_result['resources'][0]['status']['ingress'][0]['host'] }}"
+    aap_ocp_install_hub_route_via_gateway: false
 
 - name: install-platform | Ensure automation hub API is available
   when:
@@ -191,6 +206,7 @@
     - aap_ocp_install_hub['install'] is defined
     - aap_ocp_install_hub['install'] | bool
     - not ((__aap_ocp_install_platform_component_deployment | default('unified')) == 'individual')
+    - (aap_ocp_install_hub_route | default('') | length) > 0
   ansible.builtin.uri:
     url: "{{ aap_ocp_install_hub_route }}/api/galaxy/pulp/api/v3/"
     validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"

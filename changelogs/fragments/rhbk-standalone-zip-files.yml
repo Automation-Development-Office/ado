@@ -1,0 +1,6 @@
+---
+minor_changes:
+  - |
+    bootstrap_generate_env_vars - Stage a selected RHBK standalone zip into
+    ``files/`` and set ``rhbk_standalone_zip`` to the playbook-relative path
+    so AAP can copy it from the controller/EE.

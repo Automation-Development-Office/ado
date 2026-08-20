@@ -1,0 +1,50 @@
+# yamllint disable rule:line-length
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# Standalone GitLab CE/EE on RHEL.
+# Lab default is disconnected: stage gitlab-ce/ee RPM (Contoller path or internal URL).
+# Set install_gitlab_allow_online_repo=true only for connected labs (packages.gitlab.com).
+state: present  # noqa: var-naming[no-role-prefix]
+
+install_gitlab_hostname: "{{ gitlab_hostname | default('gitlab-ado.server.lab') }}"
+install_gitlab_http_port: 80
+install_gitlab_https_port: 443
+install_gitlab_root_password: "{{ gitlab_root_password | default('redhat123') }}"
+
+# Edition: ce (default) or ee.
+install_gitlab_edition: "{{ gitlab_edition | default('ce') }}"
+
+# Override when needed; otherwise tasks pick gitlab-ce / gitlab-ee from edition.
+install_gitlab_package: ""
+
+# Prefer explicit URL; empty means derive http(s)://hostname from TLS PEMs.
+install_gitlab_external_url: "{{ gitlab_external_url | default('') }}"
+
+# Optional TLS (same PEM pattern as install_rhbk standalone).
+install_gitlab_tls_crt: "{{ gitlab_tls_crt | default(tls_crt | default('')) }}"
+install_gitlab_tls_key: "{{ gitlab_tls_key | default(tls_key | default('')) }}"
+
+# Airgap (required unless allow_online_repo or package already installed):
+# local RPM on Contoller/runner, or internal mirror URL (Satellite/pulp/httpd).
+install_gitlab_rpm_path: "{{ gitlab_rpm_path | default('') }}"
+install_gitlab_rpm_url: "{{ gitlab_rpm_url | default('') }}"
+# Disconnected by default — do not hit packages.gitlab.com unless explicitly enabled.
+install_gitlab_allow_online_repo: "{{ gitlab_allow_online_repo | default(false) | bool }}"
+# Override only if mirroring packages.gitlab.com offline; otherwise derived from edition.
+install_gitlab_repo_script_url: ""
+
+# When the VM has no Satellite/repos, pre-stage deps and set skip_packages.
+install_gitlab_skip_packages: false
+install_gitlab_tls_dir: /etc/gitlab/ssl
+install_gitlab_config_path: /etc/gitlab/gitlab.rb
+
+# initial_root_password in gitlab.rb only applies on first Omnibus bootstrap.
+# Always enforce root password via gitlab-rails after install (like Grafana
+# reset-admin-password) so Contoller survey password matches login.
+install_gitlab_manage_root_password: "{{ gitlab_manage_root_password | default(true) | bool }}"
+
+# Optional RHN registration when the VM has no Satellite repos (URL/deps path).
+# Skip when already registered. Org id + activation key only — no username/password.
+install_gitlab_rhn_org_id: "{{ gitlab_rhn_org_id | default('') }}"
+install_gitlab_rhn_activation_key: "{{ gitlab_rhn_activation_key | default('') }}"
+install_gitlab_connect_timeout: "{{ gitlab_connect_timeout | default(30) }}"

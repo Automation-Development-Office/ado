@@ -1,0 +1,66 @@
+---
+description: Run GitHub-equivalent CI checks on changed files before check-in
+alwaysApply: true
+---
+
+# ADO local CI checks (changed files only)
+
+Unless the user says otherwise, **lint and verify only what you changed** — not the full collection.
+
+## Before finishing any change
+
+1. **Changelog** — add `changelogs/fragments/<topic>.yml` (see `changelog-fragments.mdc`).
+2. **Role README** — create or update `roles/<role>/README.md` using `docs/templates/role_readme_format_template.md`.
+3. **Main README** — add or update the role row in the [Role documentation](README.md#role-documentation) table when a role is new or materially changed.
+4. **Lint changed YAML** — `yamllint` + `ansible-lint --offline` on touched paths only.
+5. **README verify** — `python scripts/verify_readme.py roles/<role>/README.md` for each changed role README.
+
+## Before check-in (required)
+
+GitHub CI runs **full-repo** `ansible-lint --offline` (see `.github/workflows/tests.yml`).
+Linting only changed files is not enough — that is how PR 272 failed after check-in.
+
+Before you tell the user the branch is ready:
+
+```bash
+export ANSIBLE_COLLECTIONS_PATH="$(pwd)/.ansible/collections"
+ansible-lint --offline
+```
+
+That command must exit 0. Fix every **error** it reports, including pre-existing ones in files you did not originally touch if CI would fail on them.
+
+During work you may still lint only touched paths for a fast loop.
+
+
+## Local commands (collection root)
+
+Install deps once:
+
+```bash
+ansible-galaxy collection install -r collections/requirements.yml -p .ansible/collections
+export ANSIBLE_COLLECTIONS_PATH="$(pwd)/.ansible/collections"
+```
+
+Lint **changed** role/task paths:
+
+```bash
+yamllint roles/<role>/tasks roles/<role>/defaults
+ansible-lint --offline roles/<role>/tasks/*.yml roles/<role>/defaults/main.yml
+```
+
+Verify README for a changed role:
+
+```bash
+python scripts/verify_readme.py roles/<role>/README.md \
+  --template docs/templates/role_readme_format_template.md
+```
+
+Optional before large PRs: `ansible-test sanity --docker` and `ansible-galaxy collection build`.
+
+## Preflight UI ([ado-preflight-ui](https://github.com/Automation-Development-Office/ado-preflight-ui))
+
+When changing preflight: `npm install && npm run build`, smoke `node server.js`, and `./actionlint` on `.github/workflows/` (see that repo's `ci.yml`).
+
+## Fix failures in your diff
+
+Do not leave new ansible-lint/yamllint/README/changelog issues in files you touched. Pre-existing repo-wide lint debt is out of scope unless the user asks for a full-repo pass.

@@ -1,58 +1,42 @@
 # Role: infra.ado.install_rhbk
 
-Install Rhbk automation role. Primary tasks include: Delete Keycloak Custom Resource; Delete PostgreSQL Service; Delete PostgreSQL StatefulSet.
+Install **Red Hat Build of Keycloak (RHBK)** — Red Hat's supported Keycloak
+distribution. This role never installs upstream Keycloak.
 
-## Role Author
+## Platforms
 
-Automation Development Office
+| `install_rhbk_platform` | What runs |
+|-------------------------|-----------|
+| `openshift` (default)   | Operator + Keycloak CR + Postgres on OpenShift |
+| `rhel` / `standalone`   | Podman containers on RHEL VM/bare metal |
 
-## ✅ Role Requirements
-
-- Ansible Core
-- Required collections listed in `collections/requirements.yml`
-- Inventory or extra variables appropriate for the target platform
-
-## 📦 Role Variables
-
-| Variable | Description |
-|----------|-------------|
-| `install_rhbk_state` | Desired state used by role tasks when supported. |
-
-## 🚀 Role Usage
+## Standalone (RHEL) example
 
 ```yaml
-- name: Run install_rhbk
-  hosts: localhost
-  gather_facts: false
+- hosts: keycloak_ado
+  become: true
   roles:
     - role: infra.ado.install_rhbk
+      vars:
+        install_rhbk_platform: rhel
+        rhbk_hostname: keycloak-ado.server.lab
+        rhbk_admin_password: "{{ vault_rhbk_admin_password }}"
+        rhbk_db_password: "{{ vault_rhbk_db_password }}"
+        # registry.redhat.io pull (or pre-load authfile on the host)
+        rhbk_registry_user: "{{ vault_rh_registry_user | default('') }}"
+        rhbk_registry_password: "{{ vault_rh_registry_password | default('') }}"
 ```
 
-## 🧪 Role Molecule Testing
+Image defaults to `registry.redhat.io/rhbk/keycloak-rhel9:26.2`.
 
-Run Molecule scenarios from the role directory when a scenario is available.
+## OpenShift example
 
-This role runs tasks such as:
-
-- Delete Keycloak Custom Resource
-- Delete PostgreSQL Service
-- Delete PostgreSQL StatefulSet
-- Delete PVC from StatefulSet
-
-```bash
-cd roles/install_rhbk
-molecule test
-```
-
-## 📁 Role Structure
-
-```text
-roles/install_rhbk/
-  README.md
-  defaults/
-  handlers/
-  meta/
-  tasks/
-  tests/
-  vars/
+```yaml
+- hosts: localhost
+  roles:
+    - role: infra.ado.install_rhbk
+      vars:
+        install_rhbk_platform: openshift
+        name_space: keycloak
+        ocp_rhbk_hostname: keycloak.apps.ocp.prod.rhlab
 ```

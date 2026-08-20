@@ -139,6 +139,12 @@
       acs:
         - ado-acs-deploy-and-configure-bootstrap.jt.yml
 
+      acs_report:
+        - ado-acs-report-bootstrap.jt.yml
+        - ado-acs-report-rhsource-bootstrap.jt.yml
+        - ado-acs-report-raw-bootstrap.jt.yml
+        - ado-acs-report-age-bootstrap.jt.yml
+
       acm:
         - ado-acm-deploy-and-configure-bootstrap.jt.yml
 
@@ -164,6 +170,10 @@
 
       gitlab:
         - ado-gitlab-deploy-and-configure-bootstrap.jt.yml
+        - ado-install-gitlab-standalone-bootstrap.jt.yml
+
+      gitlab_standalone:
+        - ado-install-gitlab-standalone-bootstrap.jt.yml
 
       gitops:
         - ado-gitops-deploy-bootstrap.jt.yml
@@ -172,6 +182,16 @@
         - ado-grafana-create-custom-route.jt.yml
         - ado-grafana-deploy-bootstrap.jt.yml
         - ado-grafana-deploy-dashboards-bootstrap.jt.yml
+        - ado-install-grafana-standalone-bootstrap.jt.yml
+
+      grafana_standalone:
+        - ado-install-grafana-standalone-bootstrap.jt.yml
+
+      bookstack:
+        - ado-deploy-bookstack-bootstrap.jt.yml
+
+      netbox:
+        - ado-configure-netbox-oidc-bootstrap.jt.yml
 
       idm_server_install:
         - ado-idm-install-server-bootstrap.jt.yml
@@ -244,6 +264,10 @@
 
       rhbk:
         - ado-rhbk-deploy-and-configure-bootstrap.jt.yml
+        - ado-install-rhbk-standalone-bootstrap.jt.yml
+
+      rhbk_standalone:
+        - ado-install-rhbk-standalone-bootstrap.jt.yml
 
       rhbk_client:
         - ado-rhbk-manage-client-bootstrap.jt.yml
@@ -274,6 +298,9 @@
         - ado-satellite-register-host-bootstrap.jt.yml
 
       satellite_capsule_install: []
+
+      satellite_oidc:
+        - ado-satellite-oidc-bootstrap.jt.yml
 
       satellite: []
 
@@ -623,6 +650,17 @@
   when:
     - "'openshift' in bootstrap_controller_effective_components"
 
+- name: AAP configs | Copy ACS RHACS report workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-acs-report-workflow-bootstrap.wf.yml
+    dest: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-acs-report-workflow-bootstrap.wf.yml
+    mode: "0644"
+  when:
+    - "'acs_report' in bootstrap_controller_effective_components"
+
 - name: AAP configs | Remove patching workflow when unselected
   ansible.builtin.file:
     path: >-
@@ -676,6 +714,16 @@
     state: absent
   when:
     - "'openshift' not in bootstrap_controller_effective_components"
+
+- name: AAP configs | Remove ACS RHACS report workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-acs-report-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - "'acs_report' not in bootstrap_controller_effective_components"
 
 - name: AAP configs | Apply organization prefix to workflow templates
   ansible.builtin.replace:

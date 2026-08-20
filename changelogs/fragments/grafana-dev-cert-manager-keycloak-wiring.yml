@@ -1,0 +1,7 @@
+---
+minor_changes:
+  - |
+    OpenShift Dev: document/enable cert-manager Operator + ServiceMonitors for
+    Grafana expiry dashboards; Openshift-Dev datasource should use Dev
+    thanos-querier (not prometheus-k8s alone) so user-workload metrics appear.
+    Dev Keycloak dashboard points at Prod RHBK Micrometer metrics (shared IdP).

@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - |
+    bootstrap_controller - On hub-update-only runs, apply Galaxy/Hub API Token credentials and org attach before ``meta: end_host`` so Hub + Galaxy (or either alone) both work when selected.
+minor_changes:
+  - bootstrap_generate_env_vars - Honor Galaxy credential ``order`` (1 = first in org Galaxy search list); emit optional non-admin Contoller user from Galaxy tab.
+  - Release infra.ado 1.1.2 for preflight overlays and collection tarball.

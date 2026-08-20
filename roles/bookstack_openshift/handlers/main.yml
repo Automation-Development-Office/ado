@@ -1,0 +1,14 @@
+---
+- name: Restart BookStack deployment
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: bookstack
+        namespace: "{{ bookstack_namespace }}"
+    kubeconfig: "{{ bookstack_kubeconfig | default(omit) }}"
+    validate_certs: "{{ bookstack_validate_certs }}"
+  listen: restart bookstack
+  # Rolling restart via annotation bump is handled in tasks when secret changes.

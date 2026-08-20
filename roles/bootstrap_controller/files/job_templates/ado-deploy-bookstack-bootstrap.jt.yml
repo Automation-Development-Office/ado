@@ -1,0 +1,104 @@
+---
+controller_templates:
+  - name: ADO | Deploy BookStack
+    description: Bootstrap - Deploy BookStack documentation platform on OpenShift
+    organization: '{{ bootstrap_controller_organization }}'
+    playbook: playbooks/docs/ado-deploy-bookstack-bootstrap.yml
+    inventory: '{{ bootstrap_controller_inventory_name }}'
+    project: '{{ bootstrap_controller_project_name }}'
+    execution_environment: '{{ bootstrap_controller_execution_environment_name }}'
+    credentials:
+      - '{{ bootstrap_controller_creds }}'
+    related: null
+    labels:
+      - name: ADO | bootstrap
+        organization: '{{ bootstrap_controller_organization }}'
+      - name: ADO | documentation
+        organization: '{{ bootstrap_controller_organization }}'
+      - name: ADO | bookstack
+        organization: '{{ bootstrap_controller_organization }}'
+    extra_vars: {}
+    survey_enabled: true
+    survey_spec:
+      name: ADO | Deploy BookStack Survey
+      description: Configuration options for BookStack on OpenShift
+      spec:
+        - question_name: ADO | Do you want to install or remove?
+          question_description: Install (present) or remove workloads (absent; PVCs kept unless purge)
+          required: true
+          type: multiplechoice
+          variable: state
+          choices: '{{ bootstrap_controller_state_choices }}'
+          default: '{{ bootstrap_controller_default_state }}'
+        - question_name: ADO | What environment?
+          question_description: Target environment
+          required: true
+          type: multiplechoice
+          variable: env
+          choices: '{{ bootstrap_controller_environment_choices }}'
+          default: '{{ bootstrap_controller_default_environment }}'
+        - question_name: ADO | Namespace
+          question_description: OpenShift namespace for BookStack
+          required: false
+          type: text
+          variable: bookstack_namespace
+          default: bookstack
+        - question_name: ADO | Route hostname
+          question_description: Public route host for BookStack
+          required: false
+          type: text
+          variable: bookstack_route_host
+          default: bookstack.apps.ocp.prod.rhlab
+        - question_name: ADO | Storage class
+          question_description: StorageClass for BookStack + MariaDB PVCs
+          required: false
+          type: text
+          variable: bookstack_storage_class
+          default: synology-nfs-csi
+        - question_name: ADO | DB storage class
+          question_description: StorageClass for MariaDB PVC (blank uses BookStack storage class)
+          required: false
+          type: text
+          variable: bookstack_db_storage_class
+          default: synology-nfs-csi
+        - question_name: ADO | Purge PVCs on remove
+          question_description: Only when state=absent — delete PVCs and data
+          required: false
+          type: multiplechoice
+          variable: bookstack_purge_storage
+          choices:
+            - "false"
+            - "true"
+          default: "false"
+        - question_name: ADO | Local admin password
+          question_description: Reset seeded admin@admin.com password after install (e.g. redhat123)
+          required: false
+          type: password
+          variable: bookstack_admin_password
+          default: redhat123
+        - question_name: ADO | Enable OIDC (Keycloak RHLAB)
+          question_description: Wire BookStack AUTH_METHOD=oidc to prod Keycloak realm RHLAB
+          required: false
+          type: multiplechoice
+          variable: bookstack_oidc_enabled
+          choices:
+            - "false"
+            - "true"
+          default: "true"
+        - question_name: ADO | OIDC issuer URL
+          question_description: Keycloak realm issuer (discovery)
+          required: false
+          type: text
+          variable: bookstack_oidc_issuer
+          default: https://keycloak.apps.ocp.prod.rhlab/realms/rhlab
+        - question_name: ADO | OIDC client ID
+          required: false
+          type: text
+          variable: bookstack_oidc_client_id
+          default: bookstack
+        - question_name: ADO | OIDC client secret
+          question_description: Confidential client secret from Keycloak RHLAB / bookstack client
+          required: false
+          type: password
+          variable: bookstack_oidc_client_secret
+          default: ''

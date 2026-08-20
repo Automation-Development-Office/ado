@@ -6,3 +6,14 @@ Flow:
 1. Generate this repo.
 2. Push it to Git.
 3. Run controller bootstrap to create AAP Project/Job Templates against this repo.
+
+## Grafana dashboard templates
+
+`templates/` is copied out with the seed:
+
+| Grafana folder | Path |
+|----------------|------|
+| Openshift | `templates/Openshift/dashboards/*.json.j2` |
+| RHACS | `templates/RHACS/dashboards/rhacs-vulnerability-overview.json` |
+
+See `templates/README.md` for `grafana_folders` wiring.

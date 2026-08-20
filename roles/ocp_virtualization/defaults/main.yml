@@ -1,7 +1,8 @@
 ---
 vm_name: >-
   {{ provision_openshift_virt_vm_name | default('satellite-server') }}
-vm_namespace: "{{ provision_openshift_virt_namespace | default('default') }}"
+# Lab build VMs live here (bridge + Multus), not in rhev-vms by default.
+vm_namespace: "{{ provision_openshift_virt_namespace | default('ado-built-vm') }}"
 source_kind: >-
   {{ provision_openshift_virt_source_kind | default('DataSource') }}
 source_name: "{{ provision_openshift_virt_source_name | default('rhel9') }}"
@@ -11,17 +12,33 @@ source_namespace: >-
     | default('openshift-virtualization-os-images')
   }}
 instance_type: >-
-  {{ provision_openshift_virt_instance_type | default('u1.xlarge') }}
+  {{ provision_openshift_virt_instance_type | default('u1.large') }}
 preference: "{{ provision_openshift_virt_preference | default('rhel.9') }}"
-cpu_cores: "{{ provision_openshift_virt_cpu_cores | default(4) }}"
-memory: "{{ provision_openshift_virt_memory | default('20Gi') }}"
-storage_class: "{{ provision_openshift_virt_storage_class | default('') }}"
+cpu_cores: "{{ provision_openshift_virt_cpu_cores | default(2) }}"
+memory: "{{ provision_openshift_virt_memory | default('8Gi') }}"
+storage_class: "{{ provision_openshift_virt_storage_class | default('synology-nfs-csi') }}"
 root_disk_size: >-
-  {{ provision_openshift_virt_root_disk_size | default('120Gi') }}
-network_name: "{{ provision_openshift_virt_network_name | default('default') }}"
+  {{ provision_openshift_virt_root_disk_size | default('40Gi') }}
+network_name: "{{ provision_openshift_virt_network_name | default('lan') }}"
+# masquerade (pod) or bridge/multus for lab LAN IPs (e.g. 192.168.0.x)
+network_mode: "{{ provision_openshift_virt_network_mode | default('bridge') }}"
+multus_nad_name: "{{ provision_openshift_virt_multus_nad_name | default('br-ex-network') }}"
+multus_network_name: >-
+  {{
+    provision_openshift_virt_multus_network_name
+    | default('ado-built-vm/br-ex-network')
+  }}
+multus_nad_config: >-
+  {{
+    provision_openshift_virt_multus_nad_config
+    | default('{"cniVersion":"0.3.1","name":"br-ex-network","type":"ovn-k8s-cni-overlay","topology":"localnet","netAttachDefName":"ado-built-vm/br-ex-network"}')
+  }}
 app_label: "{{ provision_openshift_virt_app_label | default(vm_name) }}"
 vm_start: "{{ provision_openshift_virt_start | default(true) }}"
-wait_timeout: "{{ provision_openshift_virt_wait_timeout | default(3600) }}"
+# Contoller should not sit on kubevirt_vm wait=true for an hour-long DV clone.
+vm_wait_for_running: "{{ provision_openshift_virt_wait_for_running | default(true) }}"
+vm_ready_wait_retries: "{{ provision_openshift_virt_ready_wait_retries | default(36) }}"
+wait_timeout: "{{ provision_openshift_virt_wait_timeout | default(900) }}"
 cloud_init_user_data: >-
   {{ provision_openshift_virt_cloud_init_user_data | default('') }}
 cloud_init_network_data: >-

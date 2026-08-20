@@ -23,21 +23,95 @@
       {{
         (
           (
-            bootstrap_generate_env_vars_preflight.component_config.aap.install_during_bootstrap
-            | default(aap_install_during_bootstrap | default(false))
+            (
+              bootstrap_generate_env_vars_preflight.component_config.aap.install_during_bootstrap
+              | default(aap_install_during_bootstrap | default(false))
+            )
+            if (
+              bootstrap_generate_env_vars_preflight is defined
+              and (bootstrap_generate_env_vars_preflight.component_config | default({})).aap is defined
+            )
+            else (aap_install_during_bootstrap | default(false))
           )
-          if (
-            bootstrap_generate_env_vars_preflight is defined
-            and (bootstrap_generate_env_vars_preflight.component_config | default({})).aap is defined
+          | bool
+        )
+        or (
+          bootstrap_generate_env_vars_preflight is defined
+          and (
+            bootstrap_generate_env_vars_preflight.pre_installs.attach_aap_license
+            | default(false)
+            | bool
           )
-          else (aap_install_during_bootstrap | default(false))
-        ) | bool
+        )
+        or (
+          bootstrap_generate_env_vars_preflight is defined
+          and (
+            (
+              bootstrap_generate_env_vars_preflight.pre_installs.aap.license_only
+              | default(false)
+            )
+            if (
+              (bootstrap_generate_env_vars_preflight.pre_installs | default({})).aap is mapping
+            )
+            else false
+          )
+          | bool
+        )
+        or (aap_ocp_install_license_only | default(false) | bool)
+      }}
+    bootstrap_controller_aap_license_only: >-
+      {{
+        (
+          aap_ocp_install_license_only | default(false) | bool
+        )
+        or (
+          bootstrap_generate_env_vars_preflight is defined
+          and (
+            bootstrap_generate_env_vars_preflight.pre_installs.attach_aap_license
+            | default(false)
+            | bool
+          )
+          and not (
+            bootstrap_generate_env_vars_preflight.pre_installs.install_aap
+            | default(false)
+            | bool
+          )
+        )
+        or (
+          bootstrap_generate_env_vars_preflight is defined
+          and (
+            (
+              bootstrap_generate_env_vars_preflight.component_config.aap.license_only
+              | default(false)
+            )
+            if (
+              (bootstrap_generate_env_vars_preflight.component_config | default({})).aap is mapping
+            )
+            else false
+          )
+          | bool
+        )
+        or (
+          bootstrap_generate_env_vars_preflight is defined
+          and (
+            (
+              bootstrap_generate_env_vars_preflight.pre_installs.aap.license_only
+              | default(false)
+            )
+            if (
+              (bootstrap_generate_env_vars_preflight.pre_installs | default({})).aap is mapping
+            )
+            else false
+          )
+          | bool
+        )
       }}
   when:
     - bootstrap_controller_generate_env_vars | default(false) | bool
     - >-
       bootstrap_generate_env_vars_preflight is defined
       or aap_install_during_bootstrap is defined
+      or aap_ocp_install_license_only is defined
 
 - name: Resolve OpenShift prep-during-bootstrap flags from preflight
   ansible.builtin.set_fact:
@@ -108,7 +182,12 @@
       bootstrap_controller_iscsi_during_bootstrap | default(false) | bool
     )
     or (
-      bootstrap_controller_aap_install_during_bootstrap | default(false) | bool
+      (
+        bootstrap_controller_aap_install_during_bootstrap | default(false) | bool
+      )
+      and not (
+        bootstrap_controller_aap_license_only | default(false) | bool
+      )
     )
 
 - name: Optionally create OpenShift admin HTPasswd during bootstrap
@@ -155,18 +234,7 @@
 
 - name: Optionally install AAP on OpenShift during bootstrap
   ansible.builtin.include_tasks: install_aap_on_openshift.yml
-  when:
-    - bootstrap_controller_aap_install_during_bootstrap | default(false) | bool
-    - >-
-      'aap' in (bootstrap_generate_env_vars_components | default([]))
-      or 'aap' in (
-        (
-          bootstrap_generate_env_vars_preflight.component_apps.openshift
-          | default([])
-        )
-        if bootstrap_generate_env_vars_preflight is defined
-        else []
-      )
+  when: bootstrap_controller_aap_install_during_bootstrap | default(false) | bool
 
 - name: Check for generated AAP config vars
   ansible.builtin.stat:

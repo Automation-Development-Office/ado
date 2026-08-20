@@ -1,0 +1,165 @@
+---
+- name: Assert Satellite API credentials for OIDC settings
+  ansible.builtin.assert:
+    that:
+      - satellite_oidc_username | default('') | length > 0
+      - satellite_oidc_password | default('') | length > 0
+    fail_msg: >-
+      Satellite OIDC settings require satellite_oidc_username and
+      satellite_oidc_password (or satellite_config_username / satellite_config_password).
+
+- name: Check satellite-installer is present
+  ansible.builtin.stat:
+    path: /usr/sbin/satellite-installer
+  register: satellite_oidc_installer_bin
+
+- name: Fail when Satellite installer is missing
+  ansible.builtin.fail:
+    msg: >-
+      /usr/sbin/satellite-installer was not found. Run this role against the
+      Satellite server host after Satellite is installed.
+  when:
+    - satellite_oidc_run_installer | bool
+    - not satellite_oidc_installer_bin.stat.exists
+
+- name: Install Keycloak Apache adapter packages when available
+  ansible.builtin.dnf:
+    name:
+      - keycloak-httpd-client-install
+      - mod_auth_openidc
+    state: present
+  register: satellite_oidc_adapter_pkgs
+  failed_when: false
+  when: satellite_oidc_run_installer | bool
+
+- name: Enable Foreman Keycloak via satellite-installer
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/satellite-installer
+      - --foreman-keycloak
+      - "true"
+      - --foreman-keycloak-app-name
+      - "{{ satellite_oidc_app_name }}"
+      - --foreman-keycloak-realm
+      - "{{ satellite_oidc_realm_effective }}"
+  environment:
+    KEYCLOAK_ADMIN: "{{ satellite_oidc_admin_user }}"
+    KEYCLOAK_ADMIN_PASSWORD: "{{ satellite_oidc_admin_password }}"
+    FOREMAN_KEYCLOAK_URL: "https://{{ satellite_oidc_keycloak_hostname_effective }}"
+  register: satellite_oidc_installer_result
+  changed_when: >-
+    satellite_oidc_installer_result.rc == 0
+    and (
+      'Success!' in (satellite_oidc_installer_result.stdout | default(''))
+      or 'Executing' in (satellite_oidc_installer_result.stdout | default(''))
+    )
+  failed_when: false
+  when:
+    - satellite_oidc_run_installer | bool
+    - satellite_oidc_installer_bin.stat.exists
+  no_log: "{{ satellite_oidc_no_log | bool }}"
+  timeout: "{{ satellite_oidc_installer_timeout | int }}"
+
+- name: Warn when satellite-installer Keycloak enable did not succeed
+  ansible.builtin.debug:
+    msg: >-
+      satellite-installer --foreman-keycloak did not complete successfully
+      (rc={{ satellite_oidc_installer_result.rc | default('unset') }}).
+      Continuing with Hammer/API OIDC settings. Check installer logs on the
+      Satellite host if Apache external login is missing.
+  when:
+    - satellite_oidc_run_installer | bool
+    - satellite_oidc_installer_bin.stat.exists
+    - satellite_oidc_installer_result.rc | default(1) | int != 0
+
+- name: Generate Apache OIDC crypto passphrase
+  ansible.builtin.set_fact:
+    satellite_oidc_crypto_passphrase: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=24) }}"
+  when: (satellite_oidc_crypto_passphrase | default('') | string | length) == 0
+  no_log: "{{ satellite_oidc_no_log | bool }}"
+
+- name: Remove OIDC config from SSL vhost include dir
+  ansible.builtin.file:
+    path: /etc/httpd/conf.d/05-foreman-ssl.d/oidc-keycloak.conf
+    state: absent
+  notify: Restart httpd
+
+- name: Write Foreman Keycloak Apache OIDC configuration
+  ansible.builtin.template:
+    src: oidc-apache.conf.j2
+    dest: "/etc/httpd/conf.d/{{ satellite_oidc_app_name }}_oidc_keycloak_{{ satellite_oidc_realm_effective }}.conf"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart httpd
+  no_log: "{{ satellite_oidc_no_log | bool }}"
+
+- name: Locate Foreman Keycloak Apache OIDC config
+  ansible.builtin.find:
+    paths:
+      - /etc/httpd/conf.d
+    patterns:
+      - "*openidc*"
+      - "*keycloak*"
+    file_type: file
+  register: satellite_oidc_apache_confs
+  when: (satellite_oidc_client_secret_effective | default('') | string | length) > 0
+
+- name: Ensure Apache OIDCClientSecret matches Keycloak client
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '^(OIDCClientSecret)\s+.*$'
+    replace: '\1 {{ satellite_oidc_client_secret_effective }}'
+  loop: "{{ satellite_oidc_apache_confs.files | default([]) }}"
+  loop_control:
+    label: "{{ item.path }}"
+  notify: Restart httpd
+  when:
+    - (satellite_oidc_client_secret_effective | default('') | string | length) > 0
+    - satellite_oidc_apache_confs.files | default([]) | length > 0
+  no_log: "{{ satellite_oidc_no_log | bool }}"
+
+- name: Apply Satellite OIDC settings with Hammer
+  ansible.builtin.command:
+    argv:
+      - hammer
+      - --username
+      - "{{ satellite_oidc_username }}"
+      - --password
+      - "{{ satellite_oidc_password }}"
+      - settings
+      - set
+      - --name
+      - "{{ item.name }}"
+      - --value
+      - "{{ item.value }}"
+  loop:
+    - name: authorize_login_delegation
+      value: "true"
+    - name: authorize_login_delegation_auth_source_user_autocreate
+      value: "{{ satellite_oidc_autocreate_users }}"
+    - name: oidc_algorithm
+      value: "{{ satellite_oidc_oidc_algorithm }}"
+    - name: oidc_audience
+      value: "{{ satellite_oidc_audience_effective | to_json }}"
+    - name: oidc_issuer
+      value: "{{ satellite_oidc_issuer_effective }}"
+    - name: oidc_jwks_url
+      value: "{{ satellite_oidc_jwks_url }}"
+    - name: login_delegation_logout_url
+      value: "{{ satellite_oidc_logout_url }}"
+  register: satellite_oidc_hammer_settings
+  changed_when: "'updated' in (stdout | default('') | lower)"
+  no_log: "{{ satellite_oidc_no_log | bool }}"
+
+- name: Report Satellite OIDC configuration
+  ansible.builtin.debug:
+    msg: >-
+      Satellite OIDC enabled for {{ satellite_oidc_server_url_effective }}
+      using Keycloak client {{ satellite_oidc_client_id_effective }}
+      in realm {{ satellite_oidc_realm_effective }}
+      (issuer {{ satellite_oidc_issuer_effective }}).
+      Sign in at {{ satellite_oidc_server_url_effective }}/users/extlogin.
+
+- name: Flush Apache restart after OIDC config
+  ansible.builtin.meta: flush_handlers

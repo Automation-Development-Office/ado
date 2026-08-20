@@ -1,0 +1,14 @@
+---
+bugfixes:
+  - |
+    bootstrap_controller - Do not create an org-scoped ``Ansible Galaxy``
+    credential. AAP ships that name as a platform-global credential; attach it
+    to the organization instead of failing with already-exists.
+  - |
+    bootstrap_controller - After project apply, set ``scm_url`` / ``scm_branch``
+    on existing Contoller projects so a new git branch is used before sync.
+  - |
+    bootstrap_controller - Skip create/update when an execution environment
+    already exists (or GET returns 403). Org tokens can use a global EE on
+    job templates but cannot PATCH it; bootstrap continues with projects and
+    JTs.

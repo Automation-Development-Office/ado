@@ -1,0 +1,147 @@
+---
+- name: Ensure localhost is available for Keycloak API calls
+  ansible.builtin.add_host:
+    name: localhost
+    ansible_connection: local
+    ansible_python_interpreter: "{{ ansible_playbook_python | default('/usr/bin/python3') }}"
+  changed_when: false
+  run_once: true
+
+- name: Resolve Satellite OIDC connection facts
+  ansible.builtin.set_fact:
+    satellite_oidc_keycloak_url_effective: >-
+      {{
+        (
+          satellite_oidc_keycloak_url
+          | default(rhbk_url | default(rhbk_hostname | default('keycloak.apps.ocp.prod.rhlab')), true)
+          | string
+        )
+        | regex_replace('/+$', '')
+      }}
+    satellite_oidc_client_id_effective: "{{ satellite_oidc_client_id | default('ado-satellite') }}"
+    satellite_oidc_realm_effective: "{{ satellite_oidc_realm | default(rhbk_realm | default('rhlab')) }}"
+    satellite_oidc_state_effective: "{{ satellite_oidc_state | default(state | default('present')) }}"
+    satellite_oidc_admin_user: "{{ satellite_oidc_admin_user | default(rhbk_admin_user | default('admin'), true) }}"
+    satellite_oidc_admin_password: "{{ satellite_oidc_admin_password | default(rhbk_admin_password | default(''), true) }}"
+    satellite_oidc_password: "{{ satellite_oidc_password | default(satellite_config_password | default(satellite_config_admin_password | default('')), true) }}"
+    satellite_oidc_username: "{{ satellite_oidc_username | default(satellite_config_username | default('admin'), true) }}"
+    satellite_oidc_server_url: "{{ satellite_oidc_server_url | default(satellite_config_server_url | default(''), true) }}"
+    satellite_oidc_client_secret: "{{ satellite_oidc_client_secret | default(rhbk_client_secret | default(''), true) }}"
+
+- name: Normalize Keycloak hostname and Satellite URL
+  ansible.builtin.set_fact:
+    satellite_oidc_keycloak_hostname_effective: >-
+      {{
+        (
+          satellite_oidc_keycloak_hostname
+          | default('', true)
+          | string
+        )
+        | regex_replace('^https?://', '')
+        | regex_replace('/.*$', '')
+        if (satellite_oidc_keycloak_hostname | default('') | string | length) > 0
+        else (
+          satellite_oidc_keycloak_url_effective
+          | regex_replace('^https?://', '')
+          | regex_replace('/.*$', '')
+        )
+      }}
+    satellite_oidc_server_url_effective: >-
+      {{
+        satellite_oidc_server_url
+        if (satellite_oidc_server_url | default('') | string | length) > 0
+        else (
+          'https://' ~ (ansible_facts['fqdn'] | default(inventory_hostname))
+        )
+      }}
+
+- name: Force https on Satellite URL
+  ansible.builtin.set_fact:
+    satellite_oidc_server_url_effective: >-
+      {{
+        satellite_oidc_server_url_effective
+        if satellite_oidc_server_url_effective.startswith(('http://', 'https://'))
+        else ('https://' ~ satellite_oidc_server_url_effective)
+      }}
+
+- name: Strip trailing slash from Satellite URL
+  ansible.builtin.set_fact:
+    satellite_oidc_server_url_effective: "{{ satellite_oidc_server_url_effective | regex_replace('/+$', '') }}"
+
+- name: Build OIDC issuer and JWKS URLs
+  ansible.builtin.set_fact:
+    satellite_oidc_issuer_effective: >-
+      {{
+        satellite_oidc_issuer
+        if (satellite_oidc_issuer | default('') | string | length) > 0
+        else (
+          'https://' ~ satellite_oidc_keycloak_hostname_effective
+          ~ '/realms/' ~ satellite_oidc_realm_effective
+        )
+      }}
+
+- name: Build remaining OIDC endpoints
+  ansible.builtin.set_fact:
+    satellite_oidc_jwks_url: "{{ satellite_oidc_issuer_effective }}/protocol/openid-connect/certs"
+    satellite_oidc_logout_url: "{{ satellite_oidc_issuer_effective }}/protocol/openid-connect/logout"
+    satellite_oidc_keycloak_token_url: >-
+      {{
+        'https://' ~ satellite_oidc_keycloak_hostname_effective
+        ~ '/realms/' ~ satellite_oidc_auth_realm
+        ~ '/protocol/openid-connect/token'
+      }}
+    satellite_oidc_keycloak_clients_url: >-
+      {{
+        'https://' ~ satellite_oidc_keycloak_hostname_effective
+        ~ '/admin/realms/' ~ satellite_oidc_realm_effective
+        ~ '/clients?clientId=' ~ satellite_oidc_client_id_effective
+      }}
+    satellite_oidc_redirect_uris_effective: >-
+      {{
+        satellite_oidc_redirect_uris
+        | default([
+            satellite_oidc_server_url_effective ~ '/users/extlogin',
+            satellite_oidc_server_url_effective ~ '/users/extlogin/redirect_uri'
+          ], true)
+      }}
+    satellite_oidc_audience_effective: >-
+      {{
+        satellite_oidc_audience
+        if (satellite_oidc_audience | default([]) | length) > 0
+        else [satellite_oidc_client_id_effective, 'account']
+      }}
+
+- name: Assert required Satellite OIDC inputs
+  ansible.builtin.assert:
+    that:
+      - satellite_oidc_client_id_effective | length > 0
+      - satellite_oidc_realm_effective | length > 0
+      - satellite_oidc_keycloak_hostname_effective | length > 0
+      - satellite_oidc_server_url_effective | length > 0
+    fail_msg: >-
+      Set satellite_oidc_client_id, satellite_oidc_realm, Keycloak hostname/URL,
+      and satellite_oidc_server_url (or satellite_config_server_url).
+
+- name: Create Keycloak client for Satellite
+  ansible.builtin.include_tasks: create_client.yml
+  when:
+    - satellite_oidc_state_effective == 'present'
+    - satellite_oidc_create_client | bool
+  run_once: true
+
+- name: Fetch Keycloak client secret for Satellite
+  ansible.builtin.include_tasks: fetch_secret.yml
+  when:
+    - satellite_oidc_state_effective == 'present'
+    - satellite_oidc_configure_satellite | bool
+  run_once: true
+
+- name: Configure Satellite OIDC
+  ansible.builtin.include_tasks: configure_satellite.yml
+  when:
+    - satellite_oidc_state_effective == 'present'
+    - satellite_oidc_configure_satellite | bool
+
+- name: Disable Satellite OIDC
+  ansible.builtin.include_tasks: disable.yml
+  when: satellite_oidc_state_effective == 'absent'

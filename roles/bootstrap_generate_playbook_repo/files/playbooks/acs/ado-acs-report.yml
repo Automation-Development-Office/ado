@@ -1,0 +1,16 @@
+---
+- name: ADO | ACS RHACS Vulnerability Report
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: acs
+  vars_files:
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_{{ component }}.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_{{ component }}.yml"
+  pre_tasks:
+    - name: ADO | Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: infra.ado.bootstrap_resolve_component
+  roles:
+    - role: infra.ado.acs_report

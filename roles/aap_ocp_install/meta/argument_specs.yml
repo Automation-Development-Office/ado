@@ -1,7 +1,7 @@
 ---
 argument_specs:
   main:
-    short_description: Install AAP 2.5 or 2.6 on OpenShift.
+    short_description: Install AAP 2.5, 2.6, or 2.7 on OpenShift.
     description:
       - Validates the ADO-supported AAP channels.
       - Delegates operator and platform installation to infra.aap_utilities.aap_ocp_install.
@@ -21,7 +21,7 @@ argument_specs:
       aap_ocp_install_operator:
         type: dict
         required: true
-        description: AAP operator configuration with a stable-2.5 or stable-2.6 channel.
+        description: AAP operator configuration with a stable-2.5, stable-2.6, or stable-2.7 channel.
       aap_ocp_install_platform:
         type: dict
         required: true

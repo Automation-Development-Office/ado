@@ -27,7 +27,18 @@
         )
         if ((grafana_folder_item.source_type | default('path')) == 'git')
         else (
-          grafana_folder_item.source
+          (
+            (
+              grafana_folder_item.source
+              if (grafana_folder_item.source is match('^/'))
+              else (
+                (playbook_dir | dirname | dirname)
+                ~ '/'
+                ~ (grafana_folder_item.source | regex_replace('^\\./', ''))
+              )
+            )
+            | regex_replace('/$', '')
+          )
           ~ '/'
           ~ (grafana_folder_item.dashboards_path | default(''))
         )
@@ -51,10 +62,18 @@
         grafana_upload_dashboards_work_items
         + [
           {
-            'name': (item.path | basename | regex_replace('\\.json(\\.j2)?$', '')),
+            'name': (
+              (item.path | basename | regex_replace('\\.json(\\.j2)?$', ''))
+              ~ '__'
+              ~ (grafana_folder_item.name | regex_replace('[^A-Za-z0-9_-]', '_'))
+            ),
             'path': item.path,
             'folder': grafana_folder_item.name,
-            'template': item.path if (item.path | basename | regex_search('\\.json\\.j2$')) else omit
+            'template': item.path if (item.path | basename | regex_search('\\.json\\.j2$')) else omit,
+            'datasource_mode': grafana_folder_item.datasource_mode | default('none'),
+            'datasource': grafana_folder_item.datasource | default(''),
+            'uid_suffix': grafana_folder_item.uid_suffix | default(''),
+            'title_cluster': grafana_folder_item.title_cluster | default('')
           }
         ]
       }}

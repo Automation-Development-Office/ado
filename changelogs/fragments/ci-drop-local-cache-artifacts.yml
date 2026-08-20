@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - |
+    ci - Keep ``.local`` pip installs and XDG/ansible-lint ``.cache`` out of
+    the collection work tree (gitignore, galaxy ``build_ignore``, lint
+    excludes). Collection CI helpers under ``scripts/`` stay as Python
+    (not Ansible).

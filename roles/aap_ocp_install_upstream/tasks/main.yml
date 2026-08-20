@@ -19,9 +19,19 @@
       tags:
         - always
 
+    - name: Detect an existing AAP operator before creating another OperatorGroup
+      ansible.builtin.include_tasks:
+        file: detect-existing-operator.yml
+        apply:
+          tags:
+            - operator
+      tags:
+        - operator
+
     - name: Include Ansible Automation Platform operator install tasks
       when:
         - aap_ocp_install_operator is defined
+        - not (aap_ocp_install_reuse_existing_operator | default(false) | bool)
       ansible.builtin.include_tasks:
         file: install-operator.yml
         apply:

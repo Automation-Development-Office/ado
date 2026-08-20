@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# Handlers for install_grafana (standalone).
+
+- name: Restart Grafana
+  ansible.builtin.systemd:
+    name: "{{ install_grafana_service_name }}"
+    state: restarted
+    daemon_reload: true
+
+- name: Reload systemd for Grafana
+  ansible.builtin.systemd:
+    daemon_reload: true
