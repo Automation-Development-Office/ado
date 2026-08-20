@@ -1,0 +1,2 @@
+bugfixes:
+  - satellite_install - Added missing documented default variables for admin password, reinstall control, and DNS inputs.

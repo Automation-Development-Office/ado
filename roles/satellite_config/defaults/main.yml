@@ -54,8 +54,6 @@ satellite_config_settings:
     value: "false"
   - name: "entries_per_page"
     value: "100"
-  - name: "unregister_delete_host"
-    value: "true"
   - name: "ignored_interface_identifiers"
     value:
       - "lo"

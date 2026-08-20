@@ -1,0 +1,6 @@
+doc_changes:
+  - capsule_install - Updated README to reflect the current skeleton role and align documented variables with defaults.
+  - capsule_install - Replaced placeholder argument specs with options aligned to capsule_install defaults.
+  - capsule_install - Removed stale task/template file listings from README role structure and task overview.
+  - capsule_install - Documented preliminary check validation, grubby/IPv6/SELinux behavior, and reboot handler.
+  - capsule_install - Added required Role Molecule Testing section to README format verification.

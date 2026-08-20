@@ -146,6 +146,8 @@ Define the Satellite installation configuration in your playbook or inventory us
   - Prepares custom certificates using the `openssl.cnf.j2` template.
 - **DNS Config** (`dns_config.yml`):
   - Updates DNS settings via NetworkManager and resolv.conf.
+- **Satellite Install** (`install_satellite.yml`):
+  - Runs `satellite-installer --scenario satellite` and applies tuning/profile settings.
 - **Manifest Import** (`import_manifest.yml`):
   - Optionally uploads a Red Hat Satellite subscription manifest zip with `hammer subscription upload` when `satellite_install_manifest_path` is defined.
 
@@ -182,6 +184,7 @@ roles/
    │  └─ storage_config.yml
    ├─ templates/
    │  ├─ openssl.cnf.j2
+   │  ├─ resolv.conf.j2
    │  └─ tuning_profile.j2
    ├─ tests/
    │  └─ inventory

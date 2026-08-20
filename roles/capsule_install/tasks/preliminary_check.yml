@@ -6,70 +6,56 @@
       - (ansible_facts['distribution_major_version'] | int >= 9)
     fail_msg: >-
       RHEL{{ ansible_facts['distribution_major_version'] }} is not supported
-      with {{ satellite_install_deployment_version }}.
+      with {{ capsule_install_os_version }}.
     success_msg: >-
       RHEL{{ ansible_facts['distribution_major_version'] }} detected.
       Proceeding with install.
-
-- name: preliminary_check | Validate Red Hat Satellite version is defined
-  ansible.builtin.assert:
-    that:
-      - satellite_install_deployment_version is defined
-      - satellite_install_deployment_version | length > 0
-    fail_msg: |
-      Define a supported version of Red Hat Satellite. Supported versions can
-      be found at https://access.redhat.com/support/policy/updates/satellite.
-
-- name: Debug satellite_install_rhn_org_id
-  ansible.builtin.debug:
-    var: satellite_install_rhn_org_id
 
 - name: >-
     preliminary_check | Check if RHN Organization and Activation Key is defined
   ansible.builtin.assert:
     that:
-      - satellite_install_rhn_org_id is defined
-      - satellite_install_rhn_org_id | length > 0
-      - satellite_install_rhn_activation_key is defined
-      - satellite_install_rhn_activation_key | length > 0
+      - capsule_install_org_id is defined
+      - capsule_install_org_id | length > 0
+      - capsule_install_activation_key is defined
+      - capsule_install_activation_key | length > 0
     success_msg: |
-      - "RHN Organization ID: {{ satellite_install_rhn_org_id }}"
-      - "RHN Activation Key: {{ satellite_install_rhn_activation_key }}"
+      - "Organization ID: {{ capsule_install_org_id }}"
+      - "Activation Key: {{ capsule_install_activation_key }}"
     fail_msg: |
-      Create an Access Key and get Organization ID from
-      https://console.redhat.com/insights/connector/activation-keys
-  when: satellite_install_rhn_connected is true
+      Please define an organization and activation key for capsule registration
+
 
 - name: >-
-    preliminary_check | Check location of where the Satellite will be located
+    preliminary_check | Check location of where the Capsule will be located
   ansible.builtin.assert:
     that:
-      - satellite_install_location is defined
-      - satellite_install_location | length > 0
+      - capsule_install_location is defined
+      - capsule_install_location | length > 0
     fail_msg: |
       Define a location where Satellite will be installed
 
-- name: preliminary_check | Verify Memory Size on Red Hat Satellite server
+- name: preliminary_check | Verify Memory Size on Capsule server
   ansible.builtin.assert:
     that:
-      - ansible_facts["memtotal_mb"] >= satellite_install_min_memory_size
+      - ansible_facts["memtotal_mb"] >= capsule_install_min_memory_size
     fail_msg: |-
       The total memory size is below the required threshold.
       Total memory must be greater than
-      {{ (satellite_install_min_memory_size / 1024) | round | int }} GB.
+      {{ (capsule_install_min_memory_size / 1024) | round | int }} GB.
       Current memory size is
       {{ (ansible_facts["memtotal_mb"] / 1024) | round | int }} GB.
     success_msg: |-
       Current memory size:
       {{ (ansible_facts["memtotal_mb"] / 1024) | round | int }} GB
 
-- name: preliminary_check | Verify CPU count on Red Hat Satellite server
+- name: preliminary_check | Verify CPU count on Capsule server
   ansible.builtin.assert:
     that:
-      - ansible_facts["processor_vcpus"] >= satellite_install_min_cpu_count
+      - ansible_facts["processor_vcpus"] >= capsule_install_min_cpu_count
     fail_msg: |-
       The total CPU count is below the required threshold.
-      Total CPU must be greater than {{ satellite_install_min_cpu_count }} CPUs.
+      Total CPU must be greater than {{ capsule_install_min_cpu_count }} CPUs.
       Current CPU count {{ ansible_facts["processor_vcpus"] }}.
     success_msg: |-
       Current CPU count {{ ansible_facts["processor_vcpus"] }}.
@@ -81,19 +67,19 @@
 
 - name: preliminary_check | Get current kernel args for all entries
   ansible.builtin.command: grubby --info=ALL
-  register: satellite_install_grubby_info
+  register: capsule_install_grubby_info
   changed_when: false
 
 - name: preliminary_check | Remove ipv6.disable=1 if present
   ansible.builtin.command: >-
     grubby --update-kernel ALL --remove-args="ipv6.disable=1"
-  when: "'ipv6.disable=1' in satellite_install_grubby_info.stdout"
+  when: "'ipv6.disable=1' in capsule_install_grubby_info.stdout"
   changed_when: true
   notify: reboot system
 
 - name: preliminary_check | Add ipv6.disable=0 if missing
   ansible.builtin.command: grubby --update-kernel ALL --args="ipv6.disable=0"
-  when: "'ipv6.disable=0' not in satellite_install_grubby_info.stdout"
+  when: "'ipv6.disable=0' not in capsule_install_grubby_info.stdout"
   changed_when: true
   notify: reboot system
 
