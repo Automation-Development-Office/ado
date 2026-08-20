@@ -88,4 +88,3 @@
     policy: targeted
     state: permissive
   notify: reboot system
-  
