@@ -15,14 +15,19 @@
   register: capsule_install_repo_files
 
 - name: rhsm_subscribe | Check if capsule is already registered
-  ansible.builtin.command: subscription-manager list | grep -i "Satellite Capsule"  > /dev/null
+  ansible.builtin.command: subscription-manager list
   register: capsule_install_status
   changed_when: false
-  failed_when: capsule_install_status.rc not in [1,0]
+  failed_when: capsule_install_status.rc != 0
   become: true
 
+- name: rhsm_subscribe | Set capsule registration status
+  ansible.builtin.set_fact:
+    capsule_install_registered: >-
+      {{ 'Satellite Capsule' in capsule_install_status.stdout }}
+
 - name: rhsm_subscribe | Subscription block
-  when: capsule_install_status.rc == 1
+  when: not capsule_install_registered
   block:
     - name: rhsm_subscribe | Remove non-redhat repo files
       ansible.builtin.file:
