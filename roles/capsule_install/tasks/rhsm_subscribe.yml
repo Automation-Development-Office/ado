@@ -48,9 +48,10 @@
       register: capsule_install_registration_command
       no_log: true
 
-    - name: rhsm_subscribe | Perform registration 
+    - name: rhsm_subscribe | Perform registration
       ansible.builtin.command:
         cmd: "{{ capsule_install_registration_command.registration_command }}"
+      changed_when: false
       no_log: true
 
     - name: rhsm_subscribe | Enable repositories
