@@ -239,6 +239,25 @@ provision_openshift_virt_app_label: {{ bootstrap_generate_env_vars_openshift_vir
 provision_openshift_virt_start: {{ bootstrap_generate_env_vars_openshift_virt_start | default(true) | bool | lower }}
 provision_openshift_virt_wait_timeout: {{ bootstrap_generate_env_vars_openshift_virt_wait_timeout | default(3600, true) | int }}
 
+{% elif component_name == 'ec2_ami_copy' %}
+{% set ec2_ami_copy_config = bootstrap_generate_env_vars_preflight.component_config.ec2_ami_copy | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+ec2_ami_copy_source_region: {{ ec2_ami_copy_config.source_region | default(bootstrap_generate_env_vars_ec2_ami_copy_source_region | default('us-east-1', true), true) | to_json }}
+ec2_ami_copy_dest_region: {{ ec2_ami_copy_config.dest_region | default(bootstrap_generate_env_vars_ec2_ami_copy_dest_region | default('us-west-2', true), true) | to_json }}
+ec2_ami_copy_source_image_id: {{ ec2_ami_copy_config.source_image_id | default(bootstrap_generate_env_vars_ec2_ami_copy_source_image_id | default('', true), true) | to_json }}
+ec2_ami_copy_name: {{ ec2_ami_copy_config.name | default(bootstrap_generate_env_vars_ec2_ami_copy_name | default('', true), true) | to_json }}
+ec2_ami_copy_description: {{ ec2_ami_copy_config.description | default(bootstrap_generate_env_vars_ec2_ami_copy_description | default('', true), true) | to_json }}
+ec2_ami_copy_wait: {{ ec2_ami_copy_config.wait | default(bootstrap_generate_env_vars_ec2_ami_copy_wait | default(true), true) | bool | lower }}
+ec2_ami_copy_wait_timeout: {{ ec2_ami_copy_config.wait_timeout | default(bootstrap_generate_env_vars_ec2_ami_copy_wait_timeout | default(600, true), true) | int }}
+ec2_ami_copy_encrypted: {{ ec2_ami_copy_config.encrypted | default(bootstrap_generate_env_vars_ec2_ami_copy_encrypted | default(false), true) | bool | lower }}
+ec2_ami_copy_kms_key_id: {{ ec2_ami_copy_config.kms_key_id | default(bootstrap_generate_env_vars_ec2_ami_copy_kms_key_id | default('', true), true) | to_json }}
+ec2_ami_copy_copy_image_tags: {{ ec2_ami_copy_config.copy_image_tags | default(bootstrap_generate_env_vars_ec2_ami_copy_copy_image_tags | default(false), true) | bool | lower }}
+ec2_ami_copy_tag_equality: {{ ec2_ami_copy_config.tag_equality | default(bootstrap_generate_env_vars_ec2_ami_copy_tag_equality | default(false), true) | bool | lower }}
+ec2_ami_copy_tags: {{ ec2_ami_copy_config.tags | default(bootstrap_generate_env_vars_ec2_ami_copy_tags | default({}), true) | to_json }}
+
+{% elif component_name == 'aws' %}
+aws_profile: {{ bootstrap_generate_env_vars_aws_profile | default('', true) | to_json }}
+aws_default_region: {{ bootstrap_generate_env_vars_aws_default_region | default('', true) | to_json }}
+
 {% elif component_name == 'rhbk' %}
 components_env:
   rhbk:

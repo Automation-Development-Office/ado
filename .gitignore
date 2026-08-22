@@ -4,6 +4,9 @@ changelogs/.plugin-cache.yaml
 # Ephemeral Molecule symlink created by CI/local runs (ln -sfn . molecule)
 extensions/molecule/molecule
 
+# Accidental local galaxy installs during molecule runs
+extensions/molecule/**/collections/
+
 # Local collection install path (keeps collections/requirements.yml)
 collections/ansible_collections/
 

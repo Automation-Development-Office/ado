@@ -680,6 +680,26 @@
         | list
       }}
 
+- name: Ensure shared AWS vault vars when AWS consumers are selected
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_components: >-
+      {{
+        (
+          bootstrap_generate_env_vars_components
+          + (
+              ['aws']
+              if (
+                bootstrap_generate_env_vars_components
+                | intersect(['ec2_ami_copy', 'openshift', 'cert_manager'])
+                | length > 0
+              )
+              else []
+            )
+        )
+        | unique
+        | list
+      }}
+
 - name: Show normalized selected components
   ansible.builtin.debug:
     var: bootstrap_generate_env_vars_components
@@ -850,6 +870,7 @@
   when:
     - item.path | basename not in (
         bootstrap_generate_env_vars_components
+        | reject('equalto', 'ec2_ami_copy')
         | map('regex_replace', '^(.*)$', 'vault_\\1.yml')
         | list
       )
@@ -886,6 +907,14 @@
   loop: "{{ bootstrap_generate_env_vars_components }}"
   loop_control:
     loop_var: component_name
+  when: component_name != 'ec2_ami_copy'
+
+- name: Remove legacy per-component ec2_ami_copy vault file after template pass
+  ansible.builtin.file:
+    path: >-
+      {{ bootstrap_generate_env_vars_env_dir }}/vault_ec2_ami_copy.yml
+    state: absent
+  when: "'ec2_ami_copy' in bootstrap_generate_env_vars_components"
 
 # yamllint disable rule:line-length
 - name: Overlay preflight component values into generated vars/vault files  # noqa: jinja[spacing]
@@ -954,6 +983,36 @@
             if value is not None and value != "":
                 return value
         return None
+
+    def merge_shared_aws_vault(values):
+        aws_path = env_dir / "vault_aws.yml"
+        aws_data = load_yaml(aws_path)
+        changed = False
+        combined = {
+            str(key): value
+            for key, value in (values or {}).items()
+            if value is not None
+        }
+        access_key = first_present(
+            combined.get("access_key_id"),
+            combined.get("awspca_access_key_id"),
+        )
+        secret_key = first_present(
+            combined.get("secret_access_key"),
+            combined.get("awspca_secret_access_key"),
+        )
+        session_token = combined.get("session_token")
+        if access_key is not None:
+            aws_data["vault_aws_access_key_id"] = str(access_key)
+            changed = True
+        if secret_key is not None:
+            aws_data["vault_aws_secret_access_key"] = str(secret_key)
+            changed = True
+        if session_token is not None:
+            aws_data["vault_aws_session_token"] = str(session_token)
+            changed = True
+        if changed:
+            write_yaml(aws_path, aws_data, "0600")
 
     def as_bool(value, default=True):
         if value is None:
@@ -2022,6 +2081,57 @@
                     ),
                 }
 
+            if component == "ec2_ami_copy":
+                mapping = {
+                    "source_region": "ec2_ami_copy_source_region",
+                    "dest_region": "ec2_ami_copy_dest_region",
+                    "source_image_id": "ec2_ami_copy_source_image_id",
+                    "name": "ec2_ami_copy_name",
+                    "description": "ec2_ami_copy_description",
+                    "kms_key_id": "ec2_ami_copy_kms_key_id",
+                }
+                for source_key, target_key in mapping.items():
+                    if source_key in public_values:
+                        vars_data[target_key] = str(public_values.get(source_key) or "")
+
+                for flag_key, target_key in (
+                    ("wait", "ec2_ami_copy_wait"),
+                    ("encrypted", "ec2_ami_copy_encrypted"),
+                    ("copy_image_tags", "ec2_ami_copy_copy_image_tags"),
+                    ("tag_equality", "ec2_ami_copy_tag_equality"),
+                ):
+                    if flag_key in public_values:
+                        vars_data[target_key] = as_bool(public_values.get(flag_key), False)
+
+                if "wait_timeout" in public_values:
+                    try:
+                        vars_data["ec2_ami_copy_wait_timeout"] = int(
+                            public_values.get("wait_timeout") or 600
+                        )
+                    except (TypeError, ValueError):
+                        vars_data["ec2_ami_copy_wait_timeout"] = 600
+
+                if "tags" in public_values and isinstance(public_values.get("tags"), dict):
+                    vars_data["ec2_ami_copy_tags"] = public_values["tags"]
+
+                merge_shared_aws_vault({**public_values, **secret_values})
+
+            if component == "aws":
+                aws_vars_path = env_dir / "vars_aws.yml"
+                aws_vars_data = load_yaml(aws_vars_path)
+                aws_vars_changed = False
+                if public_values.get("profile") is not None:
+                    aws_vars_data["aws_profile"] = str(public_values.get("profile") or "")
+                    aws_vars_changed = True
+                if public_values.get("default_region") is not None:
+                    aws_vars_data["aws_default_region"] = str(
+                        public_values.get("default_region") or ""
+                    )
+                    aws_vars_changed = True
+                if aws_vars_changed:
+                    write_yaml(aws_vars_path, aws_vars_data, "0644")
+                merge_shared_aws_vault({**public_values, **secret_values})
+
             if component == "satellite":
                 vars_data.setdefault("components_env", {}).setdefault("satellite", {})
                 vars_data["components_env"]["satellite"].pop("storage", None)
@@ -2531,10 +2641,7 @@
             if component == "cert_manager":
                 if secret_values.get("tls_key") is not None:
                     vault_data["tls_key"] = secret_values["tls_key"]
-                if secret_values.get("awspca_access_key_id") is not None:
-                    vault_data["ocp_awspca_access_key_id"] = secret_values["awspca_access_key_id"]
-                if secret_values.get("awspca_secret_access_key") is not None:
-                    vault_data["ocp_awspca_secret_access_key"] = secret_values["awspca_secret_access_key"]
+                merge_shared_aws_vault({**public_values, **secret_values})
 
             if component == "idm":
                 if secret_values.get("admin_password") is not None:
@@ -2550,7 +2657,11 @@
                     vault_data["vault_ad_trust_admin_password"] = secret_values["ad_admin_password"]
                     vault_data["idm_ad_trust_ad_admin_password"] = secret_values["ad_admin_password"]
 
-            write_yaml(vault_path, vault_data, "0600")
+            if component == "ec2_ami_copy":
+                if vault_path.exists():
+                    vault_path.unlink()
+            else:
+                write_yaml(vault_path, vault_data, "0600")
 
     component_options = preflight.get("component_options") or {}
     openshift_options = set(component_options.get("openshift") or [])
@@ -2832,6 +2943,13 @@
     - preflight_json is defined
     - preflight_json | length > 0
 # yamllint enable rule:line-length
+
+- name: Remove legacy per-component ec2_ami_copy vault file
+  ansible.builtin.file:
+    path: >-
+      {{ bootstrap_generate_env_vars_env_dir }}/vault_ec2_ami_copy.yml
+    state: absent
+  when: "'ec2_ami_copy' in bootstrap_generate_env_vars_components"
 
 - name: Ask if using AAP
   ansible.builtin.pause:
