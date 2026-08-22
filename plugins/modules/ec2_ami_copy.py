@@ -38,8 +38,9 @@ options:
   name:
     description:
       - Name for the new AMI in the destination region.
+      - When omitted, the source AMI name is reused so the copy keeps
+        the same name unless you set this option to rename it.
     type: str
-    default: default
   description:
     description:
       - Optional description for the new AMI.
@@ -103,7 +104,7 @@ requirements:
 """
 
 EXAMPLES = r"""
-- name: Copy an AMI to another region
+- name: Copy an AMI to another region with a new name
   infra.ado.ec2_ami_copy:
     source_region: us-east-1
     region: us-west-2
@@ -111,6 +112,14 @@ EXAMPLES = r"""
     name: my-app-image
     wait: true
   register: copied_ami
+
+- name: Copy an AMI keeping the source name
+  infra.ado.ec2_ami_copy:
+    source_region: us-east-1
+    region: us-west-2
+    source_image_id: ami-0123456789abcdef0
+    wait: true
+  register: copied_ami_same_name
 
 - name: Encrypted AMI copy with tags (idempotent via tag_equality)
   infra.ado.ec2_ami_copy:
@@ -170,12 +179,50 @@ def find_existing_image(ec2: Any, tags: dict) -> Optional[dict]:
     return images[0]
 
 
-def build_copy_params(params: dict) -> dict:
+def resolve_destination_image_name(
+    module: AnsibleAWSModule,
+    ec2: Any,
+    params: dict,
+) -> str:
+    """Return destination AMI name, optionally renamed from the source."""
+    name = params.get("name")
+    if name:
+        return name
+
+    try:
+        response = ec2.describe_images(ImageIds=[params["source_image_id"]])
+    except (BotoCoreError, ClientError) as exc:
+        module.fail_json_aws(
+            exc,
+            msg="Could not describe source AMI to determine its name",
+        )
+
+    images = response.get("Images") or []
+    if not images:
+        module.fail_json(
+            msg=(
+                "Source AMI {0} was not found in {1}. "
+                "Set name= to choose a destination AMI name."
+            ).format(
+                params["source_image_id"],
+                params["source_region"],
+            ),
+        )
+
+    image_name = images[0].get("Name")
+    if not image_name:
+        module.fail_json(
+            msg="Source AMI has no Name attribute; set name= to choose a destination AMI name.",
+        )
+    return image_name
+
+
+def build_copy_params(params: dict, destination_name: str) -> dict:
     """Build boto3 CopyImage kwargs from module params."""
     copy_params = {
         "SourceRegion": params["source_region"],
         "SourceImageId": params["source_image_id"],
-        "Name": params["name"],
+        "Name": destination_name,
         "Description": params.get("description") or "",
         "Encrypted": params.get("encrypted", False),
         "CopyImageTags": params.get("copy_image_tags", False),
@@ -232,7 +279,13 @@ def copy_image(module: AnsibleAWSModule, ec2: Any) -> None:
                 msg="AMI would be copied",
             )
 
-        copy_params = build_copy_params(params)
+        source_ec2 = module.client("ec2", region=params["source_region"])
+        destination_name = resolve_destination_image_name(
+            module,
+            source_ec2,
+            params,
+        )
+        copy_params = build_copy_params(params, destination_name)
         try:
             image = ec2.copy_image(**copy_params)
             changed = True
@@ -277,7 +330,7 @@ def main() -> None:
     argument_spec = dict(
         source_region=dict(type="str", required=True),
         source_image_id=dict(type="str", required=True),
-        name=dict(type="str", default="default"),
+        name=dict(type="str"),
         description=dict(type="str", default=""),
         encrypted=dict(type="bool", default=False),
         kms_key_id=dict(type="str"),

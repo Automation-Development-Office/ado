@@ -1,0 +1,12 @@
+---
+minor_changes:
+  - |
+    ci - Start fakecloud in the Molecule pipeline for scenarios listed in
+    ``extensions/molecule/fakecloud_scenarios.txt`` so AWS API integration
+    tests (``integration_ec2_ami_copy`` and
+    ``integration_ec2_ami_copy_keep_name`` for ``infra.ado.ec2_ami_copy``)
+    run without real cloud credentials.
+doc_changes:
+  - |
+    ci - Document fakecloud-backed Molecule testing in
+    ``extensions/molecule/FAKECLOUD.md``.

@@ -1,0 +1,34 @@
+---
+- name: Verify - ec2_ami_copy keep-name fakecloud scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars_files:
+    - ec2_ami_copy_vars.yml
+
+  tasks:
+    - name: Run common AMI copy assertions
+      ansible.builtin.import_tasks: ec2_ami_copy_verify_common.yml
+
+    - name: Load source AMI name from prepare
+      ansible.builtin.slurp:
+        src: "{{ ec2_ami_copy_molecule_source_name_file }}"
+      register: ec2_ami_copy_molecule_source_name_raw
+
+    - name: Set source AMI name fact
+      ansible.builtin.set_fact:
+        ec2_ami_copy_molecule_source_name: >-
+          {{ ec2_ami_copy_molecule_source_name_raw.content | b64decode | trim }}
+
+    - name: Assert destination AMI kept the source name
+      ansible.builtin.assert:
+        that:
+          - >-
+            ec2_ami_copy_molecule_dest_amis.images[0].name
+            == ec2_ami_copy_molecule_source_name
+        fail_msg: >-
+          Expected destination AMI to keep source name
+          {{ ec2_ami_copy_molecule_source_name }}, got
+          {{ ec2_ami_copy_molecule_dest_amis.images[0].name | default('') }}
+        success_msg: Destination AMI reused the source AMI name

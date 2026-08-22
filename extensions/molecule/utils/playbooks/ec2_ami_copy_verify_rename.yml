@@ -1,0 +1,38 @@
+---
+- name: Verify - ec2_ami_copy rename fakecloud scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars_files:
+    - ec2_ami_copy_vars.yml
+
+  tasks:
+    - name: Run common AMI copy assertions
+      ansible.builtin.import_tasks: ec2_ami_copy_verify_common.yml
+
+    - name: Load expected destination AMI name
+      ansible.builtin.slurp:
+        src: "{{ ec2_ami_copy_molecule_artifact_root }}/expected_dest_name"
+      register: ec2_ami_copy_molecule_expected_dest_name_raw
+
+    - name: Set expected destination AMI name fact
+      ansible.builtin.set_fact:
+        ec2_ami_copy_molecule_expected_dest_name: >-
+          {{
+            ec2_ami_copy_molecule_expected_dest_name_raw.content
+            | b64decode
+            | trim
+          }}
+
+    - name: Assert destination AMI was renamed
+      ansible.builtin.assert:
+        that:
+          - >-
+            ec2_ami_copy_molecule_dest_amis.images[0].name
+            == ec2_ami_copy_molecule_expected_dest_name
+        fail_msg: >-
+          Expected destination AMI name
+          {{ ec2_ami_copy_molecule_expected_dest_name }}, got
+          {{ ec2_ami_copy_molecule_dest_amis.images[0].name | default('') }}
+        success_msg: Destination AMI has the requested name

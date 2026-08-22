@@ -1,0 +1,12 @@
+---
+minor_changes:
+  - |
+    infra.ado.ec2_ami_copy - ``name`` is optional; omit it to reuse the source
+    AMI name, or set it to rename the copied AMI in the destination region.
+  - |
+    infra.ado.ec2_ami_copy - Added ``integration_ec2_ami_copy_keep_name``
+    Molecule scenario to exercise copies that omit ``name``.
+doc_changes:
+  - |
+    infra.ado.ec2_ami_copy - Document optional ``name`` in module examples and
+    collection README module index entries.

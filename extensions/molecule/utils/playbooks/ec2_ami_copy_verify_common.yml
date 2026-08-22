@@ -1,0 +1,35 @@
+---
+- name: Load converge result
+  ansible.builtin.slurp:
+    src: "{{ ec2_ami_copy_molecule_state_file }}"
+  register: ec2_ami_copy_molecule_state_raw
+
+- name: Parse converge result
+  ansible.builtin.set_fact:
+    ec2_ami_copy_molecule_state: >-
+      {{ ec2_ami_copy_molecule_state_raw.content | b64decode | from_json }}
+
+- name: Assert module returned an AMI ID
+  ansible.builtin.assert:
+    that:
+      - ec2_ami_copy_molecule_state.image_id is defined
+      - ec2_ami_copy_molecule_state.image_id is match('^ami-')
+    fail_msg: "ec2_ami_copy did not return a valid image_id"
+    success_msg: >-
+      ec2_ami_copy returned {{ ec2_ami_copy_molecule_state.image_id }}
+
+- name: Describe copied AMI in destination region
+  amazon.aws.ec2_ami_info:
+    region: "{{ ec2_ami_copy_molecule_dest_region }}"
+    image_ids:
+      - "{{ ec2_ami_copy_molecule_state.image_id }}"
+  register: ec2_ami_copy_molecule_dest_amis
+
+- name: Assert destination AMI exists in fakecloud
+  ansible.builtin.assert:
+    that:
+      - ec2_ami_copy_molecule_dest_amis.images | length == 1
+    fail_msg: >-
+      Copied AMI {{ ec2_ami_copy_molecule_state.image_id }} was not found
+      in {{ ec2_ami_copy_molecule_dest_region }}
+    success_msg: Destination AMI is visible via DescribeImages

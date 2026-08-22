@@ -40,7 +40,7 @@ Use the standard `amazon.aws` credential options (`access_key`, `secret_key`,
 | `source_region`   | yes      |           | Source AWS region of the AMI.                                                                  |
 | `source_image_id` | yes      |           | AMI ID in the source region.                                                                   |
 | `region`          | yes\*    |           | Destination AWS region (\*via `amazon.aws` region options / env).                              |
-| `name`            | no       | `default` | Name for the new AMI.                                                                          |
+| `name`            | no       | source AMI name | Name for the new AMI; omit to keep the source name, or set to rename during copy.             |
 | `description`     | no       | `""`      | Description for the new AMI.                                                                   |
 | `encrypted`       | no       | `false`   | Encrypt destination EBS snapshots.                                                             |
 | `kms_key_id`      | no       |           | KMS key ID/ARN/alias for encryption; account default EBS CMK if omitted when `encrypted=true`. |
@@ -57,14 +57,22 @@ Supports check mode (`ansible-playbook --check`).
 Basic copy and wait for availability:
 
 ```yaml
-- name: Copy AMI to us-west-2
+- name: Copy AMI to us-west-2 with a new name
   infra.ado.ec2_ami_copy:
     source_region: us-east-1
     region: us-west-2
     source_image_id: ami-0123456789abcdef0
-    name: my-app-image
+    name: my-app-image-west
     wait: true
   register: copied_ami
+
+- name: Copy AMI keeping the source name
+  infra.ado.ec2_ami_copy:
+    source_region: us-east-1
+    region: us-west-2
+    source_image_id: ami-0123456789abcdef0
+    wait: true
+  register: copied_ami_same_name
 
 - name: Show new AMI ID
   ansible.builtin.debug:
