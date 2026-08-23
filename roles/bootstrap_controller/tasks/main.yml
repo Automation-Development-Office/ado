@@ -19,7 +19,7 @@
 
 - name: Resolve preflight sub-documents for AAP bootstrap flags
   ansible.builtin.set_fact:
-    _bootstrap_preflight_component_config: >-
+    bootstrap_controller_preflight_component_config: >-
       {{
         bootstrap_generate_env_vars_preflight.component_config
         if (
@@ -28,7 +28,7 @@
         )
         else {}
       }}
-    _bootstrap_preflight_pre_installs: >-
+    bootstrap_controller_preflight_pre_installs: >-
       {{
         bootstrap_generate_env_vars_preflight.pre_installs
         if (
@@ -44,18 +44,18 @@
     bootstrap_controller_aap_install_during_bootstrap: >-
       {{
         (
-          _bootstrap_preflight_component_config.get('aap', {}).get(
+          bootstrap_controller_preflight_component_config.get('aap', {}).get(
             'install_during_bootstrap',
             aap_install_during_bootstrap | default(false)
           )
           | bool
         )
         or (
-          _bootstrap_preflight_pre_installs.get('attach_aap_license', false)
+          bootstrap_controller_preflight_pre_installs.get('attach_aap_license', false)
           | bool
         )
         or (
-          _bootstrap_preflight_pre_installs.get('aap', {}).get(
+          bootstrap_controller_preflight_pre_installs.get('aap', {}).get(
             'license_only',
             false
           )
@@ -69,22 +69,22 @@
           aap_ocp_install_license_only | default(false) | bool
         )
         or (
-          _bootstrap_preflight_pre_installs.get('attach_aap_license', false)
+          bootstrap_controller_preflight_pre_installs.get('attach_aap_license', false)
           | bool
           and not (
-            _bootstrap_preflight_pre_installs.get('install_aap', false)
+            bootstrap_controller_preflight_pre_installs.get('install_aap', false)
             | bool
           )
         )
         or (
-          _bootstrap_preflight_component_config.get('aap', {}).get(
+          bootstrap_controller_preflight_component_config.get('aap', {}).get(
             'license_only',
             false
           )
           | bool
         )
         or (
-          _bootstrap_preflight_pre_installs.get('aap', {}).get(
+          bootstrap_controller_preflight_pre_installs.get('aap', {}).get(
             'license_only',
             false
           )

@@ -27,11 +27,7 @@
     generate_playbook_repo_git_push: false
     generate_playbook_repo_git_commit: false
 
-    # Match UI non-interactive behavior
-    #generate_env_vars_encrypt_vault_files: false
-    #generate_playbook_repo_pause_for_push: false
-    #generate_playbook_repo_git_push: false
-    #generate_playbook_repo_git_commit: false
+    # Match UI non-interactive behavior (see commented vars above).
 
   pre_tasks:
     - name: Clean previous generated content
