@@ -36,6 +36,7 @@
         - configs
         - group_vars
         - inventory
+        - collections
         - ado-preflight-ec2-ami-copy.json
 
     - name: Write ec2_ami_copy preflight JSON

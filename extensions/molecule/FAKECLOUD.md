@@ -26,6 +26,7 @@ source scripts/ci/fakecloud-env.sh
 ansible-galaxy collection install . --force --no-deps -p ~/.ansible/collections
 ansible-galaxy collection install -r extensions/molecule/integration_ec2_ami_copy/requirements.yml \
   -p ~/.ansible/collections
+pip install boto3 botocore
 export ANSIBLE_COLLECTIONS_PATH="$HOME/.ansible/collections"
 cd extensions/molecule && ln -sfn . molecule
 molecule test -s integration_ec2_ami_copy

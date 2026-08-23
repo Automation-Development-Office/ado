@@ -8,3 +8,6 @@ minor_changes:
     bootstrap - Add shared ``vault_aws.yml`` / ``vars_aws.yml`` credentials for
     all AWS bootstrap consumers (``ec2_ami_copy``, cert-manager AWS PCA, and
     future modules).
+bugfixes:
+  - bootstrap_controller - Resolve AAP install flags when preflight
+    ``component_config`` has no ``aap`` block.

@@ -23,15 +23,10 @@
       {{
         (
           (
-            (
-              bootstrap_generate_env_vars_preflight.component_config.aap.install_during_bootstrap
-              | default(aap_install_during_bootstrap | default(false))
-            )
-            if (
-              bootstrap_generate_env_vars_preflight is defined
-              and (bootstrap_generate_env_vars_preflight.component_config | default({})).aap is defined
-            )
-            else (aap_install_during_bootstrap | default(false))
+            bootstrap_generate_env_vars_preflight.component_config | default({})
+          ).get('aap', {}).get(
+            'install_during_bootstrap',
+            aap_install_during_bootstrap | default(false)
           )
           | bool
         )
@@ -81,15 +76,10 @@
           bootstrap_generate_env_vars_preflight is defined
           and (
             (
-              bootstrap_generate_env_vars_preflight.component_config.aap.license_only
-              | default(false)
-            )
-            if (
-              (bootstrap_generate_env_vars_preflight.component_config | default({})).aap is mapping
-            )
-            else false
+              bootstrap_generate_env_vars_preflight.component_config | default({})
+            ).get('aap', {}).get('license_only', false)
+            | bool
           )
-          | bool
         )
         or (
           bootstrap_generate_env_vars_preflight is defined

@@ -14,5 +14,5 @@
         - configs
         - group_vars
         - inventory
-        - collections/ansible_collections
+        - collections
         - ado-preflight-ec2-ami-copy.json

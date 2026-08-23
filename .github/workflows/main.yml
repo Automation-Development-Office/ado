@@ -504,6 +504,10 @@ jobs:
         if: steps.fakecloud.outputs.needed == 'true'
         run: scripts/ci/fakecloud-service.sh start
 
+      - name: Install AWS SDK for fakecloud scenarios
+        if: steps.fakecloud.outputs.needed == 'true'
+        run: pip install boto3 botocore
+
       - name: Run Molecule tests
         working-directory: extensions/molecule
         env:
