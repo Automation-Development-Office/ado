@@ -47,42 +47,9 @@
 
     - name: Write all-component preflight JSON
       ansible.builtin.copy:
+        src: ado-preflight-all.fixture.json
         dest: "{{ preflight_json }}"
         mode: "0644"
-        content: |
-          {
-            "scm_tool": "gitlab",
-            "environment": "molecule",
-            "domain": "example.test",
-            "component": "all",
-
-            "aap": {
-              "enabled": true,
-              "hostname": "https://aap.example.test",
-              "version": "26",
-              "organization": "ado-lab",
-              "inventory": "ado-inventory",
-              "project": "ado-project",
-              "git_url": "https://git.example.test/redhat-lab/bootstrap-sample.git",
-              "git_branch": "main",
-              "execution_environment": "ee-supported-rhel9",
-              "vault_credential_name": "ado-vault",
-              "oauth_token": "MOLECULE_TOKEN",
-              "admin_username": "admin",
-              "admin_password": "redhat123",
-              "vault_password": "redhat123"
-            },
-
-            "openshift": {
-              "api_host": "https://api.example.test:6443",
-              "apps_domain": "apps.example.test",
-              "token": "MOLECULE_OPENSHIFT_TOKEN"
-            },
-
-            "jira": {
-              "enabled": false
-            }
-          }
 
   roles:
     - role: infra.ado.bootstrap_controller

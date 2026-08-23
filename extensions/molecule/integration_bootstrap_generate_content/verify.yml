@@ -76,9 +76,9 @@
         path: "{{ playbook_dir }}/playbooks/{{ item }}"
       loop:
         - aap
+        - acm
         - acs
         - cert-manager
-        - console
         - devspaces
         - dirsrv
         - eck

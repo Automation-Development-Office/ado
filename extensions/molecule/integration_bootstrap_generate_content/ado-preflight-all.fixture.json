@@ -1,0 +1,114 @@
+{
+  "scm_tool": "gitlab",
+  "environment": "molecule",
+  "domain": "example.test",
+  "component": "all",
+  "platform": ["all"],
+  "components": [
+    "openshift",
+    "rhel",
+    "patching",
+    "satellite",
+    "idm",
+    "grafana",
+    "jira",
+    "keycloak"
+  ],
+  "component_apps": {
+    "openshift": [
+      "aap",
+      "acs",
+      "acm",
+      "cert_manager",
+      "console",
+      "devspaces",
+      "dirsrv",
+      "eck",
+      "gitops",
+      "gitlab",
+      "grafana",
+      "bookstack",
+      "kafka",
+      "oadp",
+      "openshift",
+      "pega",
+      "quay",
+      "rhbk"
+    ],
+    "rhel": [
+      "rhel",
+      "satellite_server_install",
+      "satellite_client_tools",
+      "satellite_content_view",
+      "satellite_capsule_install",
+      "satellite_oidc",
+      "idm_server_install",
+      "idm_replica_install",
+      "idm_client_tools",
+      "idm_dns_install",
+      "aap",
+      "dirsrv",
+      "eck",
+      "gitlab",
+      "grafana",
+      "kafka",
+      "rhbk",
+      "compliance",
+      "stig"
+    ],
+    "patching": [
+      "rhel",
+      "satellite_server_install",
+      "satellite_client_tools",
+      "satellite_content_view",
+      "satellite_capsule_install",
+      "satellite_oidc",
+      "idm_server_install",
+      "idm_replica_install",
+      "idm_client_tools",
+      "idm_dns_install"
+    ]
+  },
+  "component_options": {
+    "satellite": [
+      "satellite_server_install",
+      "satellite_client_tools",
+      "satellite_content_view",
+      "satellite_capsule_install",
+      "satellite_oidc"
+    ],
+    "idm": [
+      "idm_server_install",
+      "idm_replica_install",
+      "idm_client_tools",
+      "idm_dns_install"
+    ],
+    "acs": [
+      "acs_report"
+    ]
+  },
+  "aap": {
+    "enabled": true,
+    "hostname": "https://aap.example.test",
+    "version": "26",
+    "organization": "ado-lab",
+    "inventory": "ado-inventory",
+    "project": "ado-project",
+    "git_url": "https://git.example.test/redhat-lab/bootstrap-sample.git",
+    "git_branch": "main",
+    "execution_environment": "ee-supported-rhel9",
+    "vault_credential_name": "ado-vault",
+    "oauth_token": "MOLECULE_TOKEN",
+    "admin_username": "admin",
+    "admin_password": "redhat123",
+    "vault_password": "redhat123"
+  },
+  "openshift": {
+    "api_host": "https://api.example.test:6443",
+    "apps_domain": "apps.example.test",
+    "token": "MOLECULE_OPENSHIFT_TOKEN"
+  },
+  "jira": {
+    "enabled": false
+  }
+}
