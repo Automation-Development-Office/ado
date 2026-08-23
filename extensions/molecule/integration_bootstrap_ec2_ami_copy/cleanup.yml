@@ -15,4 +15,5 @@
         - group_vars
         - inventory
         - collections
+        - templates
         - ado-preflight-ec2-ami-copy.json
