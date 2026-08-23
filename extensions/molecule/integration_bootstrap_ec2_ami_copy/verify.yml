@@ -46,6 +46,18 @@
           - ec2_ami_copy_vars_file.stat.isreg
         fail_msg: Expected group_vars/all/molecule/vars_ec2_ami_copy.yml
 
+    - name: Verify generated shared AWS vars file exists
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/group_vars/all/molecule/vars_aws.yml"
+      register: aws_vars_file
+
+    - name: Assert shared AWS vars file was generated
+      ansible.builtin.assert:
+        that:
+          - aws_vars_file.stat.exists
+          - aws_vars_file.stat.isreg
+        fail_msg: Expected group_vars/all/molecule/vars_aws.yml
+
     - name: Verify generated shared AWS vault file exists
       ansible.builtin.stat:
         path: "{{ playbook_dir }}/group_vars/all/molecule/vault_aws.yml"

@@ -128,6 +128,15 @@
             +
             (
               (
+                bootstrap_generate_env_vars_preflight.component_apps.aws
+                | default([])
+              )
+              if 'aws' in bootstrap_generate_env_vars_preflight_components
+              else []
+            )
+            +
+            (
+              (
                 bootstrap_generate_env_vars_preflight.component_apps.provision
                 | default([])
               )
@@ -309,7 +318,7 @@
             +
             (
               bootstrap_generate_env_vars_preflight_components
-              | difference(['openshift', 'rhel', 'patching', 'provision'])
+              | difference(['openshift', 'rhel', 'patching', 'provision', 'aws'])
               | list
             )
           )
@@ -663,6 +672,48 @@
   ansible.builtin.debug:
     var: bootstrap_generate_env_vars_components
 
+- name: Expand AWS platform app selections into vars components
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_components: >-
+      {{
+        (
+          bootstrap_generate_env_vars_components
+          + (
+              (
+                bootstrap_generate_env_vars_preflight.component_options.aws
+                | default([])
+                | map('lower')
+                | list
+              )
+              if (
+                bootstrap_generate_env_vars_preflight is defined
+                and (
+                  'aws' in (
+                    bootstrap_generate_env_vars_preflight.components
+                    | default(
+                        bootstrap_generate_env_vars_preflight.platform
+                        | default([])
+                      )
+                    | map('lower')
+                    | list
+                  )
+                  or 'aws' in bootstrap_generate_env_vars_components
+                )
+                and (
+                  bootstrap_generate_env_vars_preflight.component_options.aws
+                  | default([])
+                  | length
+                ) > 0
+              )
+              else []
+            )
+        )
+        | reject('equalto', 'aws')
+        | unique
+        | list
+      }}
+  when: bootstrap_generate_env_vars_preflight is defined
+
 - name: Normalize patching selection to RHEL component vars
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_components: >-
@@ -723,9 +774,10 @@
         ).install_during_bootstrap | default(false) | bool
       )
 
-# Expand satellite/idm/acs options into keys for playbook/JT selection only.
+# Expand satellite/idm/acs/aws options into keys for playbook/JT selection only.
 # Keep bootstrap_generate_env_vars_components unchanged for vars_*.yml.
-- name: Build playbook/JT app selectors from Satellite, IdM, and ACS options
+- name: >-
+    Build playbook/JT app selectors from Satellite, IdM, ACS, and AWS options
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_playbook_components: >-
       {{
@@ -734,6 +786,7 @@
             bootstrap_generate_env_vars_components
             | reject('equalto', 'satellite')
             | reject('equalto', 'idm')
+            | reject('equalto', 'aws')
             | list
           )
           +
@@ -791,6 +844,35 @@
               and bootstrap_generate_env_vars_preflight is defined
               and (
                 bootstrap_generate_env_vars_preflight.component_options.acs
+                | default([])
+                | length
+              ) > 0
+            )
+            else (
+              []
+            )
+          )
+          +
+          (
+            (
+              bootstrap_generate_env_vars_preflight.component_options.aws
+              | default([])
+              | map('lower')
+              | list
+            )
+            if (
+              bootstrap_generate_env_vars_preflight is defined
+              and 'aws' in (
+                bootstrap_generate_env_vars_preflight.components
+                | default(
+                    bootstrap_generate_env_vars_preflight.platform
+                    | default([])
+                  )
+                | map('lower')
+                | list
+              )
+              and (
+                bootstrap_generate_env_vars_preflight.component_options.aws
                 | default([])
                 | length
               ) > 0

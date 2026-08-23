@@ -43,6 +43,8 @@
         - configs
         - group_vars
         - inventory
+        - collections
+        - templates
         - ado-preflight-all.json
 
     - name: Write all-component preflight JSON

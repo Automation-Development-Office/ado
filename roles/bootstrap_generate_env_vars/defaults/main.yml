@@ -197,4 +197,4 @@ bootstrap_generate_env_vars_ec2_ami_copy_tag_equality: false
 bootstrap_generate_env_vars_ec2_ami_copy_tags: {}
 
 bootstrap_generate_env_vars_aws_profile: ""
-bootstrap_generate_env_vars_aws_default_region: ""
+bootstrap_generate_env_vars_aws_default_region: us-east-1

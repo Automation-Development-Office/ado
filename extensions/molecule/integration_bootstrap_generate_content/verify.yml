@@ -78,6 +78,7 @@
         - aap
         - acm
         - acs
+        - aws
         - cert-manager
         - devspaces
         - dirsrv

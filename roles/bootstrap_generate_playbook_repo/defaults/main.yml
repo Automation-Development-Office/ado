@@ -180,6 +180,7 @@ bootstrap_generate_playbook_repo_component_map:
   ec2_ami_copy:
     - ec2_ami_copy
 
+  # AWS platform umbrella. Add future apps (ec2_instance, etc.) here.
   aws:
     - ec2_ami_copy
 

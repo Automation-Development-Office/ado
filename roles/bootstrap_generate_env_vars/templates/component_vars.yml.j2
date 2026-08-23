@@ -255,8 +255,9 @@ ec2_ami_copy_tag_equality: {{ ec2_ami_copy_config.tag_equality | default(bootstr
 ec2_ami_copy_tags: {{ ec2_ami_copy_config.tags | default(bootstrap_generate_env_vars_ec2_ami_copy_tags | default({}), true) | to_json }}
 
 {% elif component_name == 'aws' %}
-aws_profile: {{ bootstrap_generate_env_vars_aws_profile | default('', true) | to_json }}
-aws_default_region: {{ bootstrap_generate_env_vars_aws_default_region | default('', true) | to_json }}
+{% set aws_config = bootstrap_generate_env_vars_preflight.component_config.aws | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+aws_profile: {{ aws_config.profile | default(bootstrap_generate_env_vars_aws_profile | default('', true), true) | to_json }}
+aws_default_region: {{ aws_config.default_region | default(bootstrap_generate_env_vars_aws_default_region | default('us-east-1', true), true) | to_json }}
 
 {% elif component_name == 'rhbk' %}
 components_env:

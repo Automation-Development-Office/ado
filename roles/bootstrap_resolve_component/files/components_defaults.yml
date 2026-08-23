@@ -642,7 +642,9 @@ components_defaults:
 
   # Shared AWS account credentials for bootstrap consumers (ec2_ami_copy,
   # cert-manager AWS PCA, and future AWS modules).
-  aws: {}
+  aws:
+    aws_profile: ""
+    aws_default_region: us-east-1
 
   # BookStack docs platform on OpenShift (role: bookstack_openshift).
   # OCP API auth comes from vault_openshift.yml / vars_openshift.yml (host + token),

@@ -40,50 +40,11 @@
         - templates
         - ado-preflight-ec2-ami-copy.json
 
-    - name: Write ec2_ami_copy preflight JSON
+    - name: Write AWS platform preflight JSON for ec2_ami_copy
       ansible.builtin.copy:
+        src: ado-preflight-aws-ec2-ami-copy.fixture.json
         dest: "{{ preflight_json }}"
         mode: "0644"
-        content: |
-          {
-            "scm_tool": "gitlab",
-            "environment": "molecule",
-            "domain": "example.test",
-            "component": "ec2_ami_copy",
-            "components": ["ec2_ami_copy"],
-            "platform": ["ec2_ami_copy"],
-
-            "component_config": {
-              "ec2_ami_copy": {
-                "source_region": "us-east-1",
-                "dest_region": "us-west-2",
-                "source_image_id": "ami-0123456789abcdef0",
-                "name": "molecule-copied-ami",
-                "wait": true
-              }
-            },
-
-            "aap": {
-              "enabled": true,
-              "hostname": "https://aap.example.test",
-              "version": "26",
-              "organization": "ado-lab",
-              "inventory": "ado-inventory",
-              "project": "ado-project",
-              "git_url": "https://git.example.test/sample.git",
-              "git_branch": "main",
-              "execution_environment": "ee-supported-rhel9",
-              "vault_credential_name": "ado-vault",
-              "oauth_token": "MOLECULE_TOKEN",
-              "admin_username": "admin",
-              "admin_password": "redhat123",
-              "vault_password": "redhat123"
-            },
-
-            "jira": {
-              "enabled": false
-            }
-          }
 
   roles:
     - role: infra.ado.bootstrap_controller

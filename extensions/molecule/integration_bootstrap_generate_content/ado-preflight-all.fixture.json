@@ -12,7 +12,8 @@
     "idm",
     "grafana",
     "jira",
-    "keycloak"
+    "keycloak",
+    "aws"
   ],
   "component_apps": {
     "openshift": [
@@ -67,6 +68,9 @@
       "idm_replica_install",
       "idm_client_tools",
       "idm_dns_install"
+    ],
+    "aws": [
+      "ec2_ami_copy"
     ]
   },
   "component_options": {
@@ -85,6 +89,9 @@
     ],
     "acs": [
       "acs_report"
+    ],
+    "aws": [
+      "ec2_ami_copy"
     ]
   },
   "aap": {
