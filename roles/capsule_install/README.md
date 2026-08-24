@@ -40,6 +40,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `capsule_install_admin_username` | Satellite admin username used to generate the registration command | ❌ | `"admin"` |
 | `capsule_install_admin_password` | Satellite admin password used to generate the registration command | ✅* | unset |
 | `capsule_install_timezone` | System timezone set before registration | ❌ | `"UTC"` |
+| `capsule_install_setup_insights` | Whether to configure Red Hat Insights during Capsule registration | ❌ | `false` |
 | `capsule_install_rhn_repos` | RHSM repository IDs enabled after registration | ❌ | See `defaults/main.yml` |
 | `capsule_install_scenario` | Satellite installer scenario for Capsule deployment | ❌ | `"capsule"` |
 | `capsule_install_vg_name` | LVM volume group name for Capsule storage | ❌ | `"capsule"` |

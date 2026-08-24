@@ -91,6 +91,10 @@ argument_specs:
       capsule_install_location:
         type: str
         description: Logical location label for Capsule deployment.
+      capsule_install_setup_insights:
+        type: bool
+        description: Configure Red Hat Insights during Capsule registration.
+        default: false
       satellite_fqdn:
         type: str
         description: FQDN of the upstream Satellite server.

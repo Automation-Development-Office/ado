@@ -49,7 +49,7 @@
         organization: "{{ capsule_install_org_id }}"
         activation_keys: "{{ capsule_install_activation_key }}"
         location: "{{ capsule_install_location }}"
-        setup_insights: false
+        setup_insights: "{{ capsule_install_setup_insights }}"
       register: capsule_install_registration_command
       no_log: true
 

@@ -48,6 +48,7 @@ capsule_install_deployment_version: "6.19"
 capsule_install_admin_username: "admin"
 capsule_install_timezone: "UTC"
 capsule_install_location: ""
+capsule_install_setup_insights: false
 
 capsule_install_org_id:
 capsule_install_activation_key:
