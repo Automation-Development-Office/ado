@@ -1,0 +1,67 @@
+---
+- name: rhsm_subscribe | Set timezone
+  community.general.timezone:
+    name: "{{ capsule_install_timezone }}"
+
+- name: rhsm_subscribe | Restart crond
+  ansible.builtin.service:
+    name: crond
+    state: restarted
+
+- name: rhsm_subscribe | Find repo files
+  ansible.builtin.find:
+    paths: /etc/yum.repos.d
+    patterns: "*.repo"
+  register: capsule_install_repo_files
+
+- name: rhsm_subscribe | Check if capsule is already registered
+  ansible.builtin.command: subscription-manager list
+  register: capsule_install_status
+  changed_when: false
+  failed_when: capsule_install_status.rc != 0
+  become: true
+
+- name: rhsm_subscribe | Set capsule registration status
+  ansible.builtin.set_fact:
+    capsule_install_registered: >-
+      {{ 'Satellite Capsule' in capsule_install_status.stdout }}
+
+- name: rhsm_subscribe | Subscription block
+  when: not capsule_install_registered
+  block:
+    - name: rhsm_subscribe | Remove non-redhat repo files
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      when: item.path != "/etc/yum.repos.d/redhat.repo"
+      loop: "{{ capsule_install_repo_files.files }}"
+
+    - name: rhsm_subscribe | Stop rhsm service
+      ansible.builtin.service:
+        name: rhsm
+        state: stopped
+
+    - name: rhsm_subscribe | Generate registration command
+      redhat.satellite.registration_command:
+        username: "{{ capsule_install_admin_username }}"
+        password: "{{ capsule_install_admin_password }}"
+        server_url: "https://{{ capsule_install_satellite_fqdn }}"
+        organization: "{{ capsule_install_org_id }}"
+        activation_keys: "{{ capsule_install_activation_key }}"
+        location: "{{ capsule_install_location }}"
+        setup_insights: "{{ capsule_install_setup_insights }}"
+      register: capsule_install_registration_command
+      no_log: true
+
+    - name: rhsm_subscribe | Perform registration
+      ansible.builtin.shell:
+        cmd: "{{ capsule_install_registration_command.registration_command }}"
+        executable: /bin/bash
+      changed_when: false
+      no_log: true
+
+    - name: rhsm_subscribe | Enable repositories
+      community.general.rhsm_repository:
+        name: "{{ item }}"
+        state: enabled
+      loop: "{{ capsule_install_rhn_repos }}"

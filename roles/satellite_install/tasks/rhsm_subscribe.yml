@@ -3,9 +3,9 @@
   community.general.timezone:
     name: "{{ satellite_install_timezone }}"
 
-- name: rhsm_subscribe | Restart chronyd
+- name: rhsm_subscribe | Restart crond
   ansible.builtin.service:
-    name: chronyd
+    name: crond
     state: restarted
 
 - name: rhsm_subscribe | Check amazon-id.conf

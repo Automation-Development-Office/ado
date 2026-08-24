@@ -1,0 +1,2 @@
+minor_changes:
+  - capsule_install - Added ``capsule_install_setup_insights`` (default ``false``) to control Insights setup during Capsule registration.

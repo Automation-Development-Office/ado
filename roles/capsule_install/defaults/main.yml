@@ -1,3 +1,13 @@
+---
+# yamllint disable rule:line-length
+capsule_install_rhn_repos:
+  - "rhel-9-for-x86_64-baseos-rpms"
+  - "rhel-9-for-x86_64-appstream-rpms"
+  - >-
+    satellite-capsule-{{ capsule_install_deployment_version }}-for-rhel-9-x86_64-rpms
+  - >-
+    satellite-maintenance-{{ capsule_install_deployment_version }}-for-rhel-9-x86_64-rpms
+# yamllint enable rule:line-length
 # Capsule install requirements
 capsule_install_os_version: "9"
 capsule_install_min_cpu_count: 4
@@ -32,22 +42,24 @@ capsule_install_packages:
   - bind-utils
 
 capsule_install_scenario: "capsule"
+capsule_install_deployment_version: "6.19"
 
 # Administration
 capsule_install_admin_username: "admin"
-capsule_install_admin_password:
+capsule_install_timezone: "UTC"
+capsule_install_location: ""
+capsule_install_setup_insights: false
 
 capsule_install_org_id:
 capsule_install_activation_key:
-capsule_install_location:
-satellite_fqdn:
+capsule_install_satellite_fqdn:
 capsule_install_sync_wait_time: 86400
 
 # Load Balancing
-satellite_haproxy: false
+capsule_install_satellite_haproxy: false
 # satellite_loadbalancer_fqdn:
 # satellite_loadbalancer_ak:
-satellite_loadbalancer_ports:
+capsule_install_satellite_loadbalancer_ports:
   - 80/tcp
   - 443/tcp
   - 8000/tcp
@@ -56,8 +68,8 @@ satellite_loadbalancer_ports:
 # Install
 capsule_install_installer_options:
   - '--foreman-proxy-register-in-foreman true'
-  - '--foreman-proxy-foreman-base-url https://{{ satellite_fqdn }}'
-  - '--foreman-proxy-trusted-hosts {{ satellite_fqdn }}'
+  - '--foreman-proxy-foreman-base-url https://{{ capsule_install_satellite_fqdn }}'
+  - '--foreman-proxy-trusted-hosts {{ capsule_install_satellite_fqdn }}'
   - '--foreman-proxy-trusted-hosts {{ ansible_fqdn }}'
   - '--foreman-proxy-oauth-consumer-key {{ foreman_proxy_oauth_consumer_key }}'
   - '--foreman-proxy-oauth-consumer-secret {{ foreman_proxy_oauth_consumer_secret }}'
@@ -68,8 +80,8 @@ capsule_install_installer_options:
 
 capsule_install_loadbalanced_options:
   - '--foreman-proxy-register-in-foreman true'
-  - '--foreman-proxy-foreman-base-url https://{{ satellite_fqdn }}'
-  - '--foreman-proxy-trusted-hosts {{ satellite_fqdn }}'
+  - '--foreman-proxy-foreman-base-url https://{{ capsule_install_satellite_fqdn }}'
+  - '--foreman-proxy-trusted-hosts {{ capsule_install_satellite_fqdn }}'
   - '--foreman-proxy-trusted-hosts {{ ansible_fqdn }}'
   - '--foreman-proxy-oauth-consumer-key {{ foreman_proxy_oauth_consumer_key }}'
   - '--foreman-proxy-oauth-consumer-secret {{ foreman_proxy_oauth_consumer_secret }}'
