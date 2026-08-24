@@ -4,3 +4,4 @@ doc_changes:
   - capsule_install - Removed stale task/template file listings from README role structure and task overview.
   - capsule_install - Documented preliminary check validation, grubby/IPv6/SELinux behavior, and reboot handler.
   - capsule_install - Added required Role Molecule Testing section to README format verification.
+  - capsule_install - Updated README for rhsm_subscribe task flow, renamed defaults, and current role structure.
