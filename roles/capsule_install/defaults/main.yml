@@ -43,6 +43,7 @@ capsule_install_packages:
 
 capsule_install_scenario: "capsule"
 capsule_install_deployment_version: "6.19"
+capsule_install_selinux_state: "enforcing"
 
 # Administration
 capsule_install_admin_username: "admin"
