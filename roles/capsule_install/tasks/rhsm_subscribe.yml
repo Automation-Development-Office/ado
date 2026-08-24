@@ -15,16 +15,16 @@
   register: capsule_install_repo_files
 
 - name: rhsm_subscribe | Check if capsule is already registered
-  ansible.builtin.command: subscription-manager list
+  ansible.builtin.command: subscription-manager identity
   register: capsule_install_status
   changed_when: false
-  failed_when: capsule_install_status.rc != 0
+  failed_when: false
   become: true
 
 - name: rhsm_subscribe | Set capsule registration status
   ansible.builtin.set_fact:
     capsule_install_registered: >-
-      {{ 'Satellite Capsule' in capsule_install_status.stdout }}
+      {{ capsule_install_status.rc == 0}}
 
 - name: rhsm_subscribe | Subscription block
   when: not capsule_install_registered
