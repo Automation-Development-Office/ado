@@ -54,8 +54,9 @@
       no_log: true
 
     - name: rhsm_subscribe | Perform registration
-      ansible.builtin.command:
+      ansible.builtin.shell:
         cmd: "{{ capsule_install_registration_command.registration_command }}"
+        executable: /bin/bash
       changed_when: false
       no_log: true
 
