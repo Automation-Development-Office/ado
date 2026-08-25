@@ -24,7 +24,7 @@
 - name: rhsm_subscribe | Set capsule registration status
   ansible.builtin.set_fact:
     capsule_install_registered: >-
-      {{ capsule_install_status.rc == 0}}
+      {{ capsule_install_status.rc == 0 }}
 
 - name: rhsm_subscribe | Subscription block
   when: not capsule_install_registered
