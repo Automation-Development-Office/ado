@@ -14,7 +14,9 @@
   "component_config": {
     "aws": {
       "profile": "",
-      "default_region": "us-east-1"
+      "default_region": "us-east-1",
+      "access_key_id": "MOLECULE_AWS_ACCESS_KEY_ID",
+      "secret_access_key": "MOLECULE_AWS_SECRET_ACCESS_KEY"
     },
     "ec2_ami_copy": {
       "source_region": "us-east-1",

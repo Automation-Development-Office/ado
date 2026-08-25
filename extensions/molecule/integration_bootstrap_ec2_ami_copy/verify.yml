@@ -4,6 +4,9 @@
   gather_facts: false
   connection: local
 
+  vars:
+    env: molecule
+
   tasks:
     - name: Verify generated playbook exists
       ansible.builtin.stat:
@@ -36,7 +39,7 @@
     - name: Verify generated component vars file exists
       ansible.builtin.stat:
         path: >-
-          {{ playbook_dir }}/group_vars/all/molecule/vars_ec2_ami_copy.yml
+          {{ playbook_dir }}/group_vars/all/{{ env }}/vars_ec2_ami_copy.yml
       register: ec2_ami_copy_vars_file
 
     - name: Assert ec2_ami_copy vars file was generated
@@ -44,11 +47,11 @@
         that:
           - ec2_ami_copy_vars_file.stat.exists
           - ec2_ami_copy_vars_file.stat.isreg
-        fail_msg: Expected group_vars/all/molecule/vars_ec2_ami_copy.yml
+        fail_msg: Expected group_vars/all/{{ env }}/vars_ec2_ami_copy.yml
 
     - name: Verify generated shared AWS vars file exists
       ansible.builtin.stat:
-        path: "{{ playbook_dir }}/group_vars/all/molecule/vars_aws.yml"
+        path: "{{ playbook_dir }}/group_vars/all/{{ env }}/vars_aws.yml"
       register: aws_vars_file
 
     - name: Assert shared AWS vars file was generated
@@ -56,11 +59,11 @@
         that:
           - aws_vars_file.stat.exists
           - aws_vars_file.stat.isreg
-        fail_msg: Expected group_vars/all/molecule/vars_aws.yml
+        fail_msg: Expected group_vars/all/{{ env }}/vars_aws.yml
 
     - name: Verify generated shared AWS vault file exists
       ansible.builtin.stat:
-        path: "{{ playbook_dir }}/group_vars/all/molecule/vault_aws.yml"
+        path: "{{ playbook_dir }}/group_vars/all/{{ env }}/vault_aws.yml"
       register: aws_vault_file
 
     - name: Assert shared AWS vault file was generated
@@ -68,12 +71,12 @@
         that:
           - aws_vault_file.stat.exists
           - aws_vault_file.stat.isreg
-        fail_msg: Expected group_vars/all/molecule/vault_aws.yml
+        fail_msg: Expected group_vars/all/{{ env }}/vault_aws.yml
 
     - name: Verify ec2_ami_copy component vault file was not generated
       ansible.builtin.stat:
         path: >-
-          {{ playbook_dir }}/group_vars/all/molecule/vault_ec2_ami_copy.yml
+          {{ playbook_dir }}/group_vars/all/{{ env }}/vault_ec2_ami_copy.yml
       register: ec2_ami_copy_vault_file
 
     - name: Assert ec2_ami_copy uses shared AWS vault only
@@ -108,6 +111,63 @@
             ec2_ami_copy_generated_vars.ec2_ami_copy_name
             == 'molecule-copied-ami'
         fail_msg: Generated vars_ec2_ami_copy.yml did not match preflight config
+
+    - name: Load generated shared AWS vault for awspca bridge check
+      ansible.builtin.slurp:
+        src: "{{ aws_vault_file.stat.path }}"
+      register: aws_vault_raw
+
+    - name: Parse generated shared AWS vault
+      ansible.builtin.set_fact:
+        aws_vault_data: "{{ aws_vault_raw.content | b64decode | from_yaml }}"
+
+    - name: Simulate awspca playbook credential bridge from vault_aws
+      ansible.builtin.set_fact:
+        ocp_awspca_access_key_id: >-
+          {{
+            aws_vault_data.vault_aws_access_key_id
+            | default(ocp_awspca_access_key_id | default(''))
+          }}
+        ocp_awspca_secret_access_key: >-
+          {{
+            aws_vault_data.vault_aws_secret_access_key
+            | default(ocp_awspca_secret_access_key | default(''))
+          }}
+
+    - name: Assert awspca playbook can resolve creds from vault_aws
+      ansible.builtin.assert:
+        that:
+          - >-
+            aws_vault_data.vault_aws_access_key_id
+            == 'MOLECULE_AWS_ACCESS_KEY_ID'
+          - >-
+            aws_vault_data.vault_aws_secret_access_key
+            == 'MOLECULE_AWS_SECRET_ACCESS_KEY'
+          - >-
+            ocp_awspca_access_key_id == 'MOLECULE_AWS_ACCESS_KEY_ID'
+          - >-
+            ocp_awspca_secret_access_key == 'MOLECULE_AWS_SECRET_ACCESS_KEY'
+        fail_msg: >-
+          vault_aws.yml must feed the awspca bootstrap playbook bridge
+          (vault_aws_* -> ocp_awspca_*).
+
+    - name: Simulate legacy awspca creds loaded from vault_cert_manager
+      ansible.builtin.set_fact:
+        legacy_vault_aws_access_key_id: ""
+        legacy_vault_aws_secret_access_key: ""
+        legacy_ocp_awspca_access_key_id: LEGACY_PCA_ACCESS_KEY_ID
+        legacy_ocp_awspca_secret_access_key: LEGACY_PCA_SECRET_ACCESS_KEY
+
+    - name: Assert legacy awspca creds remain when vault_aws is empty
+      ansible.builtin.assert:
+        that:
+          - legacy_vault_aws_access_key_id | default('') | length == 0
+          - legacy_vault_aws_secret_access_key | default('') | length == 0
+          - legacy_ocp_awspca_access_key_id == 'LEGACY_PCA_ACCESS_KEY_ID'
+          - legacy_ocp_awspca_secret_access_key == 'LEGACY_PCA_SECRET_ACCESS_KEY'
+        fail_msg: >-
+          Existing vault_cert_manager ocp_awspca_* values must keep working
+          when vault_aws.yml is empty (pre-task is skipped).
 
     - name: Validate job template references generated playbook
       ansible.builtin.shell: |

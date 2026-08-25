@@ -1448,6 +1448,35 @@
                 passthrough_public_values.pop(rhbk_key, None)
                 vars_data.pop(rhbk_key, None)
             existing_satellite_config = {}
+        elif component == "ec2_ami_copy":
+            for ec2_key in (
+                "source_region",
+                "dest_region",
+                "source_image_id",
+                "name",
+                "description",
+                "kms_key_id",
+                "wait",
+                "wait_timeout",
+                "encrypted",
+                "copy_image_tags",
+                "tag_equality",
+                "tags",
+            ):
+                passthrough_public_values.pop(ec2_key, None)
+            existing_satellite_config = {}
+        elif component == "aws":
+            for aws_key in (
+                "profile",
+                "default_region",
+                "access_key_id",
+                "secret_access_key",
+                "session_token",
+                "awspca_access_key_id",
+                "awspca_secret_access_key",
+            ):
+                passthrough_public_values.pop(aws_key, None)
+            existing_satellite_config = {}
         else:
             existing_satellite_config = {}
 
@@ -1460,7 +1489,11 @@
             )
             vars_data["component_config"][component] = {
                 **existing_component_config,
-                **copy.deepcopy(passthrough_public_values),
+                **copy.deepcopy(
+                    public_values
+                    if component in ("aws", "ec2_ami_copy")
+                    else passthrough_public_values
+                ),
             }
 
             for k, v in passthrough_public_values.items():
@@ -2164,7 +2197,7 @@
                 }
 
             if component == "ec2_ami_copy":
-                mapping = {
+                ec2_ami_copy_mapping = {
                     "source_region": "ec2_ami_copy_source_region",
                     "dest_region": "ec2_ami_copy_dest_region",
                     "source_image_id": "ec2_ami_copy_source_image_id",
@@ -2172,9 +2205,10 @@
                     "description": "ec2_ami_copy_description",
                     "kms_key_id": "ec2_ami_copy_kms_key_id",
                 }
-                for source_key, target_key in mapping.items():
+                for source_key, target_key in ec2_ami_copy_mapping.items():
                     if source_key in public_values:
                         vars_data[target_key] = str(public_values.get(source_key) or "")
+                        vars_data_changed = True
 
                 for flag_key, target_key in (
                     ("wait", "ec2_ami_copy_wait"),
@@ -2184,6 +2218,7 @@
                 ):
                     if flag_key in public_values:
                         vars_data[target_key] = as_bool(public_values.get(flag_key), False)
+                        vars_data_changed = True
 
                 if "wait_timeout" in public_values:
                     try:
@@ -2192,27 +2227,21 @@
                         )
                     except (TypeError, ValueError):
                         vars_data["ec2_ami_copy_wait_timeout"] = 600
+                    vars_data_changed = True
 
                 if "tags" in public_values and isinstance(public_values.get("tags"), dict):
                     vars_data["ec2_ami_copy_tags"] = public_values["tags"]
-
-                merge_shared_aws_vault({**public_values, **secret_values})
+                    vars_data_changed = True
 
             if component == "aws":
-                aws_vars_path = env_dir / "vars_aws.yml"
-                aws_vars_data = load_yaml(aws_vars_path)
-                aws_vars_changed = False
                 if public_values.get("profile") is not None:
-                    aws_vars_data["aws_profile"] = str(public_values.get("profile") or "")
-                    aws_vars_changed = True
+                    vars_data["aws_profile"] = str(public_values.get("profile") or "")
+                    vars_data_changed = True
                 if public_values.get("default_region") is not None:
-                    aws_vars_data["aws_default_region"] = str(
+                    vars_data["aws_default_region"] = str(
                         public_values.get("default_region") or ""
                     )
-                    aws_vars_changed = True
-                if aws_vars_changed:
-                    write_yaml(aws_vars_path, aws_vars_data, "0644")
-                merge_shared_aws_vault({**public_values, **secret_values})
+                    vars_data_changed = True
 
             if component == "satellite":
                 vars_data.setdefault("components_env", {}).setdefault("satellite", {})
@@ -2723,7 +2752,6 @@
             if component == "cert_manager":
                 if secret_values.get("tls_key") is not None:
                     vault_data["tls_key"] = secret_values["tls_key"]
-                merge_shared_aws_vault({**public_values, **secret_values})
 
             if component == "idm":
                 if secret_values.get("admin_password") is not None:
@@ -2739,10 +2767,13 @@
                     vault_data["vault_ad_trust_admin_password"] = secret_values["ad_admin_password"]
                     vault_data["idm_ad_trust_ad_admin_password"] = secret_values["ad_admin_password"]
 
+            if component in ("ec2_ami_copy", "aws", "cert_manager"):
+                merge_shared_aws_vault({**public_values, **secret_values})
+
             if component == "ec2_ami_copy":
                 if vault_path.exists():
                     vault_path.unlink()
-            else:
+            elif component != "aws":
                 write_yaml(vault_path, vault_data, "0600")
 
     component_options = preflight.get("component_options") or {}
