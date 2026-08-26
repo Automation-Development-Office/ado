@@ -9,3 +9,10 @@
   block:
     - name: RHSM Subscribe
       ansible.builtin.include_tasks: rhsm_subscribe.yml
+
+    - name: Patch
+      ansible.builtin.include_role:
+        name: infra.ado.satellite_install
+        tasks_from: patch
+      vars:
+        satellite_install_selinux_state: "{{ capsule_install_selinux_state }}"
