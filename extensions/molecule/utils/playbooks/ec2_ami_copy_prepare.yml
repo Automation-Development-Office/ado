@@ -1,0 +1,53 @@
+---
+- name: Prepare - ec2_ami_copy fakecloud scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars_files:
+    - ec2_ami_copy_vars.yml
+
+  tasks:
+    - name: Ensure scenario artifact directory exists
+      ansible.builtin.file:
+        path: "{{ ec2_ami_copy_molecule_artifact_root }}"
+        state: directory
+        mode: "0700"
+
+    - name: Discover seeded public AMI in fakecloud
+      amazon.aws.ec2_ami_info:
+        region: "{{ ec2_ami_copy_molecule_source_region }}"
+        owners: amazon
+        filters:
+          name: "al2023-ami-*"
+      register: ec2_ami_copy_molecule_seed_amis
+
+    - name: Select source AMI for copy test
+      ansible.builtin.set_fact:
+        ec2_ami_copy_molecule_source_ami: >-
+          {{ ec2_ami_copy_molecule_seed_amis.images[0].image_id }}
+        ec2_ami_copy_molecule_source_name: >-
+          {{ ec2_ami_copy_molecule_seed_amis.images[0].name }}
+      when: ec2_ami_copy_molecule_seed_amis.images | length > 0
+
+    - name: Persist source AMI for later playbooks
+      ansible.builtin.copy:
+        content: "{{ ec2_ami_copy_molecule_source_ami }}"
+        dest: "{{ ec2_ami_copy_molecule_source_ami_file }}"
+        mode: "0600"
+      when: ec2_ami_copy_molecule_seed_amis.images | length > 0
+
+    - name: Persist source AMI name for later playbooks
+      ansible.builtin.copy:
+        content: "{{ ec2_ami_copy_molecule_source_name }}"
+        dest: "{{ ec2_ami_copy_molecule_source_name_file }}"
+        mode: "0600"
+      when: ec2_ami_copy_molecule_seed_amis.images | length > 0
+
+    - name: Fail when fakecloud has no seeded AMI
+      ansible.builtin.fail:
+        msg: >-
+          fakecloud did not return a seeded Amazon Linux 2023 AMI in
+          {{ ec2_ami_copy_molecule_source_region }}.
+          Ensure fakecloud is running (scripts/ci/fakecloud-service.sh start).
+      when: ec2_ami_copy_molecule_seed_amis.images | length == 0

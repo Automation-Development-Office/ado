@@ -34,6 +34,34 @@ Chad Elliott
 | `ocp_awspca_wait_delay` | Delay (seconds) between readiness polling attempts. | No | `10` |
 | `ocp_awspca_no_log` | Hide sensitive values in task output. | No | `true` |
 
+## Bootstrap playbook credentials
+
+When run through the generated bootstrap playbook
+``playbooks/cert-manager/ado-install-and-configure-awspca-bootstrap.yml``,
+AWS account credentials are loaded from the shared bootstrap vault file
+``group_vars/all/<env>/vault_aws.yml`` (``vault_aws_access_key_id``,
+``vault_aws_secret_access_key``). A playbook pre-task maps those values to
+``ocp_awspca_access_key_id`` and ``ocp_awspca_secret_access_key`` before this
+role runs.
+
+### Migrating from legacy vault layout
+
+Bootstrap used to scaffold ``ocp_awspca_access_key_id`` /
+``ocp_awspca_secret_access_key`` in generated ``vault_openshift.yml`` or
+``vault_cert_manager.yml``. Those keys are no longer emitted by bootstrap
+templates. For existing environments:
+
+1. Move PCA account credentials into ``vault_aws.yml`` using the
+   ``vault_aws_*`` key names (see
+   ``infra.ado.bootstrap_generate_env_vars`` README, *Shared AWS credentials*).
+2. Keep PCA issuer settings (region, PCA ARN, namespace, etc.) in
+   ``vars_cert_manager.yml``.
+3. Sync the updated awspca bootstrap playbook from the collection.
+
+If you have not migrated yet, credentials left only in
+``vault_cert_manager.yml`` as ``ocp_awspca_*`` still work until you move them
+to ``vault_aws.yml``.
+
 ## 🚀 Role Usage
 
 ```yaml

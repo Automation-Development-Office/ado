@@ -139,6 +139,64 @@ Satellite dynamic inventory creates an AAP inventory source named like
 inventory named `ADO Satellite Dynamic Inventory`; it is a source attached to
 `ADO-RHEL-Inventory` so synced Satellite hosts become managed RHEL targets.
 
+### Shared AWS credentials (`vault_aws.yml`)
+
+Bootstrap now generates shared AWS account credentials for all AWS consumers
+under `group_vars/all/<env>/`:
+
+| File | Purpose |
+|------|---------|
+| `vault_aws.yml` | `vault_aws_access_key_id`, `vault_aws_secret_access_key`, optional `vault_aws_session_token` |
+| `vars_aws.yml` | `aws_profile`, `aws_default_region` |
+
+Consumers include ``infra.ado.ec2_ami_copy`` (``ado-copy-ami-bootstrap``),
+cert-manager AWS PCA (``ado-install-and-configure-awspca-bootstrap``), and
+future AWS bootstrap apps. Set credentials in preflight
+``component_config.aws`` (or legacy per-component keys that overlay into
+``vault_aws.yml`` during generation).
+
+#### Migrating existing environments (legacy AWS PCA vault)
+
+Older bootstrap output scaffolded PCA credentials in generated vault templates
+as ``ocp_awspca_access_key_id`` and ``ocp_awspca_secret_access_key`` under
+``vault_openshift.yml`` (OpenShift vault template) and/or wrote them into
+``vault_cert_manager.yml`` during preflight overlay. Those template keys are
+**no longer generated**.
+
+**New path:** store account credentials once in ``vault_aws.yml``. The
+``ado-install-and-configure-awspca-bootstrap`` playbook loads
+``vault_aws.yml`` and maps shared keys to ``ocp_awspca_access_key_id`` /
+``ocp_awspca_secret_access_key`` before calling ``infra.ado.ocp_awspca``.
+Non-secret PCA settings (``ocp_awspca_region``, ``ocp_awspca_pca_arn``, etc.)
+remain in ``vars_cert_manager.yml``.
+
+**Migration steps for an existing Controller project / env directory:**
+
+1. Open ``group_vars/all/<env>/vault_aws.yml`` (create from bootstrap if
+   missing) and copy legacy values:
+   - ``vault_aws_access_key_id`` ← ``ocp_awspca_access_key_id`` (from
+     ``vault_cert_manager.yml`` or ``vault_openshift.yml``)
+   - ``vault_aws_secret_access_key`` ← ``ocp_awspca_secret_access_key``
+2. Re-encrypt ``vault_aws.yml`` if your project uses Ansible Vault.
+3. Remove the legacy ``ocp_awspca_access_key_id`` /
+   ``ocp_awspca_secret_access_key`` entries from ``vault_cert_manager.yml``
+   and ``vault_openshift.yml`` when convenient (optional cleanup).
+4. Sync the bootstrap playbook repo so
+   ``playbooks/cert-manager/ado-install-and-configure-awspca-bootstrap.yml``
+   includes the ``vault_aws.yml`` ``vars_files`` entry and credential remap
+   pre-task.
+
+**Backward compatibility:** If ``vault_aws.yml`` is empty but
+``vault_cert_manager.yml`` still contains ``ocp_awspca_*`` keys, the awspca
+bootstrap playbook continues to work—the remap pre-task is skipped and the
+role reads the legacy variables from ``vault_cert_manager.yml``. New
+environments should use ``vault_aws.yml`` only.
+
+To regenerate from preflight instead of manual edits, include AWS credentials
+under ``component_config.aws`` (``access_key_id``, ``secret_access_key``) or
+cert-manager PCA fields (``awspca_access_key_id``, ``awspca_secret_access_key``)
+and re-run bootstrap env-var generation for that ``<env>``.
+
 ## 🚀 Role Usage
 
 ```yaml

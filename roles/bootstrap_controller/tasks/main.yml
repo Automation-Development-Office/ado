@@ -17,43 +17,47 @@
     name: infra.ado.bootstrap_generate_env_vars
   when: bootstrap_controller_generate_env_vars | default(false) | bool
 
+- name: Resolve preflight sub-documents for AAP bootstrap flags
+  ansible.builtin.set_fact:
+    bootstrap_controller_preflight_component_config: >-
+      {{
+        bootstrap_generate_env_vars_preflight.component_config
+        if (
+          bootstrap_generate_env_vars_preflight is defined
+          and bootstrap_generate_env_vars_preflight.component_config is defined
+        )
+        else {}
+      }}
+    bootstrap_controller_preflight_pre_installs: >-
+      {{
+        bootstrap_generate_env_vars_preflight.pre_installs
+        if (
+          bootstrap_generate_env_vars_preflight is defined
+          and bootstrap_generate_env_vars_preflight.pre_installs is defined
+        )
+        else {}
+      }}
+  when: bootstrap_controller_generate_env_vars | default(false) | bool
+
 - name: Resolve AAP install-during-bootstrap from preflight
   ansible.builtin.set_fact:
     bootstrap_controller_aap_install_during_bootstrap: >-
       {{
         (
-          (
-            (
-              bootstrap_generate_env_vars_preflight.component_config.aap.install_during_bootstrap
-              | default(aap_install_during_bootstrap | default(false))
-            )
-            if (
-              bootstrap_generate_env_vars_preflight is defined
-              and (bootstrap_generate_env_vars_preflight.component_config | default({})).aap is defined
-            )
-            else (aap_install_during_bootstrap | default(false))
+          bootstrap_controller_preflight_component_config.get('aap', {}).get(
+            'install_during_bootstrap',
+            aap_install_during_bootstrap | default(false)
           )
           | bool
         )
         or (
-          bootstrap_generate_env_vars_preflight is defined
-          and (
-            bootstrap_generate_env_vars_preflight.pre_installs.attach_aap_license
-            | default(false)
-            | bool
-          )
+          bootstrap_controller_preflight_pre_installs.get('attach_aap_license', false)
+          | bool
         )
         or (
-          bootstrap_generate_env_vars_preflight is defined
-          and (
-            (
-              bootstrap_generate_env_vars_preflight.pre_installs.aap.license_only
-              | default(false)
-            )
-            if (
-              (bootstrap_generate_env_vars_preflight.pre_installs | default({})).aap is mapping
-            )
-            else false
+          bootstrap_controller_preflight_pre_installs.get('aap', {}).get(
+            'license_only',
+            false
           )
           | bool
         )
@@ -65,43 +69,24 @@
           aap_ocp_install_license_only | default(false) | bool
         )
         or (
-          bootstrap_generate_env_vars_preflight is defined
-          and (
-            bootstrap_generate_env_vars_preflight.pre_installs.attach_aap_license
-            | default(false)
-            | bool
-          )
+          bootstrap_controller_preflight_pre_installs.get('attach_aap_license', false)
+          | bool
           and not (
-            bootstrap_generate_env_vars_preflight.pre_installs.install_aap
-            | default(false)
+            bootstrap_controller_preflight_pre_installs.get('install_aap', false)
             | bool
           )
         )
         or (
-          bootstrap_generate_env_vars_preflight is defined
-          and (
-            (
-              bootstrap_generate_env_vars_preflight.component_config.aap.license_only
-              | default(false)
-            )
-            if (
-              (bootstrap_generate_env_vars_preflight.component_config | default({})).aap is mapping
-            )
-            else false
+          bootstrap_controller_preflight_component_config.get('aap', {}).get(
+            'license_only',
+            false
           )
           | bool
         )
         or (
-          bootstrap_generate_env_vars_preflight is defined
-          and (
-            (
-              bootstrap_generate_env_vars_preflight.pre_installs.aap.license_only
-              | default(false)
-            )
-            if (
-              (bootstrap_generate_env_vars_preflight.pre_installs | default({})).aap is mapping
-            )
-            else false
+          bootstrap_controller_preflight_pre_installs.get('aap', {}).get(
+            'license_only',
+            false
           )
           | bool
         )

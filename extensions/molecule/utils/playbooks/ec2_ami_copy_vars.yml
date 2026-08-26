@@ -1,0 +1,12 @@
+---
+# Shared vars for ec2_ami_copy Molecule scenarios (included via vars_files).
+ec2_ami_copy_molecule_source_region: us-east-1
+ec2_ami_copy_molecule_dest_region: us-west-2
+ec2_ami_copy_molecule_artifact_root: >-
+  /tmp/{{ lookup('env', 'MOLECULE_SCENARIO_NAME') }}
+ec2_ami_copy_molecule_source_ami_file: >-
+  {{ ec2_ami_copy_molecule_artifact_root }}/source_ami
+ec2_ami_copy_molecule_source_name_file: >-
+  {{ ec2_ami_copy_molecule_artifact_root }}/source_name
+ec2_ami_copy_molecule_state_file: >-
+  {{ ec2_ami_copy_molecule_artifact_root }}/result.json

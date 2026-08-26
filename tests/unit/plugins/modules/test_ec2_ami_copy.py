@@ -32,6 +32,46 @@ sys.modules["ec2_ami_copy"] = ami_copy
 _SPEC.loader.exec_module(ami_copy)
 
 
+def test_resolve_destination_image_name_uses_explicit_name() -> None:
+    """An explicit name renames the destination AMI."""
+    module = MagicMock()
+    ec2 = MagicMock()
+
+    resolved = ami_copy.resolve_destination_image_name(
+        module,
+        ec2,
+        {
+            "name": "renamed-ami",
+            "source_image_id": "ami-src",
+            "source_region": "us-east-1",
+        },
+    )
+
+    assert resolved == "renamed-ami"
+    ec2.describe_images.assert_not_called()
+
+
+def test_resolve_destination_image_name_reuses_source_name() -> None:
+    """Omitted name reuses the source AMI Name attribute."""
+    module = MagicMock()
+    ec2 = MagicMock()
+    ec2.describe_images.return_value = {
+        "Images": [{"Name": "golden-image"}],
+    }
+
+    resolved = ami_copy.resolve_destination_image_name(
+        module,
+        ec2,
+        {
+            "source_image_id": "ami-src",
+            "source_region": "us-east-1",
+        },
+    )
+
+    assert resolved == "golden-image"
+    ec2.describe_images.assert_called_once_with(ImageIds=["ami-src"])
+
+
 def test_build_copy_params_minimal() -> None:
     """Copy params include required CopyImage fields."""
     params = {
@@ -43,7 +83,7 @@ def test_build_copy_params_minimal() -> None:
         "copy_image_tags": False,
         "tags": None,
     }
-    result = ami_copy.build_copy_params(params)
+    result = ami_copy.build_copy_params(params, "copied")
     assert result == {
         "SourceRegion": "us-east-1",
         "SourceImageId": "ami-abc",
@@ -66,7 +106,7 @@ def test_build_copy_params_with_encryption_and_tags() -> None:
         "copy_image_tags": True,
         "tags": {"Name": "copied", "Env": "prod"},
     }
-    result = ami_copy.build_copy_params(params)
+    result = ami_copy.build_copy_params(params, "copied")
     assert result["Encrypted"] is True
     assert result["KmsKeyId"] == "alias/aws/ebs"
     assert result["CopyImageTags"] is True
