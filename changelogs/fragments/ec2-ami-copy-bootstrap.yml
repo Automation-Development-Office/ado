@@ -14,3 +14,12 @@ bugfixes:
     bootstrap tests).
   - bootstrap_generate_env_vars - Write shared ``vault_aws.yml`` credentials
     without overwriting them when processing the ``aws`` component overlay.
+doc_changes:
+  - |
+    bootstrap_generate_env_vars - Document migration from legacy
+    ``ocp_awspca_*`` vault keys in ``vault_openshift.yml`` /
+    ``vault_cert_manager.yml`` to shared ``vault_aws.yml`` plus awspca
+    bootstrap playbook remap.
+  - |
+    ocp_awspca - Document bootstrap ``vault_aws.yml`` credential path and
+    legacy PCA vault migration for existing environments.
