@@ -1,2 +1,0 @@
-bugfixes:
-  - bootstrap_generate_playbook_repo - Generated ``collections/requirements.yml`` no longer pins ``infra.ado``; Contoller/Hub installs latest unless an explicit version override is set.

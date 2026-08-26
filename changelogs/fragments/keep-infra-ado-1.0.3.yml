@@ -1,4 +1,0 @@
-minor_changes:
-  - bootstrap_generate_playbook_repo - Default generated ``collections/requirements.yml`` pin for ``infra.ado`` is ``1.0.3``.
-doc_changes:
-  - Keep republishing ``infra.ado`` as ``1.0.3`` when forcing Hub updates unless a version bump is explicitly requested.

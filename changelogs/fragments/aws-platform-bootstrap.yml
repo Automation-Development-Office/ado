@@ -1,8 +1,0 @@
----
-minor_changes:
-  - |
-    bootstrap - Add AWS platform umbrella selection via preflight
-    ``components``, ``component_apps.aws``, and ``component_options.aws``.
-    ``ec2_ami_copy`` remains the first app with shared ``vault_aws.yml`` and
-    ``vars_aws.yml`` credentials. Legacy standalone ``ec2_ami_copy`` preflight
-    selection remains supported.

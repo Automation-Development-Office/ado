@@ -1,9 +1,0 @@
----
-bugfixes:
-  - >-
-    bootstrap_generate_playbook_repo - Target RHEL/IdM client playbooks at
-    ``hosts: all`` so they run against the dedicated RHEL inventory without
-    requiring a missing ``rhel_servers``/``ipaclients`` group.
-  - bootstrap_generate_env_vars - Expand Satellite and IdM ``component_options`` into playbook/JT selectors so client-only selections no longer copy every Satellite/IdM bootstrap playbook and job template.
-  - bootstrap_controller - Filter Satellite/IdM job templates and workflows by option keys (for example ``satellite_client_tools``, ``idm_client_tools``) instead of the coarse ``satellite``/``idm`` components.
-  - bootstrap_generate_env_vars - Create Satellite/IdM server inventories only when server/capsule/replica install options are selected.

@@ -1,6 +1,0 @@
----
-bugfixes:
-  - |
-    satellite_oidc - Use Apache ``OIDCResponseType code`` (authorization code)
-    instead of ``id_token``. The Keycloak client has implicit flow disabled, so
-    the implicit callback POST to ``/users/extlogin/redirect_uri`` returned HTTP 400.

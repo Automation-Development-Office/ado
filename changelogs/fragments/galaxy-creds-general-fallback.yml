@@ -1,3 +1,0 @@
----
-minor_changes:
-  - bootstrap_generate_env_vars - When preflight Galaxy setup is enabled, emit Galaxy/Hub API Token and Container Registry credentials (and org ``galaxy_credentials`` attach) using General Contoller admin/OAuth fallbacks when tokens are empty — same pattern as Hub EE push.

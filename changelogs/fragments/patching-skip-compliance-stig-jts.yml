@@ -1,5 +1,0 @@
-bugfixes:
-  - bootstrap_controller - Do not create RHEL Compliance/STIG job templates from a Patching-only selection. Selecting ``rhel`` now only maps the patch-host job template; compliance and STIG require those components (or RHEL options) explicitly.
-  - bootstrap_controller - Skip generating AAP job templates when their playbook was not generated into the project, preventing ``Playbook not found for project`` failures.
-minor_changes:
-  - bootstrap_generate_env_vars - Also imply the ``compliance`` component from ``component_options.rhel`` the same way ``stig`` is implied.

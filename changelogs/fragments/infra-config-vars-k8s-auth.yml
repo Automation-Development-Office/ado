@@ -1,3 +1,0 @@
-bugfixes:
-  - infra.ado.bootstrap_generate_env_vars - Always write ``infra_config_vars.yml`` with shared OpenShift ``host``/``token``/``verify_ssl`` so component playbooks can set ``K8S_AUTH_*``.
-  - infra.ado.bootstrap_generate_playbook_repo - Resolve ``group_vars`` via ``playbook_dir`` and default ``K8S_AUTH_HOST`` from ``api_host`` when ``host`` is unset.

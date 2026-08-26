@@ -1,6 +1,0 @@
----
-minor_changes:
-  - Hub EE push accepts Contoller OAuth token (unused+token) for local podman without admin password.
-  - RHBK standalone Contoller JT + playbook seed; preflight option ``standalone``.
-  - BookStack admin password reset and OIDC (Keycloak RHLAB) env wiring in ``bookstack_openshift``.
-  - NetBox OIDC role + Contoller JT to wire Helm NetBox to Keycloak RHLAB.

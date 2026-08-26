@@ -1,3 +1,0 @@
----
-bugfixes:
-  - bootstrap_controller - Resolve OpenShift API host/token with empty-string defaults so Install AAP can build a kubeconfig when ``token`` is blank in another vars file.

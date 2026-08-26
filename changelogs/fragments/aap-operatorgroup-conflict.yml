@@ -1,6 +1,0 @@
----
-bugfixes:
-  - aap_ocp_install - Detect an existing cluster-scoped AAP operator and skip creating another OperatorGroup/Subscription so a second namespace does not cause InterOperatorGroupOwnerConflict or break the original install.
-  - aap_ocp_install - Fail when the requested AAP version differs from an existing cluster-scoped operator instead of installing a second operator.
-minor_changes:
-  - Default AAP OpenShift install version is now 2.7.

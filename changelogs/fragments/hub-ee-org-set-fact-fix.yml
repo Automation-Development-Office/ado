@@ -1,5 +1,0 @@
----
-bugfixes:
-  - bootstrap_controller / push_hub_ee - Split Hub EE org/cred ``set_fact`` so Contoller org resolve no longer fails with ``bootstrap_controller_hub_ee_org is undefined`` (same-task self-reference).
-minor_changes:
-  - Release infra.ado 1.1.1 for preflight (hub-only always creates General Contoller org; Hub EE attaches Container Registry credential).

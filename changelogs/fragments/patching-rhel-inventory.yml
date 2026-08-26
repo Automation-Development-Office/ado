@@ -1,8 +1,0 @@
-bugfixes:
-  - bootstrap_generate_env_vars - Always create ``<org>-RHEL-Inventory`` when the Patching group is selected, and accept managed hosts from ``component_config.patching`` as well as ``component_config.rhel``.
-  - bootstrap_generate_env_vars - Treat ``idm`` under ``component_apps.patching`` as IdM selected so ``<org>-IDM-Inventory`` is generated for patching-only runs.
-minor_changes:
-  - >-
-    bootstrap_generate_env_vars - Allow Patching to reuse an existing AAP
-    inventory via ``component_config.patching.inventory_mode: existing`` and
-    ``inventory_name`` instead of creating ``<org>-RHEL-Inventory``.

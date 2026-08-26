@@ -1,9 +1,0 @@
----
-minor_changes:
-  - |
-    bootstrap_generate_playbook_repo - Seed Grafana dashboard templates under
-    ``playbook_repo_seed/templates/`` for copy-out: Openshift ``*.json.j2``
-    dashboards and the RHACS vulnerability overview sample
-    (``templates/RHACS/dashboards/rhacs-vulnerability-overview.json``).
-  - bootstrap_resolve_component / preflight - Default ``grafana_folders`` now
-    points at ``templates/Openshift`` and ``templates/RHACS``.

@@ -1,8 +1,0 @@
----
-minor_changes:
-  - preflight - Add a visible ``Attach AAP license`` card on Install / Run
-    (manifest or RHN list+attach), including license-only attach for an
-    existing AAP without reinstalling the operator.
-  - aap_ocp_install / bootstrap_controller - Support
-    ``aap_ocp_install_license_only`` to skip operator install and only run
-    ``activate_license.yml``.

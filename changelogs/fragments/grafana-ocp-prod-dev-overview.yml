@@ -1,6 +1,0 @@
----
-minor_changes:
-  - >
-    Grafana seed templates - add OpenShift Prod and Dev cluster resource
-    overview dashboards (node CPU/memory ratios, namespace pod table, network,
-    storage, summary stats) under ``templates/Openshift/dashboards/``.
