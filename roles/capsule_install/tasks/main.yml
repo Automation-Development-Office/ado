@@ -16,7 +16,7 @@
         tasks_from: patch
       vars:
         satellite_install_selinux_state: "{{ capsule_install_selinux_state }}"
-    
+
     - name: Storage Config
       ansible.builtin.include_role:
         name: infra.ado.satellite_install
