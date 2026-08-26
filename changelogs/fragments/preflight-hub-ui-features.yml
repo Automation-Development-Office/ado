@@ -1,5 +1,0 @@
-minor_changes:
-  - infra.ado - Preflight/bootstrap support for Grafana multi-folder git sources (json vs json.j2), alerts upload, ACS policies-from-git, RHBK multi-client + LDAP federation/mapper wiring, AAP license manifest/RHN activation, banner survey fields, and htpasswd add/replace/remove.
-  - bootstrap_generate_playbook_repo - Added ``community.grafana`` and ``grafana.grafana`` to generated collection requirements.
-bugfixes:
-  - infra.ado.bootstrap_resolve_component - Added ``acm`` defaults and banner/ACS var aliases; Grafana email/folders stubs.

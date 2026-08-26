@@ -1,6 +1,0 @@
----
-bugfixes:
-  - >
-    Prefer General-tab AAP hostname and admin password for license-only attach
-    instead of stale Install AAP ``component_config.aap.hostname`` values, and
-    surface RHN subscription-list HTTP errors without dumping secrets.

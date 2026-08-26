@@ -1,9 +1,0 @@
-minor_changes:
-  - capsule_install - Added RHSM subscription tasks to register Capsule hosts with Satellite and enable required repositories.
-  - capsule_install - Updated role defaults and main task flow to support preliminary check and RHSM registration.
-
-doc_changes:
-  - capsule_install - Updated README for preliminary check, RHSM subscribe flow, role variables, and role structure.
-
-bugfixes:
-  - satellite_install - Restart crond instead of chronyd during RHSM subscription tasks.

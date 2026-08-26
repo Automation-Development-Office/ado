@@ -534,3 +534,727 @@ releases:
       name: ec2_ami_copy
       namespace: ''
     release_date: '2026-08-07'
+  1.2.0:
+    changes:
+      bugfixes:
+      - 'AAP license attach now posts ``subscriptions_client_id`` /
+
+        ``subscriptions_username`` field names expected by Controller
+
+        ``/config/subscriptions/`` (bare ``client_id`` / ``username`` caused
+
+        ``Missing subscription credentials`` on AAP 2.5+). Portal-style
+
+        values in client ID (e.g. ``rh-ee-*``) are remapped to username/password.
+
+        '
+      - 'Clarify AAP license RHN attach failures for ``Missing subscription credentials``
+        (AAP 2.5+ service account client_id/client_secret) and send the subscriptions
+        POST body as a proper JSON object.
+
+        '
+      - 'Grafana OpenShift dashboards: remove broken ``origin_prometheus`` filters
+        from
+
+        K8S views (caused systemic No data on OCP), replace Keycloak SPI dashboards
+
+        with RHBK Micrometer metrics (``jvm_*`` / ``http_server_*``), and make
+
+        cert-manager expiry tiles show 0 instead of No data for empty windows.
+
+        '
+      - 'Prefer General-tab AAP hostname and admin password for license-only attach
+        instead of stale Install AAP ``component_config.aap.hostname`` values, and
+        surface RHN subscription-list HTTP errors without dumping secrets.
+
+        '
+      - aap_ocp_install - Detect an existing cluster-scoped AAP operator and skip
+        creating another OperatorGroup/Subscription so a second namespace does not
+        cause InterOperatorGroupOwnerConflict or break the original install.
+      - aap_ocp_install - Fail when the requested AAP version differs from an existing
+        cluster-scoped operator instead of installing a second operator.
+      - aap_ocp_install - Prefer the operator-discovered controller/platform route
+        host for RHN license attach instead of only the preflight hostname hint.
+      - aap_ocp_install - RHN license activation now lists subscriptions and POSTs
+        ``/config/attach/`` with a ``subscription_id`` instead of only posting username/password
+        to ``/config/`` (which left new AAP installs on the subscription wizard).
+      - aap_ocp_install_upstream - On AAP 2.5+ unified installs, Hub no longer gets
+        a dedicated ``*-hub`` Route (API is on the platform gateway). Stop failing
+        the install waiting for that missing route; fall back to the gateway URL for
+        Hub readiness checks so license activation can run.
+      - 'acs_report - Use ``#!/usr/bin/env bash`` on ``rhacs-report.sh`` (mode 0644
+
+        in git). ansible-test allows that shebang on non-module files and
+
+        shellcheck needs one; the role copies the script to ``/tmp`` as 0755.
+
+        '
+      - ado-preflight-ui - Remove playbook-adjacent vendored ``infra.ado`` before
+        bootstrap so Ansible cannot shadow the staged collection tarball.
+      - ado-preflight-ui - Restore Logs/Events search, fix DevSpaces config crash
+        when defaults are missing, and replace Pre-installs with Install AAP / OpenShift
+        agent checkbox cards.
+      - bookstack_openshift - Use ``mariadb-admin`` probes, port 8080, PVC initContainer/subPaths,
+        and integer Service/Deployment fields for Contoller EE.
+      - 'bootstrap_controller - After project apply, set ``scm_url`` / ``scm_branch``
+
+        on existing Contoller projects so a new git branch is used before sync.
+
+        '
+      - bootstrap_controller - Always create Contoller organizations on hub-update-only
+        runs, and ensure the General organization exists even when generated configs
+        list a different org.
+      - bootstrap_controller - Clarify Hub collection IndexError warning as "version
+        already present" and point operators at Force update or galaxy.yml bump.
+      - 'bootstrap_controller - Contoller project create no longer sets ``update_project:
+        true`` (sync-on-create), which failed during ``install_collections`` when
+        Hub lacked ``infra.ado``. Projects are created first, then synced with actionable
+        Hub guidance on failure.
+
+        '
+      - bootstrap_controller - Contoller project sync failure guidance no longer implies
+        Hub republish is required; Hub update remains optional when ``infra.ado``
+        is already present.
+      - bootstrap_controller - Contoller project sync failures now fail with guidance
+        to publish ``infra.ado`` to AAP Hub when ``collections/requirements.yml``
+        cannot be satisfied.
+      - bootstrap_controller - Do not create RHEL Compliance/STIG job templates from
+        a Patching-only selection. Selecting ``rhel`` now only maps the patch-host
+        job template; compliance and STIG require those components (or RHEL options)
+        explicitly.
+      - 'bootstrap_controller - Do not create an org-scoped ``Ansible Galaxy``
+
+        credential. AAP ships that name as a platform-global credential; attach it
+
+        to the organization instead of failing with already-exists.
+
+        '
+      - bootstrap_controller - Filter Satellite/IdM job templates and workflows by
+        option keys (for example ``satellite_client_tools``, ``idm_client_tools``)
+        instead of the coarse ``satellite``/``idm`` components.
+      - bootstrap_controller - Hub EE push no longer hard-fails hub-update-only runs
+        when the preflight/Dev Spaces host has no podman/docker; skips with guidance
+        (optional skopeo path when pull-from-remote is enabled).
+      - bootstrap_controller - Install AAP during bootstrap when ``install_aap`` is
+        set, without requiring the AAP platform component or Using AAP / Contoller
+        API fields.
+      - 'bootstrap_controller - On hub-update-only runs, apply Galaxy/Hub API Token
+        credentials and org attach before ``meta: end_host`` so Hub + Galaxy (or either
+        alone) both work when selected.
+
+        '
+      - bootstrap_controller - On hub-update-only runs, reload ``aap_config_vars.yml``
+        before applying Galaxy/Hub credentials so stale ``configs/controller`` does
+        not skip credential create/attach when Galaxy setup is enabled.
+      - bootstrap_controller - Prefer generated ``controller_bootstrap_environment_choices``
+        over the old fixed survey list.
+      - bootstrap_controller - Resolve AAP install flags when preflight omits ``component_config.aap``
+        or ``pre_installs.aap`` (single-component bootstrap tests).
+      - bootstrap_controller - Resolve OpenShift API host/token with empty-string
+        defaults so Install AAP can build a kubeconfig when ``token`` is blank in
+        another vars file.
+      - 'bootstrap_controller - Skip create/update when an execution environment
+
+        already exists (or GET returns 403). Org tokens can use a global EE on
+
+        job templates but cannot PATCH it; bootstrap continues with projects and
+
+        JTs.
+
+        '
+      - bootstrap_controller - Skip generating AAP job templates when their playbook
+        was not generated into the project, preventing ``Playbook not found for project``
+        failures.
+      - 'bootstrap_controller - fix license-only AAP attach failing with recursive
+        template loop when ``include_role`` vars defaulted ``aap_ocp_install_platform``
+        onto itself (license-only skips the platform set_fact).
+
+        '
+      - bootstrap_controller / push_hub_ee - Create Contoller Container Registry credential
+        from General admin/token and attach it to the Contoller EE so Hub image pulls
+        no longer ImagePullBackOff with invalid username/password.
+      - bootstrap_controller / push_hub_ee - Split Hub EE org/cred ``set_fact`` so
+        Contoller org resolve no longer fails with ``bootstrap_controller_hub_ee_org
+        is undefined`` (same-task self-reference).
+      - "bootstrap_controller push_hub_ee - Lowercase Hub EE repository names for
+        registry API compatibility (``ADO-ee`` \u2192 ``ado-ee``) and surface skopeo
+        stderr on push failure instead of a censored ``no_log`` failure."
+      - bootstrap_generate_env_vars - Always create ``<org>-RHEL-Inventory`` when
+        the Patching group is selected, and accept managed hosts from ``component_config.patching``
+        as well as ``component_config.rhel``.
+      - bootstrap_generate_env_vars - Create Satellite/IdM server inventories only
+        when server/capsule/replica install options are selected.
+      - bootstrap_generate_env_vars - Emit survey ``environment_choices`` from the
+        primary preflight environment plus optional ``additional_environments`` (no
+        hardcoded ``dev/test/preprod/prod`` list when generating from preflight).
+      - bootstrap_generate_env_vars - Empty Satellite/IdM option lists no longer expand
+        to all install playbooks/JTs.
+      - bootstrap_generate_env_vars - Expand Satellite and IdM ``component_options``
+        into playbook/JT selectors so client-only selections no longer copy every
+        Satellite/IdM bootstrap playbook and job template.
+      - bootstrap_generate_env_vars - Generate ``ipaclient_*`` and ``ipaadmin_password``
+        mappings in IdM vars/vault so client-only bootstrap can join hosts without
+        DNS autodiscovery.
+      - bootstrap_generate_env_vars - Generate ``vars_aap.yml`` for Install AAP even
+        when AAP is not a selected component, and skip Contoller API access for that
+        install-only run.
+      - bootstrap_generate_env_vars - Treat ``idm`` under ``component_apps.patching``
+        as IdM selected so ``<org>-IDM-Inventory`` is generated for patching-only
+        runs.
+      - bootstrap_generate_env_vars - Write ``rhel_sat_reg_*`` and ``satellite_activation_key``
+        from preflight ``component_config.satellite.activation_key`` (client host
+        registration) instead of reusing the RHN activation key.
+      - bootstrap_generate_env_vars - Write shared ``vault_aws.yml`` credentials without
+        overwriting them when processing the ``aws`` component overlay.
+      - 'bootstrap_generate_env_vars / bootstrap_controller - license-only and ``attach_aap_license``
+        preflight runs synthesize ``component_config.aap`` and treat attach as install-during-bootstrap
+        so attach no longer skips with empty ``component_config``.
+
+        '
+      - bootstrap_generate_playbook_repo - Generated ``collections/requirements.yml``
+        no longer pins ``infra.ado``; Contoller/Hub installs latest unless an explicit
+        version override is set.
+      - bootstrap_generate_playbook_repo - IdM manage-client playbook now loads ``vars_idm.yml``/``vault_idm.yml``,
+        maps bootstrap IdM settings to ``redhat.rhel_idm.ipaclient`` inputs, and runs
+        with ``become``.
+      - 'bootstrap_generate_playbook_repo - Target RHEL/IdM client playbooks at ``hosts:
+        all`` so they run against the dedicated RHEL inventory without requiring a
+        missing ``rhel_servers``/``ipaclients`` group.'
+      - bootstrap_generate_playbook_repo - When Hub collection update is not requested,
+        omit ``collections/requirements.yml`` (so Contoller project sync does not
+        call Galaxy/Hub) and vendor ``infra.ado`` into the git project for job runtime.
+      - 'bootstrap_generate_playbook_repo - vendor ``infra.ado`` with ``rsync`` excludes
+        (``.ansible/``, ``.git/``, etc.) so license-only bootstrap does not hang on
+        a full ``ansible.builtin.copy`` of the collection tree.
+
+        '
+      - capsule_install - Aligned defaults and argument specs with preliminary check
+        variable names.
+      - ci - Install ``boto3`` and ``botocore`` in Molecule jobs that start fakecloud.
+      - 'ci - Keep ``.local`` pip installs and XDG/ansible-lint ``.cache`` out of
+
+        the collection work tree (gitignore, galaxy ``build_ignore``, lint
+
+        excludes). Collection CI helpers under ``scripts/`` stay as Python
+
+        (not Ansible).
+
+        '
+      - 'ci - Make ``ansible-lint --offline`` match GitHub CI by mocking
+
+        Automation Hub and community modules that cannot load in the runner,
+
+        wrapping long YAML lines, skipping empty-spec ``args[module]``
+
+        warnings, replacing the IdM AD-trust ``include_role`` handler, and
+
+        fixing ``var-naming`` / ``no-handler`` findings that failed the
+
+        Ansible Lint job.
+
+        '
+      - ci - Remove committed ``infra-ado-*.tar.gz`` collection build artifacts that
+        caused unit-galaxy ``ade install`` to fail when multiple tarballs were present
+        in the repository.
+      - 'ci - Skip tox-ansible ``py3.14`` / ``py3.14-milestone`` sanity entries.
+
+        ansible-test compile treats Python 3.14 ``SyntaxWarning`` as an error for
+
+        ``return`` in a ``finally`` block inside site-packages ``impacket``, which
+
+        is not collection code.
+
+        '
+      - ci - Stop requiring ``redhat.rhel_idm`` in collection-root ``collections/requirements.yml``
+        so GitHub Actions Galaxy installs succeed. ``redhat.rhel_idm`` remains in
+        generated playbook-repo requirements for Automation Hub environments.
+      - 'grafana_upload_dashboards - Drop ``#!/usr/bin/env python3`` from
+
+        ``adapt-dashboard-for-folder.py``. The task already runs it with
+
+        ``python3``, so a collection shebang is not required.
+
+        '
+      - infra.ado - Relax ``requires_ansible`` to ``>=2.15.0`` for preflight UI bootstrap
+        hosts.
+      - infra.ado.bootstrap_controller - Treat ``ansible.hub.ah_collection`` approve
+        ``IndexError`` as non-fatal so Hub publish does not stop bootstrap when force-update
+        is enabled.
+      - infra.ado.bootstrap_generate_env_vars - Always write ``infra_config_vars.yml``
+        with shared OpenShift ``host``/``token``/``verify_ssl`` so component playbooks
+        can set ``K8S_AUTH_*``.
+      - infra.ado.bootstrap_generate_playbook_repo - Prefer ``/workspace/collections``
+        over vendored ``./collections`` and remove shadowed ``infra.ado`` copies from
+        the generated project.
+      - infra.ado.bootstrap_generate_playbook_repo - Resolve ``group_vars`` via ``playbook_dir``
+        and default ``K8S_AUTH_HOST`` from ``api_host`` when ``host`` is unset.
+      - infra.ado.bootstrap_resolve_component - Added ``acm`` defaults and banner/ACS
+        var aliases; Grafana email/folders stubs.
+      - infra.ado.bootstrap_resolve_component - Skip dotted registry keys when exporting
+        facts so components with legacy ``infra.ado.*`` entries no longer fail Ansible
+        var naming.
+      - infra.ado.idm_ad_trust - Detect existing trusts case-insensitively so ``trust-add``
+        is not retried after a successful establish.
+      - install_gitlab - Enforce root password with ``gitlab-rails`` after install;
+        ``gitlab.rb`` ``initial_root_password`` only applies on first Omnibus bootstrap,
+        which left Contoller survey passwords (e.g. redhat123) out of sync on re-runs.
+      - ocp_virtualization - Default instance type ``u1.large`` (8Gi) to avoid ``ErrorUnschedulable``
+        from ``u1.xlarge`` memory pressure on busy lab workers.
+      - rhel_sat_reg - Fall back to ``satellite_config_*`` / vault Satellite credentials
+        when ``rhel_sat_reg_*`` is unset, and assert required registration inputs
+        before calling the Satellite API.
+      - satellite_install - Added missing documented default variables for admin password,
+        reinstall control, and DNS inputs.
+      - satellite_install - Restart crond instead of chronyd during RHSM subscription
+        tasks.
+      - 'satellite_oidc - Accept Keycloak access-token audience ``account`` in
+
+        addition to the client id. Foreman validates the access token, and RHBK
+
+        sets ``aud`` to ``account`` (client id is ``azp``), which caused SSO to
+
+        fail after a successful Keycloak login.
+
+        '
+      - 'satellite_oidc - Use Apache ``OIDCResponseType code`` (authorization code)
+
+        instead of ``id_token``. The Keycloak client has implicit flow disabled, so
+
+        the implicit callback POST to ``/users/extlogin/redirect_uri`` returned HTTP
+        400.
+
+        '
+      doc_changes:
+      - Keep republishing ``infra.ado`` as ``1.0.3`` when forcing Hub updates unless
+        a version bump is explicitly requested.
+      - README - Linked ``infra.ado.idm_ad_trust`` in the collection role index.
+      - bookstack_openshift / ocp_virtualization - Expand role READMEs for Contoller,
+        images, and scheduling.
+      - bootstrap_controller - Documented ``ADO | IdM Manage AD Trust`` job template
+        generation for ``idm_ad_trust_install``.
+      - 'bootstrap_generate_env_vars - Document migration from legacy
+
+        ``ocp_awspca_*`` vault keys in ``vault_openshift.yml`` /
+
+        ``vault_cert_manager.yml`` to shared ``vault_aws.yml`` plus awspca
+
+        bootstrap playbook remap.
+
+        '
+      - bootstrap_generate_env_vars - Documented preflight ``additional_environments``
+        survey choices and IdM AD trust var/vault overlays.
+      - capsule_install - Added required Role Molecule Testing section to README format
+        verification.
+      - capsule_install - Aligned ``meta/argument_specs.yml`` with role defaults,
+        including renamed ``capsule_install_*`` options.
+      - capsule_install - Documented ``capsule_install_selinux_state`` (default ``enforcing``)
+        in the README and argument specs.
+      - capsule_install - Documented preliminary check validation, grubby/IPv6/SELinux
+        behavior, and reboot handler.
+      - capsule_install - Removed stale task/template file listings from README role
+        structure and task overview.
+      - capsule_install - Replaced placeholder argument specs with options aligned
+        to capsule_install defaults.
+      - capsule_install - Updated README for preliminary check, RHSM subscribe flow,
+        role variables, and role structure.
+      - capsule_install - Updated README for rhsm_subscribe task flow, renamed defaults,
+        and current role structure.
+      - capsule_install - Updated README to reflect the current skeleton role and
+        align documented variables with defaults.
+      - 'ci - Document fakecloud-backed Molecule testing in
+
+        ``extensions/molecule/FAKECLOUD.md``.
+
+        '
+      - docs - Document dedicated Hub Postgres as the permanent fix for shared-DB
+        LWLock storms.
+      - infra.ado.acs_upload_policies - Added template-compliant role README required
+        by galaxy-importer build-import checks.
+      - 'infra.ado.ec2_ami_copy - Document optional ``name`` in module examples and
+
+        collection README module index entries.
+
+        '
+      - infra.ado.grafana_upload_alerts - Added template-compliant role README required
+        by galaxy-importer build-import checks.
+      - infra.ado.idm_ad_trust - Documented lab defaults, AD DNS forwarder prerequisite,
+        one-way vs two-way trust, and client SSSD checklist in the role README.
+      - infra.ado.idm_ad_trust - Reformatted role README to match ``docs/templates/role_readme_format_template.md``.
+      - infra.ado.ocp_aap_hub_harden - Reformatted role README to match the ADO role
+        README template required by CI.
+      - infra.ado.vpn_access - Added template-compliant role README with usage example
+        and variables table.
+      - install_gitlab / install_grafana - New standalone RHEL Omnibus GitLab and
+        Grafana roles with Contoller JT/playbook seeds (see ``install_gitlab_grafana``
+        fragment).
+      - 'ocp_awspca - Document bootstrap ``vault_aws.yml`` credential path and
+
+        legacy PCA vault migration for existing environments.
+
+        '
+      - satellite_install - Updated README task overview and role structure to match
+        current files.
+      major_changes:
+      - 'Grafana datasources: ``Openshift-Prod`` defaults to ``thanos-querier``
+
+        (platform + user-workload metrics). ``Openshift-Dev`` uses a remote
+
+        Prometheus URL with ``bearer_token`` / ``bearer_token_secret``.
+
+        ``ocp_cert_manager`` now creates ServiceMonitors with ``honorLabels``
+
+        so certificate expiry dashboards see real Certificate namespaces.
+
+        '
+      minor_changes:
+      - 'Add OpenShift Grafana dashboards for Keycloak metrics (community 10441),
+        K8S overview (community 15661), and cert-manager certificate expiry with main
+        ADO cert coverage for prod and dev under ``templates/Openshift/dashboards/``.
+
+        '
+      - BookStack OIDC trusts lab CA via ConfigMap + initContainer (fixes cURL error
+        60).
+      - BookStack admin password reset and OIDC (Keycloak RHLAB) env wiring in ``bookstack_openshift``.
+      - Default AAP OpenShift install version is now 2.7.
+      - 'Grafana seed templates - add OpenShift Prod and Dev cluster resource overview
+        dashboards (node CPU/memory ratios, namespace pod table, network, storage,
+        summary stats) under ``templates/Openshift/dashboards/``.
+
+        '
+      - 'Grafana: deploy OpenshiftProd and OpenshiftDev folders (pinned datasources)
+        plus
+
+        optional shared Openshift folder with a K8S Prod/Dev dropdown
+
+        (grafana_group_cluster_dashboards). Datasources Openshift-Prod/Dev use thanos-querier.
+
+        '
+      - Hub EE push accepts Contoller OAuth token (unused+token) for local podman
+        without admin password.
+      - NetBox OIDC role + Contoller JT to wire Helm NetBox to Keycloak RHLAB.
+      - 'OpenShift Dev: document/enable cert-manager Operator + ServiceMonitors for
+
+        Grafana expiry dashboards; Openshift-Dev datasource should use Dev
+
+        thanos-querier (not prometheus-k8s alone) so user-workload metrics appear.
+
+        Dev Keycloak dashboard points at Prod RHBK Micrometer metrics (shared IdP).
+
+        '
+      - 'Process rule: prefer ADO roles + bootstrap Contoller JTs before ad-hoc API
+        scripts.
+
+        '
+      - RHBK manage-client bootstrap passes standard OIDC client fields from ``rhbk_clients``.
+      - RHBK standalone Contoller JT + playbook seed; preflight option ``standalone``.
+      - Release infra.ado 1.1.1 for preflight (hub-only always creates General Contoller
+        org; Hub EE attaches Container Registry credential).
+      - Release infra.ado 1.1.2 for preflight overlays and collection tarball.
+      - '``grafana_create_datasource`` now creates a list of Prometheus datasources
+        (default ``Openshift-Prod`` / ``Openshift-Dev``), ensures the monitoring SA
+        token Secret, and the dashboards playbook also runs datasource + folder create.
+        Folder/dashboard upload uses ``community.grafana`` with admin basic-auth fallback
+        so Deploy Grafana works without a pre-made API key.
+
+        '
+      - aap_ocp_install - Accept AAP 2.7 operator channels (``stable-2.7`` / ``stable-2.7-cluster-scoped``)
+        in addition to 2.5 and 2.6.
+      - aap_ocp_install - Support optional ``aap_ocp_install_rhn_subscription_id``
+        and service-account ``client_id``/``client_secret`` for license attach; auto-select
+        an Ansible Automation Platform pool when subscription id is omitted.
+      - aap_ocp_install / bootstrap_controller - Support ``aap_ocp_install_license_only``
+        to skip operator install and only run ``activate_license.yml``.
+      - acs_report - New role to generate RHACS vulnerability reports from Central
+        workload export (``raw`` / ``rhsource`` / ``age`` / ``all``), with ``--all``
+        / ``--rhsre`` / ``--sev`` / ``--component`` scope options and companion summary
+        JSON.
+      - acs_report - Ship a Grafana posture dashboard with Red Hat-source and raw
+        component bar charts, unique CVE / Critical / Important totals, daily discovery
+        inflow, and cumulative backlog growth.
+      - acs_report - Ship sample Grafana dashboard ``files/grafana/rhacs-vulnerability-overview.json``
+        seeded from scrubbed prod Critical+Important+Fixable component counts.
+      - ado-preflight-ui - Add AAP 2.7 to the version selector and pass it through
+        to bootstrap.
+      - ado-preflight-ui - Checking Hub collection publish, Push EE, or Run Hub updates
+        only also enables Galaxy/registry credential setup so org + pull auth are
+        ready for Contoller.
+      - 'ado-preflight-ui - Test AAP connection (controller ping) before bootstrap
+
+        ansible when configuring an existing Contoller.
+
+        '
+      - bookstack_openshift - New role to deploy BookStack + MariaDB on OpenShift
+        (PVC, Route, Contoller JT).
+      - 'bootstrap - Add AWS platform umbrella selection via preflight
+
+        ``components``, ``component_apps.aws``, and ``component_options.aws``.
+
+        ``ec2_ami_copy`` remains the first app with shared ``vault_aws.yml`` and
+
+        ``vars_aws.yml`` credentials. Legacy standalone ``ec2_ami_copy`` preflight
+
+        selection remains supported.
+
+        '
+      - 'bootstrap - Add ``ado-copy-ami-bootstrap`` playbook, job template, and
+
+        ``vars_ec2_ami_copy`` generation for ``infra.ado.ec2_ami_copy`` cross-region
+
+        AMI copies.
+
+        '
+      - 'bootstrap - Add shared ``vault_aws.yml`` / ``vars_aws.yml`` credentials for
+
+        all AWS bootstrap consumers (``ec2_ami_copy``, cert-manager AWS PCA, and
+
+        future modules).
+
+        '
+      - bootstrap - Seed playbook ``playbooks/acs/ado-acs-report.yml`` and Controller
+        JT ``ADO | ACS RHACS Vulnerability Report``.
+      - 'bootstrap_controller - Accept ``aap_version: 27`` and use the AAP 2.5+ gateway
+        apply path.
+
+        '
+      - bootstrap_controller - Add RHACS report job templates (survey, rhsource, raw,
+        age) and ``ADO | ACS RHACS Report Workflow`` when the ``acs_report`` option
+        is selected.
+      - bootstrap_controller - Add ``ADO | IdM Manage AD Trust`` job template for
+        ``idm_ad_trust_install``.
+      - bootstrap_controller - Add ``ADO | Satellite Keycloak OIDC`` job template
+        for ``satellite_oidc``.
+      - 'bootstrap_generate_env_vars - Allow Patching to reuse an existing AAP inventory
+        via ``component_config.patching.inventory_mode: existing`` and ``inventory_name``
+        instead of creating ``<org>-RHEL-Inventory``.'
+      - bootstrap_generate_env_vars - Also imply the ``compliance`` component from
+        ``component_options.rhel`` the same way ``stig`` is implied.
+      - bootstrap_generate_env_vars - Expand ACS ``component_options`` into playbook/JT
+        selectors (same pattern as Satellite/IdM).
+      - bootstrap_generate_env_vars - Honor Galaxy credential ``order`` (1 = first
+        in org Galaxy search list); emit optional non-admin Contoller user from Galaxy
+        tab.
+      - bootstrap_generate_env_vars - Honor ``pre_installs.install_aap`` and map component
+        ``replicas`` (including AAP controller replicas) from preflight form values.
+      - bootstrap_generate_env_vars - Honor preflight AAP version ``2.7`` / ``27``
+        for generated ``aap_version``, operator channel, and EE image.
+      - bootstrap_generate_env_vars - Honor preflight ``component_config.aap.operator_scope``
+        (``all_namespaces`` or ``namespaced``) when choosing the AAP operator channel;
+        explicit ``operator_channel`` still wins.
+      - bootstrap_generate_env_vars - Overlay IdM AD trust vars/vault secrets from
+        preflight and create IdM inventory when AD Trust is selected.
+      - 'bootstrap_generate_env_vars - Stage a selected RHBK standalone zip into
+
+        ``files/`` and set ``rhbk_standalone_zip`` to the playbook-relative path
+
+        so AAP can copy it from the controller/EE.
+
+        '
+      - "bootstrap_generate_env_vars - When preflight Galaxy setup is enabled, emit
+        Galaxy/Hub API Token and Container Registry credentials (and org ``galaxy_credentials``
+        attach) using General Contoller admin/OAuth fallbacks when tokens are empty
+        \u2014 same pattern as Hub EE push."
+      - bootstrap_generate_env_vars / preflight - Pass hostname, vaulted RHN password,
+        optional subscription id, and admin credentials through to license activation.
+      - bootstrap_generate_playbook_repo - AD trust bootstrap playbook loads ``vars_idm.yml``/``vault_idm.yml``
+        and targets the IdM inventory.
+      - bootstrap_generate_playbook_repo - Add Satellite Keycloak OIDC bootstrap playbook.
+      - bootstrap_generate_playbook_repo - Added ``community.grafana`` and ``grafana.grafana``
+        to generated collection requirements.
+      - bootstrap_generate_playbook_repo - Default generated ``collections/requirements.yml``
+        pin for ``infra.ado`` is ``1.0.3``.
+      - 'bootstrap_generate_playbook_repo - Seed Grafana dashboard templates under
+
+        ``playbook_repo_seed/templates/`` for copy-out: Openshift ``*.json.j2``
+
+        dashboards and the RHACS vulnerability overview sample
+
+        (``templates/RHACS/dashboards/rhacs-vulnerability-overview.json``).
+
+        '
+      - bootstrap_generate_playbook_repo / bootstrap_controller - Wire BookStack playbook
+        and JT seed; selectable as ``bookstack`` OpenShift app.
+      - bootstrap_resolve_component - Register ``bookstack`` component defaults.
+      - bootstrap_resolve_component / preflight - Default ``grafana_folders`` now
+        points at ``templates/Openshift`` and ``templates/RHACS``.
+      - capsule_install - Added RHSM subscription tasks to register Capsule hosts
+        with Satellite and enable required repositories.
+      - capsule_install - Added ``capsule_install_setup_insights`` (default ``false``)
+        to control Insights setup during Capsule registration.
+      - capsule_install - Added skeleton role structure for Red Hat Satellite Capsule
+        installation.
+      - capsule_install - Updated role defaults and main task flow to support preliminary
+        check and RHSM registration.
+      - 'ci - Start fakecloud in the Molecule pipeline for scenarios listed in
+
+        ``extensions/molecule/fakecloud_scenarios.txt`` so AWS API integration
+
+        tests (``integration_ec2_ami_copy`` and
+
+        ``integration_ec2_ami_copy_keep_name`` for ``infra.ado.ec2_ami_copy``)
+
+        run without real cloud credentials.
+
+        '
+      - collections - Declare ``redhat.rhel_idm`` in collection requirements and playbook
+        repo seed/template so IdM server/client/replica jobs can install the certified
+        collection from Automation Hub.
+      - docs - Expanded Hub recovery/permanence runbook for shared-Postgres LWLock
+        failures.
+      - idm_ad_trust - Replaced ``ipa`` CLI / ``ansible.builtin`` shell wrappers with
+        ``redhat.rhel_idm`` modules (``ipatrust``, ``ipadnsforwardzone``, ``ipaidrange``,
+        ``ipagroup``, ``ipasudorule``). Service start/restart (smb, named, sssd) now
+        uses ``infra.ado.rhel_services_management``. OS-level steps (packages, firewalld,
+        crypto policy, ``ipa-adtrust-install``) remain builtin where no collection
+        role exists.
+      - infra.ado - Preflight/bootstrap support for Grafana multi-folder git sources
+        (json vs json.j2), alerts upload, ACS policies-from-git, RHBK multi-client
+        + LDAP federation/mapper wiring, AAP license manifest/RHN activation, banner
+        survey fields, and htpasswd add/replace/remove.
+      - 'infra.ado.ec2_ami_copy - Added ``integration_ec2_ami_copy_keep_name``
+
+        Molecule scenario to exercise copies that omit ``name``.
+
+        '
+      - 'infra.ado.ec2_ami_copy - ``name`` is optional; omit it to reuse the source
+
+        AMI name, or set it to rename the copied AMI in the destination region.
+
+        '
+      - infra.ado.idm_ad_trust - New role and playbook to establish two-way IdM/AD
+        trust, DNS forward zone, ID range fixes, and AD external group mapping for
+        SSH/sudo.
+      - infra.ado.idm_ad_trust - Run ``ipa-adtrust-install``, ensure SMB, open ``freeipa-trust``
+        firewall, disable DNSSEC validation for AD forward zones, re-kinit after AD
+        trust install, and support one-way or two-way trusts.
+      - infra.ado.idm_ad_trust - Update default AD forest targets to ``ad.lab`` /
+        ``adwindows.ad.lab`` / ``192.168.0.61``.
+      - infra.ado.ocp_aap_hub_harden - New role to pin Hub to single replicas, single
+        gunicorn workers, and install maintenance CronJob against core_apiappstatus
+        LWLock storms.
+      - infra.ado.ocp_aap_hub_harden - Pin Hub to dedicated unmanaged Postgres secret
+        and vacuum ``core_apiappstatus`` on ``aap-hub-dedicated-postgres-0`` instead
+        of shared Controller Postgres.
+      - infra.ado.ocp_devspaces - Configurable disable of getting-started samples,
+        default workspace image/devfile URL, and dashboard image overrides (CLI/preflight).
+      - 'infra.ado.rhbk_client - Run Keycloak API tasks with ``connection: local``
+        so
+
+        client create works when the play targets a remote Satellite host.
+
+        '
+      - infra.ado.satellite_oidc - Create Keycloak client ``ado-satellite`` in realm
+        ``rhlab`` with ``infra.ado.rhbk_client``, fetch the client secret, enable
+        Foreman Keycloak on Satellite, and apply OIDC login-delegation settings.
+      - "install_gitlab / install_grafana \u2014 standalone RHEL Omnibus GitLab CE/EE
+        and Grafana roles with Contoller bootstrap playbooks and job templates (``ado-install-*-standalone-bootstrap``),
+        airgap RPM path/url vars, and gitlab_standalone / grafana_standalone component
+        wiring."
+      - 'install_gitlab / preflight - Optional ``tls.crt`` / ``tls.key`` PEMs and
+
+        optional RHN org + activation key for standalone URL installs. GitLab
+
+        playbook waits for SSH and pings the host before gathering facts.
+
+        '
+      - "install_rhbk \u2014 optional standalone HTTPS on port 8443 using the same
+        tls_crt/tls_key PEM pattern as the OpenShift RHBK path (install_rhbk_standalone_https_enabled)."
+      - preflight - ACS form option to deploy RHACS vulnerability report job templates
+        and workflow.
+      - preflight - Add a visible ``Attach AAP license`` card on Install / Run (manifest
+        or RHN list+attach), including license-only attach for an existing AAP without
+        reinstalling the operator.
+      - preflight UI - Core Environment and Pre-installs are top-level tabs; Agent
+        install-config lives under Pre-installs only.
+      - satellite / idm - Default component options are empty; Satellite dynamic inventory
+        is an explicit selectable option.
+      removed_features:
+      - infra.ado.vpn_access - Removed from the collection; lab VPN / IdM user provisioning
+        lives outside ADO under lab-tools (Add user to lab).
+    fragments:
+    - aap-2.7-support.yml
+    - aap-attach-license-ui.yml
+    - aap-hub-gateway-route-license.yml
+    - aap-license-only-bootstrap.yml
+    - aap-license-only-prefer-general-hostname.yml
+    - aap-license-only-template-loop.yml
+    - aap-license-rhn-service-account.yml
+    - aap-license-subscriptions-field-names.yml
+    - aap-operator-scope.yml
+    - aap-operatorgroup-conflict.yml
+    - aap-rhn-subscription-attach.yml
+    - acs-report-dashboard-bootstrap.yml
+    - acs-report.yml
+    - ansible-lint-ci-mocks-and-rules.yml
+    - aws-platform-bootstrap.yml
+    - bookstack-and-virt-defaults.yml
+    - bookstack-oidc-ca-and-ado-first.yml
+    - bootstrap-client-option-filtering.yml
+    - capsule_install-defaults-var-alignment.yml
+    - capsule_install-readme-sync.yml
+    - capsule_install-rhsm-subscribe.yml
+    - capsule_install-selinux-state-docs.yml
+    - capsule_install-setup-insights.yml
+    - capsule_install-skeleton.yml
+    - ci-drop-galaxy-rhel-idm.yml
+    - ci-drop-local-cache-artifacts.yml
+    - ci-remove-collection-tarballs.yml
+    - ci-skip-py314-impacket-syntaxwarning.yml
+    - ec2-ami-copy-bootstrap.yml
+    - ec2-ami-copy-name-option.yml
+    - env-survey-idm-requirements.yml
+    - fakecloud-aws-tests.yml
+    - galaxy-creds-general-fallback.yml
+    - galaxy-global-cred-and-project-branch.yml
+    - gitlab-standalone-tls-rhn-connect.yml
+    - grafana-dashboard-k8s-keycloak-cert-fixes.yml
+    - grafana-dashboard-templates-seed.yml
+    - grafana-datasources-folders-upload-ado.yml
+    - grafana-dev-cert-manager-keycloak-wiring.yml
+    - grafana-keycloak-k8s-certmanager-dashboards.yml
+    - grafana-ocp-prod-dev-overview.yml
+    - grafana-openshift-prod-dev-folders.yml
+    - grafana-thanos-dev-ds-cert-sm.yml
+    - hub-dedicated-postgres.yml
+    - hub-ee-lowercase-skopeo-errors.yml
+    - hub-ee-org-set-fact-fix.yml
+    - hub-ee-skip-no-runtime.yml
+    - hub-galaxy-creds-order-and-hub-only-apply.yml
+    - hub-only-create-org-ee-registry-cred.yml
+    - hub-only-galaxy-reload-aap-config.yml
+    - hub-publish-indexerror-and-collection-path.yml
+    - hub-stability-harden.yml
+    - idm-ad-trust-bootstrap-wiring.yml
+    - idm-ad-trust-docs.yml
+    - idm-ad-trust-rhel-idm-modules.yml
+    - idm-ad-two-way-trust.yml
+    - idm-client-playbook-vars.yml
+    - infra-config-vars-k8s-auth.yml
+    - install-aap-keep-openshift-auth.yml
+    - install-aap-without-using-aap.yml
+    - install_gitlab_enforce_root_password.yml
+    - install_gitlab_grafana.yml
+    - keep-infra-ado-1.0.3.yml
+    - no-hub-skip-galaxy-requirements.yml
+    - patching-rhel-inventory.yml
+    - patching-skip-compliance-stig-jts.yml
+    - preflight-hub-ui-features.yml
+    - preflight-install-run-replicas.yml
+    - preflight-tabs-devspaces.yml
+    - project-create-no-sync-on-create.yml
+    - project-sync-hub-guidance.yml
+    - project-sync-hub-optional-guidance.yml
+    - readme-template-compliance.yml
+    - requirements-infra-ado-latest.yml
+    - rhbk-standalone-bookstack-netbox-oidc.yml
+    - rhbk-standalone-https.yml
+    - rhbk-standalone-zip-files.yml
+    - rhel-sat-reg-vars.yml
+    - satellite-oidc-audience-account.yml
+    - satellite-oidc-code-flow.yml
+    - satellite-oidc-keycloak.yml
+    - satellite_install-defaults-doc-consistency.yml
+    - satellite_install-readme-sync.yml
+    - shebang-after-stage.yml
+    - skip-dotted-component-fact-keys.yml
+    - vpn-access-moved-to-lab-tools.yml
+    release_date: '2026-08-26'

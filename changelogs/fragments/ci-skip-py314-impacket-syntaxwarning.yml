@@ -1,7 +1,0 @@
----
-bugfixes:
-  - |
-    ci - Skip tox-ansible ``py3.14`` / ``py3.14-milestone`` sanity entries.
-    ansible-test compile treats Python 3.14 ``SyntaxWarning`` as an error for
-    ``return`` in a ``finally`` block inside site-packages ``impacket``, which
-    is not collection code.

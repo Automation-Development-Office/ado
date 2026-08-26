@@ -1,4 +1,0 @@
----
-bugfixes:
-  - bootstrap_controller - Hub EE push no longer hard-fails hub-update-only runs when the preflight/Dev Spaces host has no podman/docker; skips with guidance (optional skopeo path when pull-from-remote is enabled).
-  - bootstrap_controller - Clarify Hub collection IndexError warning as "version already present" and point operators at Force update or galaxy.yml bump.

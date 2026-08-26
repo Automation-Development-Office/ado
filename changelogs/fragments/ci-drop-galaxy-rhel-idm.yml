@@ -1,6 +1,0 @@
----
-bugfixes:
-  - ci - Stop requiring ``redhat.rhel_idm`` in collection-root
-    ``collections/requirements.yml`` so GitHub Actions Galaxy installs succeed.
-    ``redhat.rhel_idm`` remains in generated playbook-repo requirements for
-    Automation Hub environments.

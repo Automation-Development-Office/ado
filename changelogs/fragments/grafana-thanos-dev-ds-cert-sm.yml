@@ -1,8 +1,0 @@
----
-major_changes:
-  - |
-    Grafana datasources: ``Openshift-Prod`` defaults to ``thanos-querier``
-    (platform + user-workload metrics). ``Openshift-Dev`` uses a remote
-    Prometheus URL with ``bearer_token`` / ``bearer_token_secret``.
-    ``ocp_cert_manager`` now creates ServiceMonitors with ``honorLabels``
-    so certificate expiry dashboards see real Certificate namespaces.

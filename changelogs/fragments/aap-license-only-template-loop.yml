@@ -1,6 +1,0 @@
----
-bugfixes:
-  - >
-    bootstrap_controller - fix license-only AAP attach failing with recursive
-    template loop when ``include_role`` vars defaulted ``aap_ocp_install_platform``
-    onto itself (license-only skips the platform set_fact).
