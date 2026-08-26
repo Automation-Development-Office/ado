@@ -43,6 +43,7 @@ Variables below are referenced by the role task files under `tasks/`. Defaults a
 | `capsule_install_setup_insights` | Whether to configure Red Hat Insights during Capsule registration | ❌ | `false` |
 | `capsule_install_rhn_repos` | RHSM repository IDs enabled after registration | ❌ | See `defaults/main.yml` |
 | `capsule_install_scenario` | Satellite installer scenario for Capsule deployment | ❌ | `"capsule"` |
+| `capsule_install_selinux_state` | SELinux state applied after package updates | ❌ | `"enforcing"` |
 | `capsule_install_vg_name` | LVM volume group name for Capsule storage | ❌ | `"capsule"` |
 | `capsule_install_req_dirs` | List of logical volumes to create and mount; each item requires `lv_name`, `lv_size`, and `mount_point` | ❌ | `/var/lib/pulp` and `/var/lib/pgsql` defaults |
 | `capsule_install_data_disk_min_size` | Minimum disk size in GB used when validating storage requirements | ❌ | `500` |
@@ -110,7 +111,7 @@ This role does not currently include a dedicated Molecule scenario or platform-s
 
 - **Main Task File** (`main.yml`):
   - Always runs `preliminary_check.yml` first for validation.
-  - When `capsule_install_pre_check: false`, continues with `rhsm_subscribe.yml`.
+  - When `capsule_install_pre_check: false`, continues with `rhsm_subscribe.yml`, then package updates via `satellite_install` `patch.yml` using `capsule_install_selinux_state`.
 - **Preliminary Check** (`preliminary_check.yml`):
   - Validates RHEL version (9+), required inputs, and system resources.
   - Ensures `grubby` is installed, removes `ipv6.disable=1` kernel arguments, adds `ipv6.disable=0` if missing.

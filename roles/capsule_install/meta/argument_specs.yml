@@ -6,8 +6,8 @@ argument_specs:
     options:
       capsule_install_os_version:
         type: str
-        description: Capsule version referenced in OS validation messages.
-        default: ""
+        description: RHEL major version referenced in OS validation messages.
+        default: "9"
       capsule_install_min_cpu_count:
         type: int
         description: Minimum required CPU count for Capsule host validation.
@@ -71,10 +71,18 @@ argument_specs:
           - vim
           - bash-completion
           - bind-utils
-      satellite_installer_scenario:
+      capsule_install_scenario:
         type: str
-        description: Satellite installer scenario for this role.
+        description: Satellite installer scenario for Capsule deployment.
         default: "capsule"
+      capsule_install_deployment_version:
+        type: str
+        description: Target Capsule version used in RHSM repo names.
+        default: "6.19"
+      capsule_install_selinux_state:
+        type: str
+        description: SELinux state applied after package updates.
+        default: "enforcing"
       capsule_install_admin_username:
         type: str
         description: Capsule/Satellite admin username.
@@ -82,6 +90,10 @@ argument_specs:
       capsule_install_admin_password:
         type: str
         description: Capsule/Satellite admin password.
+      capsule_install_timezone:
+        type: str
+        description: System timezone set before registration.
+        default: "UTC"
       capsule_install_org_id:
         type: str
         description: Organization ID for Capsule registration.
@@ -91,22 +103,34 @@ argument_specs:
       capsule_install_location:
         type: str
         description: Logical location label for Capsule deployment.
+        default: ""
       capsule_install_setup_insights:
         type: bool
         description: Configure Red Hat Insights during Capsule registration.
         default: false
-      satellite_fqdn:
+      capsule_install_rhn_repos:
+        type: list
+        elements: str
+        description: RHSM repository IDs enabled after registration.
+        default:
+          - "rhel-9-for-x86_64-baseos-rpms"
+          - "rhel-9-for-x86_64-appstream-rpms"
+          - >-
+            satellite-capsule-{{ capsule_install_deployment_version }}-for-rhel-9-x86_64-rpms
+          - >-
+            satellite-maintenance-{{ capsule_install_deployment_version }}-for-rhel-9-x86_64-rpms
+      capsule_install_satellite_fqdn:
         type: str
         description: FQDN of the upstream Satellite server.
       capsule_install_sync_wait_time:
         type: int
         description: Maximum wait time for synchronization operations.
         default: 86400
-      satellite_haproxy:
+      capsule_install_satellite_haproxy:
         type: bool
         description: Enable load-balanced Capsule registration settings.
         default: false
-      satellite_loadbalancer_ports:
+      capsule_install_satellite_loadbalancer_ports:
         type: list
         elements: str
         description: Firewall/service ports used by load-balanced deployments.
