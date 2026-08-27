@@ -16,3 +16,15 @@
         tasks_from: patch
       vars:
         satellite_install_selinux_state: "{{ capsule_install_selinux_state }}"
+
+    - name: Storage Config
+      ansible.builtin.include_role:
+        name: infra.ado.satellite_install
+        tasks_from: storage_config
+      vars:
+        satellite_install_vg_name: "{{ capsule_install_vg_name }}"
+        satellite_install_data_disk_min_size: "{{ capsule_install_data_disk_min_size }}"
+        satellite_install_data_device: "{{ capsule_install_data_device }}"
+        satellite_install_data_device_name: "{{ capsule_install_data_device_name }}"
+        satellite_install_req_dirs: "{{ capsule_install_req_dirs }}"
+        satellite_install_data_disk: "{{ capsule_install_data_disk }}"
