@@ -1,6 +1,0 @@
----
-bugfixes:
-  - bootstrap_controller - Always create Contoller organizations on hub-update-only runs, and ensure the General organization exists even when generated configs list a different org.
-  - bootstrap_controller / push_hub_ee - Create Contoller Container Registry credential from General admin/token and attach it to the Contoller EE so Hub image pulls no longer ImagePullBackOff with invalid username/password.
-minor_changes:
-  - ado-preflight-ui - Checking Hub collection publish, Push EE, or Run Hub updates only also enables Galaxy/registry credential setup so org + pull auth are ready for Contoller.

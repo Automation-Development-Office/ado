@@ -1,5 +1,5 @@
 ---
-- name: Cleanup generated bootstrap molecule content
+- name: Cleanup generated bootstrap ec2_ami_copy molecule content
   hosts: localhost
   gather_facts: false
   connection: local
@@ -16,4 +16,4 @@
         - inventory
         - collections
         - templates
-        - ado-preflight-all.json
+        - ado-preflight-ec2-ami-copy.json

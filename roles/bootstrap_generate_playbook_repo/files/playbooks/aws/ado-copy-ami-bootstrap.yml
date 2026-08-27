@@ -1,0 +1,77 @@
+---
+# yamllint disable rule:line-length
+- name: ADO | Copy AMI between AWS regions
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: ec2_ami_copy
+  vars_files:
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_aws.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_{{ component }}.yml"
+  tasks:
+    - name: ADO | Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: infra.ado.bootstrap_resolve_component
+
+    - name: ADO | Copy AMI to destination region
+      infra.ado.ec2_ami_copy:
+        source_region: "{{ ec2_ami_copy_source_region }}"
+        region: "{{ ec2_ami_copy_dest_region }}"
+        source_image_id: "{{ ec2_ami_copy_source_image_id }}"
+        name: >-
+          {{
+            ec2_ami_copy_name
+            if (ec2_ami_copy_name | default('') | string | trim | length > 0)
+            else omit
+          }}
+        description: "{{ ec2_ami_copy_description | default('') }}"
+        encrypted: "{{ ec2_ami_copy_encrypted | default(false) | bool }}"
+        kms_key_id: >-
+          {{
+            ec2_ami_copy_kms_key_id
+            if (ec2_ami_copy_kms_key_id | default('') | string | trim | length > 0)
+            else omit
+          }}
+        copy_image_tags: "{{ ec2_ami_copy_copy_image_tags | default(false) | bool }}"
+        tags: >-
+          {{
+            ec2_ami_copy_tags
+            if (ec2_ami_copy_tags | default({}) | length > 0)
+            else omit
+          }}
+        tag_equality: "{{ ec2_ami_copy_tag_equality | default(false) | bool }}"
+        wait: "{{ ec2_ami_copy_wait | default(true) | bool }}"
+        wait_timeout: "{{ ec2_ami_copy_wait_timeout | default(600) | int }}"
+        access_key: >-
+          {{
+            vault_aws_access_key_id
+            if (vault_aws_access_key_id | default('') | length > 0)
+            else omit
+          }}
+        secret_key: >-
+          {{
+            vault_aws_secret_access_key
+            if (vault_aws_secret_access_key | default('') | length > 0)
+            else omit
+          }}
+        session_token: >-
+          {{
+            vault_aws_session_token
+            if (vault_aws_session_token | default('') | length > 0)
+            else omit
+          }}
+        profile: >-
+          {{
+            aws_profile
+            if (aws_profile | default('') | string | trim | length > 0)
+            else omit
+          }}
+      register: bootstrap_generate_playbook_repo_copied_ami
+      when: ec2_ami_copy_source_image_id | default('') | length > 0
+
+    - name: ADO | Show copied AMI ID
+      ansible.builtin.debug:
+        var: bootstrap_generate_playbook_repo_copied_ami.image_id
+      when: bootstrap_generate_playbook_repo_copied_ami is defined
+# yamllint enable rule:line-length

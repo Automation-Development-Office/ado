@@ -1,0 +1,14 @@
+---
+- name: Destroy - ec2_ami_copy fakecloud scenario
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars_files:
+    - ec2_ami_copy_vars.yml
+
+  tasks:
+    - name: Remove scenario artifact directory
+      ansible.builtin.file:
+        path: "{{ ec2_ami_copy_molecule_artifact_root }}"
+        state: absent

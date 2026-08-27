@@ -1,0 +1,51 @@
+---
+- name: Converge - copy AMI with an explicit destination name
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars_files:
+    - ec2_ami_copy_vars.yml
+
+  vars:
+    ec2_ami_copy_molecule_dest_name: molecule-ec2-ami-copy-renamed
+    ec2_ami_copy_molecule_tags:
+      Name: molecule-ec2-ami-copy-renamed
+      MoleculeScenario: integration_ec2_ami_copy
+
+  tasks:
+    - name: Load source AMI selected during prepare
+      ansible.builtin.slurp:
+        src: "{{ ec2_ami_copy_molecule_source_ami_file }}"
+      register: ec2_ami_copy_molecule_source_ami_raw
+
+    - name: Set source AMI fact
+      ansible.builtin.set_fact:
+        ec2_ami_copy_molecule_source_ami: >-
+          {{ ec2_ami_copy_molecule_source_ami_raw.content | b64decode | trim }}
+
+    - name: Copy AMI to destination region with a new name
+      infra.ado.ec2_ami_copy:
+        source_region: "{{ ec2_ami_copy_molecule_source_region }}"
+        region: "{{ ec2_ami_copy_molecule_dest_region }}"
+        source_image_id: "{{ ec2_ami_copy_molecule_source_ami }}"
+        name: "{{ ec2_ami_copy_molecule_dest_name }}"
+        description: Molecule fakecloud rename integration test
+        tags: "{{ ec2_ami_copy_molecule_tags }}"
+        wait: true
+        wait_timeout: 120
+      register: ec2_ami_copy_molecule_result
+
+    - name: Persist copy result for verify
+      ansible.builtin.copy:
+        content: "{{ ec2_ami_copy_molecule_result | to_nice_json }}"
+        dest: "{{ ec2_ami_copy_molecule_state_file }}"
+        mode: "0600"
+      changed_when: false
+
+    - name: Persist expected destination name for verify
+      ansible.builtin.copy:
+        content: "{{ ec2_ami_copy_molecule_dest_name }}"
+        dest: "{{ ec2_ami_copy_molecule_artifact_root }}/expected_dest_name"
+        mode: "0600"
+      changed_when: false

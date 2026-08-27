@@ -1,5 +1,0 @@
----
-bugfixes:
-  - bootstrap_controller push_hub_ee - Lowercase Hub EE repository names for registry API compatibility (``ADO-ee`` → ``ado-ee``) and surface skopeo stderr on push failure instead of a censored ``no_log`` failure.
-doc_changes:
-  - install_gitlab / install_grafana - New standalone RHEL Omnibus GitLab and Grafana roles with Contoller JT/playbook seeds (see ``install_gitlab_grafana`` fragment).

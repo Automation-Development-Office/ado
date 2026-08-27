@@ -1,12 +1,12 @@
 ---
-- name: Generate bootstrap content using new flattened bootstrap roles
+- name: Generate bootstrap content for ec2_ami_copy
   hosts: localhost
   gather_facts: false
   connection: local
 
   vars:
     env: molecule
-    preflight_json: "{{ playbook_dir }}/ado-preflight-all.json"
+    preflight_json: "{{ playbook_dir }}/ado-preflight-ec2-ami-copy.json"
 
     generate_env_vars: true
     generate_env_vars_force: true
@@ -14,7 +14,6 @@
     generate_aap_configs: true
     apply_aap_configs: false
 
-    # Non-interactive Molecule answers
     generate_env_vars_encrypt_vault_files: false
     generate_env_vars_encrypt_vault: false
     generate_env_vars_vault_encrypt: false
@@ -26,8 +25,6 @@
     generate_playbook_repo_pause_for_push: false
     generate_playbook_repo_git_push: false
     generate_playbook_repo_git_commit: false
-
-    # Match UI non-interactive behavior (see commented vars above).
 
   pre_tasks:
     - name: Clean previous generated content
@@ -41,11 +38,11 @@
         - inventory
         - collections
         - templates
-        - ado-preflight-all.json
+        - ado-preflight-ec2-ami-copy.json
 
-    - name: Write all-component preflight JSON
+    - name: Write AWS platform preflight JSON for ec2_ami_copy
       ansible.builtin.copy:
-        src: ado-preflight-all.fixture.json
+        src: ado-preflight-aws-ec2-ami-copy.fixture.json
         dest: "{{ preflight_json }}"
         mode: "0644"
 

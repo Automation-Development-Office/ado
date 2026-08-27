@@ -100,6 +100,17 @@ on:
         required: false
         default: false
         type: boolean
+      run_integration_ec2_ami_copy:
+        description: "Run integration_ec2_ami_copy (fakecloud AWS API test)"
+        required: false
+        default: false
+        type: boolean
+      run_integration_ec2_ami_copy_keep_name:
+        description: >-
+          Run integration_ec2_ami_copy_keep_name (fakecloud, omit name)
+        required: false
+        default: false
+        type: boolean
       run_ocp_scenarios:
         description: "Run all ocp_* Molecule scenarios (requires OpenShift cluster secrets)"
         required: false
@@ -372,6 +383,8 @@ jobs:
               [integration_satellite_content_view_create]="${{ github.event.inputs.run_integration_satellite_content_view_create }}"
               [integration_satellite_content_view_publish]="${{ github.event.inputs.run_integration_satellite_content_view_publish }}"
               [integration_satellite_content_view_promote]="${{ github.event.inputs.run_integration_satellite_content_view_promote }}"
+              [integration_ec2_ami_copy]="${{ github.event.inputs.run_integration_ec2_ami_copy }}"
+              [integration_ec2_ami_copy_keep_name]="${{ github.event.inputs.run_integration_ec2_ami_copy_keep_name }}"
             )
             for scenario in "${!checks[@]}"; do
               if [[ "${checks[$scenario]}" == "true" ]]; then
@@ -475,11 +488,35 @@ jobs:
           scenario_name="$(basename "${{ matrix.scenario_dir }}")"
           echo "scenario_name=$scenario_name" >> "$GITHUB_OUTPUT"
 
+      - name: Detect fakecloud requirement
+        id: fakecloud
+        run: |
+          set -euo pipefail
+          scenario_name="${{ steps.scenario_meta.outputs.scenario_name }}"
+          if scripts/ci/fakecloud-service.sh needs "$scenario_name"; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            echo "Scenario $scenario_name requires fakecloud"
+          else
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Start fakecloud
+        if: steps.fakecloud.outputs.needed == 'true'
+        run: scripts/ci/fakecloud-service.sh start
+
+      - name: Install AWS SDK for fakecloud scenarios
+        if: steps.fakecloud.outputs.needed == 'true'
+        run: pip install boto3 botocore
+
       - name: Run Molecule tests
         working-directory: extensions/molecule
         env:
           ANSIBLE_ROLES_PATH: ${{ github.workspace }}/roles
           ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
+          AWS_ACCESS_KEY_ID: ${{ steps.fakecloud.outputs.needed == 'true' && 'test' || '' }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.fakecloud.outputs.needed == 'true' && 'test' || '' }}
+          AWS_DEFAULT_REGION: ${{ steps.fakecloud.outputs.needed == 'true' && 'us-east-1' || '' }}
+          AWS_ENDPOINT_URL: ${{ steps.fakecloud.outputs.needed == 'true' && 'http://127.0.0.1:4566' || '' }}
         run: |
           set -euo pipefail
           scenario_name="${{ steps.scenario_meta.outputs.scenario_name }}"
@@ -499,6 +536,10 @@ jobs:
             echo "status: failed" >> "$summary_file"
             exit 1
           fi
+
+      - name: Stop fakecloud
+        if: always() && steps.fakecloud.outputs.needed == 'true'
+        run: scripts/ci/fakecloud-service.sh stop
 
       - name: Upload Molecule report
         if: always()

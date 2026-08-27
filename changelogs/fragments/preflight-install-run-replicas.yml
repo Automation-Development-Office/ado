@@ -1,5 +1,0 @@
----
-minor_changes:
-  - bootstrap_generate_env_vars - Honor ``pre_installs.install_aap`` and map component ``replicas`` (including AAP controller replicas) from preflight form values.
-bugfixes:
-  - ado-preflight-ui - Restore Logs/Events search, fix DevSpaces config crash when defaults are missing, and replace Pre-installs with Install AAP / OpenShift agent checkbox cards.

@@ -1,2 +1,0 @@
-bugfixes:
-  - bootstrap_controller - Contoller project sync failures now fail with guidance to publish ``infra.ado`` to AAP Hub when ``collections/requirements.yml`` cannot be satisfied.

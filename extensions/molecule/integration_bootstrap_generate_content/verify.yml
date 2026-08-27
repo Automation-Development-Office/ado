@@ -4,6 +4,15 @@
   gather_facts: false
   connection: local
 
+  vars:
+    bootstrap_generate_content_legacy_role_pattern: >-
+      infra.ado.bootstrap_generate_env_vars|
+      infra.ado.bootstrap_generate_playbook_repo|
+      infra.ado.bootstrap_controller|
+      infra.ado.bootstrap_flatten_vars|
+      infra.ado.bootstrap_resolve_component|
+      infra.ado.bootstrap_framework_defaults
+
   tasks:
     - name: Verify generated directories exist
       ansible.builtin.stat:
@@ -76,9 +85,10 @@
         path: "{{ playbook_dir }}/playbooks/{{ item }}"
       loop:
         - aap
+        - acm
         - acs
+        - aws
         - cert-manager
-        - console
         - devspaces
         - dirsrv
         - eck
@@ -138,11 +148,11 @@
         executable: /bin/bash
       changed_when: false
 
-    - name: Verify no old bootstrap role references remainkk
+    - name: Verify no old bootstrap role references remain
       ansible.builtin.shell: |
         set -euo pipefail
-        if grep -R \
-          "infra.ado.bootstrap_generate_env_vars\|infra.ado.bootstrap_generate_playbook_repo\|infra.ado.bootstrap_controller\|infra.ado.bootstrap_flatten_vars\|infra.ado.bootstrap_resolve_component\|infra.ado.bootstrap_framework_defaults" \
+        if grep -R -E \
+          '{{ bootstrap_generate_content_legacy_role_pattern }}' \
           "{{ playbook_dir }}/../../roles/bootstrap_" -n; then
           exit 1
         fi

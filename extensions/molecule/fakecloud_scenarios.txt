@@ -1,0 +1,5 @@
+# Molecule scenarios that call AWS APIs and require fakecloud in CI.
+# One scenario name per line (basename of extensions/molecule/<name>/).
+# Comments and blank lines are ignored.
+integration_ec2_ami_copy
+integration_ec2_ami_copy_keep_name

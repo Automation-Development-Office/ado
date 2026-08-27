@@ -4,6 +4,17 @@ changelogs/.plugin-cache.yaml
 # Ephemeral Molecule symlink created by CI/local runs (ln -sfn . molecule)
 extensions/molecule/molecule
 
+# Accidental local galaxy installs during molecule runs
+extensions/molecule/**/collections/
+
+# Bootstrap molecule generate outputs (playbook repo seed copy)
+extensions/molecule/integration_bootstrap_*/playbooks/
+extensions/molecule/integration_bootstrap_*/configs/
+extensions/molecule/integration_bootstrap_*/group_vars/
+extensions/molecule/integration_bootstrap_*/templates/
+extensions/molecule/integration_bootstrap_*/ado-preflight-*.json
+!extensions/molecule/integration_bootstrap_*/ado-preflight-*.fixture.json
+
 # Local collection install path (keeps collections/requirements.yml)
 collections/ansible_collections/
 

@@ -1,9 +1,0 @@
----
-bugfixes:
-  - |
-    ci - Make ``ansible-lint --offline`` match GitHub CI by mocking
-    Automation Hub and community modules that cannot load in the runner,
-    wrapping long YAML lines, skipping empty-spec ``args[module]``
-    warnings, replacing the IdM AD-trust ``include_role`` handler, and
-    fixing ``var-naming`` / ``no-handler`` findings that failed the
-    Ansible Lint job.

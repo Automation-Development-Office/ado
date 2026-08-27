@@ -177,6 +177,13 @@ bootstrap_generate_playbook_repo_component_map:
   elastic:
     - eck
 
+  ec2_ami_copy:
+    - ec2_ami_copy
+
+  # AWS platform umbrella. Add future apps (ec2_instance, etc.) here.
+  aws:
+    - ec2_ami_copy
+
 bootstrap_generate_playbook_repo_generated_playbooks:
 
   - src: aap/ado-aap-ocp-install-bootstrap.yml
@@ -196,6 +203,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     target_platform: openshift
     category: platform
     app: acs
+
+  - src: aws/ado-copy-ami-bootstrap.yml
+    dest: playbooks/aws/ado-copy-ami-bootstrap.yml
+    target_platform: aws
+    category: aws
+    app: ec2_ami_copy
 
   - src: acm/ado-deploy-and-configure-bootstrap.yml
     dest: playbooks/acm/ado-deploy-and-configure-bootstrap.yml

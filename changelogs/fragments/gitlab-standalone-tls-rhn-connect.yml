@@ -1,9 +1,0 @@
----
-minor_changes:
-  - |
-    install_gitlab / preflight - Optional ``tls.crt`` / ``tls.key`` PEMs and
-    optional RHN org + activation key for standalone URL installs. GitLab
-    playbook waits for SSH and pings the host before gathering facts.
-  - |
-    ado-preflight-ui - Test AAP connection (controller ping) before bootstrap
-    ansible when configuring an existing Contoller.

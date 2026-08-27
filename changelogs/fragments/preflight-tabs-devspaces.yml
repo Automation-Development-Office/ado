@@ -1,6 +1,0 @@
-minor_changes:
-  - preflight UI - Core Environment and Pre-installs are top-level tabs; Agent install-config lives under Pre-installs only.
-  - satellite / idm - Default component options are empty; Satellite dynamic inventory is an explicit selectable option.
-  - infra.ado.ocp_devspaces - Configurable disable of getting-started samples, default workspace image/devfile URL, and dashboard image overrides (CLI/preflight).
-bugfixes:
-  - bootstrap_generate_env_vars - Empty Satellite/IdM option lists no longer expand to all install playbooks/JTs.

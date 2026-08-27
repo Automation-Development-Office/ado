@@ -1,0 +1,29 @@
+---
+platforms:
+  - name: na
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: >-
+      ${MOLECULE_SCENARIO_DIRECTORY}/../../../roles:${ANSIBLE_ROLES_PATH}
+    AWS_ACCESS_KEY_ID: test
+    AWS_SECRET_ACCESS_KEY: test
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_ENDPOINT_URL: http://127.0.0.1:4566
+  playbooks:
+    prepare: ../utils/playbooks/ec2_ami_copy_prepare.yml
+    converge: ../utils/playbooks/ec2_ami_copy_converge_rename.yml
+    verify: ../utils/playbooks/ec2_ami_copy_verify_rename.yml
+    destroy: ../utils/playbooks/ec2_ami_copy_destroy.yml
+  config_options:
+    defaults:
+      collections_path: ${ANSIBLE_COLLECTIONS_PATH}
+
+scenario:
+  test_sequence:
+    - prepare
+    - converge
+    - verify
+  destroy_sequence:
+    - destroy

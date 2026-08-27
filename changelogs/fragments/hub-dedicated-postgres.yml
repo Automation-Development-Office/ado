@@ -1,4 +1,0 @@
-minor_changes:
-  - infra.ado.ocp_aap_hub_harden - Pin Hub to dedicated unmanaged Postgres secret and vacuum ``core_apiappstatus`` on ``aap-hub-dedicated-postgres-0`` instead of shared Controller Postgres.
-doc_changes:
-  - docs - Document dedicated Hub Postgres as the permanent fix for shared-DB LWLock storms.

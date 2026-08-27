@@ -1,6 +1,0 @@
----
-doc_changes:
-  - infra.ado.idm_ad_trust - Documented lab defaults, AD DNS forwarder prerequisite, one-way vs two-way trust, and client SSSD checklist in the role README.
-  - README - Linked ``infra.ado.idm_ad_trust`` in the collection role index.
-  - bootstrap_controller - Documented ``ADO | IdM Manage AD Trust`` job template generation for ``idm_ad_trust_install``.
-  - bootstrap_generate_env_vars - Documented preflight ``additional_environments`` survey choices and IdM AD trust var/vault overlays.

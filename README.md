@@ -44,7 +44,7 @@ PEP440 is the schema used to describe the versions of Ansible.
 
 | Type | Name | Description |
 | --- | --- | --- |
-| Module | [`infra.ado.ec2_ami_copy`](docs/modules/ec2_ami_copy.md) | Copy an AWS AMI from one region to another. |
+| Module | [`infra.ado.ec2_ami_copy`](docs/modules/ec2_ami_copy.md) | Copy an AWS AMI between regions; optionally rename with `name` or omit it to keep the source name. |
 | Role | See [Role documentation](#role-documentation) | Platform automation roles (AAP, OpenShift, RHEL, identity, and more). |
 
 ## Module documentation
@@ -54,7 +54,7 @@ Use this index as the starting point for operators and automation users.
 
 | Module | Description |
 | --- | --- |
-| [`infra.ado.ec2_ami_copy`](docs/modules/ec2_ami_copy.md) | Copy an AWS AMI from one region to another. |
+| [`infra.ado.ec2_ami_copy`](docs/modules/ec2_ami_copy.md) | Copy an AWS AMI between regions; optionally rename with `name` or omit it to keep the source name. |
 
 ## Role documentation
 
