@@ -1,0 +1,12 @@
+---
+bugfixes:
+  - >-
+    bootstrap_generate_env_vars - Keep Contoller org ``galaxy_credentials``
+    attachments when ``galaxy_setup_enabled`` is false so Contoller project sync
+    can still pull Hub/Galaxy collections listed in ``collections/requirements.yml``
+    (e.g. ``community.grafana``). Credential object create/update remains gated
+    by galaxy setup; attach_to_org list is always applied.
+  - >-
+    bootstrap_controller - Pass ``galaxy_credentials`` when creating/updating
+    organizations so Hub/Galaxy org attachments are not left unset on full
+    bootstrap runs.

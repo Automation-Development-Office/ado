@@ -1,0 +1,48 @@
+---
+- name: Normalize grafana_email from email alias
+  ansible.builtin.set_fact:
+    grafana_email: "{{ email }}"  # noqa: var-naming[no-role-prefix]
+  when:
+    - grafana_email is not defined
+    - email is defined
+
+- name: Normalize grafana_email SMTP field aliases from preflight
+  ansible.builtin.set_fact:
+    grafana_email: >-
+      {{
+        (grafana_email | default({}))
+        | combine({
+            'host': (
+              grafana_email.host
+              | default(grafana_email.smtp_host | default(''))
+            ),
+            'port': (
+              grafana_email.port
+              | default(grafana_email.smtp_port | default(587))
+            ),
+            'user': (
+              grafana_email.user
+              | default(grafana_email.smtp_user | default(''))
+            ),
+            'password': (
+              grafana_email.password
+              | default(grafana_email.smtp_password | default(''))
+            ),
+          }, recursive=True)
+      }}
+  when: grafana_email is defined
+
+- name: Build Grafana SMTP config when email enabled
+  ansible.builtin.set_fact:
+    grafana_install_config_smtp:
+      smtp:
+        enabled: "true"
+        host: "{{ (grafana_email.host | default('')) ~ ':' ~ (grafana_email.port | default(587) | string) }}"
+        user: "{{ grafana_email.user | default('') }}"
+        password: "{{ grafana_email.password | default('') }}"
+        from_address: "{{ grafana_email.from_address | default('') }}"
+        from_name: "{{ grafana_email.from_name | default('Grafana') }}"
+  when:
+    - grafana_install_email_enabled | default(false) | bool
+    - grafana_email is defined
+  no_log: true

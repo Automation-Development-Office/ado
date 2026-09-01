@@ -1,0 +1,13 @@
+---
+bugfixes:
+  - >-
+    Controller projects always use Hub for collections — git keeps only
+    collections/requirements.yml (Hub names); vendored collection trees are
+    never written to git and overwrite clears collections/ansible_collections.
+  - >-
+    bootstrap_controller - Implement preflight tarball publish to Hub validated:
+    loop manifest tarballs from /opt/ado-collections, upload to staging, pulp-move
+    to validated when missing (infra.ado excluded; already published separately).
+  - >-
+    Manifest maps preflight-ui/collections tarballs to Galaxy names for Hub
+    publish and Controller requirements.

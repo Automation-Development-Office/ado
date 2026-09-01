@@ -6,7 +6,7 @@
     auth_realm: "{{ rhbk_auth_realm | default('master') }}"
     auth_username: "{{ rhbk_admin_user }}"
     auth_password: "{{ rhbk_admin_password }}"
-    validate_certs: "{{ rhbk_verify_ssl | default(true) | bool }}"
+    validate_certs: "{{ rhbk_verify_ssl | default(rhbk_realm_verify_ssl) | default(false) | bool }}"
 
     # ---- REQUIRED realm identity ----
     realm: "{{ rhbk_realm }}"
@@ -14,7 +14,9 @@
     state: "{{ state }}"
 
     # ---- OPTIONAL common toggles / policies ----
-    enabled: "{{ rhbk_enabled | default(omit) }}"
+    # Lab/bootstrap default: realms must be enabled or OIDC apps fail with
+    # "Realm not enabled". Override with rhbk_enabled=false only intentionally.
+    enabled: "{{ rhbk_enabled | default(true) | bool }}"
     display_name: "{{ rhbk_display_name | default(omit) }}"
     ssl_required: "{{ rhbk_ssl_required | default(omit) }}"
 

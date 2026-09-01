@@ -1,0 +1,9 @@
+---
+galaxy_info:
+  author: Chad Elliott
+  description: Deploy MinIO on OpenShift with optional Keycloak OIDC for the console.
+  company: Automation Development Office
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.16.0"
+  galaxy_tags: []
+dependencies: []

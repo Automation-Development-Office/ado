@@ -1,0 +1,4 @@
+bugfixes:
+  - ocp_dev_hub - Fixed undefined ``ocp_dev_hub_keycloak_host`` by splitting hostname and issuer ``set_fact`` tasks.
+  - netbox_oidc - Surface Secret apply failures with readable errors; use server-side apply.
+  - bookstack_openshift - Do not fail deploy when pod exec for admin password reset is blocked (DevWorkspace webhook).

@@ -1,0 +1,15 @@
+---
+rhel_stig_cac_profile_label_map:
+  RHEL 8 STIG: "8"
+  RHEL 9 STIG: "9"
+  RHEL 10 STIG: "10"
+
+rhel_stig_cac_datastream_map:
+  "8": /usr/share/xml/scap/ssg/content/ssg-rhel8-ds.xml
+  "9": /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml
+  "10": /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml
+
+rhel_stig_cac_playbook_map:
+  "8": /usr/share/scap-security-guide/ansible/rhel8-playbook-stig.yml
+  "9": /usr/share/scap-security-guide/ansible/rhel9-playbook-stig.yml
+  "10": /usr/share/scap-security-guide/ansible/rhel10-playbook-stig.yml

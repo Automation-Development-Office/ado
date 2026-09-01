@@ -3,12 +3,14 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  vars:
+    component: cert_manager
   vars_files:
-    - '{{ playbook_dir }}/../group_vars/all/vars.yml'
-    - '{{ playbook_dir }}/../group_vars/all/vault_{{ env }}.yml'
-    - '{{ playbook_dir }}/../group_vars/all/vault_{{ env }}_auto.yml'
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_{{ component }}.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_{{ component }}.yml"
   environment:
-    K8S_AUTH_HOST: '{{ host | default(api_host) }}'
+    K8S_AUTH_HOST: '{{ host | default(api_host | default("")) }}'
     K8S_AUTH_API_KEY: '{{ token }}'
     K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'', ''no'') }}'
   pre_tasks:
@@ -16,39 +18,124 @@
       ansible.builtin.fail:
         msg:
           - host/token missing for env={{ env }}.
-          - 'Expected vault_{{ env }}.yml + vault_{{ env }}_auto.yml to define:'
-          - '  host: https://api....:6443'
+          - 'Expected vault_{{ component }}.yml / infra_config_vars.yml to define:'
+          - '  host or api_host: https://api....:6443'
           - '  token: <long bearer token>'
-      when: host is not defined or token is not defined
+      when: >-
+        ((host | default(api_host | default('')) | string | length) == 0)
+        or (token is not defined)
+
+    - name: ADO | Resolve IdM ACME inputs (flat + nested)
+      ansible.builtin.set_fact:
+        bootstrap_generate_playbook_repo_idm_acme_url: >-
+          {{
+            (idm.acme_directory_url | default('') | string | trim)
+            if (idm is defined and (idm.acme_directory_url | default('') | string | trim | length) > 0)
+            else (idm_acme_directory_url | default('') | string | trim)
+          }}
+        bootstrap_generate_playbook_repo_idm_ca_configured: >-
+          {{
+            (idm.ca_bundle_file | default('') | string | trim)
+            if (idm is defined and (idm.ca_bundle_file | default('') | string | trim | length) > 0)
+            else (idm_ca_bundle_file | default('') | string | trim)
+          }}
+        # Prefer PEM embedded by bootstrap (survives Contoller cwd / project layout).
+        bootstrap_generate_playbook_repo_idm_ca_pem: >-
+          {{
+            (idm.ca_bundle_pem | default('') | string)
+            if (idm is defined and (idm.ca_bundle_pem | default('') | string | length) > 0)
+            else (idm_ca_bundle_pem | default('') | string)
+          }}
+        bootstrap_generate_playbook_repo_idm_acme_skip: "{{ idm_acme_skip | default(false) | bool }}"
+      changed_when: false
+
+    - name: ADO | Skip IdM ACME ClusterIssuer when idm_acme_skip=true
+      ansible.builtin.meta: end_play
+      when: bootstrap_generate_playbook_repo_idm_acme_skip | bool
+
     - name: ADO | Fail if IdM ACME URL missing
       ansible.builtin.fail:
-        msg: Missing idm.acme_directory_url expected in group_vars/all/vars.yml under idm.
-      when:
-        - idm is not defined or idm.acme_directory_url is not defined or (idm.acme_directory_url | string | length) == 0
-    - name: ADO | Fail if IdM CA bundle path missing
-      ansible.builtin.fail:
         msg:
-          - Missing idm.ca_bundle_file expected in group_vars/all/vars.yml under idm.
-          - 'Example: idm.ca_bundle_file: files/certs/idm-root-ca.crt'
-      when:
-        - idm is not defined or idm.ca_bundle_file is not defined or (idm.ca_bundle_file | string | length) == 0
-    - name: ADO | Stat IdM CA bundle file
-      ansible.builtin.stat:
-        path: '{{ idm.ca_bundle_file }}'
-      register: bootstrap_generate_playbook_repo_idm_ca_stat
-    - name: ADO | Fail if IdM CA bundle file not found/readable
-      ansible.builtin.fail:
-        msg:
-          - 'IdM CA bundle file not found/readable: {{ idm.ca_bundle_file }}'
-          - Fix the path or place the file at that location.
-      when: not bootstrap_generate_playbook_repo_idm_ca_stat.stat.exists
-    - name: ADO | Read IdM CA bundle PEM
+          - Missing IdM ACME directory URL.
+          - 'Set idm.acme_directory_url in vars_cert_manager.yml via preflight.'
+          - 'Or set idm_acme_skip: true to skip this playbook.'
+      when: (bootstrap_generate_playbook_repo_idm_acme_url | length) == 0
+
+    - name: ADO | Resolve IdM CA file candidates (Contoller cwd-safe)
       ansible.builtin.set_fact:
-        bootstrap_generate_playbook_repo_idm_ca_pem: '{{ lookup(''ansible.builtin.file'', idm.ca_bundle_file) }}'
-    - name: ADO | Fail if IdM CA bundle PEM is empty
+        bootstrap_generate_playbook_repo_idm_ca_candidates: >-
+          {{
+            (
+              [
+                bootstrap_generate_playbook_repo_idm_ca_configured,
+                (playbook_dir ~ '/../../' ~ bootstrap_generate_playbook_repo_idm_ca_configured)
+                  if (bootstrap_generate_playbook_repo_idm_ca_configured | length) > 0 else '',
+                playbook_dir ~ '/../../files/certs/ca.crt',
+                playbook_dir ~ '/../../files/certs/idm-root-ca.crt',
+                '/runner/project/' ~ bootstrap_generate_playbook_repo_idm_ca_configured
+                  if (bootstrap_generate_playbook_repo_idm_ca_configured | length) > 0 else '',
+                '/runner/project/files/certs/ca.crt',
+                '/runner/project/files/certs/idm-root-ca.crt',
+              ]
+              | select('string')
+              | map('trim')
+              | reject('equalto', '')
+              | unique
+              | list
+            )
+          }}
+      when: (bootstrap_generate_playbook_repo_idm_ca_pem | length) == 0
+      changed_when: false
+
+    - name: ADO | Stat IdM CA candidate paths
+      ansible.builtin.stat:
+        path: '{{ item }}'
+      loop: '{{ bootstrap_generate_playbook_repo_idm_ca_candidates | default([]) }}'
+      register: bootstrap_generate_playbook_repo_idm_ca_stats
+      when: (bootstrap_generate_playbook_repo_idm_ca_pem | length) == 0
+
+    - name: ADO | Pick first existing IdM CA file
+      ansible.builtin.set_fact:
+        bootstrap_generate_playbook_repo_idm_ca_bundle_file: >-
+          {{
+            (
+              bootstrap_generate_playbook_repo_idm_ca_stats.results
+              | default([])
+              | selectattr('stat.exists')
+              | map(attribute='item')
+              | list
+              | first
+            )
+            | default('')
+          }}
+      when: (bootstrap_generate_playbook_repo_idm_ca_pem | length) == 0
+      changed_when: false
+
+    - name: ADO | Fail if IdM CA is missing (no PEM and no file)
       ansible.builtin.fail:
         msg:
-          - 'IdM CA bundle file exists but is empty: {{ idm.ca_bundle_file }}'
+          - 'IdM CA not found for ACME ClusterIssuer.'
+          - 'Upload ca.crt in preflight (Cert-Manager → IdM ACME) and re-run bootstrap,'
+          - 'or set idm_acme_skip: true.'
+          - >-
+            Tried paths:
+            {{ bootstrap_generate_playbook_repo_idm_ca_candidates | default([]) | to_json }}
+      when:
+        - (bootstrap_generate_playbook_repo_idm_ca_pem | length) == 0
+        - (bootstrap_generate_playbook_repo_idm_ca_bundle_file | default('') | length) == 0
+
+    - name: ADO | Read IdM CA PEM from resolved file
+      ansible.builtin.set_fact:
+        bootstrap_generate_playbook_repo_idm_ca_pem: >-
+          {{ lookup('ansible.builtin.file', bootstrap_generate_playbook_repo_idm_ca_bundle_file) }}
+      when:
+        - (bootstrap_generate_playbook_repo_idm_ca_pem | length) == 0
+        - (bootstrap_generate_playbook_repo_idm_ca_bundle_file | default('') | length) > 0
+
+    - name: ADO | Fail if IdM CA PEM is empty
+      ansible.builtin.fail:
+        msg:
+          - IdM CA PEM is empty after resolve/read.
       when: (bootstrap_generate_playbook_repo_idm_ca_pem | string | length) == 0
   tasks:
     - name: ADO | Manage IdM ACME ClusterIssuer
@@ -61,7 +148,7 @@
             name: idm-acme
           spec:
             acme:
-              server: '{{ idm.acme_directory_url }}'
+              server: '{{ bootstrap_generate_playbook_repo_idm_acme_url }}'
               caBundle: '{{ bootstrap_generate_playbook_repo_idm_ca_pem | b64encode }}'
               privateKeySecretRef:
                 name: idm-acme-account-key

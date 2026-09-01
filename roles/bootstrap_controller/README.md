@@ -26,7 +26,7 @@ Automation Development Office
 | `bootstrap_controller_aap_connectivity_check_enabled` | Checks AAP controller API connectivity and authentication before applying controller objects. Defaults to `true`. |
 | `bootstrap_controller_aap_smoke_test_enabled` | Launches a harmless AAP job template before applying controller objects. Defaults to `true`. |
 | `bootstrap_controller_aap_smoke_test_job_template` | Job template used for the AAP smoke test. Defaults to `Demo Job Template`. |
-| `bootstrap_controller_aap_install_during_bootstrap` | When true, run `infra.ado.aap_ocp_install` before apply and omit the Install AAP JT. |
+| `bootstrap_controller_aap_install_during_bootstrap` | When true, run `infra.ado.install_aap` (OpenShift / `aap_utilities.aap_ocp_install`) before apply and omit the Install AAP JT. |
 | `aap_auth_configure_gateway` | When true (from preflight `aap.auth`), apply `gateway_authenticators` / `gateway_authenticator_maps` on AAP 2.5+. |
 | `gateway_authenticators` | Automation Gateway authenticator definitions (Keycloak OIDC, LDAP, SAML). |
 | `gateway_authenticator_maps` | Authenticator map rules (superuser / organization). |

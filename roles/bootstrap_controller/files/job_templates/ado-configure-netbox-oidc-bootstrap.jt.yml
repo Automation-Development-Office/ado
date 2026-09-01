@@ -37,10 +37,10 @@ controller_templates:
           choices: '{{ bootstrap_controller_environment_choices }}'
           default: '{{ bootstrap_controller_default_environment }}'
         - question_name: ADO | OIDC issuer URL
-          required: true
+          required: false
           type: text
           variable: netbox_oidc_issuer
-          default: https://keycloak.apps.ocp.prod.rhlab/realms/rhlab
+          default: ''
         - question_name: ADO | OIDC client ID
           required: true
           type: text

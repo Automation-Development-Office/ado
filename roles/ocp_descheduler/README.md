@@ -16,7 +16,11 @@ Automation Development Office
 
 | Variable | Description |
 |----------|-------------|
-| `ocp_descheduler_state` | Desired state used by role tasks when supported. |
+| `state` | Playbook install/remove choice (`present` or `absent`). |
+| `instance_name` | KubeDescheduler CR name (default `cluster`). |
+| `name_space` | Operator namespace (default `openshift-kube-descheduler-operator`). |
+| `scheduling_interval` | Descheduling interval in seconds (default `3600`). |
+| `descheduler_profiles` | List of descheduler profiles applied to the CR. |
 
 ## 🚀 Role Usage
 

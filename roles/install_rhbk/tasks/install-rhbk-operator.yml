@@ -52,6 +52,24 @@
     fail_msg: "cert_manager=true requires ocp_rhbk_issuer_name and ocp_rhbk_issuer_kind (Issuer or ClusterIssuer)."
   when: cert_manager | default(false) | bool
 
+- name: Resolve RHBK TLS mode
+  ansible.builtin.set_fact:
+    ocp_rhbk_tls_mode: >-
+      {{
+        'cert_manager' if (cert_manager | default(false) | bool)
+        else (
+          'ingress_copy' if (ocp_rhbk_use_default_ingress_cert | default(false) | bool)
+          else (
+            'manual' if (
+              (tls_crt | default('') | string | trim | length) > 0
+              and (tls_key | default('') | string | trim | length) > 0
+            )
+            else 'edge'
+          )
+        )
+      }}
+  changed_when: false
+
 - name: Create cert-manager Certificate for Keycloak (cert_manager=true)
   kubernetes.core.k8s:
     state: "{{ state }}"
@@ -68,17 +86,118 @@
         issuerRef:
           name: "{{ ocp_rhbk_issuer_name }}"
           kind: "{{ ocp_rhbk_issuer_kind }}"
-  when: cert_manager | default(false) | bool
+  when: ocp_rhbk_tls_mode == 'cert_manager'
+
+- name: Wait for cert-manager Certificate to be Ready
+  kubernetes.core.k8s_info:
+    api_version: cert-manager.io/v1
+    kind: Certificate
+    name: "{{ ocp_rhbk_cert_name }}"
+    namespace: "{{ name_space }}"
+  register: ocp_rhbk_certificate_info
+  until: >-
+    ocp_rhbk_certificate_info.resources | default([]) | length > 0
+    and (
+      ocp_rhbk_certificate_info.resources[0].status.conditions
+      | default([])
+      | selectattr('type', 'equalto', 'Ready')
+      | selectattr('status', 'equalto', 'True')
+      | list
+      | length
+    ) > 0
+  retries: "{{ ocp_rhbk_certificate_wait_retries | default(60) | int }}"
+  delay: "{{ ocp_rhbk_certificate_wait_delay | default(10) | int }}"
+  when:
+    - state == 'present'
+    - ocp_rhbk_tls_mode == 'cert_manager'
 
 - name: Guard — manual TLS requires tls_crt + tls_key
   ansible.builtin.assert:
     that:
       - tls_crt is defined and (tls_crt | string | length) > 0
       - tls_key is defined and (tls_key | string | length) > 0
-    fail_msg: "cert_manager=false requires tls_crt and tls_key."
-  when: not (cert_manager | default(false) | bool)
+    fail_msg: "manual TLS mode requires tls_crt and tls_key."
+  when: ocp_rhbk_tls_mode == 'manual'
 
-- name: Create Keycloak TLS Secret (cert_manager=false)
+- name: Resolve default IngressController certificate secret name
+  when: ocp_rhbk_tls_mode == 'ingress_copy'
+  block:
+    - name: Read default IngressController
+      kubernetes.core.k8s_info:
+        api_version: operator.openshift.io/v1
+        kind: IngressController
+        name: "{{ ocp_rhbk_ingress_controller_name | default('default') }}"
+        namespace: "{{ ocp_rhbk_ingress_operator_namespace | default('openshift-ingress-operator') }}"
+      register: ocp_rhbk_ingress_controller
+
+    - name: Set default ingress TLS secret reference
+      ansible.builtin.set_fact:
+        ocp_rhbk_ingress_tls_secret_name: >-
+          {{
+            ocp_rhbk_ingress_controller.resources[0].spec.defaultCertificate.name
+            | default('router-certs-' ~ (ocp_rhbk_ingress_controller_name | default('default')))
+          }}
+        ocp_rhbk_ingress_tls_secret_namespace: >-
+          {{
+            ocp_rhbk_ingress_controller.resources[0].spec.defaultCertificate.namespace
+            | default('openshift-ingress')
+          }}
+
+    - name: Read default ingress TLS secret
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: "{{ ocp_rhbk_ingress_tls_secret_name }}"
+        namespace: "{{ ocp_rhbk_ingress_tls_secret_namespace }}"
+      register: ocp_rhbk_ingress_tls_secret
+
+    - name: Decode and validate default ingress PEM material
+      ansible.builtin.set_fact:
+        ocp_rhbk_ingress_tls_crt_pem: >-
+          {{
+            ocp_rhbk_ingress_tls_secret.resources[0].data['tls.crt']
+            | default('')
+            | b64decode
+          }}
+        ocp_rhbk_ingress_tls_key_pem: >-
+          {{
+            ocp_rhbk_ingress_tls_secret.resources[0].data['tls.key']
+            | default('')
+            | b64decode
+          }}
+      no_log: true
+
+    - name: Assert default ingress TLS secret has usable PEMs
+      ansible.builtin.assert:
+        that:
+          - (ocp_rhbk_ingress_tls_secret.resources | default([]) | length) > 0
+          - "'BEGIN CERTIFICATE' in (ocp_rhbk_ingress_tls_crt_pem | default(''))"
+          - >-
+            ('BEGIN' in (ocp_rhbk_ingress_tls_key_pem | default('')))
+            and ('PRIVATE KEY' in (ocp_rhbk_ingress_tls_key_pem | default('')))
+        fail_msg: >-
+          Default ingress TLS secret
+          {{ ocp_rhbk_ingress_tls_secret_namespace }}/{{ ocp_rhbk_ingress_tls_secret_name }}
+          is missing or has empty/invalid PEM data (OpenShift warning:
+          "tls: failed to find any PEM data in certificate input").
+          Run "Update Default Ingress Certificate" / cert-manager first,
+          set cert_manager=true for Keycloak, or leave defaults (edge TLS).
+
+    - name: Create Keycloak TLS Secret from default ingress certificate
+      kubernetes.core.k8s:
+        state: "{{ state }}"
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "{{ ocp_rhbk_tls_secret_name }}"
+            namespace: "{{ name_space }}"
+          type: kubernetes.io/tls
+          data:
+            tls.crt: "{{ ocp_rhbk_ingress_tls_secret.resources[0].data['tls.crt'] }}"
+            tls.key: "{{ ocp_rhbk_ingress_tls_secret.resources[0].data['tls.key'] }}"
+
+- name: Create Keycloak TLS Secret (manual PEMs)
   kubernetes.core.k8s:
     state: "{{ state }}"
     definition:
@@ -91,7 +210,7 @@
       data:
         tls.crt: "{{ tls_crt | b64encode }}"
         tls.key: "{{ tls_key | b64encode }}"
-  when: not (cert_manager | default(false) | bool)
+  when: ocp_rhbk_tls_mode == 'manual'
 
 # -----------------------
 # Postgres: handle immutable SS changes safely
@@ -110,7 +229,7 @@
   ansible.builtin.set_fact:
     install_rhbk_requires_ss_recreation: >-
       {{
-        (ocp_rhbk_recreate_ss_on_immutable_change | bool) and
+        (ocp_rhbk_recreate_ss_on_immutable_change | default(rhbk_recreate_ss_on_immutable_change) | default(true) | bool) and
         (install_rhbk_ss_info.resources | length > 0) and (
           (
             (install_rhbk_ss_info.resources[0].spec
@@ -214,6 +333,16 @@
 # Keycloak CR (RHBK) with bootstrapAdmin wired correctly
 # -----------------------
 
+- name: Build Keycloak CR http section for TLS mode
+  ansible.builtin.set_fact:
+    ocp_rhbk_http_spec: >-
+      {{
+        {'httpEnabled': true}
+        if (ocp_rhbk_tls_mode | default('edge')) == 'edge'
+        else {'tlsSecret': ocp_rhbk_tls_secret_name}
+      }}
+  changed_when: false
+
 - name: Deploy Keycloak Custom Resource
   kubernetes.core.k8s:
     state: "{{ state }}"
@@ -241,11 +370,33 @@
             name: "{{ postgres_secret_name }}"
             key: password
 
-        http:
-          tlsSecret: "{{ ocp_rhbk_tls_secret_name }}"
+        http: "{{ ocp_rhbk_http_spec }}"
 
         hostname:
           hostname: "{{ ocp_rhbk_hostname }}"
 
         proxy:
           headers: xforwarded
+
+- name: Ensure OpenShift edge Route for Keycloak (HTTP backend)
+  kubernetes.core.k8s:
+    state: "{{ state }}"
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: "{{ ocp_rhbk_route_name | default('keycloak') }}"
+        namespace: "{{ name_space }}"
+      spec:
+        host: "{{ ocp_rhbk_hostname }}"
+        to:
+          kind: Service
+          name: "{{ ocp_rhbk_service_name | default('keycloak-service') }}"
+        port:
+          targetPort: "{{ ocp_rhbk_service_port | default('http') }}"
+        tls:
+          termination: edge
+          insecureEdgeTerminationPolicy: Redirect
+  when:
+    - state == 'present'
+    - (ocp_rhbk_tls_mode | default('edge')) == 'edge'

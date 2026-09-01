@@ -24,26 +24,35 @@
     - bookstack_openshift_admin_pods.resources | default([]) | length > 0
 
 - name: Reset BookStack local admin password
-  kubernetes.core.k8s_exec:
-    namespace: "{{ bookstack_namespace }}"
-    pod: "{{ bookstack_openshift_app_pod_name }}"
-    container: bookstack
-    command: >-
-      php -r
-      '$email=base64_decode("{{ bookstack_admin_email | b64encode }}");
-      $pass=base64_decode("{{ bookstack_admin_password | b64encode }}");
-      require "/var/www/bookstack/vendor/autoload.php";
-      $app=require "/var/www/bookstack/bootstrap/app.php";
-      $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
-      $kernel->bootstrap();
-      $u=BookStack\Users\Models\User::query()->where("email",$email)->first();
-      if(!$u){fwrite(STDERR,"user missing\n"); exit(2);}
-      $u->password=Illuminate\Support\Facades\Hash::make($pass);
-      $u->save();
-      echo "ok\n";'
-    validate_certs: "{{ bookstack_validate_certs }}"
-  no_log: true
-  register: bookstack_openshift_admin_password_result
+  block:
+    - name: Exec BookStack admin password reset in pod
+      kubernetes.core.k8s_exec:
+        namespace: "{{ bookstack_namespace }}"
+        pod: "{{ bookstack_openshift_app_pod_name }}"
+        container: bookstack
+        command: >-
+          php -r
+          '$email=base64_decode("{{ bookstack_admin_email | b64encode }}");
+          $pass=base64_decode("{{ bookstack_admin_password | b64encode }}");
+          require "/var/www/bookstack/vendor/autoload.php";
+          $app=require "/var/www/bookstack/bootstrap/app.php";
+          $kernel=$app->make(Illuminate\Contracts\Console\Kernel::class);
+          $kernel->bootstrap();
+          $u=BookStack\Users\Models\User::query()->where("email",$email)->first();
+          if(!$u){fwrite(STDERR,"user missing\n"); exit(2);}
+          $u->password=Illuminate\Support\Facades\Hash::make($pass);
+          $u->save();
+          echo "ok\n";'
+        validate_certs: "{{ bookstack_validate_certs }}"
+      no_log: true
+      register: bookstack_openshift_admin_password_result
+  rescue:
+    - name: BookStack admin password reset skipped (pod exec unavailable)
+      ansible.builtin.debug:
+        msg: >-
+          Could not exec into BookStack pod {{ bookstack_openshift_app_pod_name }}
+          to reset local admin password (common when DevWorkspace exec webhook is
+          down). Deployment and OIDC are unchanged; reset manually or re-run later.
   when:
     - bookstack_admin_password | default('') | length > 0
     - bookstack_openshift_app_pod_name | default('') | length > 0

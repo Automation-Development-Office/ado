@@ -1,3 +1,7 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
-# defaults file for advanced-cluster-management
+---
+# Per-component route defaults (optional). Prefer flattened
+# <component>_route_* vars from bootstrap_resolve_component.
+component_route_defaults: {}
+route_insecure_edge_policy: Redirect
+route_wildcard_policy: None
+route_labels: {}

@@ -44,10 +44,7 @@
     kind: Central
     namespace: "{{ ocp_acs_namespace }}"
     name: "{{ ocp_acs_central_name }}"
-  when: ocp_acs_reinstall | bool
-  failed_when: >
-    (kubernetes.core.k8s is failed) and
-    ('NotFound' not in (kubernetes.core.k8s | string))
+  when: (ocp_acs_reinstall | default(false)) | bool
   tags: [acs, rhacs, central]
 
 - name: Delete Central route (clean reinstall)
@@ -57,10 +54,7 @@
     kind: Route
     namespace: "{{ ocp_acs_namespace }}"
     name: "{{ ocp_acs_route_name }}"
-  when: ocp_acs_reinstall | bool
-  failed_when: >
-    (kubernetes.core.k8s is failed) and
-    ('NotFound' not in (kubernetes.core.k8s | string))
+  when: (ocp_acs_reinstall | default(false)) | bool
   tags: [acs, rhacs, central]
 
 - name: Delete operator-generated htpasswd secret (clean reinstall)
@@ -71,11 +65,8 @@
     namespace: "{{ ocp_acs_namespace }}"
     name: central-htpasswd
   when:
-    - ocp_acs_reinstall | bool
-    - ocp_acs_delete_operator_generated_htpasswd | bool
-  failed_when: >
-    (kubernetes.core.k8s is failed) and
-    ('NotFound' not in (kubernetes.core.k8s | string))
+    - (ocp_acs_reinstall | default(false)) | bool
+    - (ocp_acs_delete_operator_generated_htpasswd | default(true)) | bool
   no_log: true
   tags: [acs, rhacs, central]
 
@@ -86,10 +77,7 @@
     kind: Secret
     namespace: "{{ ocp_acs_namespace }}"
     name: "{{ ocp_acs_admin_password_secret }}"
-  when: ocp_acs_reinstall | bool
-  failed_when: >
-    (kubernetes.core.k8s is failed) and
-    ('NotFound' not in (kubernetes.core.k8s | string))
+  when: (ocp_acs_reinstall | default(false)) | bool
   no_log: true
   tags: [acs, rhacs, central]
 
@@ -104,10 +92,7 @@
     kind: StatefulSet
     namespace: "{{ ocp_acs_namespace }}"
     name: central-db
-  when: ocp_acs_reinstall | bool
-  failed_when: >
-    (kubernetes.core.k8s is failed) and
-    ('NotFound' not in (kubernetes.core.k8s | string))
+  when: (ocp_acs_reinstall | default(false)) | bool
 
 - name: Delete central-db Service (reset DB)
   kubernetes.core.k8s:
@@ -116,10 +101,7 @@
     kind: Service
     namespace: "{{ ocp_acs_namespace }}"
     name: central-db
-  when: ocp_acs_reinstall | bool
-  failed_when: >
-    (kubernetes.core.k8s is failed) and
-    ('NotFound' not in (kubernetes.core.k8s | string))
+  when: (ocp_acs_reinstall | default(false)) | bool
 
 - name: Delete central-db-password secret (force regeneration)
   kubernetes.core.k8s:
@@ -128,14 +110,9 @@
     kind: Secret
     namespace: "{{ ocp_acs_namespace }}"
     name: central-db-password
-  when: ocp_acs_reinstall | bool
-  failed_when: >
-    (kubernetes.core.k8s is failed) and
-    ('NotFound' not in (kubernetes.core.k8s | string))
+  when: (ocp_acs_reinstall | default(false)) | bool
   no_log: true
 
-# If your install provisions a PVC for the DB, wipe it too (name varies).
-# Try the common one first; harmless if it doesn't exist.
 - name: Delete central-db PVC (reset DB storage)
   kubernetes.core.k8s:
     state: absent
@@ -143,19 +120,15 @@
     kind: PersistentVolumeClaim
     namespace: "{{ ocp_acs_namespace }}"
     name: central-db
-  when: ocp_acs_reinstall | bool
-  failed_when: >
-    (kubernetes.core.k8s is failed) and
-    ('NotFound' not in (kubernetes.core.k8s | string))
+  when: (ocp_acs_reinstall | default(false)) | bool
 
-# Some versions name the PVC like data-central-db-0; delete any matching PVCs.
 - name: Delete any central-db PVCs by label (reset DB storage)
   kubernetes.core.k8s_info:
     api_version: v1
     kind: PersistentVolumeClaim
     namespace: "{{ ocp_acs_namespace }}"
   register: ocp_acs_pvcs
-  when: ocp_acs_reinstall | bool
+  when: (ocp_acs_reinstall | default(false)) | bool
 
 - name: Remove matching central-db PVCs
   kubernetes.core.k8s:
@@ -166,15 +139,61 @@
     name: "{{ item.metadata.name }}"
   loop: "{{ (ocp_acs_pvcs.resources | default([])) }}"
   when:
-    - ocp_acs_reinstall | bool
+    - (ocp_acs_reinstall | default(false)) | bool
     - item.metadata.name is match('^data-.*central-db.*') or item.metadata.name is match('^central-db.*')
-  failed_when: >
-    (kubernetes.core.k8s is failed) and
-    ('NotFound' not in (kubernetes.core.k8s | string))
+
+# PVC finalizers can leave "being deleted" for minutes; Central then stays Pending.
+- name: Wait for central-db PVCs to finish deleting (reinstall)
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ ocp_acs_namespace }}"
+  register: ocp_acs_pvcs_after_delete
+  until: >-
+    (
+      ocp_acs_pvcs_after_delete.resources
+      | default([])
+      | selectattr('metadata.name', 'match', '^(data-.*)?central-db.*')
+      | list
+      | length
+    ) == 0
+  retries: "{{ ocp_acs_pvc_delete_retries | default(36) | int }}"
+  delay: "{{ ocp_acs_pvc_delete_delay | default(5) | int }}"
+  when: enable_bootstrap | default(true) | bool
+
+# ------------------------------------------------------------
+# Ensure PVCs referenced by Central exist (claimName does not auto-create).
+# Prior reinstalls may have deleted central-db while Central still expects it.
+# ------------------------------------------------------------
+- name: Ensure ACS Central / DB PVCs exist
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: "{{ item.name }}"
+        namespace: "{{ ocp_acs_namespace }}"
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: "{{ item.size }}"
+        storageClassName: "{{ ocp_acs_storage_class | default(storage | default(storage_class | default(''), true), true) }}"
+  loop:
+    - name: "{{ ocp_acs_central_pvc_name | default('central-pvc') }}"
+      size: "{{ ocp_acs_central_pvc_size | default('10Gi') }}"
+    - name: "{{ ocp_acs_central_db_pvc_name | default('central-db') }}"
+      size: "{{ ocp_acs_central_db_pvc_size | default('20Gi') }}"
+    - name: "{{ ocp_acs_central_db_backup_pvc_name | default('central-db-backup') }}"
+      size: "{{ ocp_acs_central_db_backup_pvc_size | default('20Gi') }}"
+  loop_control:
+    label: "{{ item.name }}"
+  tags: [acs, rhacs, central]
 
 # ------------------------------------------------------------
 # Create admin password secret (PLAINTEXT "password" key)
-# This matches your operator requirement exactly.
 # ------------------------------------------------------------
 - name: Create Central admin password secret (plaintext "password" entry)
   kubernetes.core.k8s:
@@ -192,7 +211,8 @@
   tags: [acs, rhacs, central]
 
 # ------------------------------------------------------------
-# Deploy Central CR referencing adminPasswordSecret
+# Deploy Central CR — lab-sized resources; Scanner V4 disabled by default
+# (default ACS central-db requests ~4CPU/8Gi often stay Pending on lab nodes)
 # ------------------------------------------------------------
 - name: Deploy RHACS Central CR (adminPasswordSecret)
   kubernetes.core.k8s:
@@ -207,23 +227,60 @@
         central:
           adminPasswordSecret:
             name: "{{ ocp_acs_admin_password_secret }}"
-        persistence:
-          persistentVolumeClaim:
-            claimName: central-pvc
-        exposure:
-          loadBalancer:
-            enabled: false
+          exposure:
+            loadBalancer:
+              enabled: false
+          persistence:
+            persistentVolumeClaim:
+              claimName: central-pvc
+          resources:
+            requests:
+              cpu: "{{ ocp_acs_central_cpu_request | default('500m') }}"
+              memory: "{{ ocp_acs_central_memory_request | default('1Gi') }}"
+            limits:
+              cpu: "{{ ocp_acs_central_cpu_limit | default('2') }}"
+              memory: "{{ ocp_acs_central_memory_limit | default('4Gi') }}"
+          db:
+            resources:
+              requests:
+                cpu: "{{ ocp_acs_central_db_cpu_request | default('500m') }}"
+                memory: "{{ ocp_acs_central_db_memory_request | default('1Gi') }}"
+              limits:
+                cpu: "{{ ocp_acs_central_db_cpu_limit | default('2') }}"
+                memory: "{{ ocp_acs_central_db_memory_limit | default('4Gi') }}"
         scanner:
           analyzer:
             scaling:
               autoScaling: "Disabled"
               replicas: 1
+        scannerV4:
+          scannerComponent: Disabled
   no_log: true
   tags: [acs, rhacs, central]
 
 # ------------------------------------------------------------
-# Wait for Central deployment to exist and be available
+# Wait for central-db then Central
 # ------------------------------------------------------------
+- name: Wait for central-db pod to be Ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ ocp_acs_namespace }}"
+    label_selectors:
+      - app=central-db
+  register: ocp_acs_central_db_pods
+  until: >-
+    (ocp_acs_central_db_pods.resources | default([]) | length > 0)
+    and (
+      (ocp_acs_central_db_pods.resources[0].status.conditions | default([])
+        | selectattr('type', 'equalto', 'Ready')
+        | selectattr('status', 'equalto', 'True')
+        | list | length) > 0
+    )
+  retries: 90
+  delay: 10
+  tags: [acs, rhacs, central]
+
 - name: Wait for central deployment to exist
   kubernetes.core.k8s_info:
     api_version: apps/v1
@@ -244,15 +301,27 @@
     namespace: "{{ ocp_acs_namespace }}"
   register: ocp_acs_central_ready
   until:
+    - ocp_acs_central_ready.resources | default([]) | length > 0
     - (ocp_acs_central_ready.resources[0].status.availableReplicas | default(0)) | int >= 1
-  retries: 60
+  retries: 120
   delay: 10
   tags: [acs, rhacs, central]
 
 # ------------------------------------------------------------
-# Route (passthrough) to central service
+# Route (reencrypt) so the browser gets the OpenShift ingress /
+# cert-manager lab cert, not Central's self-signed TLS.
 # ------------------------------------------------------------
-- name: Create passthrough route for Central
+- name: Read Central CA for route reencrypt
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    name: central-tls
+    namespace: "{{ ocp_acs_namespace }}"
+  register: ocp_acs_central_tls_secret
+  no_log: true
+  tags: [acs, rhacs, central]
+
+- name: Create reencrypt route for Central
   kubernetes.core.k8s:
     state: present
     namespace: "{{ ocp_acs_namespace }}"
@@ -262,15 +331,22 @@
       metadata:
         name: "{{ ocp_acs_route_name }}"
       spec:
+        host: "{{ ocp_acs_hostname | default(omit, true) }}"
         to:
           kind: Service
           name: "{{ ocp_acs_central_name }}"
         port:
           targetPort: https
         tls:
-          termination: passthrough
+          termination: reencrypt
           insecureEdgeTerminationPolicy: Redirect
+          destinationCACertificate: >-
+            {{
+              ocp_acs_central_tls_secret.resources[0].data['ca.pem']
+              | b64decode
+            }}
         wildcardPolicy: None
+  no_log: true
   tags: [acs, rhacs, central]
 
 - name: Get Central route hostname
@@ -290,3 +366,7 @@
       - "Password: (ocp_acs_admin_password)"
       - "Admin secret: {{ ocp_acs_admin_password_secret }} (key: password)"
   tags: [acs, rhacs, central]
+
+- name: Configure OpenShift OAuth auth provider for Central
+  ansible.builtin.include_tasks: configure-openshift-auth.yml
+  tags: [acs, rhacs, central, auth]

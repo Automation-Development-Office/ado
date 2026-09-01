@@ -1,4 +1,14 @@
 ---
+- name: Wait for ArgoCD CRD before creating instance
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: argocds.argoproj.io
+  register: ocp_gitops_argocd_crd
+  until: (ocp_gitops_argocd_crd.resources | default([])) | length > 0
+  retries: "{{ ocp_gitops_crd_retries | default(60) | int }}"
+  delay: "{{ ocp_gitops_crd_delay | default(10) | int }}"
+
 - name: Apply ArgoCD instance
   kubernetes.core.k8s:
     state: present
@@ -19,11 +29,12 @@
 
 - name: Wait for ArgoCD pods to be running
   ansible.builtin.include_role:
-    name: ado.openshift.wait_for_pods_running
+    name: infra.ado.ocp_wait_pods
   vars:
     name_space: "{{ app_namespace }}"
     label_selector: "{{ pods_label_selector | default('app.kubernetes.io/part-of=argocd') }}"
-    timeout_seconds: "{{ wait_timeout_seconds | default(900) }}"
+    ocp_wait_pods_pod_wait_retries: "{{ ((wait_timeout_seconds | default(900) | int) // (delay | default(10) | int)) | int }}"
+    ocp_wait_pods_pod_wait_delay: "{{ delay | default(10) | int }}"
 
 - name: Enforce ArgoCD route if requested
   kubernetes.core.k8s:

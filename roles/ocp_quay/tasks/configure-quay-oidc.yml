@@ -1,0 +1,90 @@
+---
+# Re-apply Quay config when OIDC settings change on an existing install.
+
+- name: Configure Quay OIDC authentication
+  when: quay_oidc_enabled | default(false) | bool
+  block:
+    - name: Resolve Quay OIDC issuer URL
+      ansible.builtin.set_fact:
+        quay_oidc_issuer_url: >-
+          {{
+            (
+              quay_oidc_issuer_url | default('') | string | trim | length > 0
+            ) | ternary(
+              quay_oidc_issuer_url | string | trim,
+              'https://'
+              ~ (rhbk_hostname | default(keycloak_hostname | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))))
+              ~ '/realms/'
+              ~ (quay_keycloak_realm | default(rhbk_realm | default(ocp_rhbk_realm | default('rhlab'))))
+              ~ '/'
+            )
+          }}
+
+    - name: Assert Quay OIDC issuer URL is available
+      ansible.builtin.assert:
+        that:
+          - (quay_oidc_issuer_url | default('') | string | trim | length) > 0
+        fail_msg: >-
+          Quay OIDC is enabled but quay_oidc_issuer_url is empty. Set issuer in
+          preflight, ensure vars_rhbk.yml is loaded, or run Deploy RHBK Client first.
+
+    - name: Fetch Quay OIDC client secret from Keycloak when vault empty
+      ansible.builtin.include_role:
+        name: infra.ado.ocp_rhbk_client_secrets
+      vars:
+        ocp_rhbk_secret_client_key: quay_client
+        ocp_rhbk_secret_client_id: "{{ quay_oidc_client_id | default('quay') }}"
+        ocp_rhbk_secret_target_var: quay_oidc_client_secret
+        ocp_rhbk_secret_optional: true
+      when: (quay_oidc_client_secret | default('') | string | length) == 0
+      no_log: true
+
+    - name: Prefer fetched Quay OIDC client secret
+      ansible.builtin.set_fact:
+        quay_oidc_client_secret: "{{ ocp_rhbk_client_secrets__value }}"
+      when:
+        - (quay_oidc_client_secret | default('') | string | length) == 0
+        - ocp_rhbk_client_secrets__value is defined
+        - (ocp_rhbk_client_secrets__value | string | length) > 0
+      no_log: true
+
+    - name: Assert Quay OIDC client secret is available
+      ansible.builtin.assert:
+        that:
+          - (quay_oidc_client_secret | default('') | string | length) > 0
+        fail_msg: >-
+          Quay OIDC is enabled but no client secret is set. Create the Keycloak client
+          (Deploy RHBK Client) then re-run, or set quay_oidc_client_secret in vault.
+
+    - name: Build Quay config with OIDC
+      ansible.builtin.set_fact:
+        ocp_quay_config: "{{ lookup('template', 'quay-config.yaml.j2') }}"
+      no_log: true
+
+    - name: Update Quay Configuration Secret for OIDC
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "{{ ocp_quay_config_secret }}"
+            namespace: "{{ name_space }}"
+          type: Opaque
+          data:
+            config.yaml: "{{ ocp_quay_config | b64encode }}"
+
+    - name: Restart Quay to pick up OIDC config
+      kubernetes.core.k8s:
+        state: patched
+        kind: Deployment
+        namespace: "{{ name_space }}"
+        name: quay
+        definition:
+          spec:
+            template:
+              metadata:
+                annotations:
+                  quay.infra.ado/restartedAt: "{{ lookup('pipe', 'date -Iseconds') }}"
+
+    - name: Configure Quay OIDC CA trust for Keycloak
+      ansible.builtin.import_tasks: configure-quay-oidc-ca.yml

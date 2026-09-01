@@ -42,6 +42,25 @@
           )
       }}
 
+# components_defaults.yml is templated as one file for every component. Older
+# published collections used {{ grafana_dev_prometheus_url }} inside the grafana
+# block; Ansible evaluates that against play vars (not sibling YAML keys), so
+# ACM/descheduler/etc. fail with "grafana_dev_prometheus_url is undefined".
+- name: Resolve_component | Seed registry Jinja defaults (cross-component safe)
+  ansible.builtin.set_fact:
+    grafana_dev_prometheus_url: >-
+      {{
+        grafana_dev_prometheus_url
+        | default(
+            'https://thanos-querier-openshift-monitoring.'
+            ~ (
+                bootstrap_resolve_component_app_domain
+                | default('apps.ocp-dev.dev.rhlab')
+              ),
+            true
+          )
+      }}
+
 - name: Resolve_component | Create temp file for rendered registry
   ansible.builtin.tempfile:
     state: file
@@ -106,7 +125,8 @@
   loop_control:
     label: "{{ item.key }}"
   when:
-    - vars[item.key] is not defined
+    # Survey/extra_vars may pass "" — treat as unset so registry defaults can export.
+    - (vars[item.key] is not defined) or ((vars[item.key] | string) == "")
     - "'.' not in (item.key | string)"
 # noqa: var-naming
 

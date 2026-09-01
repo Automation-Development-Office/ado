@@ -1,0 +1,24 @@
+---
+bugfixes:
+  - >-
+    ocp_rhbk_client_secrets - Prefer host vars (ocp_rhbk_realm, rhbk_realm,
+    ocp_rhbk_hostname) over components_defaults rhlab fallback; fetch Keycloak
+    admin password from keycloak-admin-creds when vault unset.
+  - >-
+    netbox_oidc - Fetch client secret via ocp_rhbk_client_secrets inside the
+    role (same pattern as Quay/MinIO); remove duplicate playbook pre_tasks.
+  - >-
+    Playbooks (quay, minio, grafana) - Remove duplicate RHBK secret fetch
+    pre_tasks; roles own OIDC secret resolution. Add vars_rhbk.yml to Quay.
+  - >-
+    gitlab_install - Chart 10.3.1 with lab external Postgres, Redis, and MinIO
+    for chart 10.x (operator webhook rejects 9.x).
+  - >-
+    kafka_install - KRaftController replicas as bare int (EE stringifies quoted
+    Jinja).
+  - >-
+    ocp_minio - containerPort/service port as bare int (patch validation).
+  - >-
+    install_aap - Fix recursive Jinja on aap_ocp_install_reset_delete_platform.
+  - >-
+    ocp_acs / ocp_devspaces - Reduce excessive wait retries (~6 min max vs 20+).

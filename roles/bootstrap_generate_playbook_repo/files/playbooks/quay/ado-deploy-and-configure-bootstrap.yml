@@ -7,6 +7,7 @@
   vars_files:
     - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
     - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_{{ component }}.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_rhbk.yml"
     - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_{{ component }}.yml"
   environment:
     K8S_AUTH_HOST: '{{ host | default(api_host) }}'
@@ -16,7 +17,49 @@
     - name: ADO | Resolve vars for component from framework defaults + env overrides
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component
+    - name: ADO | Normalize Quay OpenShift install vars
+      ansible.builtin.set_fact:
+        ocp_quay_hostname: >-
+          {{
+            ocp_quay_hostname
+            | default(quay_hostname)
+            | default(hostname)
+            | default('quay.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+          }}
+        ocp_quay_admin_user: >-
+          {{ ocp_quay_admin_user | default(quay_admin_user) | default('quayadmin') }}
+        ocp_quay_admin_password: >-
+          {{
+            ocp_quay_admin_password
+            | default(quay_admin_password)
+            | default(admin_password)
+            | default('redhat123')
+          }}
+        ocp_quay_config_secret: >-
+          {{ ocp_quay_config_secret | default(quay_config_secret) | default('quay-config-secret') }}
+        storage: >-
+          {{
+            storage
+            | default(storage_class)
+            | default(openshift_default_storage_class)
+            | default('')
+          }}
+        storage_size: >-
+          {{ storage_size | default('10Gi') }}
+        quay_oidc_enabled: >-
+          {{ (quay_oidc_enabled | default(oidc.enabled | default(true))) | bool }}
+        quay_oidc_client_id: >-
+          {{ quay_oidc_client_id | default(oidc.client_id | default('quay')) }}
+        quay_keycloak_realm: >-
+          {{
+            quay_keycloak_realm
+            | default(rhbk_realm | default(ocp_rhbk_realm | default('rhlab')))
+          }}
   roles:
     - role: infra.ado.ocp_namespace
     - role: infra.ado.ocp_operatorgroups
     - role: infra.ado.ocp_operator_subscription
+    - role: infra.ado.ocp_wait_operator
+    - role: infra.ado.ocp_quay
+    - role: infra.ado.ocp_wait_pods
+    - role: infra.ado.ocp_routes

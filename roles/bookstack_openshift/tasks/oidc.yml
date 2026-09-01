@@ -1,0 +1,18 @@
+---
+# Survey extra_vars beat set_fact on the same name — use *_resolved for effective values.
+
+- name: Resolve BookStack OIDC issuer from RHBK when unset
+  ansible.builtin.set_fact:
+    bookstack_oidc_issuer_resolved: >-
+      {{
+        bookstack_oidc_issuer | default('', true)
+        | default(oidc_issuer | default('', true), true)
+        | default(
+            'https://'
+            ~ (ocp_rhbk_hostname | default(rhbk_hostname | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))))
+            ~ '/realms/'
+            ~ (ocp_rhbk_realm | default(rhbk_realm | default('rhlab'))),
+            true
+          )
+      }}
+  when: bookstack_oidc_enabled | default(false) | bool

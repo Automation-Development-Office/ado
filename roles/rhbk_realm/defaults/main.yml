@@ -1,2 +1,5 @@
 ---
-rhbk_realm_verify_ssl: true
+rhbk_realm_verify_ssl: false
+rhbk_verify_ssl: false
+# Always enable realms on create/update (avoids "Realm not enabled" for OIDC apps).
+rhbk_enabled: true

@@ -1,4 +1,7 @@
 ---
+# Build lab VM (DataSource + Multus/cloud-init), then create via validated
+# infra.openshift_virtualization_ops.vm_provision.
+
 - name: Ensure required variables are defined
   ansible.builtin.assert:
     that:
@@ -65,43 +68,34 @@
       }}
   when: (network_mode | default('masquerade') | lower) in ['bridge', 'multus']
 
-- name: Create root disk DataVolume from cluster RHEL DataSource (async — no wait)
-  kubernetes.core.k8s:
-    state: "{{ vm_state | default('present') }}"
-    definition:
-      apiVersion: cdi.kubevirt.io/v1beta1
-      kind: DataVolume
-      metadata:
-        name: "{{ vm_name }}-rootdisk"
-        namespace: "{{ vm_namespace }}"
-        labels:
-          app: "{{ app_label | default(vm_name) }}"
-          ado.role: virt-build
-        annotations:
-          # Start importer/clone without waiting for a consumer PVC bind first.
-          cdi.kubevirt.io/storage.bind.immediate.requested: "true"
-      spec:
-        sourceRef:
-          kind: "{{ source_kind | default('DataSource') }}"
-          name: "{{ source_name | default('rhel9') }}"
-          namespace: >-
-            {{
-              source_namespace
-              | default('openshift-virtualization-os-images')
-            }}
-        storage:
-          storageClassName: "{{ storage_class }}"
-          accessModes:
-            - "{{ root_disk_access_mode | default('ReadWriteOnce') }}"
-          resources:
-            requests:
-              storage: "{{ root_disk_size | default('40Gi') }}"
-  when: vm_state | default('present') == 'present'
-
 - name: Build VirtualMachine network + volumes (bridge / Multus)
   ansible.builtin.set_fact:
     ocp_virtualization_vm_spec:
       runStrategy: "{{ 'Always' if (vm_start | default(true) | bool) else 'Halted' }}"
+      dataVolumeTemplates:
+        - metadata:
+            name: "{{ vm_name }}-rootdisk"
+            labels:
+              app: "{{ app_label | default(vm_name) }}"
+              ado.role: virt-build
+            annotations:
+              cdi.kubevirt.io/storage.bind.immediate.requested: "true"
+          spec:
+            sourceRef:
+              kind: "{{ source_kind | default('DataSource') }}"
+              name: "{{ source_name | default('rhel9') }}"
+              namespace: >-
+                {{
+                  source_namespace
+                  | default('openshift-virtualization-os-images')
+                }}
+            storage:
+              storageClassName: "{{ storage_class }}"
+              accessModes:
+                - "{{ root_disk_access_mode | default('ReadWriteOnce') }}"
+              resources:
+                requests:
+                  storage: "{{ root_disk_size | default('40Gi') }}"
       template:
         metadata:
           labels:
@@ -143,6 +137,30 @@
   ansible.builtin.set_fact:
     ocp_virtualization_vm_spec:
       runStrategy: "{{ 'Always' if (vm_start | default(true) | bool) else 'Halted' }}"
+      dataVolumeTemplates:
+        - metadata:
+            name: "{{ vm_name }}-rootdisk"
+            labels:
+              app: "{{ app_label | default(vm_name) }}"
+              ado.role: virt-build
+            annotations:
+              cdi.kubevirt.io/storage.bind.immediate.requested: "true"
+          spec:
+            sourceRef:
+              kind: "{{ source_kind | default('DataSource') }}"
+              name: "{{ source_name | default('rhel9') }}"
+              namespace: >-
+                {{
+                  source_namespace
+                  | default('openshift-virtualization-os-images')
+                }}
+            storage:
+              storageClassName: "{{ storage_class }}"
+              accessModes:
+                - "{{ root_disk_access_mode | default('ReadWriteOnce') }}"
+              resources:
+                requests:
+                  storage: "{{ root_disk_size | default('40Gi') }}"
       template:
         metadata:
           labels:
@@ -198,11 +216,10 @@
       }}
   when: instance_type | default('custom') | lower in ['', 'custom']
 
-- name: Create VirtualMachine object (no wait on disk clone)
-  kubernetes.core.k8s:
-    state: "{{ vm_state | default('present') }}"
-    definition:
-      apiVersion: kubevirt.io/v1
+- name: Assemble VirtualMachine resource for vm_provision
+  ansible.builtin.set_fact:
+    ocp_virtualization_vm_definition:
+      apiVersion: "{{ vm_provision_kubevirt_api_version | default('kubevirt.io/v1') }}"
       kind: VirtualMachine
       metadata:
         name: "{{ vm_name }}"
@@ -216,7 +233,10 @@
           | combine(
               (
                 {
-                  'instancetype': {'name': instance_type, 'kind': 'VirtualMachineClusterInstancetype'}
+                  'instancetype': {
+                    'name': instance_type,
+                    'kind': 'VirtualMachineClusterInstancetype'
+                  }
                 }
                 if (instance_type | default('custom') | lower) not in ['', 'custom']
                 else {}
@@ -234,6 +254,51 @@
             )
         }}
 
+- name: Map OpenShift auth for validated vm_provision
+  ansible.builtin.set_fact:
+    vm_provision_openshift_host: >-
+      {{
+        provision_openshift_virt_api_host
+        | default(
+            host
+            | default(
+                lookup('ansible.builtin.env', 'K8S_AUTH_HOST', default=''),
+                true
+              ),
+            true
+          )
+      }}
+    vm_provision_api_key: >-
+      {{
+        provision_openshift_virt_api_token
+        | default(
+            token
+            | default(
+                lookup('ansible.builtin.env', 'K8S_AUTH_API_KEY', default=''),
+                true
+              ),
+            true
+          )
+      }}
+    vm_provision_openshift_verify_ssl: >-
+      {{
+        validate_certs
+        | default(
+            lookup(
+              'ansible.builtin.env',
+              'K8S_AUTH_VERIFY_SSL',
+              default='yes'
+            ) | bool,
+            true
+          )
+      }}
+    vm_provision_request:
+      - "{{ ocp_virtualization_vm_definition }}"
+
+- name: Provision VirtualMachine via infra.openshift_virtualization_ops.vm_provision
+  ansible.builtin.include_role:
+    name: infra.openshift_virtualization_ops.vm_provision
+
 - name: Short status check (does not wait for full disk clone)
   kubernetes.core.k8s_info:
     api_version: kubevirt.io/v1
@@ -249,7 +314,8 @@
 - name: Report VM status (clone may still be importing in background)
   ansible.builtin.debug:
     msg: >-
-      Created VM {{ vm_name }} in {{ vm_namespace }}
+      Created VM {{ vm_name }} in {{ vm_namespace }} via
+      infra.openshift_virtualization_ops.vm_provision
       (status={{ ocp_virtualization_vm_status.resources[0].status.printableStatus | default('Pending') }}).
       Root disk DataVolume {{ vm_name }}-rootdisk is populated from DataSource
       {{ source_name }} asynchronously — Contoller job no longer blocks on the clone.

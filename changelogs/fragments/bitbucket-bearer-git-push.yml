@@ -1,0 +1,12 @@
+---
+bugfixes:
+  - >-
+    bootstrap_generate_playbook_repo - Skip credential-store setup and use
+    Authorization Bearer via Git http extraHeader when
+    bootstrap_generate_playbook_repo_git_auth_mode is bearer (Bitbucket).
+    Previously the role always wrote a git-credentials file with
+    username:token@host which Bitbucket rejects.
+  - >-
+    bootstrap_generate_env_vars - Write generate_playbook_repo_git_auth_mode
+    into the generated aap_config_vars.yml so AAP job runs also use Bearer
+    auth when the SCM tool is Bitbucket.

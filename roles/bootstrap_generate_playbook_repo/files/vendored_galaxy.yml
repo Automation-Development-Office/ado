@@ -1,0 +1,13 @@
+---
+namespace: infra
+name: ado
+version: 1.3.1
+readme: README.md
+authors:
+  - Automation Development Office
+description: >-
+  Automation Development Office roles vendored into the bootstrap playbook repo
+  for disconnected Controller job runs.
+license_file: LICENSE
+# Contoller type:dir install must not resolve Galaxy/Hub deps (TLS / airgap).
+dependencies: {}

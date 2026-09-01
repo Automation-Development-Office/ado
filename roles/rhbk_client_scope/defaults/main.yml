@@ -1,3 +1,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later-0
 # ---
 # defaults file for rhbk_create_client_scope
+rhbk_host: >-
+  {{
+    (
+      rhbk_hostname
+      | default(ocp_rhbk_hostname, true)
+      | default(hostname, true)
+      | default('', true)
+    )
+    | regex_replace('^https?://', '')
+    | regex_replace('/.*$', '')
+  }}
+rhbk_client_scope_name: "{{ client_scope_name | default('groups') }}"
+rhbk_verify_ssl: false

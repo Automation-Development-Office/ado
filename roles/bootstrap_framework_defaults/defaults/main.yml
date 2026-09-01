@@ -23,12 +23,12 @@ framework_defaults_components_defaults:
   # cert manager
   cert_manager:
     name_space: cert-manager
-    operator_namespace: cert-manager
-    openshift_tools_operator_groups: cert-manager
+    operator_namespace: cert-manager-operator
+    openshift_tools_operator_groups: cert-manager-operator
 
     subscription:
       name: openshift-cert-manager-operator
-      channel: openshift-cert-manager-operator
+      channel: stable-v1
       source: redhat-operators
       sourceNamespace: openshift-marketplace
 
@@ -60,7 +60,7 @@ framework_defaults_components_defaults:
     ingress_class: openshift-default
 
     # GitLab chart version used by the operator
-    chart_version: "9.7.0"
+    chart_version: "10.3.0"
 
     root_password_secret: gitlab-root-password
 

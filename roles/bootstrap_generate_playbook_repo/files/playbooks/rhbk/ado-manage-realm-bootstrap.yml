@@ -17,5 +17,8 @@
     - name: ADO | Resolve vars for component from framework defaults + env overrides
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component
+    - name: ADO | Default RHBK realm to enabled
+      ansible.builtin.set_fact:
+        rhbk_enabled: "{{ rhbk_enabled | default(realm_enabled | default(true)) | bool }}"
   roles:
     - role: infra.ado.rhbk_realm

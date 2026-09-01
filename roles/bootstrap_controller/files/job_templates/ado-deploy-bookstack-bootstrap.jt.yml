@@ -3,7 +3,7 @@ controller_templates:
   - name: ADO | Deploy BookStack
     description: Bootstrap - Deploy BookStack documentation platform on OpenShift
     organization: '{{ bootstrap_controller_organization }}'
-    playbook: playbooks/docs/ado-deploy-bookstack-bootstrap.yml
+    playbook: playbooks/docs/ado-deploy-install-bootstrap.yml
     inventory: '{{ bootstrap_controller_inventory_name }}'
     project: '{{ bootstrap_controller_project_name }}'
     execution_environment: '{{ bootstrap_controller_execution_environment_name }}'
@@ -76,29 +76,3 @@ controller_templates:
           type: password
           variable: bookstack_admin_password
           default: redhat123
-        - question_name: ADO | Enable OIDC (Keycloak RHLAB)
-          question_description: Wire BookStack AUTH_METHOD=oidc to prod Keycloak realm RHLAB
-          required: false
-          type: multiplechoice
-          variable: bookstack_oidc_enabled
-          choices:
-            - "false"
-            - "true"
-          default: "true"
-        - question_name: ADO | OIDC issuer URL
-          question_description: Keycloak realm issuer (discovery)
-          required: false
-          type: text
-          variable: bookstack_oidc_issuer
-          default: https://keycloak.apps.ocp.prod.rhlab/realms/rhlab
-        - question_name: ADO | OIDC client ID
-          required: false
-          type: text
-          variable: bookstack_oidc_client_id
-          default: bookstack
-        - question_name: ADO | OIDC client secret
-          question_description: Confidential client secret from Keycloak RHLAB / bookstack client
-          required: false
-          type: password
-          variable: bookstack_oidc_client_secret
-          default: ''

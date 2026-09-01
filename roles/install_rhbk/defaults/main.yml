@@ -14,10 +14,23 @@ ocp_rhbk_db_user: "{{ rhbk_db_user | default('keycloak') }}"
 ocp_rhbk_db_password: "{{ rhbk_db_password | default('changeme-db') }}"
 postgres_secret_name: keycloak-db-secret
 cert_manager: false
+# Prefer OpenShift edge TLS (router terminates HTTPS; Keycloak speaks HTTP).
+# Copying the default ingress cert into Keycloak often fails in labs when that
+# secret is empty/placeholder → UNEXPECTED_EOF on the route.
+ocp_rhbk_http_edge: true
+ocp_rhbk_use_default_ingress_cert: false
 ocp_rhbk_cert_name: keycloak-tls
 ocp_rhbk_tls_secret_name: keycloak-tls-secret
 ocp_rhbk_issuer_name: ""
 ocp_rhbk_issuer_kind: ClusterIssuer
+ocp_rhbk_ingress_controller_name: default
+ocp_rhbk_ingress_operator_namespace: openshift-ingress-operator
+ocp_rhbk_service_name: keycloak-service
+ocp_rhbk_service_port: http
+ocp_rhbk_route_name: keycloak
+# Recreate Postgres STS when immutable fields change (storage class / serviceName).
+# Default true — callers should not need to set this.
+ocp_rhbk_recreate_ss_on_immutable_change: "{{ rhbk_recreate_ss_on_immutable_change | default(true) }}"
 
 # --- RHEL / standalone path (official RHBK zip) ---
 install_rhbk_standalone_hostname: "{{ rhbk_hostname | default('keycloak-ado.server.lab') }}"

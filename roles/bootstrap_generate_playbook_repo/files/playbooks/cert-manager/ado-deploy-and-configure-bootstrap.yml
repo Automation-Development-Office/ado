@@ -17,5 +17,56 @@
     - name: ADO | Resolve vars for component from framework defaults + env overrides
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component
+    - name: ADO | Map cert-manager operator vs operand namespaces
+      ansible.builtin.set_fact:
+        bootstrap_cert_manager_operator_namespace: >-
+          {{ operator_namespace
+             | default(operator_subscription_namespace)
+             | default('cert-manager-operator') }}
+        bootstrap_cert_manager_operand_namespace: '{{ name_space | default(''cert-manager'') }}'
+    - name: ADO | Resolve cert-manager OperatorGroup name (no self-ref)
+      ansible.builtin.set_fact:
+        bootstrap_cert_manager_operatorgroup: >-
+          {{
+            (
+              (operatorgroup | default('') | string | trim)
+              if ((operatorgroup | default('') | string | trim) | length) > 0
+              else (operator_namespace
+                    | default(operator_subscription_namespace)
+                    | default('cert-manager-operator')
+                    | string
+                    | trim)
+            )
+          }}
   roles:
+    # Operator namespace: OperatorGroup + Subscription (OLM)
+    - role: infra.ado.ocp_namespace
+      vars:
+        name_space: '{{ bootstrap_cert_manager_operator_namespace }}'
+    - role: infra.ado.ocp_operatorgroups
+      vars:
+        name_space: '{{ bootstrap_cert_manager_operator_namespace }}'
+        # Do not set operatorgroup: '{{ operatorgroup | default(...) }}' — that
+        # self-references and hits Ansible recursive template depth. Prefer the
+        # already-resolved host var, else the operator namespace name.
+        operatorgroup: '{{ bootstrap_cert_manager_operatorgroup }}'
+    - role: infra.ado.ocp_operator_subscription
+      vars:
+        name_space: '{{ bootstrap_cert_manager_operator_namespace }}'
+        operator_namespace: '{{ bootstrap_cert_manager_operator_namespace }}'
+        operator_subscription_namespace: '{{ bootstrap_cert_manager_operator_namespace }}'
+    - role: infra.ado.ocp_wait_operator
+      vars:
+        operator_namespace: '{{ bootstrap_cert_manager_operator_namespace }}'
+        name_space: '{{ bootstrap_cert_manager_operator_namespace }}'
+    # Operand namespace: webhook / controller / ClusterIssuers
+    - role: infra.ado.ocp_namespace
+      vars:
+        name_space: '{{ bootstrap_cert_manager_operand_namespace }}'
+    - role: infra.ado.ocp_wait_pods
+      vars:
+        name_space: '{{ bootstrap_cert_manager_operand_namespace }}'
+    - role: infra.ado.ocp_cert_manager
+      vars:
+        name_space: '{{ bootstrap_cert_manager_operand_namespace }}'
     - role: infra.ado.ocp_routes

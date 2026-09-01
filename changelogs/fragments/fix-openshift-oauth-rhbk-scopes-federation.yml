@@ -1,0 +1,4 @@
+bugfixes:
+  - ocp_oidc_auth - Request only the ``groups`` extra scope for Keycloak/RHBK; strip ``openid`` (Keycloak rejects it and breaks login with ``invalid_scope``).
+  - bootstrap_generate_env_vars - Stop seeding hardcoded ``IDM_LDAP`` federation name; honor preflight ``federation_name`` (default ``LDAP``).
+  - rhbk_manage_federation - Resolve ``rhbk_federation_name`` from preflight ``federation_name`` instead of a fixed IdM label.

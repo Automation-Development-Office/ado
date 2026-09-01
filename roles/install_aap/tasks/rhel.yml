@@ -1,0 +1,40 @@
+---
+# RHEL / VM / containerized path: validated aap_setup_* roles.
+
+- name: Assert RHEL AAP inventory nodes are defined for install
+  ansible.builtin.assert:
+    that:
+      - aap_setup_prep_inv_nodes is defined
+      - aap_setup_prep_inv_nodes is mapping
+      - aap_setup_prep_inv_nodes | length > 0
+    fail_msg: >-
+      RHEL AAP install requires aap_setup_prep_inv_nodes (and usually
+      aap_setup_prep_inv_vars / aap_setup_prep_inv_secrets). See
+      infra.aap_utilities.aap_setup_prepare.
+  when: install_aap_state_effective == 'present'
+
+- name: Download AAP installer tarball
+  ansible.builtin.include_role:
+    name: infra.aap_utilities.aap_setup_download
+  when:
+    - install_aap_state_effective == 'present'
+    - install_aap_rhel_download | default(true) | bool
+
+- name: Prepare AAP installer and inventory
+  ansible.builtin.include_role:
+    name: infra.aap_utilities.aap_setup_prepare
+  when:
+    - install_aap_state_effective == 'present'
+    - install_aap_rhel_prepare | default(true) | bool
+
+- name: Run AAP setup.sh install
+  ansible.builtin.include_role:
+    name: infra.aap_utilities.aap_setup_install
+  when:
+    - install_aap_state_effective == 'present'
+    - install_aap_rhel_install | default(true) | bool
+
+- name: Remove AAP from RHEL hosts via infra.aap_utilities.aap_remove
+  ansible.builtin.include_role:
+    name: infra.aap_utilities.aap_remove
+  when: install_aap_state_effective == 'absent'

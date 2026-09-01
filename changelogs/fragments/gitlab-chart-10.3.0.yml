@@ -1,0 +1,5 @@
+---
+bugfixes:
+  - >-
+    gitlab_install - Default chart version to ``10.3.0`` (GitLab operator v3.3
+    rejects ``9.7.0``; allowed: 10.3.0, 10.2.4, 10.1.6).

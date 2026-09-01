@@ -1,0 +1,84 @@
+---
+- name: Skip default client scope attachment when none requested
+  ansible.builtin.meta: end_host
+  when: (rhbk_default_client_scopes | default([]) | length) == 0
+
+- name: Login to RHBK and get admin token for client scope attachment
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+    body_format: form-urlencoded
+    body:
+      grant_type: password
+      client_id: admin-cli
+      username: "{{ rhbk_admin_user }}"
+      password: "{{ rhbk_admin_password }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+    return_content: true
+  register: rhbk_client_scope_auth
+  no_log: "{{ rhbk_no_log | default(true) }}"
+
+- name: Get realm client scopes
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/client-scopes"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
+    return_content: true
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  register: rhbk_client_all_scopes
+
+- name: Resolve Keycloak client internal ID
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/clients?clientId={{ rhbk_client | urlencode }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
+    return_content: true
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  register: rhbk_client_lookup
+
+- name: Fail when client was not found for scope attachment
+  ansible.builtin.fail:
+    msg: "Client '{{ rhbk_client }}' was not found in realm '{{ rhbk_realm }}'."
+  when: (rhbk_client_lookup.json | default([]) | length) == 0
+
+- name: Set client internal ID for scope attachment
+  ansible.builtin.set_fact:
+    rhbk_client_internal_id: "{{ rhbk_client_lookup.json[0].id }}"
+
+- name: Get current default client scopes for client
+  ansible.builtin.uri:
+    url: >-
+      https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/clients/{{
+      rhbk_client_internal_id }}/default-client-scopes
+    method: GET
+    headers:
+      Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
+    return_content: true
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  register: rhbk_client_current_default_scopes
+
+- name: Attach missing default client scopes
+  ansible.builtin.uri:
+    url: >-
+      https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/clients/{{
+      rhbk_client_internal_id }}/default-client-scopes/{{ item.id }}
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
+    status_code:
+      - 204
+      - 409
+    validate_certs: "{{ rhbk_verify_ssl }}"
+  loop: >-
+    {{
+      rhbk_client_all_scopes.json
+      | selectattr('name', 'in', rhbk_default_client_scopes)
+      | list
+    }}
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.name not in (rhbk_client_current_default_scopes.json | map(attribute='name') | list)

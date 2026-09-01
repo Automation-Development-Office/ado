@@ -1,0 +1,2 @@
+bugfixes:
+  - grafana_install - Fix recursive Jinja loop fetching RHBK client secret; install JT no longer runs OIDC when only Deploy Grafana is selected.

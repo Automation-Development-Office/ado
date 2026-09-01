@@ -1,0 +1,132 @@
+---
+- name: Publish preflight collections | Load manifest
+  ansible.builtin.set_fact:
+    bootstrap_hub_preflight_manifest: >-
+      {{
+        lookup(
+          'ansible.builtin.file',
+          (role_path | dirname) ~ '/bootstrap_generate_playbook_repo/files/preflight_hub_collections.yml'
+        )
+        | from_yaml
+      }}
+
+- name: Publish preflight collections | Ensure Hub publish auth defaults
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_publish_repository: >-
+      {{ bootstrap_controller_hub_publish_repository | default('validated') }}
+    bootstrap_controller_hub_ah_token: >-
+      {{
+        bootstrap_controller_hub_ah_token
+        | default(
+            vault_galaxy_hub_token
+            | default(
+                controller_oauthtoken
+                | default(vault_controller_oauthtoken | default(''), true),
+              true
+            ),
+            true
+          )
+        | string
+        | trim
+      }}
+
+- name: Publish preflight collections | Resolve Hub API host
+  ansible.builtin.set_fact:
+    bootstrap_hub_pub_api_host: >-
+      {{
+        ('https://' ~ (bootstrap_controller_hub_hostname | regex_replace('^https?://', '') | regex_replace('/.*$', '')))
+        if (bootstrap_controller_hub_hostname | default('') | string | trim | length > 0)
+        else (controller_host | default(vault_controller_hostname))
+      }}
+    bootstrap_hub_pub_uri_headers: >-
+      {{
+        {'Authorization': 'Bearer ' ~ bootstrap_controller_hub_ah_token}
+        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        else omit
+      }}
+    bootstrap_hub_pub_uri_force_basic: >-
+      {{
+        (bootstrap_controller_hub_ah_token | default('') | string | trim | length) == 0
+      }}
+
+- name: Publish preflight collections | Resolve tarball search directories
+  ansible.builtin.set_fact:
+    bootstrap_hub_pub_search_dirs: >-
+      {{
+        (
+          bootstrap_controller_hub_preflight_tarball_dirs
+          | default([
+              '/opt/ado-collections',
+              '/workspace/collections',
+              (playbook_dir | default('.')) ~ '/../collections',
+              (playbook_dir | default('.')) ~ '/../../collections',
+            ])
+        )
+        | unique
+        | list
+      }}
+
+- name: Publish preflight collections | Build publish list (skip infra.ado)
+  ansible.builtin.set_fact:
+    bootstrap_hub_preflight_publish_list: >-
+      {{
+        bootstrap_hub_preflight_manifest.collections
+        | default([])
+        | selectattr('hub_publish', 'defined')
+        | selectattr('hub_publish')
+        | rejectattr('name', 'equalto', 'infra.ado')
+        | list
+      }}
+
+- name: Publish preflight collections | Show collections to publish when missing
+  ansible.builtin.debug:
+    msg: >-
+      Checking preflight tarballs for Hub validated:
+      {{ bootstrap_hub_preflight_publish_list | map(attribute='name') | list }}
+
+- name: Publish preflight collections | Resolve Hub staging repository pulp href
+  ansible.builtin.uri:
+    url: >-
+      {{ bootstrap_hub_pub_api_host.rstrip('/') }}/api/galaxy/pulp/api/v3/repositories/?name={{ bootstrap_controller_hub_staging_repository | default('staging') }}
+    method: GET
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+    status_code: [200]
+    return_content: true
+    headers: "{{ bootstrap_hub_pub_uri_headers }}"
+    user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    force_basic_auth: "{{ bootstrap_hub_pub_uri_force_basic }}"
+  register: bootstrap_hub_preflight_staging_repo
+
+- name: Publish preflight collections | Resolve Hub validated repository pulp href
+  ansible.builtin.uri:
+    url: >-
+      {{ bootstrap_hub_pub_api_host.rstrip('/') }}/api/galaxy/pulp/api/v3/repositories/?name={{ bootstrap_controller_hub_publish_repository | default('validated') }}
+    method: GET
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+    status_code: [200]
+    return_content: true
+    headers: "{{ bootstrap_hub_pub_uri_headers }}"
+    user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    force_basic_auth: "{{ bootstrap_hub_pub_uri_force_basic }}"
+  register: bootstrap_hub_preflight_validated_repo
+
+- name: Publish preflight collections | Assert staging and validated pulp repos were found
+  ansible.builtin.assert:
+    that:
+      - (bootstrap_hub_preflight_staging_repo.json.count | default(0) | int) >= 1
+      - (bootstrap_hub_preflight_validated_repo.json.count | default(0) | int) >= 1
+    fail_msg: >-
+      Could not resolve pulp repos for preflight publish.
+      staging={{ bootstrap_hub_preflight_staging_repo.json | default({}) | to_json }}
+      validated={{ bootstrap_hub_preflight_validated_repo.json | default({}) | to_json }}
+
+- name: Publish preflight collections | Publish each tarball when missing from validated
+  ansible.builtin.include_tasks: publish_one_preflight_collection.yml
+  loop: "{{ bootstrap_hub_preflight_publish_list }}"
+  loop_control:
+    loop_var: __hub_pub_item
+    label: "{{ __hub_pub_item.name }}"
+  vars:
+    __hub_pub_force: "{{ __hub_pub_item.force_when_exists | default(false) | bool }}"

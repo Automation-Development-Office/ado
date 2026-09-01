@@ -1,0 +1,11 @@
+---
+minor_changes:
+  - >-
+    install_aap - Dispatch OpenShift installs to
+    infra.aap_utilities.aap_ocp_install and RHEL installs to aap_setup_download /
+    prepare / install; keep ADO Fernet reset and license attach helpers.
+  - >-
+    Remove vendored infra.ado.aap_ocp_install and aap_ocp_install_upstream;
+    Contoller/playbooks call infra.ado.install_aap instead.
+  - >-
+    Add ado-aap-rhel-install-bootstrap.yml for non-OpenShift AAP installs.

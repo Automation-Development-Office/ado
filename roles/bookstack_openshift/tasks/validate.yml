@@ -60,4 +60,4 @@
 
       Default local login:
       {{ bookstack_admin_email }} / (set via bookstack_admin_password)
-      OIDC: {{ bookstack_oidc_enabled | bool }} issuer={{ bookstack_oidc_issuer | default('') }}
+      OIDC: {{ bookstack_oidc_enabled | bool }} issuer={{ bookstack_oidc_issuer_resolved | default(bookstack_oidc_issuer | default('', true)) }}

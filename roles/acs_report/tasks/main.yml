@@ -57,57 +57,67 @@
     state: directory
     mode: "0755"
 
+- name: Set export and parser paths
+  ansible.builtin.set_fact:
+    acs_report_stamp: "{{ now(utc=true).strftime('%Y-%m-%d_%H%M%S') }}"
+    acs_report_parser_dest: "{{ acs_report_outdir }}/rhacs_report_parser.py"
+    acs_report_export_file: >-
+      {{ acs_report_outdir }}/RHACS_workloads_export.ndjson
+
 - name: Stage RHACS report parser
   ansible.builtin.copy:
     src: rhacs_report_parser.py
-    dest: /tmp/rhacs_report_parser.py
+    dest: "{{ acs_report_parser_dest }}"
     mode: "0644"
 
-- name: Stage RHACS report script
-  ansible.builtin.copy:
-    src: rhacs-report.sh
-    dest: /tmp/rhacs-report.sh
-    mode: "0755"
-
-- name: Build report CLI flags
-  ansible.builtin.set_fact:
-    acs_report_cli_args: >-
-      {{
-        ['--' ~ acs_report_mode]
-        + (
-            ['--all']
-            if (
-              (acs_report_all_scope | default(false) | bool)
-              and (acs_report_mode | string) != 'all'
-            )
-            else []
-          )
-        + (['--rhsre'] if (acs_report_rhsre | default(false) | bool) else [])
-        + (['--sev'] if (acs_report_show_sev | default(false) | bool) else [])
-        + (
-            ['--component', acs_report_component]
-            if (acs_report_component | default('') | length > 0)
-            else []
-          )
-        + (
-            ['--clusters', (acs_report_clusters | default([]) | join(','))]
-            if ((acs_report_clusters | default([]) | length) > 0)
-            else []
-          )
-      }}
-    acs_report_stamp: "{{ now(utc=true).strftime('%Y-%m-%d_%H%M%S') }}"
-
-- name: Run RHACS report against Central
-  ansible.builtin.command:
-    argv: "{{ ['/tmp/rhacs-report.sh'] + acs_report_cli_args }}"
-  environment:
-    ROX_ENDPOINT: "{{ acs_report_central_url }}"
-    ROX_API_TOKEN: "{{ acs_report_api_token | default('') }}"
-    ROX_API_USER: "{{ acs_admin_user | default(ocp_acs_admin_user | default('admin')) }}"
-    ROX_API_PASSWORD: "{{ acs_admin_password | default(ocp_acs_admin_password | default('')) }}"
-    RHACS_REPORT_DIR: "{{ acs_report_outdir }}"
-  register: acs_report_run
+- name: Download Central workload export (token)
+  ansible.builtin.get_url:
+    url: >-
+      {{ acs_report_central_url }}{{ acs_report_export_path }}?timeout={{ acs_report_export_timeout | int }}
+    dest: "{{ acs_report_export_file }}"
+    headers:
+      Accept: application/json
+      Authorization: "Bearer {{ acs_report_api_token }}"
+    timeout: "{{ (acs_report_http_timeout | default(acs_report_curl_max_time | default(1200))) | int }}"
+    validate_certs: "{{ acs_report_validate_certs | bool }}"
+    follow_redirects: none
+    force: true
+    mode: "0600"
   no_log: true
+  when: (acs_report_api_token | default('') | length) > 0
+
+- name: Download Central workload export (basic auth)
+  ansible.builtin.get_url:
+    url: >-
+      {{ acs_report_central_url }}{{ acs_report_export_path }}?timeout={{ acs_report_export_timeout | int }}
+    dest: "{{ acs_report_export_file }}"
+    headers:
+      Accept: application/json
+    url_username: "{{ acs_admin_user | default(ocp_acs_admin_user | default('admin')) }}"
+    url_password: "{{ acs_admin_password | default(ocp_acs_admin_password | default('')) }}"
+    force_basic_auth: true
+    timeout: "{{ (acs_report_http_timeout | default(acs_report_curl_max_time | default(1200))) | int }}"
+    validate_certs: "{{ acs_report_validate_certs | bool }}"
+    follow_redirects: none
+    force: true
+    mode: "0600"
+  no_log: true
+  when: (acs_report_api_token | default('') | length) == 0
+
+- name: Parse Central export
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ acs_report_parser_dest }}"
+      - "{{ acs_report_mode }}"
+      - "{{ acs_report_component | default('') }}"
+      - "{{ acs_report_outdir }}"
+      - "{{ '1' if (acs_report_all_scope | default(false) | bool) else '0' }}"
+      - "{{ '1' if (acs_report_rhsre | default(false) | bool) else '0' }}"
+      - "{{ '1' if (acs_report_show_sev | default(false) | bool) else '0' }}"
+      - "{{ (acs_report_clusters | default([])) | join(',') }}"
+      - "{{ acs_report_export_file }}"
+  register: acs_report_run
   changed_when: true
 
 - name: Write RHACS report text capture
@@ -133,11 +143,17 @@
     - sample-prod-summary.json
   when: acs_report_stage_grafana_sample | default(true) | bool
 
+- name: Enrich RHACS CSV with acs-cve-plugin
+  ansible.builtin.include_tasks: cve_enrich.yml
+  when: acs_report_cve_enrich | default(false) | bool
+
 - name: Find generated report artifacts
   ansible.builtin.find:
     paths: "{{ acs_report_outdir }}"
     patterns:
       - "RHACS_*.csv"
+      - "RHACS_*-fp.csv"
+      - "RHACS_*-poam.csv"
       - "RHACS_*.json"
       - "RHACS_*.txt"
       - "rhacs-vulnerability-overview.json"

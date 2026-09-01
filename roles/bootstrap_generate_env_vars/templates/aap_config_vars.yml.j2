@@ -120,6 +120,14 @@
     if bootstrap_generate_env_vars_preflight is defined
     else (bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled | default(false) | bool)
 %}
+{# Register Host to Satellite targets <org>-RHEL-Inventory; create it even without dynamic sync. #}
+{% set satellite_client_tools_selected =
+    satellite_component_selected
+    and (
+      preflight_satellite_options | length == 0
+      or 'satellite_client_tools' in preflight_satellite_options
+    )
+%}
 {% set bootstrap_generate_env_vars_satellite_server_url =
     preflight_satellite_config.hostname
     | default(bootstrap_generate_env_vars_satellite_server_url | default(''), true)
@@ -247,6 +255,14 @@
     if bootstrap_generate_env_vars_rhel_use_existing_inventory
     else bootstrap_generate_env_vars_rhel_inventory_default
 %}
+{% set bootstrap_generate_env_vars_rhel_inventory_needed =
+    (
+      rhel_inventory_selected
+      or bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled
+      or satellite_client_tools_selected
+    )
+    and not bootstrap_generate_env_vars_rhel_use_existing_inventory
+%}
 {% set bootstrap_generate_env_vars_idm_inventory = bootstrap_generate_env_vars_aap_org ~ '-IDM-Inventory' %}
 {% set bootstrap_generate_env_vars_satellite_inventory = bootstrap_generate_env_vars_aap_org ~ '-Satellite-Server-Inventory' %}
 {% set bootstrap_generate_env_vars_aap_project_raw = preflight_aap.project | default(bootstrap_generate_env_vars_aap_org ~ '-project', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project.user_input | default(bootstrap_generate_env_vars_aap_org ~ '-project', true)) %}
@@ -282,11 +298,22 @@
 {% set bootstrap_generate_env_vars_aap_git_url = preflight_aap.git_url if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_project_scm_url.user_input %}
 {% set bootstrap_generate_env_vars_aap_git_branch = (preflight_aap.git_branch | default(bootstrap_generate_env_vars_default_git_branch | default('main'), true)) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project_scm_branch.user_input | default(bootstrap_generate_env_vars_default_git_branch | default('main'), true)) %}
 {% set bootstrap_generate_env_vars_aap_git_token_present = (preflight_git.token | default('') | length > 0) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project_scm_token.user_input | default('', true) | length > 0) %}
-{% set bootstrap_generate_env_vars_git_auto_push =
-    (preflight_git.auto_push | default(false))
-    if bootstrap_generate_env_vars_preflight is defined
-    else ((bootstrap_generate_env_vars_prompt_git_auto_push.user_input | default('n', true) | lower) in ['y', 'yes'])
+{% set bootstrap_generate_env_vars_aap_git_auto_push =
+    false
+    if (
+      bootstrap_generate_env_vars_preflight is defined
+      and (
+        preflight_aap.hub_update_collection_only | default(false)
+        or preflight_aap.standalone_run | default(false)
+      )
+    )
+    else (
+      (preflight_git.auto_push | default(false))
+      if bootstrap_generate_env_vars_preflight is defined
+      else ((bootstrap_generate_env_vars_prompt_git_auto_push.user_input | default('n', true) | lower) in ['y', 'yes'])
+    )
 %}
+{% set bootstrap_generate_env_vars_git_auto_push = bootstrap_generate_env_vars_aap_git_auto_push %}
 {% set controller_bootstrap_scm_credential = bootstrap_generate_env_vars_aap_project ~ '-git-token' %}
 {% set bootstrap_generate_env_vars_aap_additional_credentials = preflight_aap.additional_credentials | default(bootstrap_generate_env_vars_aap_additional_credentials | default([]), true) %}
 {% set bootstrap_generate_env_vars_rhel_hostname = preflight_rhel_config.hostname | default('', true) %}
@@ -330,6 +357,7 @@
     | default(preflight_openshift_config.host | default('', true), true)
 %}
 {% set bootstrap_generate_env_vars_hub_publish_ado_collection = preflight_aap.hub_publish_ado_collection | default(bootstrap_generate_env_vars_hub_publish_ado_collection | default(false)) | bool %}
+{% set bootstrap_generate_env_vars_hub_publish_preflight_collections = preflight_aap.hub_publish_preflight_collections | default(bootstrap_generate_env_vars_hub_publish_preflight_collections | default(false)) | bool %}
 {% set bootstrap_generate_env_vars_hub_mark_ado_validated = true if bootstrap_generate_env_vars_hub_publish_ado_collection else false %}
 {% set bootstrap_generate_env_vars_hub_force_ado_collection_update = preflight_aap.hub_force_ado_collection_update | default(bootstrap_generate_env_vars_hub_force_ado_collection_update | default(true)) | bool %}
 {% set bootstrap_generate_env_vars_hub_update_collection_only = preflight_aap.hub_update_collection_only | default(bootstrap_generate_env_vars_hub_update_collection_only | default(false)) | bool %}
@@ -406,6 +434,19 @@ bootstrap_controller_rhel_inventory_name: "{{ bootstrap_generate_env_vars_rhel_i
 bootstrap_controller_idm_inventory_name: "{{ bootstrap_generate_env_vars_idm_inventory }}"
 bootstrap_controller_satellite_inventory_name: "{{ bootstrap_generate_env_vars_satellite_inventory }}"
 bootstrap_controller_cert_manager_mode: "{{ preflight_cert_manager_config.mode | default('cert', true) }}"
+bootstrap_controller_update_default_ingress: {{ preflight_cert_manager_config.update_default_ingress | default(false) | bool | lower }}
+{% set bootstrap_generate_env_vars_project_sync_timeout =
+    preflight_aap.project_sync_timeout
+    | default(bootstrap_controller_project_sync_timeout | default(600), true)
+    | int
+%}
+{% set bootstrap_generate_env_vars_project_playbook_wait_seconds =
+    preflight_aap.project_playbook_wait_seconds
+    | default(bootstrap_controller_project_playbook_wait_seconds | default(60), true)
+    | int
+%}
+bootstrap_controller_project_sync_timeout: {{ bootstrap_generate_env_vars_project_sync_timeout }}
+bootstrap_controller_project_playbook_wait_seconds: {{ bootstrap_generate_env_vars_project_playbook_wait_seconds }}
 {% set bootstrap_generate_env_vars_additional_environments =
     (
       bootstrap_generate_env_vars_preflight.additional_environments
@@ -455,9 +496,11 @@ controller_bootstrap_machine_credential: "{{ bootstrap_generate_env_vars_machine
 {% endif %}
 
 bootstrap_controller_hub_publish_ado_collection: {{ bootstrap_generate_env_vars_hub_publish_ado_collection | lower }}
+bootstrap_controller_hub_publish_preflight_collections: {{ bootstrap_generate_env_vars_hub_publish_preflight_collections | lower }}
 bootstrap_controller_hub_mark_ado_validated: {{ bootstrap_generate_env_vars_hub_mark_ado_validated | lower }}
 bootstrap_controller_hub_force_ado_collection_update: {{ bootstrap_generate_env_vars_hub_force_ado_collection_update | lower }}
 bootstrap_controller_hub_update_collection_only: {{ bootstrap_generate_env_vars_hub_update_collection_only | lower }}
+bootstrap_controller_hub_ado_collection_tarball: "{{ bootstrap_generate_env_vars_hub_ado_collection_tarball | default('') }}"
 bootstrap_controller_hub_hostname: "{{ bootstrap_generate_env_vars_hub_hostname }}"
 bootstrap_controller_hub_push_ee: {{ bootstrap_generate_env_vars_hub_push_ee | lower }}
 bootstrap_controller_hub_ee_source_image: "{{ bootstrap_generate_env_vars_hub_ee_source_image }}"
@@ -468,11 +511,14 @@ bootstrap_controller_hub_ee_pull: {{ bootstrap_generate_env_vars_hub_ee_pull | l
 bootstrap_controller_hub_ee_create_execution_environment: {{ bootstrap_generate_env_vars_hub_ee_create_execution_environment | lower }}
 bootstrap_controller_hub_ee_execution_environment_name: "{{ bootstrap_generate_env_vars_hub_ee_execution_environment_name }}"
 bootstrap_controller_hub_ee_description: {{ bootstrap_generate_env_vars_hub_ee_description | to_json }}
-bootstrap_generate_playbook_repo_write_galaxy_requirements: {{ bootstrap_generate_env_vars_hub_publish_ado_collection | lower }}
+bootstrap_generate_playbook_repo_write_galaxy_requirements: true
 hub_collections:
 {% if bootstrap_generate_env_vars_hub_publish_ado_collection %}
   - collection_name: infra_ado
     collection_local_path: "{{ bootstrap_generate_env_vars_hub_ado_collection_path | default('.') }}"
+{% if bootstrap_generate_env_vars_hub_ado_collection_tarball | default('') | length > 0 %}
+    collection_tarball_path: "{{ bootstrap_generate_env_vars_hub_ado_collection_tarball }}"
+{% endif %}
     repository: "validated"
 {% else %}
   []
@@ -481,14 +527,26 @@ hub_collections:
 controller_bootstrap_controller_organizations:
   - name: "{{ bootstrap_generate_env_vars_aap_org }}"
     description: "{{ bootstrap_generate_env_vars_aap_org }}"
-{% if preflight_galaxy_setup_enabled %}
+{# Always emit org Galaxy credential order when attach_to_org is set — even if
+   galaxy_setup_enabled is false this run. Contoller project sync needs those
+   Hub/Galaxy credentials on the org to install Galaxy-named collections from
+   collections/requirements.yml (e.g. community.grafana). "enabled" only gates
+   creating/updating credential objects below; do not drop org attachments. #}
+{% for galaxy_credential in preflight_galaxy_credentials_ordered
+   if (galaxy_credential.attach_to_org | default(true) | bool)
+   and (galaxy_credential.name | default('', true) | length > 0) %}
+{% if loop.first %}
     galaxy_credentials:
-{% for galaxy_credential in preflight_galaxy_credentials_ordered %}
-{% if (galaxy_credential.enabled | default(true) | bool) and (galaxy_credential.attach_to_org | default(true) | bool) and (galaxy_credential.name | default('', true) | length > 0) %}
+{% endif %}
       - "{{ galaxy_credential.name }}"
+{% endfor %}
+{% set preflight_onboard_tenants = preflight_aap.onboard.tenants | default([]) %}
+{% for onboard_tenant in preflight_onboard_tenants %}
+{% if (onboard_tenant.enabled | default(true) | bool) and (onboard_tenant.create_organization | default(true) | bool) and (onboard_tenant.organization | default('', true) | length > 0) and (onboard_tenant.organization != bootstrap_generate_env_vars_aap_org) %}
+  - name: "{{ onboard_tenant.organization }}"
+    description: "{{ onboard_tenant.description | default(onboard_tenant.organization, true) }}"
 {% endif %}
 {% endfor %}
-{% endif %}
 
 {# Optional non-admin Contoller user from Galaxy tab (separate from General admin). #}
 controller_users:
@@ -661,6 +719,7 @@ controller_bootstrap_controller_projects:
     credential: "{{ controller_bootstrap_scm_credential }}"
 {% endif %}
     wait: false
+    scm_clean: true
     # Sync is a later bootstrap_controller step. Galaxy install only happens
     # when collections/requirements.yml exists (Hub path).
     update_project: false
@@ -670,7 +729,7 @@ controller_bootstrap_controller_inventories:
     organization: "{{ bootstrap_generate_env_vars_aap_org }}"
     description: "Generated local bootstrap inventory"
     variables: {}
-{% if (rhel_inventory_selected or bootstrap_generate_env_vars_satellite_dynamic_inventory_enabled) and not bootstrap_generate_env_vars_rhel_use_existing_inventory %}
+{% if bootstrap_generate_env_vars_rhel_inventory_needed %}
 
   - name: "{{ bootstrap_generate_env_vars_rhel_inventory }}"
     organization: "{{ bootstrap_generate_env_vars_aap_org }}"
@@ -852,3 +911,4 @@ generate_playbook_repo_git_remote: "origin"
 generate_playbook_repo_git_sync_before_push: true
 generate_playbook_repo_git_username: "oauth2"
 generate_playbook_repo_git_token: "{% raw %}{{ vault_controller_git_token }}{% endraw %}"
+generate_playbook_repo_git_auth_mode: "{{ 'bearer' if (bootstrap_generate_env_vars_preflight.scm_tool | default('gitlab') | lower) == 'bitbucket' else 'basic' }}"

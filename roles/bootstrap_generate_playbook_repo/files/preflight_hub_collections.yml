@@ -1,0 +1,124 @@
+---
+# Maps preflight-ui/collections tarballs to Galaxy names for Hub publish and
+# Controller project collections/requirements.yml (Hub source-of-truth mode).
+#
+# hub_publish: considered when bootstrap_controller_hub_publish_preflight_collections
+# is true. Upload is skipped when the version already exists in validated unless
+# force_when_exists is true (infra.ado also respects hub_force_ado_collection_update).
+#
+# controller_requirements: listed in git collections/requirements.yml when Hub is
+# the Controller collection source (no vendored trees in git).
+collections:
+  - tarball_glob: infra-ado-*.tar.gz
+    name: infra.ado
+    namespace: infra
+    collection: ado
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: true
+
+  - tarball_glob: kubernetes-core-*.tar.gz
+    name: kubernetes.core
+    namespace: kubernetes
+    collection: core
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: redhat-openshift-*.tar.gz
+    name: redhat.openshift
+    namespace: redhat
+    collection: openshift
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: community-general-*.tar.gz
+    name: community.general
+    namespace: community
+    collection: general
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: community-grafana-*.tar.gz
+    name: community.grafana
+    namespace: community
+    collection: grafana
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: grafana-grafana-*.tar.gz
+    name: grafana.grafana
+    namespace: grafana
+    collection: grafana
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
+  # Bootstrap-only (preflight container); not installed on Controller projects.
+  - tarball_glob: ansible-controller-*.tar.gz
+    name: ansible.controller
+    namespace: ansible
+    collection: controller
+    controller_requirements: false
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: awx-awx-*.tar.gz
+    name: awx.awx
+    namespace: awx
+    collection: awx
+    controller_requirements: false
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: infra-controller_configuration-*.tar.gz
+    name: infra.controller_configuration
+    namespace: infra
+    collection: controller_configuration
+    controller_requirements: false
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: infra-aap_configuration-*.tar.gz
+    name: infra.aap_configuration
+    namespace: infra
+    collection: aap_configuration
+    controller_requirements: false
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: ansible-platform-*.tar.gz
+    name: ansible.platform
+    namespace: ansible
+    collection: platform
+    controller_requirements: false
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: ansible-hub-*.tar.gz
+    name: ansible.hub
+    namespace: ansible
+    collection: hub
+    controller_requirements: false
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: containers-podman-*.tar.gz
+    name: containers.podman
+    namespace: containers
+    collection: podman
+    controller_requirements: false
+    hub_publish: true
+    force_when_exists: false
+
+# Optional Galaxy names Contoller project sync can resolve without AH-only
+# content. Do NOT list AH-only / unpublished collections here (project sync
+# fails the whole requirements.yml). Put those on the Contoller EE instead:
+#   - infra.openshift_virtualization_ops (validated; not on public Galaxy)
+#   - redhat.rhel_system_roles (Automation Hub certified)
+controller_requirements_galaxy_only:
+  - name: infra.aap_utilities
+  - name: infra.rhacs_configuration

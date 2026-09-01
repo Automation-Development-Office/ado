@@ -1,0 +1,31 @@
+---
+# CFK external listener routes often use operator-managed passthrough certs.
+# Patch them to edge termination so the cluster ingress cert (cert-manager) is used.
+
+- name: Kafka Install List CFK operand routes
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ kafka_install_operand_namespace }}"
+  register: kafka_install_cfk_routes
+
+- name: Kafka Install Patch CFK routes to edge TLS
+  kubernetes.core.k8s:
+    state: present
+    merge_type: merge
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: "{{ item.metadata.name }}"
+        namespace: "{{ kafka_install_operand_namespace }}"
+      spec:
+        tls:
+          termination: edge
+          insecureEdgeTerminationPolicy: Redirect
+  loop: "{{ kafka_install_cfk_routes.resources | default([]) }}"
+  loop_control:
+    label: "{{ item.metadata.name | default('route') }}"
+  when:
+    - item.spec.host is defined
+    - (item.spec.host | string | length) > 0

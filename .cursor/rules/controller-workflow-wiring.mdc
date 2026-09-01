@@ -1,0 +1,28 @@
+---
+description: New Contoller JTs for a component with a workflow must be wired into that workflow
+alwaysApply: true
+---
+
+# Contoller workflow wiring (required)
+
+When a component already has a Contoller **workflow** and you add a new piece
+(playbook, role path, or job template) that should run as part of that component's
+bootstrap, you **must** also add it to the workflow. Shipping a JT alone is incomplete.
+
+## Checklist (do all that apply)
+
+1. Add/update the playbook under `bootstrap_generate_playbook_repo` seed files.
+2. Add the JT under `bootstrap_controller/files/job_templates/`.
+3. Register the JT in `bootstrap_controller` component → JT map (`generate_aap_configs.yml`).
+4. **Wire the node** into both:
+   - `bootstrap_controller/files/workflows/*.wf.yml`
+   - `bootstrap_controller/templates/workflows/*.wf.yml`
+5. Set `success_nodes` / edges so order is correct (e.g. after Deploy cert-manager).
+6. If the step is optional (flag-gated), prune/gate the JT so the workflow node is
+   dropped when the JT is not generated — do not leave a dangling edge.
+7. Rebuild/ship the `infra.ado` collection used by preflight before claiming it works.
+
+## Anti-pattern
+
+- UI collects config + JT exists, but OpenShift (or other) workflow never references
+  the JT → Contoller never runs it. That is a bug, not "good enough."

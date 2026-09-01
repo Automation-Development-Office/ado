@@ -1,7 +1,7 @@
 ---
 controller_templates:
-  - name: ADO | Deploy Grafana Route
-    description: Bootstrap - Deploy and configure Grafana Route
+  - name: ADO | Deploy Grafana Alternate Route
+    description: Bootstrap - Deploy Grafana alternate apps-domain Route (optional)
     organization: '{{ bootstrap_controller_organization }}'
     playbook: playbooks/grafana/ado-create-custom-route.yml
     inventory: '{{ bootstrap_controller_inventory_name }}'
@@ -18,8 +18,8 @@ controller_templates:
     extra_vars: {}
     survey_enabled: true
     survey_spec:
-      name: ADO | Deploy Grafana Route Survey
-      description: Configuration options for Grafana Route deployment
+      name: ADO | Deploy Grafana Alternate Route Survey
+      description: Configuration options for Grafana alternate Route deployment
       spec:
         - question_name: ADO | Do you want to install or remove?
           question_description: Install (present) or Remove (absent)

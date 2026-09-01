@@ -1,0 +1,106 @@
+---
+- name: Resolve MinIO console and API hostnames for OIDC
+  ansible.builtin.set_fact:
+    minio_console_hostname_effective: >-
+      {{
+        minio_console_hostname
+        | default(hostname)
+        | default('minio-console-' ~ (name_space | default('minio')) ~ '.'
+          ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+      }}
+    minio_api_hostname_effective: >-
+      {{
+        minio_api_hostname
+        | default('minio-api-' ~ (name_space | default('minio')) ~ '.'
+          ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+      }}
+
+- name: Resolve MinIO OIDC discovery URL
+  ansible.builtin.set_fact:
+    minio_console_url: "https://{{ minio_console_hostname_effective }}"
+    minio_oidc_config_url_effective: >-
+      {{
+            minio_oidc_config_url
+        | default(
+            (
+              minio_oidc_issuer | default('', true)
+              | default(
+                  'https://'
+                  ~ (keycloak_hostname | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com')))))
+                  ~ '/realms/'
+                  ~ (rhbk_realm | default(ocp_rhbk_realm | default(minio_keycloak_realm | default('rhlab')))),
+                  true
+                )
+            )
+            ~ '/.well-known/openid-configuration'
+          )
+      }}
+
+- name: Configure MinIO Keycloak OIDC client and secret
+  ansible.builtin.import_tasks: configure-keycloak-oidc.yml
+  when: minio_oidc_enabled | default(false) | bool
+
+- name: Create MinIO OIDC Secret when enabled
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: minio-oidc
+        namespace: "{{ name_space }}"
+        labels:
+          app.kubernetes.io/name: minio
+          app.kubernetes.io/component: oidc
+      type: Opaque
+      stringData:
+        MINIO_IDENTITY_OPENID_CLIENT_ID: "{{ minio_oidc_client_id }}"
+        MINIO_IDENTITY_OPENID_CLIENT_SECRET: "{{ minio_oidc_client_secret | default('') }}"
+        MINIO_IDENTITY_OPENID_CONFIG_URL: "{{ minio_oidc_config_url_effective }}"
+        MINIO_IDENTITY_OPENID_CLAIM_NAME: "{{ minio_oidc_claim_name | default('policy') }}"
+        MINIO_IDENTITY_OPENID_DISPLAY_NAME: "{{ minio_oidc_display_name | default('Keycloak') }}"
+        MINIO_IDENTITY_OPENID_SCOPES: "{{ minio_oidc_scopes | default('openid,profile,email') }}"
+  when:
+    - minio_oidc_enabled | default(false) | bool
+    - minio_oidc_client_secret is defined
+    - (minio_oidc_client_secret | string | length) > 0
+  no_log: true
+
+- name: Read MinIO Deployment for OIDC patch
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ minio_deployment_name | default('minio') }}"
+    namespace: "{{ name_space }}"
+  register: ocp_minio_deploy_for_oidc
+  when: minio_oidc_enabled | default(false) | bool
+
+- name: Patch MinIO Deployment with OIDC envFrom
+  kubernetes.core.k8s:
+    state: present
+    merge_type: merge
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ minio_deployment_name | default('minio') }}"
+        namespace: "{{ name_space }}"
+      spec:
+        template:
+          metadata:
+            annotations:
+              ado.infra/minio-oidc: enabled
+          spec:
+            containers:
+              - name: minio
+                envFrom:
+                  - secretRef:
+                      name: minio-creds
+                  - secretRef:
+                      name: minio-oidc
+                env:
+                  - name: MINIO_BROWSER_REDIRECT_URL
+                    value: "{{ minio_console_url }}"
+  when:
+    - minio_oidc_enabled | default(false) | bool
+    - ocp_minio_deploy_for_oidc.resources | default([]) | length > 0

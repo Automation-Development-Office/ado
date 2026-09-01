@@ -1,3 +1,19 @@
 # SPDX-License-Identifier: GPL-3.0-or-later-0
 # ---
 # defaults file for rhbk_manage_federation
+#
+# Prefer rhbk_hostname / ocp_rhbk_hostname from preflight Hostname/URL; federation
+# tasks historically used rhbk_host.
+rhbk_host: >-
+  {{
+    (
+      rhbk_hostname
+      | default(ocp_rhbk_hostname, true)
+      | default(hostname, true)
+      | default('', true)
+    )
+    | regex_replace('^https?://', '')
+    | regex_replace('/.*$', '')
+  }}
+# Preflight ``component_config.rhbk.federation_name`` → ``federation_name`` in vars.
+rhbk_federation_name: "{{ federation_name | default('LDAP') }}"

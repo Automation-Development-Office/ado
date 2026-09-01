@@ -1,0 +1,328 @@
+---
+- name: Default ingress cert | Assert PEMs
+  ansible.builtin.assert:
+    that:
+      - tls_crt is defined and (tls_crt | string | length) > 0
+      - tls_key is defined and (tls_key | string | length) > 0
+    fail_msg: >-
+      Updating the default ingress certificate requires tls_crt and tls_key
+      (PEM). Use a wildcard for *.apps.<domain> signed by IdM or another CA
+      your clients trust.
+
+# Preflight / vault / Contoller often deliver PEMs with CR, escaped "\n", or a
+# ca_crt that already includes the leaf. Normalize + dedupe before writing the
+# Secret — otherwise the IngressController switches to a secret routers cannot
+# parse, new router pods CrashLoop, and clients keep the old ingress-operator cert.
+- name: Default ingress cert | Normalize and validate PEM material
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PY'
+    import json, os, re, subprocess, tempfile
+
+    def normalize(text):
+        s = str(text or "")
+        s = s.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n")
+        s = s.replace("\r\n", "\n").replace("\r", "\n")
+        return s.strip()
+
+    def pem_blocks(text, begin):
+        pat = re.compile(
+            rf"-----BEGIN {re.escape(begin)}-----.*?-----END {re.escape(begin)}-----",
+            re.S,
+        )
+        return [m.group(0).strip() + "\n" for m in pat.finditer(normalize(text))]
+
+    def fingerprint(pem):
+        with tempfile.NamedTemporaryFile("w", delete=False) as fh:
+            fh.write(pem)
+            path = fh.name
+        try:
+            out = subprocess.check_output(
+                ["openssl", "x509", "-in", path, "-noout", "-fingerprint", "-sha256"],
+                text=True,
+                stderr=subprocess.STDOUT,
+            )
+        finally:
+            os.unlink(path)
+        return out.strip()
+
+    leaf_in = os.environ.get("ADO_TLS_CRT", "")
+    key_in = os.environ.get("ADO_TLS_KEY", "")
+    ca_in = os.environ.get("ADO_CA_CRT", "")
+
+    certs = pem_blocks(leaf_in, "CERTIFICATE")
+    if not certs:
+        raise SystemExit("tls_crt / ingress_tls_crt has no CERTIFICATE PEM block after normalize")
+    keys = pem_blocks(key_in, "PRIVATE KEY") or pem_blocks(key_in, "RSA PRIVATE KEY")
+    if not keys:
+        raise SystemExit("tls_key / ingress_tls_key has no PRIVATE KEY PEM block after normalize")
+
+    ordered = []
+    seen = set()
+    for pem in certs + pem_blocks(ca_in, "CERTIFICATE"):
+        fp = fingerprint(pem)
+        if fp in seen:
+            continue
+        seen.add(fp)
+        ordered.append(pem)
+
+    combined = "".join(ordered)
+    key_pem = keys[0]
+
+    with tempfile.TemporaryDirectory() as td:
+        crt_path = os.path.join(td, "tls.crt")
+        key_path = os.path.join(td, "tls.key")
+        open(crt_path, "w").write(combined)
+        open(key_path, "w").write(key_pem)
+
+        def run(args):
+            try:
+                return subprocess.check_output(args, text=True, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as exc:
+                detail = (exc.output or "").strip() or str(exc)
+                raise SystemExit(f"openssl failed ({' '.join(args)}): {detail}") from exc
+
+        run(["openssl", "x509", "-in", crt_path, "-noout", "-subject", "-issuer"])
+        run(["openssl", "pkey", "-in", key_path, "-check", "-noout"])
+        # OpenSSL 3.x: pkey has no -modulus. Compare pubkeys instead.
+        pub_crt = run(["openssl", "x509", "-in", crt_path, "-pubkey", "-noout"])
+        pub_key = run(["openssl", "pkey", "-in", key_path, "-pubout"])
+        if pub_crt.strip() != pub_key.strip():
+            raise SystemExit("tls.crt and tls.key public keys do not match after normalize")
+
+    print(json.dumps({"tls_crt": combined, "tls_key": key_pem, "cert_count": len(ordered)}))
+    PY
+  environment:
+    ADO_TLS_CRT: "{{ tls_crt | string }}"
+    ADO_TLS_KEY: "{{ tls_key | string }}"
+    ADO_CA_CRT: "{{ ca_crt | default('', true) | string }}"
+  register: ocp_default_ingress_pem_normalize
+  changed_when: false
+  no_log: true
+  failed_when: false
+
+- name: Default ingress cert | Surface normalize errors without PEMs
+  ansible.builtin.fail:
+    msg: >-
+      Ingress PEM normalize/validate failed:
+      {{ ocp_default_ingress_pem_normalize.stderr
+         | default(ocp_default_ingress_pem_normalize.stdout, true)
+         | default(ocp_default_ingress_pem_normalize.msg, true)
+         | default('unknown openssl/normalize error')
+         | trim }}
+  when: (ocp_default_ingress_pem_normalize.rc | default(1) | int) != 0
+
+- name: Default ingress cert | Load normalized PEMs
+  ansible.builtin.set_fact:
+    ocp_default_ingress_cert_combined_crt: "{{ (ocp_default_ingress_pem_normalize.stdout | from_json).tls_crt }}"
+    ocp_default_ingress_cert_normalized_key: "{{ (ocp_default_ingress_pem_normalize.stdout | from_json).tls_key }}"
+    ocp_default_ingress_cert_count: "{{ (ocp_default_ingress_pem_normalize.stdout | from_json).cert_count }}"
+  no_log: true
+
+- name: Default ingress cert | Create TLS secret in openshift-ingress
+  kubernetes.core.k8s:
+    state: "{{ state | default('present') }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ ocp_default_ingress_cert_secret_name }}"
+        namespace: "{{ ocp_default_ingress_cert_secret_namespace }}"
+      type: kubernetes.io/tls
+      data:
+        tls.crt: "{{ ocp_default_ingress_cert_combined_crt | b64encode }}"
+        tls.key: "{{ ocp_default_ingress_cert_normalized_key | b64encode }}"
+
+- name: Default ingress cert | Patch IngressController defaultCertificate
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operator.openshift.io/v1
+      kind: IngressController
+      metadata:
+        name: "{{ ocp_default_ingress_cert_controller_name }}"
+        namespace: "{{ ocp_default_ingress_cert_operator_namespace }}"
+      spec:
+        defaultCertificate:
+          name: "{{ ocp_default_ingress_cert_secret_name }}"
+
+# Available=True alone is not enough — a bad cert leaves old routers up and new
+# ones CrashLooping while Available stays True.
+- name: Default ingress cert | Wait for IngressController rollout healthy
+  kubernetes.core.k8s_info:
+    api_version: operator.openshift.io/v1
+    kind: IngressController
+    name: "{{ ocp_default_ingress_cert_controller_name }}"
+    namespace: "{{ ocp_default_ingress_cert_operator_namespace }}"
+  register: ocp_default_ingress_cert_ic
+  until: >-
+    (
+      ocp_default_ingress_cert_ic.resources
+      | default([])
+      | length
+    ) > 0
+    and
+    (
+      ocp_default_ingress_cert_ic.resources[0].status.conditions
+      | default([])
+      | selectattr('type', 'defined')
+      | selectattr('type', 'equalto', 'Available')
+      | selectattr('status', 'defined')
+      | selectattr('status', 'equalto', 'True')
+      | list
+      | length
+    ) > 0
+    and
+    (
+      ocp_default_ingress_cert_ic.resources[0].status.conditions
+      | default([])
+      | selectattr('type', 'defined')
+      | selectattr('type', 'equalto', 'Progressing')
+      | selectattr('status', 'defined')
+      | selectattr('status', 'equalto', 'False')
+      | list
+      | length
+    ) > 0
+    and
+    (
+      ocp_default_ingress_cert_ic.resources[0].status.conditions
+      | default([])
+      | selectattr('type', 'defined')
+      | selectattr('type', 'equalto', 'Degraded')
+      | selectattr('status', 'defined')
+      | selectattr('status', 'equalto', 'False')
+      | list
+      | length
+    ) > 0
+  retries: "{{ ocp_default_ingress_cert_wait_retries | default(60) | int }}"
+  delay: "{{ ocp_default_ingress_cert_wait_delay | default(10) | int }}"
+  when: (state | default('present')) == 'present'
+  changed_when: false
+
+- name: Default ingress cert | Resolve CA PEM for cluster-wide trust
+  ansible.builtin.set_fact:
+    ocp_default_ingress_trust_ca_pem: >-
+      {{
+        ca_crt
+        | default(ingress_ca_crt, true)
+        | default(idm_ca_bundle_pem, true)
+        | default('', true)
+        | string
+      }}
+  when:
+    - (state | default('present')) == 'present'
+    - >-
+      (
+        ocp_default_ingress_trust_ca_clusterwide
+        | default(trust_ca_clusterwide)
+        | default(false)
+        | bool
+      )
+  changed_when: false
+  no_log: true
+
+- name: Default ingress cert | Normalize trust CA PEM
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PY'
+    import os, re
+    s = str(os.environ.get("ADO_TRUST_CA", "") or "")
+    s = s.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n")
+    s = s.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
+    blocks = re.findall(
+        r"-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----", s, re.S
+    )
+    if not blocks:
+        raise SystemExit("trust CA PEM has no CERTIFICATE blocks after normalize")
+    # Prefer last block when a leaf+CA chain was pasted into ca_crt
+    print((blocks[-1] if len(blocks) > 1 else blocks[0]).strip() + "\n")
+    PY
+  environment:
+    ADO_TRUST_CA: "{{ ocp_default_ingress_trust_ca_pem | string }}"
+  register: ocp_default_ingress_trust_ca_norm
+  when:
+    - (state | default('present')) == 'present'
+    - >-
+      (
+        ocp_default_ingress_trust_ca_clusterwide
+        | default(trust_ca_clusterwide)
+        | default(false)
+        | bool
+      )
+  changed_when: false
+  no_log: true
+
+- name: Default ingress cert | Assert CA PEM when cluster-wide trust requested
+  ansible.builtin.assert:
+    that:
+      - (ocp_default_ingress_trust_ca_norm.stdout | default('') | length) > 0
+    fail_msg: >-
+      trust_ca_clusterwide / ocp_default_ingress_trust_ca_clusterwide requires a CA PEM
+      (ingress_ca_crt, ca_crt, or IdM CA upload / idm_ca_bundle_pem). Use /etc/ipa/ca.crt
+      from IdM, not the wildcard leaf alone.
+  when:
+    - (state | default('present')) == 'present'
+    - >-
+      (
+        ocp_default_ingress_trust_ca_clusterwide
+        | default(trust_ca_clusterwide)
+        | default(false)
+        | bool
+      )
+
+- name: Default ingress cert | Create trusted CA ConfigMap (openshift-config)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "{{ ocp_default_ingress_trusted_ca_configmap_name }}"
+        namespace: "{{ ocp_default_ingress_trusted_ca_configmap_namespace }}"
+      data:
+        ca-bundle.crt: "{{ ocp_default_ingress_trust_ca_norm.stdout }}"
+  when:
+    - (state | default('present')) == 'present'
+    - >-
+      (
+        ocp_default_ingress_trust_ca_clusterwide
+        | default(trust_ca_clusterwide)
+        | default(false)
+        | bool
+      )
+
+- name: Default ingress cert | Patch Proxy trustedCA cluster-wide
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: config.openshift.io/v1
+      kind: Proxy
+      metadata:
+        name: cluster
+      spec:
+        trustedCA:
+          name: "{{ ocp_default_ingress_trusted_ca_configmap_name }}"
+  when:
+    - (state | default('present')) == 'present'
+    - >-
+      (
+        ocp_default_ingress_trust_ca_clusterwide
+        | default(trust_ca_clusterwide)
+        | default(false)
+        | bool
+      )
+
+- name: Default ingress cert | Ready
+  ansible.builtin.debug:
+    msg: >-
+      Default IngressController {{ ocp_default_ingress_cert_controller_name }}
+      now uses secret
+      {{ ocp_default_ingress_cert_secret_namespace }}/{{ ocp_default_ingress_cert_secret_name }}
+      ({{ ocp_default_ingress_cert_count }} cert(s) in chain).
+      {% if (ocp_default_ingress_trust_ca_clusterwide | default(trust_ca_clusterwide) | default(false) | bool) %}
+      Proxy/cluster trustedCA={{ ocp_default_ingress_trusted_ca_configmap_name }}
+      (cluster-wide CA trust enabled).
+      {% else %}
+      Clients must trust the issuing CA (enable trust_ca_clusterwide / upload IdM ca.crt).
+      {% endif %}
+  when: (state | default('present')) == 'present'

@@ -1,0 +1,5 @@
+bugfixes:
+  - >-
+    bootstrap_generate_env_vars - Move preflight overlay Python out of inline
+    shell heredoc; fixes ``Argument list too long`` (errno 7) on hub-only and
+    full bootstrap runs.

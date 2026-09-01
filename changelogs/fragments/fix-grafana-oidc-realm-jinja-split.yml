@@ -1,0 +1,2 @@
+bugfixes:
+  - grafana_install - Fixed Jinja template error fetching RHBK client secret (replaced invalid ``.split()`` with ``regex_replace`` for realm parsing from OIDC issuer).

@@ -1,0 +1,52 @@
+---
+- name: Delete MinIO Deployment
+  kubernetes.core.k8s:
+    state: absent
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ name_space }}"
+    name: "{{ minio_deployment_name }}"
+  ignore_errors: true
+
+- name: Delete MinIO Service
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Service
+    namespace: "{{ name_space }}"
+    name: "{{ minio_service_name }}"
+  ignore_errors: true
+
+- name: Delete MinIO Routes
+  kubernetes.core.k8s:
+    state: absent
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ name_space }}"
+    name: "{{ item }}"
+  loop:
+    - minio-api
+    - minio-console
+  ignore_errors: true
+
+- name: Delete MinIO PVC
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ name_space }}"
+    name: minio-data
+  when: minio_delete_pvc | default(false) | bool
+  ignore_errors: true
+
+- name: Delete MinIO Secrets
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Secret
+    namespace: "{{ name_space }}"
+    name: "{{ item }}"
+  loop:
+    - minio-creds
+    - minio-oidc
+  ignore_errors: true

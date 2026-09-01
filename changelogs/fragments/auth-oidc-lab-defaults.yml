@@ -1,0 +1,10 @@
+---
+minor_changes:
+  - ocp_dev_hub - Mount ``rhdh-app-config`` via Backstage ``appConfig.configMaps``
+    and inject ``rhdh-secrets`` through ``extraEnvs.secrets`` (v1alpha5) so Keycloak
+    OIDC actually loads. Omit empty GitLab integration / catalog URL blocks.
+  - grafana / components_defaults - Enable Grafana Keycloak OIDC by default
+    (``grafana-client``).
+  - install_elastic / components_defaults - Create lab Kibana/ES user
+    (``kibana`` / ``eck_lab_password``) after cluster Ready.
+  - ocp_acs - Best-effort OpenShift OAuth auth provider after Central install.

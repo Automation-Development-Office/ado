@@ -30,6 +30,10 @@ Ask before freelancing:
 
 Only use temporary ad-hoc commands for **diagnosis**. Permanent config and installs must land in role/bootstrap/JT.
 
+## 4. Failed Controller jobs → code first
+
+See **`ado-fix-code-not-controller.mdc`**. Default: fix `infra.ado` / preflight-ui, build tarball into `ado-preflight-ui/collections/`, then tell the user to run `restart_pod.sh`, re-run preflight bootstrap, sync the Controller project, and re-launch JTs. Do not patch AAP/OpenShift live or re-run jobs unless the user explicitly asks.
+
 ## 3. Testing expectation
 
 Validate both paths when practical: local/bootstrap CLI **and** Contoller JT. That is how we know ADO + bootstrap actually work.

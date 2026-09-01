@@ -1,3 +1,20 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
 # defaults file for kafka_install
+
+kafka_install_create_cr: true
+kafka_install_create_route: true
+kafka_install_cluster_name: kafka-cluster
+kafka_install_replicas: 1
+# CFK Kafka CR requires spec.image as an object {application, init}, not a string.
+# Keep kafka_install_image as the application image for backward-compatible overrides.
+kafka_install_image: confluentinc/cp-server:7.6.0
+kafka_install_image_application: "{{ kafka_install_image }}"
+# init tag tracks CFK/operator pairing; 2.8.0 matches Confluent's 7.6.0 examples.
+kafka_install_image_init: confluentinc/confluent-init-container:2.8.0
+kafka_install_data_volume_capacity: 10Gi
+kafka_install_route_domain: "{{ apps_domain | default(app_domain | default('')) }}"
+kafka_install_external_tls: false
+kafka_install_use_ingress_cert: true
+kafka_install_kraft_name: kraftcontroller
+kafka_install_kraft_replicas: 1

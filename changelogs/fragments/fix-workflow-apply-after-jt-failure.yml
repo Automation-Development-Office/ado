@@ -1,0 +1,3 @@
+bugfixes:
+  - bootstrap_controller - Apply workflow job templates in a separate Controller dispatch from job templates so a job template failure (for example transient DNS during async apply) no longer skips workflow node rebuild after ``destroy_current_nodes``.
+  - bootstrap_controller - Fix early config load gate to honor ``bootstrap_controller_apply_aap_configs`` (was referencing unset ``bootstrap_apply_aap_configs``).

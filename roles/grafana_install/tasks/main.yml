@@ -3,6 +3,18 @@
   ansible.builtin.import_tasks: install-grafana-operator.yml
   when: state == "present"
 
+- name: Configure Grafana OIDC
+  ansible.builtin.import_tasks: configure-grafana-oidc.yml
+  when:
+    - state == "present"
+    - (grafana_install_scope | default('install')) == 'oidc'
+
+- name: Configure Grafana email/SMTP
+  ansible.builtin.import_tasks: configure-grafana-email.yml
+  when:
+    - state == "present"
+    - (grafana_install_scope | default('install')) == 'email'
+
 - name: Delete Grafana operator
   ansible.builtin.import_tasks: delete-grafana-operator.yml
   when: state == "absent"

@@ -95,6 +95,11 @@ components_env:
     oidc:
       enabled: true
       client_id: grafana_client
+      scopes:
+        - openid
+        - profile
+        - email
+        - groups
       default_role: Viewer
       role_map:
         - group: ocp-cluster-admin
@@ -264,10 +269,14 @@ components_env:
   rhbk:
     storage: synology-nfs-csi
     rhbk_realm: rhlab
+    rhbk_enabled: true
     rhbk_no_log: false
     cert_manager: true
     rhbk_issuer_name: idm-acme
     rhbk_issuer_kind: ClusterIssuer
+    client_scope_name: groups
+    rhbk_oidc_default_client_scopes:
+      - groups
     rhbk_clients:
       openshift-prod:
         rhbk_client_name: "OpenShift Prod"
@@ -291,15 +300,79 @@ components_env:
           - "https://grafana.{{ '{{ app_domain }}' }}/*"
         rhbk_web_origins:
           - "https://grafana.{{ '{{ app_domain }}' }}"
+      minio_client:
+        rhbk_client_name: "MinIO Console"
+        rhbk_description: "MinIO console OIDC"
+        rhbk_public_client: false
+        rhbk_redirect_uris:
+          - "https://minio-console-minio.{{ '{{ app_domain }}' }}/oauth_callback"
+          - "https://minio-console-minio.{{ '{{ app_domain }}' }}/*"
+        rhbk_web_origins:
+          - "https://minio-console-minio.{{ '{{ app_domain }}' }}"
+          - "+"
+      quay_client:
+        client_id: quay
+        rhbk_client_name: "Quay Registry"
+        rhbk_description: "Quay OIDC login"
+        rhbk_public_client: false
+        rhbk_redirect_uris:
+          - "https://quay.{{ '{{ app_domain }}' }}/oauth2/keycloak/callback"
+          - "https://quay.{{ '{{ app_domain }}' }}/oauth2/keycloak/callback/attach"
+          - "https://quay.{{ '{{ app_domain }}' }}/oauth2/keycloak/callback/cli"
+        rhbk_web_origins:
+          - "https://quay.{{ '{{ app_domain }}' }}"
+      rhdh_client:
+        client_id: rhdh
+        rhbk_client_name: "Developer Hub"
+        rhbk_description: "Red Hat Developer Hub OIDC"
+        rhbk_public_client: false
+        rhbk_redirect_uris:
+          - "https://backstage-chad-lab-rhdh.{{ '{{ app_domain }}' }}/api/auth/oidc/handler/frame"
+          - "https://backstage-chad-lab-rhdh.{{ '{{ app_domain }}' }}/*"
+        rhbk_web_origins:
+          - "https://backstage-chad-lab-rhdh.{{ '{{ app_domain }}' }}"
+          - "+"
     openshift_oidc_auth:
       keycloak_client_id: "openshift-prod"
       openshift_oidc_idp_name: "Keycloak"
       issuer: "https://keycloak.{{ '{{ app_domain }}' }}/realms/rhlab"
       extra_scopes:
-        - openid
-        - email
-        - profile
         - groups
+    ocp_rhbk_hostname: "keycloak.{{ '{{ app_domain }}' }}"
+    ocp_rhbk_realm: rhlab
+    rhbk_enabled: true
+
+{% elif component_name == 'minio' %}
+components_env:
+  minio:
+    console_hostname: "minio-console-minio.{{ '{{ app_domain }}' }}"
+    api_hostname: "minio-api-minio.{{ '{{ app_domain }}' }}"
+    oidc_enabled: true
+    oidc_client_id: minio
+
+{% elif component_name == 'dev_hub' %}
+components_env:
+  dev_hub:
+    instance_name: chad-lab
+    keycloak_realm: rhlab
+    keycloak_client_id: rhdh
+    gitlab_host: "gitlab-git.{{ '{{ app_domain }}' }}"
+    catalog_url: ""
+
+{% elif component_name == 'zabbix' %}
+zabbix_admin_user: Admin
+components_env:
+  zabbix:
+    storage: synology-nfs-csi
+
+{% elif component_name == 'bookstack' %}
+components_env:
+  bookstack:
+    namespace: bookstack
+
+{% elif component_name == 'netbox' %}
+components_env:
+  netbox: {}
 
 {% elif component_name == 'ldap_auth_openshift' %}
 components_env:
@@ -333,6 +406,14 @@ components_env:
     hostname: ''
     compliance_profile: PCI-DSS
     stig_profile: RHEL 9 STIG
+
+{% elif component_name == 'rhel_system_roles' %}
+{% set sr_cfg = bootstrap_generate_env_vars_preflight.component_config.rhel_system_roles | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+components_env:
+  rhel_system_roles:
+{{ sr_cfg | default({}) | to_nice_yaml(indent=2) | indent(4, first=True) }}
+rhel_system_roles:
+{{ sr_cfg | default({}) | to_nice_yaml(indent=2) | indent(2, first=True) }}
 
 {% elif component_name == 'idm' %}
 {% set idm_cfg = bootstrap_generate_env_vars_preflight.component_config.idm | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
@@ -383,11 +464,29 @@ idm_ad_trust_configure_groups: {{ idm_cfg.ad_configure_groups | bool | lower }}
 compliance_profile: STIG
 stig_profile: RHEL 9 STIG
 rhel_stig_profile: RHEL 9 STIG
+stig_engine: system_role
+rhel_stig_cac_remediate: true
 
 {% elif component_name == 'compliance' %}
 components_env:
   compliance:
     profile: PCI-DSS
+
+{% elif component_name == 'ocp_descheduler' %}
+{% set descheduler_cfg = bootstrap_generate_env_vars_preflight.component_config.ocp_descheduler | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set descheduler_profiles = descheduler_cfg.descheduler_profiles | default([
+  'AffinityAndTaints',
+  'TopologyAndDuplicates',
+  'LifecycleAndUtilization'
+]) %}
+components_env:
+  ocp_descheduler:
+    instance_name: "{{ descheduler_cfg.instance_name | default('cluster') }}"
+    scheduling_interval: {{ descheduler_cfg.scheduling_interval | default(3600) | int }}
+    descheduler_profiles:
+{% for profile in descheduler_profiles %}
+      - {{ profile }}
+{% endfor %}
 
 {% else %}
 # No default vars for this component yet.

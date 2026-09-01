@@ -1,0 +1,50 @@
+---
+# Wait until the Keycloak route answers over TLS before realm API calls.
+# UNEXPECTED_EOF usually means ingress/pod TLS is not ready yet (or broken cert).
+- name: Normalize Keycloak hostname for realm wait
+  ansible.builtin.set_fact:
+    rhbk_realm_wait_hostname: >-
+      {{
+        (
+          rhbk_hostname
+          | default(ocp_rhbk_hostname)
+          | default('')
+          | string
+          | regex_replace('^https?://', '')
+          | regex_replace('/.*$', '')
+          | trim
+        )
+      }}
+  changed_when: false
+
+- name: Assert Keycloak hostname is set before realm wait
+  ansible.builtin.assert:
+    that:
+      - rhbk_realm_wait_hostname | length > 0
+    fail_msg: rhbk_hostname / ocp_rhbk_hostname is required before realm create.
+
+- name: Wait for Keycloak HTTPS realm endpoint to respond
+  ansible.builtin.uri:
+    url: "https://{{ rhbk_realm_wait_hostname }}/realms/master"
+    method: GET
+    validate_certs: "{{ rhbk_verify_ssl | default(rhbk_realm_verify_ssl) | default(false) | bool }}"
+    status_code: [200, 401, 403]
+    return_content: false
+  register: rhbk_realm_wait_https
+  until: rhbk_realm_wait_https is succeeded
+  retries: "{{ rhbk_realm_https_wait_retries | default(60) | int }}"
+  delay: "{{ rhbk_realm_https_wait_delay | default(10) | int }}"
+  changed_when: false
+  ignore_errors: true
+
+- name: Fail with actionable Keycloak TLS guidance
+  ansible.builtin.fail:
+    msg: >-
+      Keycloak HTTPS at https://{{ rhbk_realm_wait_hostname }}/realms/master
+      is not reachable ({{ rhbk_realm_wait_https.msg | default(rhbk_realm_wait_https) }}).
+      Common cause: broken Keycloak tlsSecret (empty default-ingress PEM) →
+      SSL UNEXPECTED_EOF. Fix: re-run Deploy RHBK with edge TLS defaults,
+      or run Update Default Ingress / enable cert_manager for Keycloak, then
+      delete the bad secret {{ ocp_rhbk_tls_secret_name | default('keycloak-tls-secret') }}
+      in namespace {{ name_space | default('keycloak') }} and redeploy.
+  when: rhbk_realm_wait_https is failed

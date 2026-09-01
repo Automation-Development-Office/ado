@@ -9,6 +9,35 @@
 # ==========================================
 
 # -----------------------------
+# Map RHBK form vars (hostname / realm / admin / client) onto ocp_rhbk_* + openshift_oidc_auth
+# -----------------------------
+- name: Normalize OIDC inputs from RHBK form vars
+  ansible.builtin.set_fact:
+    ocp_rhbk_hostname: >-
+      {{
+        (
+          ocp_rhbk_hostname
+          | default(rhbk_hostname, true)
+          | default(rhbk_host, true)
+          | default(hostname, true)
+        )
+        | regex_replace('^https?://', '')
+        | regex_replace('/.*$', '')
+      }}
+    ocp_rhbk_realm: "{{ ocp_rhbk_realm | default(rhbk_realm | default(realm | default('', true), true), true) }}"
+    ocp_rhbk_admin_user: "{{ ocp_rhbk_admin_user | default(rhbk_admin_user | default('admin', true), true) }}"
+    ocp_rhbk_admin_password: "{{ ocp_rhbk_admin_password | default(rhbk_admin_password | default('', true), true) }}"
+    openshift_oidc_auth: >-
+      {{
+        {
+          'keycloak_client_id': (rhbk_client | default('')),
+          'openshift_oidc_idp_name': 'Keycloak'
+        }
+        | combine(openshift_oidc_auth | default({}), recursive=True)
+      }}
+  no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
+
+# -----------------------------
 # Validate required inputs
 # -----------------------------
 - name: Assert required OIDC inputs are set
@@ -45,6 +74,12 @@
     ocp_oidc_auth_keycloak_base: "https://{{ ocp_rhbk_hostname }}"
     ocp_oidc_auth_issuer: "https://{{ ocp_rhbk_hostname }}/realms/{{ ocp_rhbk_realm }}"
     ocp_oidc_auth_idp_secret_name: "{{ openshift_oidc_auth.openshift_oidc_idp_name | lower }}-oidc-secret"
+    ocp_oidc_auth_clients_lookup_url: >-
+      {{
+        'https://' ~ ocp_rhbk_hostname
+        ~ '/admin/realms/' ~ ocp_rhbk_realm
+        ~ '/clients?clientId=' ~ openshift_oidc_auth.keycloak_client_id
+      }}
   no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
 
 # ==========================================================
@@ -69,10 +104,12 @@
   ansible.builtin.set_fact:
     ocp_oidc_auth_client_secret_value: >-
       {{
-        ocp_oidc_auth_client_secret_raw.secret
-          | default(ocp_oidc_auth_client_secret_raw.clientsecret)
-          | default(ocp_oidc_auth_client_secret_raw.value)
-          | default(ocp_oidc_auth_client_secret_raw.clientSecret)
+        (ocp_oidc_auth_client_secret_raw.clientsecret_info | default({}))['value']
+          | default((ocp_oidc_auth_client_secret_raw.clientsecret_info | default({})).secret, true)
+          | default(ocp_oidc_auth_client_secret_raw.secret, true)
+          | default(ocp_oidc_auth_client_secret_raw.clientsecret, true)
+          | default(ocp_oidc_auth_client_secret_raw.value, true)
+          | default(ocp_oidc_auth_client_secret_raw.clientSecret, true)
           | default('')
       }}
   no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
@@ -97,14 +134,13 @@
 
 - name: Lookup client UUID by clientId (fallback path)
   ansible.builtin.uri:
-    url: >-
-      {{ ocp_oidc_auth_keycloak_base }}/admin/realms/
-      {{ ocp_rhbk_realm }}/clients?clientId=
-      {{ openshift_oidc_auth.keycloak_client_id }}
+    url: "{{ ocp_oidc_auth_clients_lookup_url }}"
     method: GET
     validate_certs: "{{ ocp_rhbk_verify_ssl | default(false) | bool }}"
     headers:
       Authorization: "Bearer {{ ocp_oidc_auth_token_resp.json.access_token }}"
+    status_code:
+      - 200
   register: ocp_oidc_auth_clients_lookup
   when: (ocp_oidc_auth_client_secret_value | string | length) == 0
   no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
@@ -121,14 +157,13 @@
 
 - name: Get client secret via REST (fallback path)
   ansible.builtin.uri:
-    url: >-
-      {{ ocp_oidc_auth_keycloak_base }}/admin/realms/
-      {{ ocp_rhbk_realm }}/clients/
-      {{ ocp_oidc_auth_clients_lookup.json[0].id }}/client-secret
+    url: "https://{{ ocp_rhbk_hostname }}/admin/realms/{{ ocp_rhbk_realm }}/clients/{{ ocp_oidc_auth_clients_lookup.json[0].id }}/client-secret"
     method: GET
     validate_certs: "{{ ocp_rhbk_verify_ssl | default(false) | bool }}"
     headers:
       Authorization: "Bearer {{ ocp_oidc_auth_token_resp.json.access_token }}"
+    status_code:
+      - 200
   register: ocp_oidc_auth_secret_resp
   when: (ocp_oidc_auth_client_secret_value | string | length) == 0
   no_log: "{{ ocp_rhbk_no_log | default(true) | bool }}"
@@ -180,6 +215,39 @@
     ocp_oidc_auth_existing_providers: "{{ ocp_oidc_auth_oauth_config.resources[0].spec.identityProviders | default([]) }}"
 
 # -----------------------------
+# Normalize extra scopes (Keycloak rejects ``openid`` as an extra scope)
+# -----------------------------
+- name: Normalize OpenShift OIDC extra scopes for Keycloak
+  ansible.builtin.set_fact:
+    openshift_oidc_auth: >-
+      {{
+        openshift_oidc_auth | combine({
+          'extra_scopes': (
+            openshift_oidc_auth.extra_scopes | default(['groups'])
+            | map('string')
+            | map('trim')
+            | reject('equalto', '')
+            | reject('equalto', 'openid')
+            | list
+            | unique
+          )
+        }, recursive=True)
+      }}
+  when: openshift_oidc_auth is defined
+
+- name: Default OpenShift OIDC extra scopes to groups when empty
+  ansible.builtin.set_fact:
+    openshift_oidc_auth: >-
+      {{
+        openshift_oidc_auth | combine({
+          'extra_scopes': ['groups']
+        }, recursive=True)
+      }}
+  when:
+    - openshift_oidc_auth is defined
+    - (openshift_oidc_auth.extra_scopes | default([]) | length) == 0
+
+# -----------------------------
 # Define OIDC provider
 # -----------------------------
 - name: Define OIDC provider
@@ -193,7 +261,7 @@
         clientID: "{{ openshift_oidc_auth.keycloak_client_id }}"
         clientSecret:
           name: "{{ ocp_oidc_auth_idp_secret_name }}"
-        extraScopes: "{{ openshift_oidc_auth.extra_scopes | default(['email', 'profile']) }}"
+        extraScopes: "{{ openshift_oidc_auth.extra_scopes | default(['groups']) }}"
         claims:
           preferredUsername:
             - "{{ openshift_oidc_auth.claims.preferred_username | default('preferred_username') }}"

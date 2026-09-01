@@ -27,6 +27,7 @@ __pycache__/
 .cache/
 .ansible-tmp/
 .kube/
+.tox/
 
 # Local collection build / importer artifacts (never commit)
 infra-ado-*.tar.gz
@@ -36,6 +37,9 @@ importer_result.json
 
 # VSCode
 .vscode/
+
+# Local-only Cursor rules (lab context, cred pointers — never commit)
+.cursor/rules/local/
 
 # Local pip/user installs and container storage (never commit)
 .local/

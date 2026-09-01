@@ -1,0 +1,17 @@
+---
+# Replace OpenShift default IngressController certificate (cluster wildcard).
+state: present
+ocp_default_ingress_cert_controller_name: default
+ocp_default_ingress_cert_operator_namespace: openshift-ingress-operator
+ocp_default_ingress_cert_secret_namespace: openshift-ingress
+ocp_default_ingress_cert_secret_name: ado-default-ingress-cert
+# PEM inputs (preferred for Custom / uploaded IdM-signed wildcard)
+tls_crt: ""
+tls_key: ""
+# Optional CA/chain to include in tls.crt (appended) for trust path completeness
+ca_crt: ""
+# When true, also set Proxy.spec.trustedCA so cluster workloads trust the issuing CA
+# (IdM / public CA). Requires ca_crt (or idm_ca_bundle_pem / extractable CA in tls_crt).
+ocp_default_ingress_trust_ca_clusterwide: false
+ocp_default_ingress_trusted_ca_configmap_name: ado-ingress-trusted-ca
+ocp_default_ingress_trusted_ca_configmap_namespace: openshift-config

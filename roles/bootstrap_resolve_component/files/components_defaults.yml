@@ -1,6 +1,7 @@
 components_aliases:
   storage_class: storage
   storage: storage_class
+  gitlab_install_storage_class: storage_class
   console_banner_text: ocp_console_banner_text
   ocp_console_banner_text: console_banner_text
   console_banner_location: ocp_console_banner_location
@@ -15,12 +16,92 @@ components_aliases:
   ocp_acs_namespace: acs_namespace
   acs_admin_password: ocp_acs_admin_password
   ocp_acs_admin_password: acs_admin_password
+  acs_reinstall: ocp_acs_reinstall
+  ocp_acs_reinstall: acs_reinstall
+  acs_central_name: ocp_acs_central_name
+  ocp_acs_central_name: acs_central_name
+  acs_route_name: ocp_acs_route_name
+  ocp_acs_route_name: acs_route_name
+  acs_admin_password_secret: ocp_acs_admin_password_secret
+  ocp_acs_admin_password_secret: acs_admin_password_secret
+  acs_delete_operator_generated_htpasswd: ocp_acs_delete_operator_generated_htpasswd
+  ocp_acs_delete_operator_generated_htpasswd: acs_delete_operator_generated_htpasswd
+  quay_hostname: ocp_quay_hostname
+  ocp_quay_hostname: quay_hostname
+  quay_admin_user: ocp_quay_admin_user
+  ocp_quay_admin_user: quay_admin_user
+  quay_admin_password: ocp_quay_admin_password
+  ocp_quay_admin_password: quay_admin_password
+  quay_config_secret: ocp_quay_config_secret
+  ocp_quay_config_secret: quay_config_secret
+  eck_create_elasticsearch_cr: install_elastic_eck_create_elasticsearch_cr
+  install_elastic_eck_create_elasticsearch_cr: eck_create_elasticsearch_cr
+  eck_create_kibana_cr: install_elastic_eck_create_kibana_cr
+  install_elastic_eck_create_kibana_cr: eck_create_kibana_cr
+  eck_cluster_name: install_elastic_eck_cluster_name
+  install_elastic_eck_cluster_name: eck_cluster_name
+  eck_replicas: install_elastic_eck_replicas
+  install_elastic_eck_replicas: eck_replicas
+  dirsrv_image: ocp_dirsrv_image
+  ocp_dirsrv_image: dirsrv_image
+  dirsrv_selector: ocp_dirsrv_selector
+  ocp_dirsrv_selector: dirsrv_selector
+  operator_csv_contains: operator_name_substring
+  operator_name_substring: operator_csv_contains
+  rhbk_recreate_ss_on_immutable_change: ocp_rhbk_recreate_ss_on_immutable_change
+  ocp_rhbk_recreate_ss_on_immutable_change: rhbk_recreate_ss_on_immutable_change
+  rhbk_hostname: ocp_rhbk_hostname
+  ocp_rhbk_hostname: rhbk_hostname
+  rhbk_host: ocp_rhbk_hostname
+  rhbk_realm: ocp_rhbk_realm
+  ocp_rhbk_realm: rhbk_realm
+  rhbk_admin_user: ocp_rhbk_admin_user
+  ocp_rhbk_admin_user: rhbk_admin_user
+  rhbk_admin_password: ocp_rhbk_admin_password
+  ocp_rhbk_admin_password: rhbk_admin_password
+
+  # cert-manager: components_defaults export cert_manager_*; role uses ocp_cert_manager_*
+  cert_manager_root_ca_secret_name: ocp_cert_manager_root_ca_secret_name
+  ocp_cert_manager_root_ca_secret_name: cert_manager_root_ca_secret_name
+  cert_manager_root_ca_issuer_name: ocp_cert_manager_root_ca_issuer_name
+  ocp_cert_manager_root_ca_issuer_name: cert_manager_root_ca_issuer_name
+  cert_manager_root_ca_is_cluster_issuer: ocp_cert_manager_root_ca_is_cluster_issuer
+  ocp_cert_manager_root_ca_is_cluster_issuer: cert_manager_root_ca_is_cluster_issuer
+  cert_manager_root_ca_awspca_enabled: ocp_cert_manager_root_ca_awspca_enabled
+  ocp_cert_manager_root_ca_awspca_enabled: cert_manager_root_ca_awspca_enabled
+  cert_manager_root_ca_awspca_region: ocp_cert_manager_root_ca_awspca_region
+  ocp_cert_manager_root_ca_awspca_region: cert_manager_root_ca_awspca_region
+  cert_manager_root_ca_awspca_pca_arn: ocp_cert_manager_root_ca_awspca_pca_arn
+  ocp_cert_manager_root_ca_awspca_pca_arn: cert_manager_root_ca_awspca_pca_arn
+  cert_manager_root_ca_awspca_domain_cn: ocp_cert_manager_root_ca_awspca_domain_cn
+  ocp_cert_manager_root_ca_awspca_domain_cn: cert_manager_root_ca_awspca_domain_cn
+  cert_manager_root_ca_awspca_validity_days: ocp_cert_manager_root_ca_awspca_validity_days
+  ocp_cert_manager_root_ca_awspca_validity_days: cert_manager_root_ca_awspca_validity_days
+  cert_manager_root_ca_awspca_signing_algorithm: ocp_cert_manager_root_ca_awspca_signing_algorithm
+  ocp_cert_manager_root_ca_awspca_signing_algorithm: cert_manager_root_ca_awspca_signing_algorithm
+  cert_manager_root_ca_awspca_template_arn: ocp_cert_manager_root_ca_awspca_template_arn
+  ocp_cert_manager_root_ca_awspca_template_arn: cert_manager_root_ca_awspca_template_arn
+  cert_manager_root_ca_awspca_workdir: ocp_cert_manager_root_ca_awspca_workdir
+  ocp_cert_manager_root_ca_awspca_workdir: cert_manager_root_ca_awspca_workdir
+  cert_manager_root_ca_awspca_key_file: ocp_cert_manager_root_ca_awspca_key_file
+  ocp_cert_manager_root_ca_awspca_key_file: cert_manager_root_ca_awspca_key_file
+  cert_manager_root_ca_awspca_csr_file: ocp_cert_manager_root_ca_awspca_csr_file
+  ocp_cert_manager_root_ca_awspca_csr_file: cert_manager_root_ca_awspca_csr_file
+  cert_manager_root_ca_awspca_cert_file: ocp_cert_manager_root_ca_awspca_cert_file
+  ocp_cert_manager_root_ca_awspca_cert_file: cert_manager_root_ca_awspca_cert_file
+  cert_manager_root_ca_awspca_chain_file: ocp_cert_manager_root_ca_awspca_chain_file
+  ocp_cert_manager_root_ca_awspca_chain_file: cert_manager_root_ca_awspca_chain_file
+  tls_crt: ocp_cert_manager_tls_crt
+  ocp_cert_manager_tls_crt: tls_crt
+  tls_key: ocp_cert_manager_tls_key
+  ocp_cert_manager_tls_key: tls_key
 
 components_defaults:
   # aap 2.6 latest stable
   aap:
     name_space: aap
     operator_namespace: aap
+    operatorgroup: aap-operators
     infra.ado.ocp_operatorgroups: aap-operators
 
     # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
@@ -35,11 +116,16 @@ components_defaults:
 
     admin_password_secret: controller-admin-password
     component: aap
+    # Lab reinstalls often leave Postgres PVC with rows encrypted under an old
+    # Fernet key while aap-db-fields-encryption-secret is recreated → gateway
+    # CrashLoop InvalidToken / login 503. Wipe DB+encryption secrets when true.
+    aap_ocp_install_reset_database: true
 
   # aap 2.7
   aap27:
     name_space: aap27
     operator_namespace: aap27
+    operatorgroup: aap27-operators
     infra.ado.ocp_operatorgroups: aap27-operators
 
     operator_name: ansible-automation-platform-operator
@@ -57,6 +143,7 @@ components_defaults:
   aap25:
     name_space: aap25
     operator_namespace: aap25
+    operatorgroup: aap25-operators
     infra.ado.ocp_operatorgroups: aap25-operators
 
     # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
@@ -75,6 +162,7 @@ components_defaults:
   aap24:
     name_space: aap24
     operator_namespace: aap24
+    operatorgroup: aap24-operators
     infra.ado.ocp_operatorgroups: aap24-operators
 
     # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
@@ -110,18 +198,45 @@ components_defaults:
     acs_namespace: stackrox
     ocp_acs_namespace: stackrox
     acs_central_name: central
+    ocp_acs_central_name: central
     acs_route_name: central
-    acs_reinstall: true
+    ocp_acs_route_name: central
+    acs_reinstall: false
+    ocp_acs_reinstall: false
+    ocp_acs_repair_db_password_mismatch: true
     acs_delete_operator_generated_htpasswd: true
+    ocp_acs_delete_operator_generated_htpasswd: true
     acs_admin_password_secret: central-admin-htpasswd
+    ocp_acs_admin_password_secret: central-admin-htpasswd
     acs_policies_source_type: ""
     acs_policies_source: ""
     acs_reports_source_type: ""
     acs_reports_source: ""
+    acs_report_cve_enrich: true
+    acs_report_cve_enrich_security_view: true
+    acs_report_cve_enrich_actionable_only: false
+    acs_report_cve_enrich_rh_images_only: false
+    acs_report_cve_enrich_cluster: false
+    acs_report_cve_enrich_sort: status
+    # Lab-friendly Central/DB requests; disable Scanner V4 (heavy).
+    ocp_acs_lab_sizing: true
+    ocp_acs_disable_scanner_v4: true
+    ocp_acs_openshift_auth_enabled: true
+    ocp_acs_openshift_auth_name: OpenShift
+    ocp_acs_central_cpu_request: 500m
+    ocp_acs_central_memory_request: 1Gi
+    ocp_acs_central_cpu_limit: "2"
+    ocp_acs_central_memory_limit: 4Gi
+    ocp_acs_central_db_cpu_request: 500m
+    ocp_acs_central_db_memory_request: 1Gi
+    ocp_acs_central_db_cpu_limit: "2"
+    ocp_acs_central_db_memory_limit: 4Gi
 
-    # standard operator vars (what your OLM roles expect)
-    name_space: openshift-operators          # <-- set as a literal, not a Jinja ref
-    infra.ado.ocp_operatorgroups: rhacs-infra.ado.ocp_operatorgroups       # ignored/skip when all_namespaces_install=true
+    # Install into openshift-operators using the existing global-operators OG.
+    # Do NOT create rhacs-operator-group here — a second OG breaks Kafka/GitOps.
+    name_space: openshift-operators
+    operator_subscription_namespace: openshift-operators
+    operatorgroup: ""
     operator_name: rhacs-operator
     operator_channel: stable
     operator_source: redhat-operators
@@ -131,25 +246,39 @@ components_defaults:
     name_space: open-cluster-management
     operator_namespace: open-cluster-management
     app_namespace: open-cluster-management
+    operator_subscription_namespace: open-cluster-management
+    operatorgroup: open-cluster-management
+    infra.ado.ocp_operatorgroups: open-cluster-management
     operator_name: advanced-cluster-management
-    operator_channel: release-2.14
+    # Catalog on current OCP no longer ships release-2.14 (ResolutionFailed).
+    operator_channel: release-2.17
     operator_source: redhat-operators
     operator_source_namespace: openshift-marketplace
+    # CSV package name != Deployment name (multiclusterhub-operator).
+    operator_deployment_pattern: multiclusterhub-operator
     storage_class: ""
     storage_size: 20Gi
 
   # cert manager
+  # RH OpenShift cert-manager operator installs into cert-manager-operator;
+  # operand (webhook/controller) runs in cert-manager.
   cert_manager:
     name_space: cert-manager
-    operator_namespace: cert-manager
-    infra.ado.ocp_operatorgroups: cert-manager
+    operator_namespace: cert-manager-operator
+    operator_subscription_namespace: cert-manager-operator
+    operatorgroup: cert-manager-operator
+    infra.ado.ocp_operatorgroups: cert-manager-operator
     acs_namespace: stackrox
     acs_central_name: central
     acs_admin_secret_name: central-admin-htpasswd
 
-    # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
+    # Package name for Subscription; CSV metadata.name is cert-manager-operator.v*
     operator_name: openshift-cert-manager-operator
-    operator_channel: openshift-cert-manager-operator
+    operator_csv_contains: cert-manager-operator
+    operator_name_substring: cert-manager-operator
+    operator_deployment_pattern: cert-manager-operator-controller-manager
+    # Catalog channels are stable-v1 / stable-v1.NN — not the package name.
+    operator_channel: stable-v1
     operator_source: redhat-operators
     operator_source_namespace: openshift-marketplace
 
@@ -177,6 +306,13 @@ components_defaults:
     cert_manager_root_ca_awspca_csr_file: "intermediate-ca.csr"
     cert_manager_root_ca_awspca_cert_file: "intermediate-ca.crt"
     cert_manager_root_ca_awspca_chain_file: "intermediate-ca.chain.crt"
+
+    # Default ingress wildcard (preflight Cert tabs)
+    update_default_ingress: false
+    trust_ca_clusterwide: true
+    ingress_tls_crt: ""
+    ingress_tls_key: ""
+    ingress_ca_crt: ""
 
   console_banner:
     console_banner_state: present
@@ -229,15 +365,16 @@ components_defaults:
 
     # replicas / naming
     statefulset_name: dirsrv
-    expected_replicas: 2
+    expected_replicas: 1
 
     # images
     init_image: "registry.k8s.io/busybox:latest"
     dirsrv_image: "quay.io/389ds/dirsrv:c9s"
+    ocp_dirsrv_image: "quay.io/389ds/dirsrv:c9s"
 
-    # storage
+    # storage (override via preflight / vars_dirsrv; match common lab CSI default)
     pvc_size: "10Gi"
-    storage_class_name: ""
+    storage_class_name: synology-nfs-csi
 
     # ports
     ldap_port: 3389
@@ -247,6 +384,8 @@ components_defaults:
 
     # selectors/labels
     dirsrv_selector:
+      app: dirsrv
+    ocp_dirsrv_selector:
       app: dirsrv
 
     # SA/SCC binding
@@ -264,7 +403,7 @@ components_defaults:
     ds_startup_timeout: "120"
 
     # replication
-    enable_replication: true
+    enable_replication: false
     repl_manager_dn: "cn=rmanager,cn=config"
 
     # cleanup
@@ -299,22 +438,41 @@ components_defaults:
     release_name: "gitlab"
 
     name_space: gitlab-system
-    operator_namespace: gitlab
+    # CSV + Subscription live in the operand/subscription namespace (gitlab-system),
+    # not a separate "gitlab" NS — waiting in the wrong NS times out with empty CSVs.
+    operator_namespace: gitlab-system
+    operator_subscription_namespace: gitlab-system
+    operatorgroup: gitlab-operators
     infra.ado.ocp_operatorgroups: gitlab-operators
 
     # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
     operator_name: gitlab-operator-kubernetes
+    operator_csv_contains: gitlab-operator-kubernetes
+    operator_name_substring: gitlab-operator-kubernetes
+    operator_deployment_pattern: gitlab-controller-manager
     operator_channel: stable
     operator_source: certified-operators
     operator_source_namespace: openshift-marketplace
 
     # the exact host you want
     hostname: "gitlab.{{ bootstrap_resolve_component_app_domain }}"
+    gitlab_install_hostname: "gitlab.{{ bootstrap_resolve_component_app_domain }}"
     host_suffix: gitlab
     ingress_class: openshift-default
 
     # GitLab chart version used by the operator
-    chart_version: "9.7.0"
+    # Must match versions allowed by the installed GitLab operator webhook
+    # (v3.3.x: 10.3.1, 10.2.5, 10.1.7). Chart 10.x requires external Postgres,
+    # Redis, and object storage — gitlab_install deploys lab instances.
+    chart_version: "10.3.1"
+    gitlab_install_chart_version: "10.3.1"
+    gitlab_install_enable_postgresql: false
+    gitlab_install_create_route: true
+    gitlab_install_root_password: redhat123
+    gitlab_install_admin_user: gitlab
+    gitlab_install_admin_password: redhat123
+    gitlab_install_storage_size: 20Gi
+    gitlab_install_storage_class: ""
 
     root_password_secret: gitlab-root-password
 
@@ -343,7 +501,9 @@ components_defaults:
     # Operator install namespace (because subscription_operator uses name_space today)
     name_space: openshift-operators
     operator_namespace: openshift-operators
-    infra.ado.ocp_operatorgroups: global-operators
+    operator_subscription_namespace: openshift-operators
+    # Reuse existing global-operators in openshift-operators (do not create a 2nd OG).
+    operatorgroup: ""
     all_namespaces_install: true
 
     operator_name: openshift-gitops-operator
@@ -371,14 +531,24 @@ components_defaults:
 
   grafana:
     name_space: grafana
+    operatorgroup: grafana-operator-group
     infra.ado.ocp_operatorgroups: grafana-operator-group
 
     operator_name: grafana-operator
     operator_channel: v5
     operator_source: community-operators
     operator_source_namespace: openshift-marketplace
+    operator_csv_contains: grafana-operator
+    operator_name_substring: grafana-operator
+    operator_poll_interval: 10
+    operator_install_timeout: 900
 
     grafana_hostname: grafana.{{ bootstrap_resolve_component_app_domain }}
+    # Lab default — datasource/folder roles assert this is non-empty.
+    grafana_admin_user: admin
+    grafana_admin_password: redhat123
+    grafana_install_admin_user: admin
+    grafana_install_admin_password: redhat123
     storage_size: 2Gi
     # Prefer thanos-querier so platform + user-workload metrics are visible.
     prometheus_source: thanos-querier-openshift-monitoring.{{ bootstrap_resolve_component_app_domain }}
@@ -387,13 +557,13 @@ components_defaults:
     # Prod: local thanos-querier Route (or in-cluster URL via prometheus_url).
     # Dev: remote thanos-querier + bearer token Secret (platform + user-workload).
     # Override grafana_dev_prometheus_url / bearer in vars_grafana.yml or vault.
-    grafana_dev_prometheus_url: "https://thanos-querier-openshift-monitoring.apps.ocp-dev.dev.rhlab"
+    grafana_dev_prometheus_url: "https://thanos-querier-openshift-monitoring.{{ bootstrap_resolve_component_app_domain }}"
     grafana_datasources:
       - name: Openshift-Prod
         prometheus_route_name: thanos-querier
       - name: Openshift-Dev
         # Remote Dev Thanos (Route). Token from Secret created by ops / vault.
-        prometheus_url: "https://thanos-querier-openshift-monitoring.apps.ocp-dev.dev.rhlab"
+        prometheus_url: "https://thanos-querier-openshift-monitoring.{{ bootstrap_resolve_component_app_domain }}"
         bearer_token_secret:
           name: grafana-openshift-dev-prometheus
           namespace: grafana
@@ -460,28 +630,32 @@ components_defaults:
     route_wildcard_policy: None
     route_labels: {}
 
-    # OIDC config (OFF by default)
+    # OIDC config (ON by default for lab Keycloak)
     oidc:
-      enabled: false
+      enabled: true
       tls_skip_verify_insecure: true
       client_id: "grafana-client"
       scopes:
         - openid
         - profile
         - email
+        - groups
+      default_role: Viewer
+      role_map:
+        - group: ocp-cluster-admin
+          role: GrafanaAdmin
+        - group: ocp-cluster-devel
+          role: Viewer
+        - group: ocp-cluster-ops
+          role: Editor
+        - group: ocp-cluster-readonly
+          role: Viewer
       claims:
         login: preferred_username
         name: name
         email: email
         groups: groups
       oauth_auto_login: true   # optional: auto redirect to keycloak
-
-    # Standalone RHEL (role: install_grafana) — also see grafana_standalone.
-    install_grafana_hostname: grafana-ado.server.lab
-    install_grafana_http_port: 3000
-    install_grafana_admin_user: admin
-    install_grafana_admin_password: redhat123
-    install_grafana_skip_packages: false
 
   # Standalone Grafana on RHEL (install_grafana). OpenShift operator remains under grafana.
   grafana_standalone:
@@ -504,35 +678,49 @@ components_defaults:
     htpasswd_remove_all: false
 
   kafka:
-    # Namespace for any related objects you want (optional)
+    # Operand namespace for Kafka CRs
     name_space: cfk-operator
 
-    # Where the operator subscription + CSV actually live
-    # operator_subscription_namespace: openshift-operators
-    operator_subscription_namespace: cfk-operator
+    # CFK 3.x operator Deployment lives in confluent-operator-system (not cfk-operator).
+    operator_subscription_namespace: confluent-operator-system
 
     # infra.ado.ocp_operatorgroups settings (optional; only if you want one)
+    operatorgroup: cfk-operator-group
     infra.ado.ocp_operatorgroups: cfk-infra.ado.ocp_operatorgroups
     all_namespaces_install: true
 
-    # Subscription settings
+    # Subscription settings (catalog channels are 3.2/3.3 — 2.11 is dead)
     operator_name: confluent-for-kubernetes
-    operator_channel: "3.1"
+    operator_channel: "3.3"
     operator_source: certified-operators
     operator_source_namespace: openshift-marketplace
     installPlanApproval: Automatic
+    operator_csv_contains: confluent-for-kubernetes
+    operator_name_substring: confluent-for-kubernetes
+    operator_poll_interval: 10
+    operator_install_timeout: 900
 
     # Pin the operator version
     operator_starting_csv: ""
 
+    # Bootstrap creates a Kafka CR with Route listeners by default
+    kafka_install_create_cr: true
+    kafka_install_create_route: true
+    kafka_install_cluster_name: kafka-cluster
+    kafka_install_replicas: 1
+    kafka_install_image: confluentinc/cp-server:7.6.0
+    kafka_install_data_volume_capacity: 10Gi
+    kafka_install_route_domain: "{{ bootstrap_resolve_component_app_domain }}"
+
   eck:
-    # Operand namespace (only used if you choose to create CRs)
-    name_space: eck-operator
+    # Operand namespace for Elasticsearch / Kibana
+    name_space: elastic
 
     # Operator namespace (Subscription + CSV live here)
     operator_subscription_namespace: eck-operator
 
     # infra.ado.ocp_operatorgroups (created inside eck-operator)
+    operatorgroup: eck-operator-group
     infra.ado.ocp_operatorgroups: eck-infra.ado.ocp_operatorgroups
     all_namespaces_install: true
 
@@ -543,28 +731,58 @@ components_defaults:
     operator_source_namespace: openshift-marketplace
     installPlanApproval: Automatic
 
-    # Leave blank to use PackageManifest currentCSV for channel (latest)
+    # Leave blank — wait matches any elasticsearch-eck-operator* CSV that is Succeeded
+    # (pinning an old startingCSV like v3.0.0 fails once catalog moves to v3.5.0).
     operator_starting_csv: ""
+    operator_csv_contains: elasticsearch-eck-operator
+    operator_name_substring: elasticsearch-eck-operator
+    operator_poll_interval: 10
+    operator_install_timeout: 900
 
-    # Optional: create a basic Elasticsearch CR
-    eck_create_elasticsearch_cr: false
+    # Bootstrap creates ES + Kibana + Routes by default
+    eck_create_elasticsearch_cr: true
+    eck_create_kibana_cr: true
+    eck_create_routes: true
+    install_elastic_eck_create_elasticsearch_cr: true
+    install_elastic_eck_create_kibana_cr: true
+    install_elastic_eck_create_routes: true
     eck_cluster_name: elasticsearch
     eck_replicas: 1
     eck_version: "8.12.0"
+    eck_kibana_hostname: "kibana.{{ bootstrap_resolve_component_app_domain }}"
+    eck_elasticsearch_hostname: "elasticsearch.{{ bootstrap_resolve_component_app_domain }}"
+    install_elastic_eck_kibana_hostname: "kibana.{{ bootstrap_resolve_component_app_domain }}"
+    install_elastic_eck_es_hostname: "elasticsearch.{{ bootstrap_resolve_component_app_domain }}"
+    # Lab UI user (created via ES security API after cluster Ready)
+    eck_lab_user: kibana
+    eck_lab_password: redhat123
+    install_elastic_eck_lab_user: kibana
+    install_elastic_eck_lab_password: redhat123
+    install_elastic_eck_create_lab_user: true
 
   oadp:
     name_space: redhat-oadp
+    operator_subscription_namespace: redhat-oadp
+    operatorgroup: redhat-oadp-operator
     infra.ado.ocp_operatorgroups: redhat-oadp-operator
 
     operator_name: redhat-oadp-operator
-    operator_channel: stable-1.4
+    # Catalog only publishes channel "stable" (currently OADP 1.5.x).
+    # stable-1.4 causes ResolutionFailed and zero operator pods.
+    operator_channel: stable
     operator_source: redhat-operators
     operator_source_namespace: openshift-marketplace
+    operator_name_substring: oadp-operator
+    operator_csv_contains: oadp-operator
+    # CSV is oadp-operator.*; controller Deployment is openshift-adp-controller-manager
+    operator_deployment_pattern: adp-controller
 
     oadp_configure: false
 
   quay:
     name_space: quay-enterprise
+    operator_subscription_namespace: quay-enterprise
+    operatorgroup: quay-operator-group
     infra.ado.ocp_operatorgroups: quay-operator-group
 
     # subscript_operator
@@ -573,27 +791,106 @@ components_defaults:
     operator_source: redhat-operators
     operator_source_namespace: openshift-marketplace
 
-    # grafana vars
+    # quay vars
     quay_hostname: "quay.{{ bootstrap_resolve_component_app_domain }}"
+    ocp_quay_hostname: "quay.{{ bootstrap_resolve_component_app_domain }}"
+    quay_admin_user: quayadmin
+    ocp_quay_admin_user: quayadmin
+    quay_admin_password: redhat123
+    ocp_quay_admin_password: redhat123
     storage_size: 10Gi
     postgres_image: registry.redhat.io/rhel9/postgresql-15:latest
     quay_config_secret: quay-config-secret
+    ocp_quay_config_secret: quay-config-secret
+    quay_oidc_enabled: true
+    quay_oidc_client_id: quay
+    quay_oidc_service_id: keycloak
+    quay_keycloak_realm: rhlab
+
+  dev_hub:
+    # Backstage / RHDH CR lives here; operator itself must be AllNamespaces.
+    name_space: rhdh
+    # RHDH CSV only supports AllNamespaces — install with global-operators
+    # (same pattern as ACS / GitOps). A namespaced AllNamespaces OG in `rhdh`
+    # leaves the Subscription without an rhdh-operator CSV.
+    operator_subscription_namespace: openshift-operators
+    operator_namespace: openshift-operators
+    operatorgroup: global-operators
+    infra.ado.ocp_operatorgroups: global-operators
+    all_namespaces_install: true
+    # Package was renamed from redhat-developer-hub-operator → rhdh in redhat-operators.
+    operator_name: rhdh
+    operator_channel: fast
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+    operator_csv_contains: rhdh-operator
+    operator_name_substring: rhdh-operator
+    operator_deployment_pattern: rhdh-operator
+    # Old package name blocks OLM resolution for the whole namespace.
+    operator_subscription_remove_stale:
+      - redhat-developer-hub-operator-sub
+    # Wait for operator Deployment in openshift-operators after Sub lands there.
+    operator_wait_namespace: openshift-operators
+    dev_hub_instance_name: chad-lab
+    dev_hub_hostname: "backstage-chad-lab-rhdh.{{ bootstrap_resolve_component_app_domain }}"
+    dev_hub_keycloak_realm: rhlab
+    dev_hub_keycloak_client_id: rhdh
+    dev_hub_gitlab_host: "gitlab-git.{{ bootstrap_resolve_component_app_domain }}"
+    dev_hub_catalog_url: ""
+    storage_size: 10Gi
+
+  zabbix:
+    name_space: zabbix
+    zabbix_hostname: "zabbix.{{ bootstrap_resolve_component_app_domain }}"
+    zabbix_admin_user: Admin
+    zabbix_admin_password: redhat123
+    zabbix_default_admin_password: zabbix
+    zabbix_storage_size: 20Gi
+    zabbix_saml_enabled: true
+    zabbix_mariadb_image: registry.redhat.io/rhel9/mariadb-105:latest
+    zabbix_server_image: zabbix/zabbix-server-mysql:ubuntu-7.0-latest
+    zabbix_web_image: zabbix/zabbix-web-nginx-mysql:ubuntu-7.0-latest
+    zabbix_db_user: zabbix
+    zabbix_db_name: zabbix
 
   rhbk:
     name_space: keycloak
+    operator_subscription_namespace: keycloak
+    operatorgroup: rhbk-operator
     infra.ado.ocp_operatorgroups: rhbk-operator
 
     operator_name: rhbk-operator
     operator_channel: stable-v26.0
     operator_source: redhat-operators
     operator_source_namespace: openshift-marketplace
+    operator_name_substring: rhbk-operator
+    operator_csv_contains: rhbk-operator
     install_rhbk_operator: true
 
     rhbk_hostname: "keycloak.{{ bootstrap_resolve_component_app_domain }}"
+    ocp_rhbk_hostname: "keycloak.{{ bootstrap_resolve_component_app_domain }}"
+    # Alias used by federation / IdP / mapper roles (same host as Hostname/URL).
+    rhbk_host: "keycloak.{{ bootstrap_resolve_component_app_domain }}"
+    rhbk_realm: rhlab
+    ocp_rhbk_realm: rhlab
+    rhbk_enabled: true
+    rhbk_admin_user: admin
+    ocp_rhbk_admin_user: admin
     create_rhbk_admin_user: true
     rhbk_recreate_ss_on_immutable_change: true
     rhbk_tls_secret_name: keycloak-tls-secret
     rhbk_cert_name: keycloak-tls
+    # Default: OpenShift edge TLS (router terminates HTTPS). Copying the cluster
+    # default ingress cert into Keycloak often yields empty PEMs and
+    # SSL UNEXPECTED_EOF. Set cert_manager=true (IdM ACME) or
+    # ocp_rhbk_use_default_ingress_cert=true after ingress is updated.
+    cert_manager: false
+    ocp_rhbk_http_edge: true
+    ocp_rhbk_use_default_ingress_cert: false
+    # Lab default: Contoller EE does not trust the Keycloak route CA yet.
+    # After a trusted default ingress (or IdM ACME cert), set these true.
+    rhbk_verify_ssl: false
+    rhbk_realm_verify_ssl: false
 
     # Postgres
     postgres_image: "registry.redhat.io/rhel9/postgresql-15:latest"
@@ -608,16 +905,108 @@ components_defaults:
     rhbk_db_user: keycloak
     rhbk_db_password: changeme-db
 
-    infra.ado.ocp_oidc_auth:
+    # Flattened name — dotted keys are skipped by resolve_component export.
+    openshift_oidc_auth:
       enabled: true
+      keycloak_client_id: "openshift-prod"
       openshift_oidc_idp_name: "Keycloak"
       openshift_oidc_mapping_method: claim
       openshift_oauth_resource_name: "cluster"
-      extra_scopes: ["email", "profile"]
+      extra_scopes: ["groups"]
       claims:
         preferred_username: "preferred_username"
         name: "name"
         email: "email"
+
+
+  # PEGA placeholder — resolve succeeds; playbook fails clearly (no PEGA role yet).
+  pega:
+    name_space: pega
+    pega_namespace: pega
+
+  # OpenShift Compliance Operator (distinct from RHEL preflight "compliance")
+  ocp_compliance:
+    name_space: openshift-compliance
+    operator_namespace: openshift-compliance
+    operator_subscription_namespace: openshift-compliance
+    operatorgroup: compliance-operator
+    all_namespaces_install: false
+    operator_name: compliance-operator
+    operator_channel: stable
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+    operator_csv_contains: compliance-operator
+    operator_name_substring: compliance-operator
+    operator_poll_interval: 10
+    operator_install_timeout: 900
+    ocp_compliance_install_operator_namespace: openshift-compliance
+
+  # OpenShift Web Terminal Operator (AllNamespaces — reuse global-operators OG)
+  web_terminal:
+    name_space: openshift-operators
+    operator_namespace: openshift-operators
+    operator_subscription_namespace: openshift-operators
+    operatorgroup: ""
+    all_namespaces_install: true
+    operator_name: web-terminal
+    operator_channel: fast
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+    operator_csv_contains: web-terminal
+    operator_name_substring: web-terminal
+    operator_poll_interval: 10
+    operator_install_timeout: 900
+
+  # GitLab Runner deployment (not the GitLab server itself)
+  gitlab_runner:
+    name_space: gitlab-runner
+    image: registry.gitlab.com/gitlab-org/gitlab-runner:alpine
+    gitlab_url: https://gitlab.com
+    runner_name: ado-openshift-runner
+
+  # OpenShift Virtualization operator (CNV / HyperConverged)
+  ocp_virtualization:
+    name_space: openshift-cnv
+    operator_namespace: openshift-cnv
+    operator_subscription_namespace: openshift-cnv
+    operatorgroup: kubevirt-hyperconverged-group
+    all_namespaces_install: false
+    operator_name: kubevirt-hyperconverged
+    operator_channel: stable
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+    operator_csv_contains: kubevirt-hyperconverged
+    operator_name_substring: kubevirt-hyperconverged
+    operator_poll_interval: 10
+    operator_install_timeout: 1800
+    ocp_virtualization_install_namespace: openshift-cnv
+    ocp_virtualization_install_hco_name: kubevirt-hyperconverged
+
+  # Kube Descheduler Operator
+  ocp_descheduler:
+    name_space: openshift-kube-descheduler-operator
+    operator_namespace: openshift-kube-descheduler-operator
+    operator_subscription_namespace: openshift-kube-descheduler-operator
+    operatorgroup: openshift-kube-descheduler-operator
+    all_namespaces_install: false
+    operator_name: cluster-kube-descheduler-operator
+    operator_channel: stable
+    operator_source: redhat-operators
+    operator_source_namespace: openshift-marketplace
+    operator_csv_contains: clusterkubedescheduleroperator
+    operator_name_substring: clusterkubedescheduleroperator
+    # Deployment name is descheduler-operator, not the CSV package string.
+    operator_deployment_pattern: descheduler-operator
+    operator_poll_interval: 10
+    operator_install_timeout: 900
+    instance_name: cluster
+    kube_descheduler_state: present
+    scheduling_interval: 3600
+    descheduler_profiles:
+      - AffinityAndTaints
+      - TopologyAndDuplicates
+      # SoftTopologyAndDuplicates conflicts with TopologyAndDuplicates (API rejects both).
+      - LifecycleAndUtilization
 
   # OpenShift Virtualization VM provisioning inputs are generated directly as
   # provision_openshift_virt_* variables. Keep a registry entry so the common
@@ -660,8 +1049,17 @@ components_defaults:
     bookstack_admin_email: admin@admin.com
     bookstack_oidc_enabled: true
     bookstack_oidc_client_id: bookstack
-    bookstack_oidc_issuer: "https://keycloak.apps.ocp.prod.rhlab/realms/rhlab"
+    bookstack_oidc_issuer: "https://keycloak.{{ bootstrap_resolve_component_app_domain }}/realms/{{ rhbk_realm | default(ocp_rhbk_realm | default('rhlab')) }}"
     bookstack_oidc_issuer_discover: true
+
+  # NetBox IPAM/DCIM (Helm); OIDC wired by ado-configure-netbox-oidc-bootstrap.yml.
+  netbox:
+    name_space: netbox
+    netbox_namespace: netbox
+    hostname: "netbox.{{ bootstrap_resolve_component_app_domain }}"
+    netbox_oidc_enabled: true
+    netbox_oidc_client_id: netbox
+    netbox_oidc_issuer: "https://keycloak.{{ bootstrap_resolve_component_app_domain }}/realms/{{ rhbk_realm | default(ocp_rhbk_realm | default('rhlab')) }}"
 
   ldap_auth_openshift:
     enabled: true
@@ -674,3 +1072,25 @@ components_defaults:
       email: ["mail"]
     insecure: false
     idp_name: "ldap"
+
+  # MinIO object storage (Deployment + Routes + Keycloak OIDC console).
+  minio:
+    name_space: minio
+    minio_deployment_name: minio
+    minio_root_user: minioadmin
+    minio_root_password: redhat123
+    minio_storage_size: 20Gi
+    minio_console_hostname: "minio-console-{{ name_space | default('minio') }}.{{ bootstrap_resolve_component_app_domain }}"
+    minio_api_hostname: "minio-api-{{ name_space | default('minio') }}.{{ bootstrap_resolve_component_app_domain }}"
+    minio_oidc_enabled: true
+    minio_oidc_client_id: minio
+    minio_oidc_display_name: Keycloak
+    minio_oidc_claim_name: policy
+    minio_oidc_policy_value: consoleAdmin
+    minio_keycloak_realm: "{{ rhbk_realm | default(ocp_rhbk_realm | default('rhlab')) }}"
+    minio_keycloak_namespace: keycloak
+    oidc:
+      enabled: true
+      client_id: minio
+      claim_name: policy
+      policy_value: consoleAdmin

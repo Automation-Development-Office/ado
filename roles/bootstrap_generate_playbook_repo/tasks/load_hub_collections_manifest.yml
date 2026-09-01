@@ -1,0 +1,28 @@
+---
+- name: Generate playbook repo | Load preflight Hub collections manifest
+  ansible.builtin.set_fact:
+    bootstrap_generate_playbook_repo_preflight_hub_manifest: >-
+      {{
+        lookup(
+          'ansible.builtin.file',
+          role_path ~ '/files/preflight_hub_collections.yml'
+        )
+        | from_yaml
+      }}
+
+- name: Generate playbook repo | Build Controller Hub requirements list
+  ansible.builtin.set_fact:
+    bootstrap_generate_playbook_repo_hub_requirements: >-
+      {{
+        bootstrap_generate_playbook_repo_preflight_hub_manifest.collections
+        | default([])
+        | selectattr('controller_requirements', 'defined')
+        | selectattr('controller_requirements')
+        | map('combine', {'version': ''})
+        | list
+      }}
+    bootstrap_generate_playbook_repo_hub_requirements_galaxy_only: >-
+      {{
+        bootstrap_generate_playbook_repo_preflight_hub_manifest.controller_requirements_galaxy_only
+        | default([])
+      }}

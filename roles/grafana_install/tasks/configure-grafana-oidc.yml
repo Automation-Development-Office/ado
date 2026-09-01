@@ -1,0 +1,36 @@
+---
+- name: Normalize grafana_install hostname for OIDC configure
+  ansible.builtin.set_fact:
+    grafana_install_hostname: >-
+      {{
+        (
+          hostname
+          | default(grafana_hostname)
+          | default(grafana_install_hostname)
+          | default('')
+          | string
+          | regex_replace('^https?://', '')
+          | regex_replace('/.*$', '')
+          | trim
+        )
+      }}
+  changed_when: false
+
+- name: Enable Grafana OIDC configuration
+  ansible.builtin.set_fact:
+    grafana_install_include_oidc: true
+    grafana_install_oidc_enabled: true
+    oidc: "{{ (oidc | default({})) | combine({'enabled': true}, recursive=True) }}"
+  changed_when: false
+
+- name: Build Grafana OIDC config fragment
+  ansible.builtin.import_tasks: build-grafana-oidc-config.yml
+
+- name: Stage OIDC config patch payload
+  ansible.builtin.set_fact:
+    grafana_install_config_patch: "{{ grafana_install_config_oidc }}"
+  when: grafana_install_config_oidc is defined
+
+- name: Patch Grafana CR with OIDC settings
+  ansible.builtin.import_tasks: patch-grafana-cr-config.yml
+  when: grafana_install_config_oidc is defined

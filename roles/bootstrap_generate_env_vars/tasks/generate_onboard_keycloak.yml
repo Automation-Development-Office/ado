@@ -1,0 +1,135 @@
+---
+# Build Keycloak group list for onboard tenants from preflight aap.onboard.
+
+- name: Build onboard Keycloak groups from preflight
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 <<'PYCODE'
+    from pathlib import Path
+    import json
+    import re
+
+    import yaml
+
+    env_dir = Path("{{ bootstrap_generate_env_vars_env_dir }}")
+    preflight_path = "{{ preflight_json | default('', true) }}"
+    onboard = {}
+    oidc = {}
+    if preflight_path:
+        preflight = json.loads(Path(preflight_path).read_text())
+        aap = preflight.get("aap") or {}
+        onboard = aap.get("onboard") or {}
+        oidc = (aap.get("auth") or {}).get("keycloak_oidc") or {}
+
+    def split_list(value):
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        return [part.strip() for part in re.split(r"[\n,]", str(value)) if part.strip()]
+
+    def realm_from_url(url):
+        match = re.search(r"/realms/([^/]+)", str(url or ""))
+        return match.group(1) if match else ""
+
+    def base_url_from_url(url):
+        match = re.match(r"(https?://[^/]+)", str(url or ""))
+        return match.group(1) if match else ""
+
+    kc = onboard.get("keycloak") or {}
+    auth_url = str(oidc.get("authorization_url") or oidc.get("access_token_url") or "")
+    default_base = base_url_from_url(auth_url) or "https://keycloak.apps.ocp.prod.rhlab"
+    default_realm = str(kc.get("realm") or realm_from_url(auth_url) or "rhlab").strip() or "rhlab"
+
+    groups = []
+    if kc.get("create_groups", True) is not False:
+        for row in onboard.get("tenants") or []:
+            if not isinstance(row, dict):
+                continue
+            if row.get("enabled") is False:
+                continue
+            if row.get("create_keycloak_groups") is False:
+                continue
+            groups.extend(split_list(row.get("admin_groups")))
+            groups.extend(split_list(row.get("developer_groups")))
+
+    seen = set()
+    unique_groups = []
+    for name in groups:
+        if name not in seen:
+            seen.add(name)
+            unique_groups.append(name)
+
+    admin_password = str(kc.get("admin_password") or "")
+    base_url = str(kc.get("base_url") or default_base).strip().rstrip("/")
+    realm = str(kc.get("realm") or default_realm).strip()
+    admin_username = str(kc.get("admin_username") or "admin").strip() or "admin"
+    verify_ssl = bool(kc.get("verify_ssl", False) is True)
+
+    configure = bool(
+        kc.get("create_groups", True) is not False
+        and unique_groups
+        and base_url
+        and realm
+        and admin_username
+        and admin_password
+    )
+
+    out = {
+        "aap_onboard_keycloak_configure": configure,
+        "aap_onboard_keycloak_base_url": base_url,
+        "aap_onboard_keycloak_realm": realm,
+        "aap_onboard_keycloak_admin_username": admin_username,
+        "aap_onboard_keycloak_verify_ssl": verify_ssl,
+        "aap_onboard_keycloak_groups": unique_groups,
+    }
+    onboard_keycloak = env_dir / "onboard_keycloak.yml"
+    onboard_keycloak.write_text(
+        "---\n"
+        + yaml.safe_dump(out, sort_keys=False, default_flow_style=False)
+    )
+    onboard_keycloak.chmod(0o600)
+
+    vault_path = env_dir / "aap_vault.yml"
+    if vault_path.exists():
+        vault_data = yaml.safe_load(vault_path.read_text()) or {}
+        if not isinstance(vault_data, dict):
+            vault_data = {}
+    else:
+        vault_data = {}
+    vault_data.setdefault("vault_aap_onboard_keycloak_admin_password", "")
+    if admin_password:
+        vault_data["vault_aap_onboard_keycloak_admin_password"] = admin_password
+    vault_path.write_text(
+        yaml.safe_dump(vault_data, sort_keys=False, default_flow_style=False)
+    )
+
+    print(
+        f"aap_onboard_keycloak_configure={configure} "
+        f"aap_onboard_keycloak_groups={len(unique_groups)}"
+    )
+    PYCODE
+  args:
+    executable: /bin/bash
+  register: bootstrap_generate_env_vars_onboard_keycloak
+  changed_when: true
+  when:
+    - bootstrap_generate_env_vars_use_aap | bool
+    - bootstrap_generate_env_vars_preflight is defined
+
+- name: Ensure empty onboard Keycloak vars when no preflight build
+  ansible.builtin.copy:
+    dest: "{{ bootstrap_generate_env_vars_env_dir }}/onboard_keycloak.yml"
+    mode: "0600"
+    content: |
+      ---
+      aap_onboard_keycloak_configure: false
+      aap_onboard_keycloak_base_url: ""
+      aap_onboard_keycloak_realm: ""
+      aap_onboard_keycloak_admin_username: admin
+      aap_onboard_keycloak_verify_ssl: false
+      aap_onboard_keycloak_groups: []
+    force: false
+  when:
+    - bootstrap_generate_env_vars_use_aap | bool
+    - bootstrap_generate_env_vars_preflight is not defined

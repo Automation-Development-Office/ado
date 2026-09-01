@@ -1,0 +1,10 @@
+---
+bugfixes:
+  - >-
+    ocp_component_route - Use resolved ``ocp_component_route_*`` facts in route
+    tasks (leftover ``_route_namespace`` / ``_route_name`` caused Grafana Route
+    JT to fail immediately).
+  - >-
+    ocp_descheduler - Set ``operator_deployment_pattern`` to
+    ``descheduler-operator`` so CSV wait success is not followed by a Deployment
+    name mismatch on the CSV package string.

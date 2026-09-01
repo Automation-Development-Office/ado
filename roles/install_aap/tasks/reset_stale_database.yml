@@ -1,0 +1,80 @@
+---
+# Wipe AAP Postgres + Fernet encryption secrets when reinstall left a key/DB mismatch.
+# Symptom: aap-gateway Init run-migrations CrashLoop with cryptography.fernet.InvalidToken
+# and Contoller login returns 503.
+#
+# Destructive: deletes platform CR (optional), encryption secrets, and postgres PVCs.
+
+- name: Resolve AAP namespace for DB reset
+  ansible.builtin.set_fact:
+    aap_ocp_install_reset_ns: >-
+      {{
+        aap_ocp_install_platform.namespace
+        | default(aap_ocp_install_namespace)
+        | default(name_space)
+        | default('aap')
+      }}
+    aap_ocp_install_reset_instance: >-
+      {{
+        aap_ocp_install_platform.instance_name
+        | default('aap')
+      }}
+
+- name: Delete AnsibleAutomationPlatform CR before DB wipe
+  kubernetes.core.k8s:
+    state: absent
+    api_version: aap.ansible.com/v1alpha1
+    kind: AnsibleAutomationPlatform
+    namespace: "{{ aap_ocp_install_reset_ns }}"
+    name: "{{ aap_ocp_install_reset_instance }}"
+    wait: true
+    wait_timeout: 300
+  when: (aap_ocp_install_reset_delete_platform | default(true) | bool)
+  ignore_errors: true
+
+- name: List secrets in AAP namespace (encryption keys)
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ aap_ocp_install_reset_ns }}"
+  register: aap_ocp_install_reset_secrets
+
+- name: Delete AAP Fernet / DB field encryption secrets
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Secret
+    namespace: "{{ aap_ocp_install_reset_ns }}"
+    name: "{{ item.metadata.name }}"
+  loop: "{{ aap_ocp_install_reset_secrets.resources | default([]) }}"
+  loop_control:
+    label: "{{ item.metadata.name | default('') }}"
+  when: >-
+    item.metadata.name is search('encryption|secret-key|secret_key|fields-encryption|db-fields', ignorecase=True)
+  no_log: true
+
+- name: List PVCs in AAP namespace
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ aap_ocp_install_reset_ns }}"
+  register: aap_ocp_install_reset_pvcs
+
+- name: Delete AAP Postgres PVCs (encrypted rows under old Fernet key)
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ aap_ocp_install_reset_ns }}"
+    name: "{{ item.metadata.name }}"
+  loop: "{{ aap_ocp_install_reset_pvcs.resources | default([]) }}"
+  loop_control:
+    label: "{{ item.metadata.name | default('') }}"
+  when: >-
+    item.metadata.name is search('postgres', ignorecase=True)
+
+- name: Note AAP database reset completed
+  ansible.builtin.debug:
+    msg: >-
+      Reset AAP database state in {{ aap_ocp_install_reset_ns }}
+      (encryption secrets + postgres PVCs). Platform install will recreate them.

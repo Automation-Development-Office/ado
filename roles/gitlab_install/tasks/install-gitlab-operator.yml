@@ -1,4 +1,36 @@
 ---
+- name: Normalize GitLab OpenShift install facts
+  ansible.builtin.set_fact:
+    gitlab_install_hostname: >-
+      {{
+        gitlab_install_hostname
+        | default(hostname)
+        | default('')
+        | string
+        | regex_replace('^https?://', '')
+        | regex_replace('/.*$', '')
+        | trim
+      }}
+    gitlab_install_use_custom_tls: >-
+      {{
+        (
+          (gitlab_install_tls_crt | default('') | string | trim | length) > 0
+          and (gitlab_install_tls_key | default('') | string | trim | length) > 0
+        ) | bool
+      }}
+    gitlab_install_enable_postgresql: >-
+      {{ gitlab_install_enable_postgresql | default(true) | bool }}
+  changed_when: false
+
+- name: Assert GitLab hostname and root password
+  ansible.builtin.assert:
+    that:
+      - gitlab_install_hostname | length > 0
+      - (gitlab_install_root_password | default('') | string | length) > 0
+    fail_msg: >-
+      gitlab_install needs gitlab_install_hostname (or hostname) and
+      gitlab_install_root_password for the OpenShift GitLab CR.
+
 - name: Create GitLab TLS Secret
   kubernetes.core.k8s:
     validate_certs: "{{ gitlab_install_validate_certs }}"
@@ -12,6 +44,7 @@
       stringData:
         tls.crt: "{{ gitlab_install_tls_crt }}"
         tls.key: "{{ gitlab_install_tls_key }}"
+  when: gitlab_install_use_custom_tls | bool
 
 - name: Create GitLab Root Password Secret
   kubernetes.core.k8s:
@@ -38,14 +71,18 @@
         namespace: "{{ name_space }}"
       type: Opaque
       stringData:
-        POSTGRES_USER: "{{ gitlab_install_admin_user }}"
-        POSTGRES_PASSWORD: "{{ gitlab_install_admin_password }}"
+        POSTGRES_USER: "{{ gitlab_install_admin_user | default('gitlab') }}"
+        POSTGRES_PASSWORD: "{{ gitlab_install_admin_password | default(gitlab_install_root_password) }}"
   no_log: true
+  when: not (gitlab_install_enable_postgresql | bool)
 
-- name: Deploy GitLab Custom Resource (Operator/Helm)
-  kubernetes.core.k8s:
-    validate_certs: "{{ gitlab_install_validate_certs }}"
-    definition:
+- name: Install GitLab external dependencies for chart 10.x
+  ansible.builtin.import_tasks: install-gitlab-external-deps.yml
+  when: gitlab_install_chart_version is version('10.0.0', '>=')
+
+- name: Build GitLab CR base definition
+  ansible.builtin.set_fact:
+    gitlab_install_cr:
       apiVersion: apps.gitlab.com/v1beta1
       kind: GitLab
       metadata:
@@ -53,7 +90,7 @@
         namespace: "{{ name_space }}"
       spec:
         chart:
-          version: "{{ gitlab_install_chart_version }}"
+          version: "{{ gitlab_install_chart_version | default('10.3.1') }}"
         certmanager:
           install: false
         gitlab:
@@ -63,25 +100,179 @@
                 name: gitlab-root-password-secret
                 key: password
         router:
-          tls:
-            secretName: gitlab-tls-secret
           hostname: "{{ gitlab_install_hostname }}"
-        postgresql:
-          enabled: false
-          host: gitlab-postgresql
-          username:
-            valueFrom:
-              secretKeyRef:
-                name: gitlab-db-secret
-                key: POSTGRES_USER
-          password:
-            valueFrom:
-              secretKeyRef:
-                name: gitlab-db-secret
-                key: POSTGRES_PASSWORD
-          database: gitlabhq_production
         persistence:
           enabled: true
           storage:
-            size: "{{ gitlab_install_storage_size }}"
-            class: "{{ gitlab_install_storage_class }}"
+            size: "{{ gitlab_install_storage_size | default('20Gi') }}"
+
+- name: Add storage class to GitLab CR when set
+  ansible.builtin.set_fact:
+    gitlab_install_cr: >-
+      {{
+        gitlab_install_cr
+        | combine(
+          {
+            'spec': {
+              'persistence': {
+                'storage': {
+                  'class': gitlab_install_storage_class
+                }
+              }
+            }
+          },
+          recursive=True
+        )
+      }}
+  when: (gitlab_install_storage_class | default('') | string | trim | length) > 0
+
+- name: Add custom TLS secret to GitLab router
+  ansible.builtin.set_fact:
+    gitlab_install_cr: >-
+      {{
+        gitlab_install_cr
+        | combine(
+          {'spec': {'router': {'tls': {'secretName': 'gitlab-tls-secret'}}}},
+          recursive=True
+        )
+      }}
+  when: gitlab_install_use_custom_tls | bool
+
+- name: Add chart 10.x external dependency values
+  ansible.builtin.set_fact:
+    gitlab_install_cr: >-
+      {{
+        gitlab_install_cr
+        | combine(
+          {
+            'spec': {
+              'chart': {
+                'values': {
+                  'global': {
+                    'psql': {
+                      'host': gitlab_install_postgres_host | default('gitlab-postgresql'),
+                      'port': 5432,
+                      'database': 'gitlabhq_production',
+                      'username': gitlab_install_admin_user | default('gitlab'),
+                      'password': {
+                        'secret': 'gitlab-db-secret',
+                        'key': 'POSTGRES_PASSWORD'
+                      }
+                    },
+                    'redis': {
+                      'host': gitlab_install_redis_host | default('gitlab-redis'),
+                      'port': 6379
+                    },
+                    'appConfig': {
+                      'object_store': {
+                        'enabled': true,
+                        'connection': {
+                          'secret': 'gitlab-object-storage',
+                          'key': 'connection'
+                        }
+                      }
+                    },
+                    'registry': {
+                      'bucket': gitlab_install_registry_bucket
+                    }
+                  },
+                  'registry': {
+                    'storage': {
+                      'secret': gitlab_install_registry_storage_secret,
+                      'key': 'config'
+                    }
+                  },
+                  'postgresql': {'install': false},
+                  'redis': {'install': false},
+                  'minio': {'enabled': false}
+                }
+              }
+            }
+          },
+          recursive=True
+        )
+      }}
+  when: gitlab_install_chart_version is version('10.0.0', '>=')
+
+- name: Add bundled PostgreSQL to GitLab CR for chart 9.x
+  ansible.builtin.set_fact:
+    gitlab_install_cr: >-
+      {{
+        gitlab_install_cr
+        | combine(
+          {
+            'spec': {
+              'postgresql': {
+                'enabled': gitlab_install_enable_postgresql | bool,
+                'database': 'gitlabhq_production'
+              }
+            }
+          },
+          recursive=True
+        )
+      }}
+  when: gitlab_install_chart_version is version('10.0.0', '<')
+
+- name: Point GitLab CR at external Postgres when chart Postgres disabled (9.x)
+  ansible.builtin.set_fact:
+    gitlab_install_cr: >-
+      {{
+        gitlab_install_cr
+        | combine(
+          {
+            'spec': {
+              'postgresql': {
+                'enabled': false,
+                'host': 'gitlab-postgresql',
+                'username': {
+                  'valueFrom': {
+                    'secretKeyRef': {
+                      'name': 'gitlab-db-secret',
+                      'key': 'POSTGRES_USER'
+                    }
+                  }
+                },
+                'password': {
+                  'valueFrom': {
+                    'secretKeyRef': {
+                      'name': 'gitlab-db-secret',
+                      'key': 'POSTGRES_PASSWORD'
+                    }
+                  }
+                },
+                'database': 'gitlabhq_production'
+              }
+            }
+          },
+          recursive=True
+        )
+      }}
+  when:
+    - gitlab_install_chart_version is version('10.0.0', '<')
+    - not (gitlab_install_enable_postgresql | bool)
+
+- name: Deploy GitLab Custom Resource (Operator/Helm)
+  kubernetes.core.k8s:
+    validate_certs: "{{ gitlab_install_validate_certs }}"
+    definition: "{{ gitlab_install_cr }}"
+
+- name: Ensure OpenShift Route for GitLab webservice (edge TLS)
+  kubernetes.core.k8s:
+    validate_certs: "{{ gitlab_install_validate_certs }}"
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: "{{ gitlab_install_route_name | default('gitlab') }}"
+        namespace: "{{ name_space }}"
+      spec:
+        host: "{{ gitlab_install_hostname }}"
+        to:
+          kind: Service
+          name: "{{ gitlab_install_route_service | default('gitlab-webservice-default') }}"
+        port:
+          targetPort: "{{ gitlab_install_route_target_port | default('http-webservice') }}"
+        tls:
+          termination: edge
+          insecureEdgeTerminationPolicy: Redirect
+  when: gitlab_install_create_route | default(true) | bool

@@ -1,0 +1,77 @@
+---
+# Enable OpenShift OAuth as an RHACS Central auth provider (lab-friendly).
+# Requires Central up + admin basic auth. Idempotent: 409 / existing provider OK.
+
+- name: Skip OpenShift OAuth when disabled
+  ansible.builtin.meta: end_host
+  when: not (ocp_acs_openshift_auth_enabled | default(true) | bool)
+
+- name: Resolve Central URL for auth provider API
+  ansible.builtin.set_fact:
+    ocp_acs_auth_central_url: >-
+      {{
+        'https://'
+        ~ (
+          ocp_acs_central_route.resources[0].spec.host
+          | default(
+              (ocp_acs_route_name | default('central'))
+              ~ '-'
+              ~ (ocp_acs_namespace | default('stackrox'))
+              ~ '.'
+              ~ (app_domain | default(apps_domain | default('')))
+            )
+        )
+      }}
+
+- name: Enable ROX OpenShift auth on Central deployment (best effort)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ ocp_acs_central_name | default('central') }}"
+        namespace: "{{ ocp_acs_namespace | default('stackrox') }}"
+      spec:
+        template:
+          metadata:
+            annotations:
+              # Force rollout when env already present
+              ado.infra/openshift-auth: "enabled"
+          spec:
+            containers:
+              - name: central
+                env:
+                  - name: ROX_ENABLE_OPENSHIFT_AUTH
+                    value: "true"
+  failed_when: false
+
+- name: Ensure OpenShift auth provider exists in Central
+  ansible.builtin.uri:
+    url: "{{ ocp_acs_auth_central_url }}/v1/authProviders"
+    method: POST
+    user: "{{ ocp_acs_admin_user | default(acs_admin_user | default('admin')) }}"
+    password: "{{ ocp_acs_admin_password | default(acs_admin_password | default('')) }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: [200, 201, 202, 409]
+    body_format: json
+    body:
+      name: "{{ ocp_acs_openshift_auth_name | default('OpenShift') }}"
+      type: openshift
+      enabled: true
+      active: true
+      uiEndpoint: "{{ ocp_acs_auth_central_url | regex_replace('^https?://', '') }}"
+  register: ocp_acs_openshift_auth_create
+  failed_when: false
+  no_log: true
+
+- name: Report OpenShift auth provider result
+  ansible.builtin.debug:
+    msg: >-
+      ACS OpenShift OAuth provider
+      {{ 'created/updated' if (ocp_acs_openshift_auth_create.status | default(0) | int) in [200, 201, 202]
+         else ('already present or skipped (HTTP '
+               ~ (ocp_acs_openshift_auth_create.status | default('n/a') | string)
+               ~ ')') }}.
+      Login: {{ ocp_acs_auth_central_url }}/login — choose OpenShift.

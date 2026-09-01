@@ -46,31 +46,14 @@
     state: directory
     mode: "0755"
 
-- name: Generate playbook repo | Resolve whether Galaxy/Hub requirements are wanted
+- name: Generate playbook repo | Controller collections always from Hub (never vendored in git)
   ansible.builtin.set_fact:
-    bootstrap_generate_playbook_repo_use_hub_galaxy: >-
-      {{
-        (
-          bootstrap_generate_playbook_repo_write_galaxy_requirements
-          | default(
-            bootstrap_controller_hub_publish_ado_collection | default(false)
-          )
-        ) | bool
-      }}
+    bootstrap_generate_playbook_repo_use_hub_galaxy: true
 
-# Hub path: Galaxy/Hub installs infra.ado during Contoller project sync.
-# No-Hub path: do not write requirements.yml (that is what talks to Hub).
-- name: Generate playbook repo | Remove Galaxy requirements when Hub is not requested
-  when: not (bootstrap_generate_playbook_repo_use_hub_galaxy | bool)
-  ansible.builtin.file:
-    path: >-
-      {{
-        bootstrap_generate_playbook_repo_dest_resolved
-      }}/collections/requirements.yml
-    state: absent
+- name: Generate playbook repo | Load Hub collections manifest for requirements
+  ansible.builtin.include_tasks: load_hub_collections_manifest.yml
 
 - name: Generate playbook repo | Render collection requirements for Hub/Galaxy
-  when: bootstrap_generate_playbook_repo_use_hub_galaxy | bool
   ansible.builtin.template:
     src: requirements.yml.j2
     dest: >-
@@ -79,63 +62,21 @@
       }}/collections/requirements.yml
     mode: "0644"
 
-- name: Generate playbook repo | Remove vendored infra.ado that shadows Hub installs
-  when: bootstrap_generate_playbook_repo_use_hub_galaxy | bool
-  ansible.builtin.file:
-    path: >-
-      {{
-        bootstrap_generate_playbook_repo_dest_resolved
-      }}/collections/ansible_collections/infra/ado
-    state: absent
-
-- name: Generate playbook repo | Ensure vendored infra.ado parent exists
-  when: not (bootstrap_generate_playbook_repo_use_hub_galaxy | bool)
-  ansible.builtin.file:
-    path: >-
-      {{
-        bootstrap_generate_playbook_repo_dest_resolved
-      }}/collections/ansible_collections/infra
-    state: directory
-    mode: "0755"
-
-# Jobs still need infra.ado without Galaxy. Vendor the collection running
-# bootstrap (same tree the UI installed) into the git project — skip heavy
-# local caches that make ansible.builtin.copy hang for minutes.
-- name: Generate playbook repo | Vendor infra.ado into the project (no Hub)
-  when: not (bootstrap_generate_playbook_repo_use_hub_galaxy | bool)
-  ansible.builtin.command:
-    argv:
-      - rsync
-      - -a
-      - --delete
-      - --exclude=.ansible/
-      - --exclude=.git/
-      - --exclude=node_modules/
-      - --exclude=__pycache__/
-      - --exclude=*.tar.gz
-      - --exclude=infra-ado-*.tar.gz
-      - "{{ (role_path | dirname | dirname) }}/"
-      - >-
-        {{
-          bootstrap_generate_playbook_repo_dest_resolved
-        }}/collections/ansible_collections/infra/ado/
-  register: bootstrap_generate_playbook_repo_vendor_rsync
-  changed_when: >-
-    (bootstrap_generate_playbook_repo_vendor_rsync.rc | default(1)) == 0
-  failed_when: false
-
-- name: Generate playbook repo | Vendor infra.ado via copy when rsync missing
-  when:
-    - not (bootstrap_generate_playbook_repo_use_hub_galaxy | bool)
-    - (bootstrap_generate_playbook_repo_vendor_rsync.rc | default(1)) != 0
+- name: Generate playbook repo | Write ansible.cfg so project Galaxy install skips Hub TLS verify
   ansible.builtin.copy:
-    src: "{{ (role_path | dirname | dirname) }}/"
-    dest: >-
-      {{
-        bootstrap_generate_playbook_repo_dest_resolved
-      }}/collections/ansible_collections/infra/ado/
+    src: playbook_repo_seed/ansible.cfg
+    dest: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/ansible.cfg"
+    mode: "0644"
     force: true
-    mode: preserve
+
+- name: Generate playbook repo | Remove vendored collection trees from git
+  ansible.builtin.include_tasks: remove_vendored_collections_from_git.yml
+
+- name: Generate playbook repo | Assert git repo has Hub requirements only
+  ansible.builtin.include_tasks: assert_hub_requirements.yml
+
+- name: Generate playbook repo | Load RHEL system roles catalog into maps
+  ansible.builtin.include_tasks: load_rhel_system_roles_catalog.yml
 
 - name: Generate playbook repo | Normalize component selector
   ansible.builtin.set_fact:
@@ -318,7 +259,7 @@
   changed_when: false
   when: bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
 
-- name: Generate playbook repo | Configure git credential helper
+- name: Generate playbook repo | Configure git credential helper (basic auth)
   ansible.builtin.shell: |
     set -euo pipefail
     git config credential.helper store
@@ -329,8 +270,9 @@
   when:
     - bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
     - bootstrap_generate_playbook_repo_git_token | default('') | length > 0
+    - bootstrap_generate_playbook_repo_git_auth_mode | default('basic') != 'bearer'
 
-- name: Generate playbook repo | Write git credentials
+- name: Generate playbook repo | Write git credentials (basic auth)
   ansible.builtin.copy:
     dest: "{{ ansible_env.HOME | default('/tmp') }}/.git-credentials"
     mode: "0600"
@@ -356,6 +298,19 @@
     - bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
     - bootstrap_generate_playbook_repo_git_url | default('') | length > 0
     - bootstrap_generate_playbook_repo_git_token | default('') | length > 0
+    - bootstrap_generate_playbook_repo_git_auth_mode | default('basic') != 'bearer'
+
+- name: Generate playbook repo | Configure Bearer auth header (Bitbucket)
+  community.general.git_config:
+    name: http.extraHeader
+    value: "Authorization: Bearer {{ bootstrap_generate_playbook_repo_git_token }}"
+    scope: local
+    repo: "{{ bootstrap_generate_playbook_repo_dest_resolved }}"
+  no_log: true
+  when:
+    - bootstrap_generate_playbook_repo_git_mode | default('manual') == 'push'
+    - bootstrap_generate_playbook_repo_git_token | default('') | length > 0
+    - bootstrap_generate_playbook_repo_git_auth_mode | default('basic') == 'bearer'
 
 - name: Generate playbook repo | Disable git terminal prompts
   community.general.git_config:

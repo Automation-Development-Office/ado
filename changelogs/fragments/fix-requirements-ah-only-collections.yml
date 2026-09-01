@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - >-
+    bootstrap_generate_playbook_repo - Stop listing
+    infra.openshift_virtualization_ops and redhat.rhel_system_roles in
+    Contoller collections/requirements.yml; they are not on public Galaxy and
+    break project sync. Bundle them on the Contoller EE instead.

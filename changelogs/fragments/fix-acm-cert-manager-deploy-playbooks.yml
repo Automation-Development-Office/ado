@@ -1,0 +1,9 @@
+---
+bugfixes:
+  - |
+    Fix OpenShift bootstrap playbooks for ACM and cert-manager so they
+    create the namespace, OperatorGroup, and Subscription (and wait for the
+    operator) before applying operands. ``Deploy cert-manager`` previously
+    only ran ``ocp_routes``, which left IdM ACME ClusterIssuer failing on a
+    missing webhook service; ``Deploy ACM`` previously applied MultiClusterHub
+    without creating ``open-cluster-management``.

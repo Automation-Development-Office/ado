@@ -1,16 +1,31 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 ---
-# defaults file for gitlab_install
+# defaults file for gitlab_install (OpenShift operator CR path)
 
 state: present
-name_space: ""
+name_space: gitlab-system
 gitlab_install_validate_certs: false
-gitlab_install_hostname: ""
-gitlab_install_storage_size: ""
+gitlab_install_hostname: "{{ hostname | default('') }}"
+gitlab_install_storage_size: "20Gi"
 gitlab_install_storage_class: ""
 gitlab_install_tls_crt: ""
 gitlab_install_tls_key: ""
-gitlab_install_admin_user: admin
-gitlab_install_admin_password: ""
-gitlab_install_root_password: ""
-gitlab_install_chart_version: "9.4.0"
+gitlab_install_admin_user: gitlab
+gitlab_install_admin_password: redhat123
+gitlab_install_root_password: redhat123
+gitlab_install_chart_version: "10.3.1"
+gitlab_install_enable_postgresql: false
+gitlab_install_postgres_image: "postgres:15-alpine"
+gitlab_install_postgres_storage_size: "10Gi"
+gitlab_install_redis_image: "redis:7-alpine"
+gitlab_install_minio_image: "minio/minio:latest"
+gitlab_install_minio_service: gitlab-minio
+gitlab_install_minio_port: 9000
+gitlab_install_minio_access_key: gitlab
+gitlab_install_minio_secret_key: "{{ gitlab_install_root_password | default('redhat123') }}"
+gitlab_install_registry_bucket: gitlab-registry
+gitlab_install_registry_storage_secret: gitlab-registry-storage
+gitlab_install_create_route: true
+gitlab_install_route_name: gitlab
+gitlab_install_route_service: gitlab-webservice-default
+gitlab_install_route_target_port: http-webservice

@@ -2,6 +2,12 @@
   ansible.builtin.import_tasks: rhbk_setup_group_mapper.yml
   when: state == "present"
 
+- name: Create IdM LDAP user attribute mappers
+  ansible.builtin.import_tasks: rhbk_setup_ldap_user_mappers.yml
+  when:
+    - state == "present"
+    - (rhbk_setup_ldap_user_mappers | default(true) | bool)
+
 - name: Delete RHBK mappers
   ansible.builtin.import_tasks: rhbk_remove_group_mapper.yml
   when: state == "absent"

@@ -1,0 +1,9 @@
+---
+bugfixes:
+  - >-
+    Quay supports Keycloak OIDC via KEYCLOAK_LOGIN_CONFIG; client secrets are
+    fetched with ocp_rhbk_client_secrets. MinIO playbook pre-fetches secrets.
+    OpenShift workflow adds BookStack, MinIO, and NetBox OIDC. RHBK client
+    presets expanded (Quay, Dev Hub, Zabbix, Kibana, Kafka). Dev realm
+    defaults to enabled; Dev Hub skips TLS verify for lab Keycloak; Zabbix
+    admin password defaults to redhat123.

@@ -76,8 +76,8 @@ bookstack_oidc_name: Keycloak
 bookstack_oidc_display_name: Lab SSO
 bookstack_oidc_client_id: bookstack
 bookstack_oidc_client_secret: ""
-# Live realm name is lowercase rhlab (not RHLAB).
-bookstack_oidc_issuer: https://keycloak.apps.ocp.prod.rhlab/realms/rhlab
+# Live realm/host come from vars_rhbk.yml (playbook) or ocp_rhbk_* at runtime.
+bookstack_oidc_issuer: ""
 bookstack_oidc_issuer_discover: true
 bookstack_oidc_auto_initiate: false
 bookstack_oidc_auto_register: true

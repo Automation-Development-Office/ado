@@ -1,0 +1,73 @@
+---
+- name: Resolve Developer Hub hostnames and URLs for OIDC
+  ansible.builtin.set_fact:
+    ocp_dev_hub_instance: "{{ dev_hub_instance_name | default('chad-lab') }}"
+    ocp_dev_hub_base_url: "https://{{ dev_hub_hostname }}"
+    ocp_dev_hub_keycloak_host: >-
+      {{
+        keycloak_hostname
+        | default(rhbk_hostname, true)
+        | default(ocp_rhbk_hostname, true)
+        | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+      }}
+
+- name: Resolve Developer Hub Keycloak issuer
+  ansible.builtin.set_fact:
+    ocp_dev_hub_keycloak_issuer: >-
+      https://{{ ocp_dev_hub_keycloak_host }}/realms/{{ dev_hub_keycloak_realm | default(rhbk_realm | default('rhlab')) }}
+
+- name: Fetch Keycloak client secret for Dev Hub when vault secret empty
+  ansible.builtin.include_role:
+    name: infra.ado.ocp_rhbk_client_secrets
+  vars:
+    ocp_rhbk_secret_client_key: rhdh_client
+    ocp_rhbk_secret_client_id: "{{ dev_hub_keycloak_client_id | default('rhdh') }}"
+    ocp_rhbk_secret_target_var: dev_hub_oidc_client_secret
+  when: (dev_hub_oidc_client_secret | default('') | string | length) == 0
+  no_log: true
+
+- name: Prefer fetched Dev Hub OIDC client secret
+  ansible.builtin.set_fact:
+    dev_hub_oidc_client_secret: "{{ ocp_rhbk_client_secrets__value }}"
+  when:
+    - (dev_hub_oidc_client_secret | default('') | string | length) == 0
+    - ocp_rhbk_client_secrets__value is defined
+    - (ocp_rhbk_client_secrets__value | string | length) > 0
+  no_log: true
+
+- name: Fail when Dev Hub OIDC client secret is still empty
+  ansible.builtin.fail:
+    msg: >-
+      Dev Hub OIDC requires a client secret. Set dev_hub.oidc_client_secret in
+      preflight or run RHBK client bootstrap first.
+  when: (dev_hub_oidc_client_secret | default('') | string | length) == 0
+
+- name: Enable OIDC in Developer Hub install context
+  ansible.builtin.set_fact:
+    dev_hub_install_include_oidc: true
+
+- name: Patch Developer Hub secrets with OIDC client secret
+  kubernetes.core.k8s:
+    state: present
+    merge_type: merge
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: rhdh-secrets
+        namespace: "{{ name_space }}"
+      stringData:
+        OIDC_CLIENT_SECRET: "{{ dev_hub_oidc_client_secret | default('') }}"
+  no_log: true
+
+- name: Update Developer Hub app-config ConfigMap for OIDC
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: rhdh-app-config
+        namespace: "{{ name_space }}"
+      data:
+        app-config.yaml: "{{ lookup('template', 'app-config.yaml.j2') }}"

@@ -34,6 +34,9 @@ admin credentials, an optional Keycloak OIDC integration, and an OpenShift Route
 | `grafana_install_route_tls_termination` | Route TLS termination mode. | ❌ | `edge` |
 | `route_insecure_edge_policy` | Route `insecureEdgeTerminationPolicy` value. | ❌ | `Redirect` |
 | `oidc` | Optional Keycloak OIDC settings (`enabled`, `client_id`, `role_map`, etc.). | ❌ | — |
+| `grafana_install_scope` | `install` (operator+CR), `oidc`, or `email` configure-only patch. | ❌ | `install` |
+| `grafana_install_include_oidc` | Apply OIDC during install scope (usually false; use OIDC JT). | ❌ | `oidc.enabled` |
+| `grafana_install_include_email` | Apply SMTP during install scope (usually false; use Email JT). | ❌ | `grafana_email.enabled` |
 | `grafana_install_bearer_token` | Output fact: Prometheus bearer token set by the role. | ❌ | set by role |
 
 ### Auth via environment

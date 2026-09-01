@@ -1,0 +1,36 @@
+---
+- name: ADO | Update OpenShift Default Ingress Certificate
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: cert_manager
+  vars_files:
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_{{ component }}.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_{{ component }}.yml"
+  environment:
+    K8S_AUTH_HOST: '{{ host | default(api_host) }}'
+    K8S_AUTH_API_KEY: '{{ token }}'
+    K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'',''no'') }}'
+  pre_tasks:
+    - name: ADO | Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: infra.ado.bootstrap_resolve_component
+    - name: ADO | Skip when update_default_ingress is disabled
+      ansible.builtin.meta: end_play
+      when: not (update_default_ingress | default(false) | bool)
+    - name: ADO | Map ingress PEM aliases from cert_manager config
+      ansible.builtin.set_fact:
+        # Prefer ingress_* PEMs (router wildcard). Empty custom tls_* must not win.
+        tls_crt: "{{ ingress_tls_crt | default(tls_crt | default(''), true) }}"
+        tls_key: "{{ ingress_tls_key | default(tls_key | default(''), true) }}"
+        ca_crt: "{{ ingress_ca_crt | default(ca_crt | default(idm_ca_bundle_pem | default('')), true) }}"
+        ocp_default_ingress_trust_ca_clusterwide: >-
+          {{
+            ocp_default_ingress_trust_ca_clusterwide
+            | default(trust_ca_clusterwide)
+            | default(false)
+            | bool
+          }}
+  roles:
+    - role: infra.ado.ocp_default_ingress_cert

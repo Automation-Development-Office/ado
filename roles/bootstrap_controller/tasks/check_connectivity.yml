@@ -3,9 +3,12 @@
   ansible.builtin.set_fact:
     bootstrap_controller_aap_api_url: >-
       {{
-        bootstrap_controller_controller_host
-        if (bootstrap_controller_controller_host | regex_search('^https?://'))
-        else 'https://' ~ bootstrap_controller_controller_host
+        (
+          bootstrap_controller_controller_host
+          if (bootstrap_controller_controller_host | regex_search('^https?://'))
+          else 'https://' ~ bootstrap_controller_controller_host
+        )
+        | regex_replace('/+$', '')
       }}
     bootstrap_controller_aap_effective_api_path: >-
       {{
@@ -127,3 +130,113 @@
   ansible.builtin.debug:
     msg: >-
       Connected to AAP controller at {{ bootstrap_controller_aap_api_url }}.
+
+# /ping/ is often unauthenticated — prove Contoller credentials work before
+# Hub-only Galaxy/org tasks (or full Contoller apply) spend time and fail later.
+- name: AAP connectivity | Call authenticated Contoller me endpoint
+  no_log: "{{ bootstrap_controller_aap_connectivity_no_log | default(true) }}"
+  ansible.builtin.uri:
+    url: >-
+      {{
+        bootstrap_controller_aap_api_url
+        ~ bootstrap_controller_aap_effective_api_path
+        ~ '/me/'
+      }}
+    method: GET
+    headers: >-
+      {{
+        {
+          'Authorization':
+          'Bearer ' ~ bootstrap_controller_controller_oauthtoken
+        }
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length > 0
+        )
+        else {}
+      }}
+    url_username: >-
+      {{
+        bootstrap_controller_controller_username
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    url_password: >-
+      {{
+        bootstrap_controller_controller_password
+        if (
+          bootstrap_controller_controller_oauthtoken
+          | default('')
+          | length == 0
+        )
+        else omit
+      }}
+    force_basic_auth: >-
+      {{
+        bootstrap_controller_controller_oauthtoken
+        | default('')
+        | length == 0
+      }}
+    validate_certs: >-
+      {{
+        bootstrap_controller_controller_validate_certs
+        | default(controller_validate_certs | default(false))
+        | bool
+      }}
+    return_content: true
+    status_code: [200]
+  register: bootstrap_controller_aap_me
+  failed_when: false
+  when: >-
+    (
+      bootstrap_controller_controller_oauthtoken | default('') | length > 0
+    )
+    or (
+      bootstrap_controller_controller_username | default('') | length > 0
+      and bootstrap_controller_controller_password | default('') | length > 0
+    )
+
+- name: AAP connectivity | Fail when Contoller credentials are invalid
+  ansible.builtin.fail:
+    msg:
+      - >-
+        Contoller authentication failed for
+        {{ bootstrap_controller_aap_api_url
+        ~ bootstrap_controller_aap_effective_api_path
+        ~ '/me/' }}
+        (HTTP {{ bootstrap_controller_aap_me.status | default('unknown') }}).
+      - >-
+        /api/controller/v2/ping/ can succeed without auth — do not treat ping
+        alone as proof that the OAuth token or password works.
+      - >-
+        Use a Contoller OAuth2 token (Access Tokens in Contoller/Gateway UI),
+        not the Automation Hub / Galaxy API token. Hub publish uses the Hub
+        token separately (galaxy_hub_token / vault_galaxy_hub_token).
+      - "Error: {{ bootstrap_controller_aap_me.msg | default('unknown') }}."
+  when:
+    - bootstrap_controller_aap_me is defined
+    - bootstrap_controller_aap_me.status | default(0) | int != 200
+    # Hub-only runs publish with Hub token first; Contoller auth is checked
+    # later only if Galaxy/org Contoller work is selected.
+    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
+
+- name: AAP connectivity | Warn Contoller auth failed on hub-only run
+  ansible.builtin.debug:
+    msg:
+      - >-
+        Contoller /me/ returned HTTP
+        {{ bootstrap_controller_aap_me.status | default('unknown') }} —
+        Contoller OAuth/password is invalid or is a Hub/Galaxy token.
+      - >-
+        Hub collection publish will still use vault_galaxy_hub_token (or
+        Contoller token as fallback). Galaxy credential attach / org create
+        will fail until Contoller OAuth is fixed.
+  when:
+    - bootstrap_controller_hub_update_collection_only | default(false) | bool
+    - bootstrap_controller_aap_me is defined
+    - bootstrap_controller_aap_me.status | default(0) | int != 200
