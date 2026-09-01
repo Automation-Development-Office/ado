@@ -1224,6 +1224,14 @@ def merge_component(component, cfg):
 
         if component == "rhbk":
             vars_data.setdefault("components_env", {}).setdefault("rhbk", {})
+            rhbk_options = (preflight.get("component_options") or {}).get("rhbk", [])
+            rhbk_standalone_selected = "standalone" in rhbk_options
+            if rhbk_standalone_selected:
+                vars_data["install_rhbk_platform"] = "rhel"
+                vars_data["rhbk_platform"] = "rhel"
+                vars_data["components_env"]["rhbk"]["install_rhbk_platform"] = "rhel"
+                vars_data["components_env"]["rhbk"]["rhbk_platform"] = "rhel"
+                vars_data_changed = True
             env_suffix = env_label_suffix(preflight.get("environment"))
             apps_domain = str(
                 ((preflight.get("openshift") or {}).get("apps_domain")) or ""
@@ -1258,6 +1266,9 @@ def merge_component(component, cfg):
             vars_data_changed = True
             _rhbk_host = strip_host(
                 first_present(
+                    public_values.get("standalone_hostname")
+                    if rhbk_standalone_selected
+                    else None,
                     public_values.get("hostname"),
                     f"keycloak.{apps_domain}" if apps_domain else None,
                 )
@@ -1419,13 +1430,24 @@ def merge_component(component, cfg):
             }
             if _issuer_host:
                 oidc_auth["issuer"] = f"https://{_issuer_host}/realms/{_realm}"
-            vars_data["openshift_oidc_auth"] = oidc_auth
-            vars_data["components_env"]["rhbk"]["openshift_oidc_auth"] = copy.deepcopy(oidc_auth)
-            vars_data_changed = True
+            if not rhbk_standalone_selected:
+                vars_data["openshift_oidc_auth"] = oidc_auth
+                vars_data["components_env"]["rhbk"]["openshift_oidc_auth"] = copy.deepcopy(oidc_auth)
+                vars_data_changed = True
             standalone_hostname = first_present(public_values.get("standalone_hostname"))
             if standalone_hostname:
-                vars_data["rhbk_standalone_hostname"] = str(standalone_hostname)
-                vars_data["install_rhbk_standalone_hostname"] = str(standalone_hostname)
+                _standalone_host = str(standalone_hostname)
+                vars_data["rhbk_standalone_hostname"] = _standalone_host
+                vars_data["install_rhbk_standalone_hostname"] = _standalone_host
+                vars_data["rhbk_hostname"] = _standalone_host
+                vars_data["rhbk_host"] = _standalone_host
+                vars_data["install_rhbk_platform"] = "rhel"
+                vars_data["rhbk_platform"] = "rhel"
+                vars_data.setdefault("components_env", {}).setdefault("rhbk", {})
+                vars_data["components_env"]["rhbk"]["rhbk_hostname"] = _standalone_host
+                vars_data["components_env"]["rhbk"]["rhbk_host"] = _standalone_host
+                vars_data["components_env"]["rhbk"]["install_rhbk_platform"] = "rhel"
+                vars_data_changed = True
             zip_url = first_present(public_values.get("standalone_zip_url"))
             if zip_url:
                 vars_data["rhbk_standalone_zip_url"] = str(zip_url)

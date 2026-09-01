@@ -102,7 +102,6 @@ components_defaults:
     name_space: aap
     operator_namespace: aap
     operatorgroup: aap-operators
-    infra.ado.ocp_operatorgroups: aap-operators
 
     # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
     operator_name: ansible-automation-platform-operator
@@ -126,7 +125,6 @@ components_defaults:
     name_space: aap27
     operator_namespace: aap27
     operatorgroup: aap27-operators
-    infra.ado.ocp_operatorgroups: aap27-operators
 
     operator_name: ansible-automation-platform-operator
     operator_channel: stable-2.7
@@ -144,7 +142,6 @@ components_defaults:
     name_space: aap25
     operator_namespace: aap25
     operatorgroup: aap25-operators
-    infra.ado.ocp_operatorgroups: aap25-operators
 
     # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
     operator_name: ansible-automation-platform-operator
@@ -163,7 +160,6 @@ components_defaults:
     name_space: aap24
     operator_namespace: aap24
     operatorgroup: aap24-operators
-    infra.ado.ocp_operatorgroups: aap24-operators
 
     # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
     operator_name: ansible-automation-platform-operator
@@ -248,7 +244,6 @@ components_defaults:
     app_namespace: open-cluster-management
     operator_subscription_namespace: open-cluster-management
     operatorgroup: open-cluster-management
-    infra.ado.ocp_operatorgroups: open-cluster-management
     operator_name: advanced-cluster-management
     # Catalog on current OCP no longer ships release-2.14 (ResolutionFailed).
     operator_channel: release-2.17
@@ -267,7 +262,6 @@ components_defaults:
     operator_namespace: cert-manager-operator
     operator_subscription_namespace: cert-manager-operator
     operatorgroup: cert-manager-operator
-    infra.ado.ocp_operatorgroups: cert-manager-operator
     acs_namespace: stackrox
     acs_central_name: central
     acs_admin_secret_name: central-admin-htpasswd
@@ -443,7 +437,6 @@ components_defaults:
     operator_namespace: gitlab-system
     operator_subscription_namespace: gitlab-system
     operatorgroup: gitlab-operators
-    infra.ado.ocp_operatorgroups: gitlab-operators
 
     # normalized (flattened) subscription vars expected by infra.ado.ocp_operator_subscription
     operator_name: gitlab-operator-kubernetes
@@ -532,7 +525,6 @@ components_defaults:
   grafana:
     name_space: grafana
     operatorgroup: grafana-operator-group
-    infra.ado.ocp_operatorgroups: grafana-operator-group
 
     operator_name: grafana-operator
     operator_channel: v5
@@ -686,7 +678,6 @@ components_defaults:
 
     # infra.ado.ocp_operatorgroups settings (optional; only if you want one)
     operatorgroup: cfk-operator-group
-    infra.ado.ocp_operatorgroups: cfk-infra.ado.ocp_operatorgroups
     all_namespaces_install: true
 
     # Subscription settings (catalog channels are 3.2/3.3 — 2.11 is dead)
@@ -721,7 +712,6 @@ components_defaults:
 
     # infra.ado.ocp_operatorgroups (created inside eck-operator)
     operatorgroup: eck-operator-group
-    infra.ado.ocp_operatorgroups: eck-infra.ado.ocp_operatorgroups
     all_namespaces_install: true
 
     # OLM package + subscription settings (from your cluster)
@@ -764,7 +754,6 @@ components_defaults:
     name_space: redhat-oadp
     operator_subscription_namespace: redhat-oadp
     operatorgroup: redhat-oadp-operator
-    infra.ado.ocp_operatorgroups: redhat-oadp-operator
 
     operator_name: redhat-oadp-operator
     # Catalog only publishes channel "stable" (currently OADP 1.5.x).
@@ -783,7 +772,6 @@ components_defaults:
     name_space: quay-enterprise
     operator_subscription_namespace: quay-enterprise
     operatorgroup: quay-operator-group
-    infra.ado.ocp_operatorgroups: quay-operator-group
 
     # subscript_operator
     operator_name: quay-operator
@@ -816,7 +804,6 @@ components_defaults:
     operator_subscription_namespace: openshift-operators
     operator_namespace: openshift-operators
     operatorgroup: global-operators
-    infra.ado.ocp_operatorgroups: global-operators
     all_namespaces_install: true
     # Package was renamed from redhat-developer-hub-operator → rhdh in redhat-operators.
     operator_name: rhdh
@@ -857,7 +844,6 @@ components_defaults:
     name_space: keycloak
     operator_subscription_namespace: keycloak
     operatorgroup: rhbk-operator
-    infra.ado.ocp_operatorgroups: rhbk-operator
 
     operator_name: rhbk-operator
     operator_channel: stable-v26.0
@@ -917,6 +903,26 @@ components_defaults:
         preferred_username: "preferred_username"
         name: "name"
         email: "email"
+
+  # Standalone RHBK on RHEL — API/configure JTs only (no operator/OCP vars).
+  rhbk_standalone:
+    component: rhbk
+    install_rhbk_platform: rhel
+    rhbk_platform: rhel
+    rhbk_hostname: keycloak-ado.server.lab
+    rhbk_host: keycloak-ado.server.lab
+    install_rhbk_standalone_hostname: keycloak-ado.server.lab
+    rhbk_realm: rhlab
+    ocp_rhbk_realm: rhlab
+    rhbk_enabled: true
+    rhbk_admin_user: admin
+    ocp_rhbk_admin_user: admin
+    rhbk_verify_ssl: false
+    rhbk_realm_verify_ssl: false
+    install_rhbk_standalone_http_port: 8080
+    install_rhbk_standalone_https_port: 8443
+    install_rhbk_standalone_http_enabled: true
+    install_rhbk_standalone_https_enabled: false
 
 
   # PEGA placeholder — resolve succeeds; playbook fails clearly (no PEGA role yet).

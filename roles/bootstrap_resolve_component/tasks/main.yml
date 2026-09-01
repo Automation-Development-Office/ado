@@ -121,13 +121,18 @@
 - name: Resolve_component | Export resolved vars (top-level, don't clobber higher precedence vars)
   ansible.builtin.set_fact:
     "{{ item.key }}": "{{ item.value }}"
-  loop: "{{ bootstrap_resolve_component_selected | dict2items }}"
+  loop: >-
+    {{
+      bootstrap_resolve_component_selected
+      | dict2items
+      | rejectattr('key', 'search', '\\.')
+      | list
+    }}
   loop_control:
     label: "{{ item.key }}"
   when:
     # Survey/extra_vars may pass "" — treat as unset so registry defaults can export.
     - (vars[item.key] is not defined) or ((vars[item.key] | string) == "")
-    - "'.' not in (item.key | string)"
 # noqa: var-naming
 
 # Apply aliases safely:

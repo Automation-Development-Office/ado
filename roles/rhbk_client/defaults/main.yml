@@ -5,7 +5,10 @@
 rhbk_hostname: >-
   {{
     (
-      ocp_rhbk_hostname
+      rhbk_hostname | default('', true)
+      | default(rhbk_standalone_hostname, true)
+      | default(install_rhbk_standalone_hostname, true)
+      | default(ocp_rhbk_hostname, true)
       | default(hostname, true)
       | default('', true)
     )
@@ -15,7 +18,11 @@ rhbk_hostname: >-
 rhbk_host: >-
   {{
     (
-      ocp_rhbk_hostname
+      rhbk_host | default('', true)
+      | default(rhbk_hostname, true)
+      | default(rhbk_standalone_hostname, true)
+      | default(install_rhbk_standalone_hostname, true)
+      | default(ocp_rhbk_hostname, true)
       | default(hostname, true)
       | default('', true)
     )

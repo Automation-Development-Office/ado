@@ -1,0 +1,14 @@
+---
+bugfixes:
+  - >-
+    RHBK API playbooks (realm, client, mapper, scopes, EntraID) — shared
+    ``ado-rhbk-api-pre_tasks.yml`` drops OpenShift ``K8S_AUTH_*`` env, resolves
+    standalone VM hostname/URL (``http://host:8080`` or HTTPS), and asserts admin
+    API creds only.
+  - >-
+    bootstrap_generate_env_vars — map ``standalone_hostname`` to ``rhbk_hostname``
+    and ``install_rhbk_platform: rhel`` when RHBK standalone is selected; skip
+    ``openshift_oidc_auth`` for standalone-only exports.
+  - >-
+    bootstrap_resolve_component — add ``rhbk_standalone`` registry block without
+    operator/OCP defaults.

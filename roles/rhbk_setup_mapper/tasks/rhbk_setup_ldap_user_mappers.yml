@@ -5,7 +5,7 @@
 
 - name: Login to RHBK and get admin token for LDAP user mappers
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/realms/master/protocol/openid-connect/token"
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/realms/master/protocol/openid-connect/token"
     method: POST
     headers:
       Content-Type: "application/x-www-form-urlencoded"
@@ -21,7 +21,7 @@
 
 - name: Get LDAP Federation Component list
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/components?type=org.keycloak.storage.UserStorageProvider"
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/components?type=org.keycloak.storage.UserStorageProvider"
     method: GET
     headers:
       Authorization: "Bearer {{ rhbk_setup_mapper_auth.json.access_token }}"
@@ -53,7 +53,7 @@
 - name: Get all existing LDAP mappers for component
   ansible.builtin.uri:
     url: >-
-      https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/components?parent={{
+      {{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/components?parent={{
       rhbk_setup_mapper_ldap_component_id }}&type=org.keycloak.storage.ldap.mappers.LDAPStorageMapper
     method: GET
     headers:

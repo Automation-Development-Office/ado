@@ -23,9 +23,16 @@
       - rhbk_realm_wait_hostname | length > 0
     fail_msg: rhbk_hostname / ocp_rhbk_hostname is required before realm create.
 
-- name: Wait for Keycloak HTTPS realm endpoint to respond
+- name: Wait for Keycloak admin API realm endpoint to respond
   ansible.builtin.uri:
-    url: "https://{{ rhbk_realm_wait_hostname }}/realms/master"
+    url: >-
+      {{
+        (
+          rhbk_keycloak_base_url
+          | default('https://' ~ rhbk_realm_wait_hostname)
+        )
+        ~ '/realms/master'
+      }}
     method: GET
     validate_certs: "{{ rhbk_verify_ssl | default(rhbk_realm_verify_ssl) | default(false) | bool }}"
     status_code: [200, 401, 403]
@@ -40,7 +47,9 @@
 - name: Fail with actionable Keycloak TLS guidance
   ansible.builtin.fail:
     msg: >-
-      Keycloak HTTPS at https://{{ rhbk_realm_wait_hostname }}/realms/master
+      Keycloak at {{
+        rhbk_keycloak_base_url | default('https://' ~ rhbk_realm_wait_hostname)
+      }}/realms/master
       is not reachable ({{ rhbk_realm_wait_https.msg | default(rhbk_realm_wait_https) }}).
       Common cause: broken Keycloak tlsSecret (empty default-ingress PEM) →
       SSL UNEXPECTED_EOF. Fix: re-run Deploy RHBK with edge TLS defaults,

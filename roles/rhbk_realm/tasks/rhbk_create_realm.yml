@@ -2,7 +2,8 @@
   community.general.keycloak_realm:
     # ---- REQUIRED auth + target ----
     auth_client_id: "{{ rhbk_auth_client_id | default('admin-cli') }}"
-    auth_keycloak_url: "https://{{ rhbk_hostname }}"
+    auth_keycloak_url: >-
+      {{ rhbk_keycloak_base_url | default('https://' ~ rhbk_hostname) }}
     auth_realm: "{{ rhbk_auth_realm | default('master') }}"
     auth_username: "{{ rhbk_admin_user }}"
     auth_password: "{{ rhbk_admin_password }}"

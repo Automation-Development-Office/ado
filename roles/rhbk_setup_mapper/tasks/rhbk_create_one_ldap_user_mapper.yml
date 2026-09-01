@@ -36,7 +36,7 @@
 
 - name: Create LDAP user attribute mapper ({{ ldap_user_mapper.name }})
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/components"
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/components"
     method: POST
     headers:
       Authorization: "Bearer {{ rhbk_setup_mapper_auth.json.access_token }}"

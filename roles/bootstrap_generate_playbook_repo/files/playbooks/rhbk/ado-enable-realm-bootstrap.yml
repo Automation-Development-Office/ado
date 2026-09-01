@@ -11,9 +11,8 @@
     - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_{{ component }}.yml"
     - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_{{ component }}.yml"
   pre_tasks:
-    - name: ADO | Resolve vars for component from framework defaults + env overrides
-      ansible.builtin.include_role:
-        name: infra.ado.bootstrap_resolve_component
+    - name: ADO | RHBK API pre_tasks
+      ansible.builtin.import_tasks: ado-rhbk-api-pre_tasks.yml
     - name: ADO | Force realm enabled
       ansible.builtin.set_fact:
         rhbk_enabled: true
