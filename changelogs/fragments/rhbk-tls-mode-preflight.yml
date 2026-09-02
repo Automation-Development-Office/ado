@@ -1,5 +1,0 @@
----
-minor_changes:
-  - preflight / bootstrap_generate_env_vars - RHBK OpenShift TLS mode is selectable
-    (edge default, cert-manager opt-in, or copy default ingress). cert-manager is
-    never the default; issuer kind/name fields appear when cert-manager is chosen.

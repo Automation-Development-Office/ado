@@ -1,5 +1,0 @@
-minor_changes:
-  - bootstrap_generate_env_vars - Wire ACS Central route hostname to ``ocp_acs_hostname``; OpenShift OAuth/LDAP IdP names from preflight ``openshift.oauth_rhbk`` / ``openshift.ldap_auth``.
-
-bugfixes:
-  - bootstrap_generate_env_vars - Default ACS hostname from ``central.<apps_domain>`` when unset in preflight JSON.

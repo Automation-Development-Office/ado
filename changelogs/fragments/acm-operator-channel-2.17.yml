@@ -1,7 +1,0 @@
----
-bugfixes:
-  - |
-    Update ACM default operator channel from ``release-2.14`` to
-    ``release-2.17``. Current ``redhat-operators`` catalogs no longer publish
-    2.14, which left the ACM Subscription in ``ResolutionFailed`` and
-    ``ocp_wait_operator`` spinning on a missing CSV.

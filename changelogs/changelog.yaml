@@ -1258,3 +1258,555 @@ releases:
     - skip-dotted-component-fact-keys.yml
     - vpn-access-moved-to-lab-tools.yml
     release_date: '2026-08-26'
+  1.3.0:
+    changes:
+      bugfixes:
+      - "Controller projects always use Hub for collections \u2014 git keeps only
+        collections/requirements.yml (Hub names); vendored collection trees are never
+        written to git and overwrite clears collections/ansible_collections."
+      - 'Fix OpenShift bootstrap playbooks for ACM and cert-manager so they
+
+        create the namespace, OperatorGroup, and Subscription (and wait for the
+
+        operator) before applying operands. ``Deploy cert-manager`` previously
+
+        only ran ``ocp_routes``, which left IdM ACME ClusterIssuer failing on a
+
+        missing webhook service; ``Deploy ACM`` previously applied MultiClusterHub
+
+        without creating ``open-cluster-management``.
+
+        '
+      - Manifest maps preflight-ui/collections tarballs to Galaxy names for Hub publish
+        and Controller requirements.
+      - OpenShift workflow - Cert/ingress then RHBK then OIDC then apps; wire DevSpaces
+        and Web Terminal; converge to route print.
+      - Playbooks (quay, minio, grafana) - Remove duplicate RHBK secret fetch pre_tasks;
+        roles own OIDC secret resolution. Add vars_rhbk.yml to Quay.
+      - Quay Keycloak login uses Database internal auth plus KEYCLOAK_LOGIN_CONFIG
+        (AUTHENTICATION_TYPE OIDC crashes migration). RHBK realms default to enabled=true
+        in rhbk_realm, components_defaults, env-var generation, and preflight UI so
+        OIDC apps do not hit Realm not enabled.
+      - Quay Keycloak redirect URIs corrected to /oauth2/keycloak/callback paths and
+        Quay config sets PREFERRED_URL_SCHEME=https plus EXTERNAL_TLS_TERMINATION
+        so login no longer sends http redirect_uri (Invalid parameter redirect_uri).
+      - Quay supports Keycloak OIDC via KEYCLOAK_LOGIN_CONFIG; client secrets are
+        fetched with ocp_rhbk_client_secrets. MinIO playbook pre-fetches secrets.
+        OpenShift workflow adds BookStack, MinIO, and NetBox OIDC. RHBK client presets
+        expanded (Quay, Dev Hub, Zabbix, Kibana, Kafka). Dev realm defaults to enabled;
+        Dev Hub skips TLS verify for lab Keycloak; Zabbix admin password defaults
+        to redhat123.
+      - "RHBK API playbooks (realm, client, mapper, scopes, EntraID) \u2014 shared
+        ``ado-rhbk-api-pre_tasks.yml`` drops OpenShift ``K8S_AUTH_*`` env, resolves
+        standalone VM hostname/URL (``http://host:8080`` or HTTPS), and asserts admin
+        API creds only."
+      - 'Update ACM default operator channel from ``release-2.14`` to
+
+        ``release-2.17``. Current ``redhat-operators`` catalogs no longer publish
+
+        2.14, which left the ACM Subscription in ``ResolutionFailed`` and
+
+        ``ocp_wait_operator`` spinning on a missing CSV.
+
+        '
+      - aap_ocp_install - Force ``aap_ocp_install_reset_database=true`` in the bootstrap
+        playbook (Contoller vars left it false so Fernet reset skipped).
+      - aap_ocp_install - Resolve component defaults in the AAP playbook so ``aap_ocp_install_reset_database=true``
+        actually runs; fail fast when gateway pods never become Ready (Fernet InvalidToken
+        / 503).
+      - aap_ocp_install_upstream - Platform/Controller/EDA/Hub route readiness waits
+        no longer require strict TLS verify + HTTP 200 only. Lab Contoller EEs often
+        fail forever on self-signed apps certs or gateway 302 to /login; accept 200/302
+        (UI) and 200/401 (API) with validate_certs default false.
+      - bookstack_openshift - Do not fail deploy when pod exec for admin password
+        reset is blocked (DevWorkspace webhook).
+      - bookstack_openshift - Resolve OIDC issuer into bookstack_openshift_oidc_issuer_resolved
+        when Keycloak or RHBK issuer survey fields are empty.
+      - bookstack_openshift - Run MariaDB as UID/fsGroup 999 so PVC data dir is writable
+        under anyuid on OpenShift (fixes CrashLoop Permission denied on /var/lib/mysql).
+      - bootstrap_controller - Apply workflow job templates in a separate Controller
+        dispatch from job templates so a job template failure (for example transient
+        DNS during async apply) no longer skips workflow node rebuild after ``destroy_current_nodes``.
+      - bootstrap_controller - Create Contoller organizations before Galaxy/Hub credentials
+        exist, then attach ``galaxy_credentials`` after credential dispatch so org
+        create does not fail with ``CKTEST-validated returned 0 items``.
+      - bootstrap_controller - Do not fail a successful Hub publish when Contoller
+        Galaxy/org attach 401s. Galaxy attach only runs when ``galaxy_setup_enabled``
+        is true (not inferred from leftover git credential YAML).
+      - bootstrap_controller - Fix early config load gate to honor ``bootstrap_controller_apply_aap_configs``
+        (was referencing unset ``bootstrap_apply_aap_configs``).
+      - bootstrap_controller - Force infra.ado Hub collection update deletes the existing
+        version (auto_approve false), waits for async delete, uploads to validated
+        with auto_approve false (staging approve path is broken), and verifies the
+        version exists on Hub before succeeding.
+      - bootstrap_controller - Hub-only publish no longer touches git or Controller
+        project sync; requirements.yml and vendored-tree cleanup happen only on full
+        bootstrap (generate_playbooks).
+      - bootstrap_controller - Hub-only runs force manual git before and after loading
+        ``aap_config_vars.yml``; block playbook git-push when hub-only.
+      - 'bootstrap_controller - Implement preflight tarball publish to Hub validated:
+        loop manifest tarballs from /opt/ado-collections, upload to staging, pulp-move
+        to validated when missing (infra.ado excluded; already published separately).'
+      - bootstrap_controller - Keep galaxy filename ``infra-ado-*.tar.gz`` for Hub
+        upload (``ado-collection-artifact.tar.gz`` parsed wrong namespace/name).
+      - bootstrap_controller - On hub-only runs, skip Contoller org create from stale
+        configs before Hub publish. Prefer ``vault_galaxy_hub_token`` for Hub API
+        auth.
+      - bootstrap_controller - Pass ``galaxy_credentials`` when creating/updating
+        organizations so Hub/Galaxy org attachments are not left unset on full bootstrap
+        runs.
+      - bootstrap_controller - Prefix Hub publish task facts with ``bootstrap_controller_``
+        and fix line-length for pulp API URLs.
+      - bootstrap_controller - Publish the preflight pod tarball to Hub instead of
+        rebuilding from extracted source (avoids artifact drift).
+      - bootstrap_controller - Remove staging upload debug task that crashed Jinja
+        after a successful Hub import.
+      - bootstrap_controller - Resolve machine credential placeholder in job templates
+        that used an inline Jinja ``default()`` expression (Register Host to Satellite,
+        standalone GitLab/Grafana/RHBK) so AAP receives ``DEV-machine`` instead of
+        raw template text.
+      - bootstrap_controller - Upload infra.ado to Hub ``staging`` then move into
+        the target repository (e.g. ``validated``). Pipeline-approved repos reject
+        direct uploads; prior direct-to-validated uploads returned changed but never
+        appeared in Hub UI.
+      - bootstrap_controller - Verify promoted collection version via Hub Galaxy API
+        before succeeding.
+      - bootstrap_generate_env_vars - Auto-enable ``rhbk_client_scopes`` when any
+        OIDC app (Grafana, Quay, OpenShift OAuth, etc.) is selected; seed ``groups``
+        default scope on RHBK clients.
+      - bootstrap_generate_env_vars - Create ``<org>-RHEL-Inventory`` when Satellite
+        ``satellite_client_tools`` is selected so ``Register Host to Satellite`` job
+        templates resolve their inventory even when dynamic inventory is disabled.
+        Dynamic inventory sources still attach only when dynamic inventory is enabled.
+      - bootstrap_generate_env_vars - Default ACS hostname from ``central.<apps_domain>``
+        when unset in preflight JSON.
+      - bootstrap_generate_env_vars - Emit Quay OIDC issuer from RHBK preflight; map
+        Dev Hub ``gitlab_token`` into vault.
+      - bootstrap_generate_env_vars - Enable Grafana OIDC when RHBK is selected; stop
+        overwriting OpenShift GitLab hostname with standalone VM defaults.
+      - bootstrap_generate_env_vars - Fix ``bootstrap_generate_env_vars_rhel_use_existing_inventory``
+        undefined error by evaluating RHEL inventory need after existing-inventory
+        vars are resolved.
+      - bootstrap_generate_env_vars - Fix preflight vault encryption when ``ANSIBLE_VAULT_PASSWORD_FILE``
+        is set (``vault-ids default,default``) by unsetting the env var and passing
+        ``--encrypt-vault-id default``.
+      - 'bootstrap_generate_env_vars - Hub-only and standalone AAP runs ignore ``git.auto_push:
+        true`` in imported preflight JSON; generated ``aap_config_vars.yml`` always
+        uses manual git mode.'
+      - bootstrap_generate_env_vars - Keep Contoller org ``galaxy_credentials`` attachments
+        when ``galaxy_setup_enabled`` is false so Contoller project sync can still
+        pull Hub/Galaxy collections listed in ``collections/requirements.yml`` (e.g.
+        ``community.grafana``). Credential object create/update remains gated by galaxy
+        setup; attach_to_org list is always applied.
+      - bootstrap_generate_env_vars - Map preflight hostnames to dev_hub_hostname,
+        zabbix_hostname, and bookstack_route_host during merge_component.
+      - bootstrap_generate_env_vars - Map vault aap_admin_password to aap_ocp_install_admin_password
+        for license attach.
+      - bootstrap_generate_env_vars - Move preflight overlay Python out of inline
+        shell heredoc; fixes ``Argument list too long`` (errno 7) on hub-only and
+        full bootstrap runs.
+      - bootstrap_generate_env_vars - Normalize ``client_scope_name`` to ``groups``;
+        merge federation LDAP settings into vault ``ldap_config``.
+      - bootstrap_generate_env_vars - On ocp-dev, stop pinning prod-only ``synology-nfs-csi``
+        when the cluster has no Synology CSI; roles now pick the cluster default StorageClass.
+      - bootstrap_generate_env_vars - Prefer RHBK realm over dev_hub keycloak_realm;
+        wire keycloak hostname into dev_hub.
+      - bootstrap_generate_env_vars - Sanitize stale ACM operator channel release-2.14
+        to release-2.17.
+      - bootstrap_generate_env_vars - Seed vars_bookstack.yml and vars_netbox.yml
+        with app_domain-aware defaults.
+      - bootstrap_generate_env_vars - Stop seeding hardcoded ``IDM_LDAP`` federation
+        name; honor preflight ``federation_name`` (default ``LDAP``).
+      - bootstrap_generate_env_vars - Write devspaces hostname into ocp_devspaces_hostname.
+      - bootstrap_generate_env_vars - Write generate_playbook_repo_git_auth_mode into
+        the generated aap_config_vars.yml so AAP job runs also use Bearer auth when
+        the SCM tool is Bitbucket.
+      - "bootstrap_generate_env_vars \u2014 map ``standalone_hostname`` to ``rhbk_hostname``
+        and ``install_rhbk_platform: rhel`` when RHBK standalone is selected; skip
+        ``openshift_oidc_auth`` for standalone-only exports."
+      - bootstrap_generate_env_vars, netbox_oidc, bookstack, minio playbooks - Derive
+        OIDC issuer and Keycloak realm from preflight RHBK hostname/realm (vars_rhbk.yml)
+        instead of hardcoded prod ``rhlab`` defaults.
+      - bootstrap_generate_playbook_repo - Fail when Hub mode leaves vendored infra.ado
+        in git or requirements.yml still uses type:dir; skip metadata stamp when Hub
+        mode is on.
+      - bootstrap_generate_playbook_repo - GitLab playbook inherits openshift_default_storage_class
+        for persistence.
+      - bootstrap_generate_playbook_repo - Include community.grafana in local vendored
+        project requirements so Grafana datasource tasks resolve.
+      - bootstrap_generate_playbook_repo - Seed ``grafana_oidc`` and ``grafana_email``
+        playbooks so Controller job templates are not skipped when the matching playbook
+        file is missing.
+      - bootstrap_generate_playbook_repo - Skip credential-store setup and use Authorization
+        Bearer via Git http extraHeader when bootstrap_generate_playbook_repo_git_auth_mode
+        is bearer (Bitbucket). Previously the role always wrote a git-credentials
+        file with username:token@host which Bitbucket rejects.
+      - bootstrap_generate_playbook_repo - Stop listing infra.openshift_virtualization_ops
+        and redhat.rhel_system_roles in Contoller collections/requirements.yml; they
+        are not on public Galaxy and break project sync. Bundle them on the Contoller
+        EE instead.
+      - bootstrap_resolve_component - Clear hard-coded Synology storage class default
+        for GitLab OpenShift installs.
+      - bootstrap_resolve_component - Default CFK operator subscription namespace
+        to confluent-operator-system.
+      - bootstrap_resolve_component - Default Grafana OIDC scopes include ``groups``
+        with standard ``role_map``.
+      - bootstrap_resolve_component - Export registry defaults when survey or extra_vars
+        pass empty strings, not only when keys are undefined.
+      - bootstrap_resolve_component - Skip registry keys containing ``.`` before ``set_fact``
+        export (Ansible validates dynamic fact names before ``when``); fixes ``Deploy
+        RHBK Realm`` and other JTs that only need API vars, not ``infra.ado.ocp_operatorgroups``.
+      - bootstrap_resolve_component - seed grafana_dev_prometheus_url before templating
+        components_defaults, and stop referencing that play var inside the registry
+        so non-grafana component deploys (ACM, descheduler, etc.) do not fail.
+      - "bootstrap_resolve_component \u2014 add ``rhbk_standalone`` registry block
+        without operator/OCP defaults."
+      - components_defaults / dev_hub - Install the RHDH operator Subscription into
+        ``openshift-operators`` (reuse ``global-operators``) instead of a namespaced
+        AllNamespaces OperatorGroup in ``rhdh``. The latter never produced an ``rhdh-operator``
+        CSV (Deploy Dev Hub timed out waiting for the operator).
+      - dev_hub - Subscribe to package ``rhdh`` on channel ``fast`` (old ``redhat-developer-hub-operator``
+        package is gone from the catalog).
+      - devspaces playbook - Print routes from openshift-devspaces app namespace.
+      - gitlab - Wait for CSV in ``gitlab-system`` (where Subscription installs),
+        not empty ``gitlab`` namespace.
+      - gitlab OCP playbook - Install operator CR + Route (was routes-print only).
+      - gitlab_install - Chart 10.3.1 with lab external Postgres, Redis, and MinIO
+        for chart 10.x (operator webhook rejects 9.x).
+      - gitlab_install - Configure chart 10.x registry object storage (separate S3
+        secret) so GitLab CR leaves Preparing/ConfigError.
+      - "gitlab_install - Default chart version fallback ``10.3.0`` \u2192 ``9.5.0``
+        in the CR builder (matches components_defaults; chart 10 needs external DB)."
+      - 'gitlab_install - Default chart version to ``10.3.0`` (GitLab operator v3.3
+        rejects ``9.7.0``; allowed: 10.3.0, 10.2.4, 10.1.6).'
+      - gitlab_install / components_defaults - Pin OpenShift GitLab chart to ``9.5.0``.
+        Chart ``10.x`` requires external Postgres, Redis, and object storage and left
+        GitLab stuck in ``Preparing`` with an empty webservice.
+      - grafana_create_datasource - Probe Prometheus with ``/api/v1/query?query=up``
+        (reachable with ``cluster-monitoring-view``) instead of ``/api/v1/status/config``.
+      - grafana_create_datasource / grafana_install - OpenShift Grafana now defaults
+        admin password (lab ``redhat123``) so datasource create does not assert on
+        an empty password when UI left it blank.
+      - grafana_install - Always request the Keycloak ``groups`` scope and map ``groups[*]``
+        to Grafana roles (fixes ``IdP did not return a role attribute`` when the client
+        scope was missing).
+      - grafana_install - Fix recursive Jinja loop fetching RHBK client secret; install
+        JT no longer runs OIDC when only Deploy Grafana is selected.
+      - grafana_install - Fixed Jinja template error fetching RHBK client secret (replaced
+        invalid ``.split()`` with ``regex_replace`` for realm parsing from OIDC issuer).
+      - grafana_install - Load ``vars_rhbk.yml`` in the Grafana deploy playbook and
+        pass Keycloak host/realm explicitly into ``ocp_rhbk_client_secrets`` (fixes
+        empty host/realm when ``grafana-client`` is configured in RHBK).
+      - grafana_install - Prefix role-local OIDC/email facts with ``grafana_install_``.
+      - install_aap - Fix recursive Jinja on aap_ocp_install_reset_delete_platform.
+      - install_aap - Prefix license/reset task facts with ``install_aap_``; replace
+        ``ignore_errors`` with explicit ``failed_when``.
+      - install_dirsrv - Add missing LDIF bootstrap templates and fix aci-anon-read
+        suffix variable.
+      - install_dirsrv - Break long ldap/dsconf commands and port list set_fact for
+        ansible-lint line-length.
+      - install_dirsrv - Fix idempotent shell checks that used pipe ``|`` instead
+        of ``||``, and correctly detect an existing suffix backend before create.
+      - 'install_dirsrv - Keep ldapsearch/ldapmodify shell commands on a single logical
+        line so YAML folded more-indented newlines do not split argv (``-D: command
+        not found`` on group membership).'
+      - install_dirsrv - Treat suffix-backend already present or exists stdout as
+        success on idempotent re-run.
+      - install_elastic - Build ECK CR definitions via set_fact to avoid YAML parse
+        errors on integer fields.
+      - install_elastic - Create Elasticsearch + Kibana + Routes by default.
+      - install_rhbk - Default to OpenShift edge TLS (httpEnabled, no tlsSecret) so
+        empty default-ingress PEMs no longer break Keycloak HTTPS with SSL UNEXPECTED_EOF.
+        Validate ingress PEMs when copy mode is used; wait for cert-manager Certificate
+        Ready when cert_manager=true.
+      - kafka_install - Build Kafka CR definitions via set_fact to avoid YAML parse
+        errors on replica counts.
+      - kafka_install - Create Kafka CR with Route listeners by default.
+      - kafka_install - Default CFK external routes to ingress edge TLS (cert-manager
+        ingress cert) instead of a self-signed CFK CA; patch operator routes after
+        install.
+      - kafka_install - Emit CFK ``spec.image`` as ``{application, init}`` object
+        (string image was rejected with 422 Unprocessable Entity).
+      - kafka_install - Grant CFK SA cluster Jobs RBAC (OLM ClusterRole omits ``batch/jobs``
+        and CrashLoops). Create ``KRaftController`` and wire ``spec.dependencies.kRaftController``
+        on the Kafka CR for CFK 3.x.
+      - kafka_install - KRaftController replicas as bare int (EE stringifies quoted
+        Jinja).
+      - kafka_install - Probe confluent-operator Deployment across common operator
+        namespaces.
+      - netbox_oidc - Fetch client secret via ocp_rhbk_client_secrets inside the role
+        (same pattern as Quay/MinIO); remove duplicate playbook pre_tasks.
+      - netbox_oidc - Resolve issuer into netbox_oidc_issuer_resolved so survey netbox_oidc_issuer
+        empty string cannot block asserts (extra_vars beat same-name set_fact).
+      - netbox_oidc - Surface Secret apply failures with readable errors; use server-side
+        apply.
+      - oauth bootstrap playbook - Honor openshift_oidc_client_id from generated vars.
+      - ocp_acs - Auto-repair central-db password mismatch (reset DB Secret/PVC when
+        Central CrashLoops on Postgres auth).
+      - ocp_acs - Default ``ocp_acs_reinstall`` to false so every run does not wipe
+        central-db PVCs; when reinstall is on, wait for PVC deletion to finish.
+      - ocp_acs - Ensure ``central-pvc`` / ``central-db`` / ``central-db-backup``
+        PVCs exist before Central (claimName does not auto-create).
+      - ocp_acs - Use reencrypt Central Route with destinationCA from ``central-tls``
+        so browsers trust the cluster ingress / cert-manager lab cert instead of Central's
+        self-signed passthrough certificate.
+      - ocp_acs / ocp_devspaces - Reduce excessive wait retries (~6 min max vs 20+).
+      - ocp_cert_manager - define role defaults and cert_manager_* aliases for ocp_cert_manager_*
+        so Deploy cert-manager no longer fails on undefined ocp_cert_manager_root_ca_awspca_enabled;
+        skip CA ClusterIssuer unless TLS material is present (IdM ACME uses its own
+        playbook).
+      - ocp_component_route - Use resolved ``ocp_component_route_*`` facts in route
+        tasks (leftover ``_route_namespace`` / ``_route_name`` caused Grafana Route
+        JT to fail immediately).
+      - ocp_descheduler - Match real CSV name ``clusterkubedescheduleroperator`` (hyphenated
+        substring never matched).
+      - ocp_descheduler - Set ``operator_deployment_pattern`` to ``descheduler-operator``
+        so CSV wait success is not followed by a Deployment name mismatch on the CSV
+        package string.
+      - ocp_dev_hub - Fetch ``rhdh`` client secret via RHBK presets; fail when GitLab
+        integration lacks token; load ``vars_rhbk.yml`` in bootstrap playbook.
+      - ocp_dev_hub - Fixed undefined ``ocp_dev_hub_keycloak_host`` by splitting hostname
+        and issuer ``set_fact`` tasks.
+      - ocp_dev_hub - Use RHBK hostname vars; fail when OIDC client secret is missing.
+      - ocp_devspaces - Apply preflight hostname to CheCluster server/networking domain.
+      - ocp_discover_routes - Human-readable route table; OpenShift workflow ends
+        on Print ADO Routes (always included when openshift is selected).
+      - ocp_htpasswd_admin - Only wait for authentication operator when OAuth was
+        actually updated; require Available and not Degraded; longer retries.
+      - ocp_minio - Align Service selector with Deployment labels; wait for endpoints
+        before exposing Routes.
+      - ocp_minio - Prefix role-local facts with ``ocp_minio_``; replace delete task
+        ``ignore_errors`` with ``failed_when``.
+      - ocp_minio - Recreate Deployment when selector labels drift (immutable patch
+        failure on re-run); treat empty minio_oidc_issuer as unset.
+      - ocp_minio - containerPort/service port as bare int (patch validation).
+      - ocp_oidc_auth - Prefix RHBK/OIDC resolution facts with ``ocp_oidc_auth_``.
+      - ocp_oidc_auth - Request only the ``groups`` extra scope for Keycloak/RHBK;
+        strip ``openid`` (Keycloak rejects it and breaks login with ``invalid_scope``).
+      - ocp_operator_subscription / dev_hub - Delete stale ``redhat-developer-hub-operator-sub``
+        so OLM can resolve package ``rhdh``.
+      - ocp_operatorgroups - Fixed OperatorGroup create/reconcile tasks nested under
+        a debug task ``when`` clause; restores valid task schema for ansible-lint.
+      - ocp_quay - Auto-select cluster default StorageClass when Quay storage is unset.
+      - ocp_quay - Bypass RHEL Postgres entrypoint ``chmod``/``chown`` that CrashLoops
+        on Synology NFS root_squash; keep anyuid + initContainer.
+      - ocp_quay - Grant ``anyuid`` to default SA so Postgres (uid 26) can schedule
+        under OpenShift restricted SCCs.
+      - ocp_quay - Prefix OIDC/storage resolution facts with ``ocp_quay_``; fix task
+        key order.
+      - 'ocp_quay - Quay listens on HTTP ``8080`` in this install path: Service/Route
+        target that port with ``edge`` TLS (not ``8443`` / reencrypt). Ensure ``pg_trgm``,
+        ``SETUP_COMPLETE: true``, and disable ``FEATURE_ACTION_LOG_ROTATION`` unless
+        archive storage is configured.'
+      - ocp_quay - Treat empty ``quay_oidc_issuer_url`` as unset; require non-empty
+        ``OIDC_SERVER`` before rendering Keycloak login config.
+      - ocp_rhbk_client_secrets - Prefer host vars (ocp_rhbk_realm, rhbk_realm, ocp_rhbk_hostname)
+        over components_defaults rhlab fallback; fetch Keycloak admin password from
+        keycloak-admin-creds when vault unset.
+      - ocp_rhbk_client_secrets - Treat empty-string hostname/realm vars as unset
+        so registry defaults apply.
+      - ocp_wait_operator - Also match hyphen-stripped CSV names and emit clearer
+        timeout guidance (namespace + pattern + CSVs present).
+      - ocp_zabbix - Apply multi-document MariaDB/Zabbix manifests with ``from_yaml_all``
+        so Deployment+Service templates no longer fail ``from_yaml`` at the second
+        ``---``.
+      - ocp_zabbix - DB init Job loads ``create.sql.gz`` from current ubuntu server
+        images (old ``server.sql.gz`` split is gone); delete failed Job before recreate.
+      - ocp_zabbix - Enable SAML SSO flag via API when RHBK is selected (Zabbix uses
+        SAML, not OIDC, for login).
+      - ocp_zabbix - Treat already-changed Admin password as success during reset.
+      - quay playbook - Run ocp_quay (PVC/DB/Deployment/Service/Route); was OLM only.
+      - rhbk_client_scope - Wire ``groups`` client scope JT into RHBK workflow; attach
+        default scope to OIDC clients (fixes Grafana missing ``groups`` claim in dev).
+      - rhbk_manage_federation - Resolve ``rhbk_federation_name`` from preflight ``federation_name``
+        instead of a fixed IdM label.
+      - rhbk_realm - Wait for Keycloak HTTPS ``/realms/master`` before realm API;
+        ``validate_certs`` defaults false (lab/self-signed ingress).
+      - rhbk_setup_mapper - Seed IdM LDAP user-attribute mappers matching prod; honor
+        preflight ``federation_name`` as ``rhbk_federation_name``.
+      doc_changes:
+      - README - Document ``infra.ado.ocp_dev_hub`` and ``infra.ado.ocp_zabbix`` in
+        the role documentation table.
+      - ocp_dev_hub - Add role README (``docs/templates/role_readme_format_template.md``)
+        required for Hub collection import.
+      - ocp_zabbix - Add role README (``docs/templates/role_readme_format_template.md``)
+        required for Hub collection import.
+      major_changes:
+      - install_aap - Stop creating a standalone ``AutomationController`` CR. Delegate
+        ``present`` to ``infra.ado.aap_ocp_install`` (vendored ``infra.aap_utilities.aap_ocp_install``,
+        same path as Contoller bootstrap) and ``absent`` to that role's ``reset_stale_database``
+        tasks. Callers must supply ``aap_ocp_install_*`` vars instead of the old ``ocp_aap26_*``
+        / ``AutomationController`` interface.
+      minor_changes:
+      - Add ado-aap-rhel-install-bootstrap.yml for non-OpenShift AAP installs.
+      - Remove vendored infra.ado.aap_ocp_install and aap_ocp_install_upstream; Contoller/playbooks
+        call infra.ado.install_aap instead.
+      - Restore archived kube descheduler role tasks with install/remove KubeDescheduler
+        CR support after operator subscription.
+      - Wire OpenShift Descheduler (`infra.ado.ocp_descheduler`) into bootstrap workflow,
+        preflight configuration (instance name, interval, profiles), and env var generation.
+      - acs_report - Fetch Central export with ``ansible.builtin.get_url`` (no ``curl``).
+        Parser runs via ``python3`` on the downloaded NDJSON so ``ee-supported-rhel9``
+        does not need extra OS packages.
+      - acs_report - Optional CVE enrichment via acs-cve-plugin (`acs-cve enrich-rows`)
+        on RHACS scrubbed CSVs.
+      - acs_upload_policies - Apply policy JSON via infra.rhacs_configuration.rhacs_policy
+        (export bundles via rhacs_policy_import); report configs still use Central
+        REST.
+      - ado-preflight-ui - ACS config panel toggles for acs-cve-plugin enrichment
+        when acs_report is selected.
+      - ado-preflight-ui - Apply OpenShift apps_domain to zabbix, dev_hub, bookstack,
+        and netbox hostnames when components are selected.
+      - ado-preflight-ui - Copy Hub tarball to ``/workspace/infra-ado-*.tar.gz`` preserving
+        the galaxy artifact name.
+      - ado-preflight-ui - Default Grafana OIDC on when Grafana and RHBK are both
+        selected.
+      - ado-preflight-ui - Dev Hub form with GitLab token field; auto-populates from
+        Git bootstrap token.
+      - ado-preflight-ui - Fix dev_hub route prefix (backstage-{instance}-rhdh) and
+        define STALE_APP_HOSTNAME_DEFAULTS for lab hostname rewrites.
+      - bootstrap - Add rhel_system_roles meta-component that expands selected system
+        roles into Contoller playbooks/JTs calling redhat.rhel_system_roles.* directly
+        (no new infra.ado wrappers).
+      - bootstrap / preflight-ui - Register MinIO in component map, env generation,
+        Controller JT, and preflight form (OIDC + console/API hostnames).
+      - bootstrap_controller - Add ``ADO | RHBK Workflow`` and ``ADO | Grafana Workflow``
+        sub-workflows; OpenShift workflow calls them instead of inline JT chains.
+      - bootstrap_controller - Added ADO Alt Routes Workflow and split route JTs/playbooks;
+        OpenShift workflow ends with Print ADO Routes and optional Alt Routes Workflow.
+      - bootstrap_controller - Component sub-workflows (install then optional OIDC/SAML
+        JT) for Quay, MinIO, Dev Hub, BookStack, NetBox, and Zabbix; OpenShift workflow
+        uses workflow nodes instead of single deploy JTs.
+      - bootstrap_controller - Extend RHEL STIG job template survey with engine, RHEL
+        10 profile, and CaC remediate toggle.
+      - bootstrap_controller - Gate Grafana datasource/folder/dashboard/alternate-route
+        job templates on preflight ``component_options.grafana``.
+      - bootstrap_controller - Gate RHBK LDAP group mapper JT on ``group_mapper``
+        / ``client_mappers`` options.
+      - bootstrap_controller - Grafana workflow adds optional JTs for OIDC, email/SMTP,
+        datasource, folders, dashboards, and alternate route (preflight-gated).
+      - bootstrap_controller - Job template and workflow node **ADO | ACS RHACS Report
+        (CVE Enriched)**.
+      - bootstrap_generate_env_vars - Add ``rhdh_client`` Keycloak preset for Developer
+        Hub OIDC bootstrap.
+      - bootstrap_generate_env_vars - Emit ``stig_engine`` and ``rhel_stig_cac_remediate``
+        in generated ``vars_stig.yml``.
+      - bootstrap_generate_env_vars - Export dev_hub keycloak realm/client/instance
+        and MinIO OIDC/storage vars from preflight JSON.
+      - bootstrap_generate_env_vars - Gate discover-routes print on checkbox; overlay
+        writes vars_routes.yml from preflight route settings.
+      - bootstrap_generate_env_vars - Gate quay_oidc, minio_oidc, dev_hub_oidc, bookstack_oidc,
+        netbox_oidc, and zabbix_saml on component_options selections.
+      - bootstrap_generate_env_vars - Wire ACS Central route hostname to ``ocp_acs_hostname``;
+        OpenShift OAuth/LDAP IdP names from preflight ``openshift.oauth_rhbk`` / ``openshift.ldap_auth``.
+      - bootstrap_generate_playbook_repo - STIG hardening playbook branches on ``stig_engine``
+        (``cac`` vs ``system_role``).
+      - bootstrap_generate_playbook_repo - Split Grafana OpenShift playbooks into
+        install, datasource, folders, and dashboards steps.
+      - bootstrap_resolve_component - Default ACS report CVE enrichment flags in components_defaults.
+      - capsule_install - Added storage configuration by reusing ``infra.ado.satellite_install``
+        ``storage_config`` with Capsule LVM variables.
+      - grafana / components_defaults - Enable Grafana Keycloak OIDC by default (``grafana-client``).
+      - grafana_install - Split install vs OIDC vs email configure scopes; patch existing
+        Grafana CR for optional steps.
+      - infra.ado.ocp_alt_routes - Support default route labels, custom alternate
+        route names, and ingress-controller router labels.
+      - infra.ado.ocp_quay, ocp_minio, ocp_dev_hub, bookstack_openshift, ocp_zabbix
+        - Split install vs auth configure paths using install_scope flags.
+      - install_aap - Dispatch OpenShift installs to infra.aap_utilities.aap_ocp_install
+        and RHEL installs to aap_setup_download / prepare / install; keep ADO Fernet
+        reset and license attach helpers.
+      - install_elastic / components_defaults - Create lab Kibana/ES user (``kibana``
+        / ``eck_lab_password``) after cluster Ready.
+      - ocp_acs - Best-effort OpenShift OAuth auth provider after Central install.
+      - ocp_dev_hub - Mount ``rhdh-app-config`` via Backstage ``appConfig.configMaps``
+        and inject ``rhdh-secrets`` through ``extraEnvs.secrets`` (v1alpha5) so Keycloak
+        OIDC actually loads. Omit empty GitLab integration / catalog URL blocks.
+      - ocp_minio - New MinIO OpenShift component (Deployment, PVC, API/console Routes,
+        Keycloak OIDC console login with policy claim mapper).
+      - ocp_virtualization - Delegate VirtualMachine create to infra.openshift_virtualization_ops.vm_provision;
+        keep Multus NAD and DataSource dataVolumeTemplates build in ADO.
+      - preflight / bootstrap_generate_env_vars - RHBK OpenShift TLS mode is selectable
+        (edge default, cert-manager opt-in, or copy default ingress). cert-manager
+        is never the default; issuer kind/name fields appear when cert-manager is
+        chosen.
+      - preflight-ui - Alternate Routes tab with Print Alternate Routes, Add Alternate
+        Route, and Add Ingress with Route sub-options; Discover Routes tab supports
+        all routes, namespace list, or selected-app namespaces.
+      - preflight-ui - Expose RHEL System Roles under RHEL components with nested
+        role checkboxes as config options.
+      - preflight-ui - Quay, MinIO, Dev Hub, BookStack, NetBox, and Zabbix get Grafana-style
+        optional OIDC/SAML checkboxes; auto-enabled when RHBK is selected.
+      - rhel_stig_cac - Add DISA STIG Compliance-as-Code role for RHEL 8, 9, and 10
+        using OpenSCAP and scap-security-guide.
+    fragments:
+    - aap-login-wait-lab-tls.yml
+    - acm-operator-channel-2.17.yml
+    - acs-cve-enrich.yml
+    - acs-report-get-url.yml
+    - auth-oidc-lab-defaults.yml
+    - bitbucket-bearer-git-push.yml
+    - bookstack-mariadb-oidc-rhbk-realm.yml
+    - capsule_install-storage-config.yml
+    - ci-ansible-lint-fixes.yml
+    - component-oidc-sub-workflows.yml
+    - dirsrv-ldap-shell-oneline.yml
+    - fix-acm-cert-manager-deploy-playbooks.yml
+    - fix-acs-quay-gitlab-routes.yml
+    - fix-cfk-rbac-kraft-gitlab-chart.yml
+    - fix-chad-lab-job-failures.yml
+    - fix-dev-hub-operator-openshift-operators.yml
+    - fix-devhub-netbox-bookstack-jt-failures.yml
+    - fix-grafana-install-oidc-recursion.yml
+    - fix-grafana-oidc-groups-scope.yml
+    - fix-grafana-oidc-playbook-seed.yml
+    - fix-grafana-oidc-realm-jinja-split.yml
+    - fix-grafana-rhbk-client-secret-fetch.yml
+    - fix-grafana-route-descheduler-deploy.yml
+    - fix-hub-controller-requirements-sync.yml
+    - fix-hub-only-git-push-json-auto-push.yml
+    - fix-ocp-dev-post-deploy-apps.yml
+    - fix-ocp-operatorgroups-block-indent.yml
+    - fix-oidc-rhbk-gitlab-kafka-timeouts.yml
+    - fix-openshift-oauth-rhbk-scopes-federation.yml
+    - fix-overlay-preflight-arg-max.yml
+    - fix-quay-descheduler-gitlab-devhub-aap-acs.yml
+    - fix-requirements-ah-only-collections.yml
+    - fix-resolve-component-dotted-var-names.yml
+    - fix-rhbk-groups-scope-ldap-mappers.yml
+    - fix-survey-empty-oidc-issuer.yml
+    - fix-vault-encrypt-duplicate-vault-id.yml
+    - fix-workflow-apply-after-jt-failure.yml
+    - fix-workflow-grafana-eck-kafka-dirsrv-quay.yml
+    - fix-zabbix-kafka-dirsrv-grafana-deploys.yml
+    - fix-zabbix-quay-acs-aap-devhub-runtime.yml
+    - gitlab-chart-10.3.0.yml
+    - grafana-rhbk-htpass-fixes.yml
+    - grafana-rhbk-sub-workflows.yml
+    - grafana-workflow-oidc-email-jts.yml
+    - hub-force-delete-reupload.yml
+    - hub-source-of-truth-controller-collections.yml
+    - hub-tarball-force-upload.yml
+    - install-aap-aap-utilities.yml
+    - install-aap-delegate-aap-ocp-install.yml
+    - minio-oidc-component.yml
+    - ocp-cert-manager-awspca-defaults.yml
+    - ocp-descheduler-bootstrap-preflight.yml
+    - ocp-dev-hub-zabbix-readme.yml
+    - ocp-routes-workflow-gitlab-quay-kafka-eck.yml
+    - preflight-acm-acs-openshift-idp-ui.yml
+    - preflight-alt-routes-workflow.yml
+    - preflight-apps-domain-hostnames.yml
+    - preserve-org-galaxy-creds.yml
+    - quay-oidc-database-auth-realm-enabled.yml
+    - quay-oidc-redirect-https.yml
+    - quay-oidc-rhbk-presets-workflow.yml
+    - resolve-seed-grafana-dev-url.yml
+    - rhbk-edge-tls-default.yml
+    - rhbk-standalone-api-playbooks.yml
+    - rhbk-tls-mode-preflight.yml
+    - rhel-stig-cac.yml
+    - rhel-system-roles-bootstrap.yml
+    - satellite-client-tools-rhel-inventory.yml
+    - virt-vm_provision-acs-rhacs_policy.yml
+    release_date: '2026-09-02'
