@@ -59,40 +59,9 @@
 # Build port maps in pure Jinja so | int stays numeric.
 - name: DirSrv Coerce Service / container ports to int
   ansible.builtin.set_fact:
-    install_dirsrv_internal_ports: "{{ [
-        {
-          'name': 'dirsrv-nonsecure',
-          'port': ldap_port | int,
-          'targetPort': ldap_port | int,
-          'protocol': 'TCP'
-        },
-        {
-          'name': 'dirsrv-secure',
-          'port': ldaps_port | int,
-          'targetPort': ldaps_port | int,
-          'protocol': 'TCP'
-        }
-      ] }}"
-    install_dirsrv_external_ports: "{{ [
-        {
-          'name': 'dirsrv-nonsecure',
-          'port': ldap_port | int,
-          'targetPort': ldap_port | int,
-          'protocol': 'TCP',
-          'nodePort': nodeport_ldap | int
-        },
-        {
-          'name': 'dirsrv-secure',
-          'port': ldaps_port | int,
-          'targetPort': ldaps_port | int,
-          'protocol': 'TCP',
-          'nodePort': nodeport_ldaps | int
-        }
-      ] }}"
-    install_dirsrv_container_ports: "{{ [
-        {'name': 'ldap', 'containerPort': ldap_port | int},
-        {'name': 'ldaps', 'containerPort': ldaps_port | int}
-      ] }}"
+    install_dirsrv_internal_ports: "{{ [{'name': 'dirsrv-nonsecure', 'port': ldap_port | int, 'targetPort': ldap_port | int, 'protocol': 'TCP'}, {'name': 'dirsrv-secure', 'port': ldaps_port | int, 'targetPort': ldaps_port | int, 'protocol': 'TCP'}] }}"
+    install_dirsrv_external_ports: "{{ [{'name': 'dirsrv-nonsecure', 'port': ldap_port | int, 'targetPort': ldap_port | int, 'protocol': 'TCP', 'nodePort': nodeport_ldap | int}, {'name': 'dirsrv-secure', 'port': ldaps_port | int, 'targetPort': ldaps_port | int, 'protocol': 'TCP', 'nodePort': nodeport_ldaps | int}] }}"
+    install_dirsrv_container_ports: "{{ [{'name': 'ldap', 'containerPort': ldap_port | int}, {'name': 'ldaps', 'containerPort': ldaps_port | int}] }}"
     install_dirsrv_probe_port: "{{ [ldap_port | int] }}"
     # Keep replicas as a one-element list so | first stays int32 for k8s (quoted | int becomes string).
     install_dirsrv_replicas: "{{ [expected_replicas | int] }}"

@@ -3,7 +3,7 @@
 
 - name: Resolve BookStack OIDC issuer from RHBK when unset
   ansible.builtin.set_fact:
-    bookstack_oidc_issuer_resolved: >-
+    bookstack_openshift_oidc_issuer_resolved: >-
       {{
         bookstack_oidc_issuer | default('', true)
         | default(oidc_issuer | default('', true), true)

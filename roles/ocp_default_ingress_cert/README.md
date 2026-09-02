@@ -8,12 +8,12 @@ cluster-wide via `Proxy/cluster` `trustedCA`.
 
 Automation Development Office
 
-## Requirements
+## ✅ Role Requirements
 
 - OpenShift API access (`kubernetes.core`)
 - PEM certificate and private key for the wildcard (or SAN) cert
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
 |----------|-------------|
@@ -21,7 +21,7 @@ Automation Development Office
 | `ca_crt` | Optional issuing CA / chain PEM |
 | `ocp_default_ingress_trust_ca_clusterwide` | When true, ConfigMap + Proxy trustedCA |
 
-## Example
+## 🚀 Role Usage
 
 ```yaml
 - hosts: localhost
@@ -29,6 +29,17 @@ Automation Development Office
     - role: infra.ado.ocp_default_ingress_cert
 ```
 
-## License
+## 🧪 Role Molecule Testing
 
-See collection LICENSE.
+No Molecule scenario ships with this role yet. Validate via the OpenShift
+**Update Default Ingress Certificate** JT after bootstrap.
+
+## 📁 Role Structure
+
+```text
+roles/ocp_default_ingress_cert/
+  README.md
+  defaults/main.yml
+  meta/main.yml
+  tasks/main.yml
+```

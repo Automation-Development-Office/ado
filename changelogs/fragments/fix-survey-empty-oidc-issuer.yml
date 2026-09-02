@@ -8,7 +8,7 @@ bugfixes:
     netbox_oidc_issuer empty string cannot block asserts (extra_vars beat
     same-name set_fact).
   - >-
-    bookstack_openshift - Resolve OIDC issuer into bookstack_oidc_issuer_resolved
+    bookstack_openshift - Resolve OIDC issuer into bookstack_openshift_oidc_issuer_resolved
     when Keycloak or RHBK issuer survey fields are empty.
   - >-
     ocp_minio - Recreate Deployment when selector labels drift (immutable patch

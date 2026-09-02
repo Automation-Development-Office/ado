@@ -3,7 +3,7 @@
 
 - name: Load RHEL system roles catalog for job templates
   ansible.builtin.set_fact:
-    bootstrap_rhel_system_roles_catalog: >-
+    bootstrap_controller_rhel_system_roles_catalog: >-
       {{
         (
           lookup(
@@ -15,21 +15,21 @@
         ).rhel_system_roles_catalog
         | default([])
       }}
-  when: bootstrap_rhel_system_roles_catalog is not defined
+  when: bootstrap_controller_rhel_system_roles_catalog is not defined
 
 - name: Init RHEL system roles JT map
   ansible.builtin.set_fact:
-    bootstrap_rhel_system_roles_jt_map:
+    bootstrap_controller_rhel_system_roles_jt_map:
       rhel_system_roles: []
 
 - name: Append each RHEL system role JT map entry
   ansible.builtin.set_fact:
-    bootstrap_rhel_system_roles_jt_map: >-
+    bootstrap_controller_rhel_system_roles_jt_map: >-
       {{
-        bootstrap_rhel_system_roles_jt_map
+        bootstrap_controller_rhel_system_roles_jt_map
         | combine({item.app: [item.job_template]}, recursive=False)
       }}
-  loop: "{{ bootstrap_rhel_system_roles_catalog }}"
+  loop: "{{ bootstrap_controller_rhel_system_roles_catalog }}"
   loop_control:
     label: "{{ item.app }}"
 
@@ -38,5 +38,5 @@
     bootstrap_controller_job_template_component_map: >-
       {{
         bootstrap_controller_job_template_component_map
-        | combine(bootstrap_rhel_system_roles_jt_map, recursive=False)
+        | combine(bootstrap_controller_rhel_system_roles_jt_map, recursive=False)
       }}

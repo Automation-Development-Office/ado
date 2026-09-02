@@ -31,10 +31,7 @@
   ansible.builtin.set_fact:
     bootstrap_controller_generate_playbooks: false
     bootstrap_controller_generate_aap_configs: false
-    generate_playbook_repo_git_mode: manual
-    generate_playbook_repo_git_push: false
-    generate_playbook_repo_git_commit: false
-    bootstrap_generate_playbook_repo_git_mode: manual
+    bootstrap_controller_force_manual_git: true
   when: bootstrap_controller_hub_update_collection_only | default(false) | bool
 
 - name: Force vars/vault-only mode (skip playbooks and Contoller apply)
@@ -122,6 +119,7 @@
     - >-
       bootstrap_generate_playbook_repo_git_mode
       | default(generate_playbook_repo_git_mode | default('manual')) == 'push'
+    - not (bootstrap_controller_force_manual_git | default(false) | bool)
     - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Stop after vars/vault-only work
@@ -347,10 +345,7 @@
 
 - name: Re-apply manual git after loading aap_config_vars (hub-only)
   ansible.builtin.set_fact:
-    generate_playbook_repo_git_mode: manual
-    generate_playbook_repo_git_push: false
-    generate_playbook_repo_git_commit: false
-    bootstrap_generate_playbook_repo_git_mode: manual
+    bootstrap_controller_force_manual_git: true
   when: bootstrap_controller_hub_update_collection_only | default(false) | bool
 
 - name: Enable AAP apply for Hub collection update-only runs
@@ -524,6 +519,7 @@
     - bootstrap_controller_generate_aap_configs | default(false) | bool
     - bootstrap_generate_playbook_repo_git_mode
       | default(generate_playbook_repo_git_mode | default('manual')) == 'push'
+    - not (bootstrap_controller_force_manual_git | default(false) | bool)
     - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Apply AAP controller objects

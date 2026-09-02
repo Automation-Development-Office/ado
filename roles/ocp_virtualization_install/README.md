@@ -7,12 +7,12 @@ operator on an OpenShift cluster.
 
 Automation Development Office
 
-## Requirements
+## ✅ Role Requirements
 
 - OpenShift API access (`kubernetes.core`)
 - OperatorHub catalog access for `kubevirt-hyperconverged`
 
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
 |----------|-------------|
@@ -20,7 +20,7 @@ Automation Development Office
 | `operator_name` | Subscription package name |
 | `operator_name_substring` | CSV / deployment match string |
 
-## Example
+## 🚀 Role Usage
 
 ```yaml
 - hosts: localhost
@@ -28,6 +28,17 @@ Automation Development Office
     - role: infra.ado.ocp_virtualization_install
 ```
 
-## License
+## 🧪 Role Molecule Testing
 
-See collection LICENSE.
+No Molecule scenario ships with this role yet. Validate via the OpenShift
+**Deploy OpenShift Virtualization** JT after bootstrap.
+
+## 📁 Role Structure
+
+```text
+roles/ocp_virtualization_install/
+  README.md
+  defaults/main.yml
+  meta/main.yml
+  tasks/main.yml
+```

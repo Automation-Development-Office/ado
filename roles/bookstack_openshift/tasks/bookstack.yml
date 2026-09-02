@@ -100,7 +100,7 @@
           {'name': 'OIDC_DISPLAY_NAME', 'value': bookstack_oidc_display_name},
           {'name': 'OIDC_CLIENT_ID', 'valueFrom': {'secretKeyRef': {'name': 'bookstack-app', 'key': 'oidc-client-id'}}},
           {'name': 'OIDC_CLIENT_SECRET', 'valueFrom': {'secretKeyRef': {'name': 'bookstack-app', 'key': 'oidc-client-secret'}}},
-          {'name': 'OIDC_ISSUER', 'value': bookstack_oidc_issuer_resolved | default(bookstack_oidc_issuer | default('', true))},
+          {'name': 'OIDC_ISSUER', 'value': bookstack_openshift_oidc_issuer_resolved | default(bookstack_oidc_issuer | default('', true))},
           {'name': 'OIDC_ISSUER_DISCOVER', 'value': (bookstack_oidc_issuer_discover | bool) | ternary('true', 'false')},
           {'name': 'AUTH_AUTO_INITIATE', 'value': (bookstack_oidc_auto_initiate | bool) | ternary('true', 'false')},
           {'name': 'SSL_CERT_FILE', 'value': '/etc/ssl/certs/ca-certificates.crt'},
@@ -133,7 +133,7 @@
         (
           bookstack_openshift_app_key_effective ~ '|'
           ~ (bookstack_oidc_enabled | string) ~ '|'
-          ~ (bookstack_oidc_issuer_resolved | default(bookstack_oidc_issuer | default('', true))) ~ '|'
+          ~ (bookstack_openshift_oidc_issuer_resolved | default(bookstack_oidc_issuer | default('', true))) ~ '|'
           ~ (bookstack_oidc_ca_bundle | default('') | hash('sha1'))
         ) | hash('sha1')
       }}
