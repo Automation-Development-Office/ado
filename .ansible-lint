@@ -200,3 +200,5 @@ mock_modules:
     - redhat.rhel_idm.ipaidrange
     - redhat.rhel_idm.ipagroup
     - redhat.rhel_idm.ipasudorule
+    - kubernetes.core.k8s_json_patch
+    - community.general.keycloak_user_federation
