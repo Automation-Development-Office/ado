@@ -1,0 +1,6 @@
+---
+bugfixes:
+  - >-
+    install_dirsrv - Keep ldapsearch/ldapmodify shell commands on a single
+    logical line so YAML folded more-indented newlines do not split argv
+    (``-D: command not found`` on group membership).

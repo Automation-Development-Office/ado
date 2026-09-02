@@ -1,0 +1,8 @@
+bugfixes:
+  - >-
+    bootstrap_generate_env_vars - Hub-only and standalone AAP runs ignore
+    ``git.auto_push: true`` in imported preflight JSON; generated
+    ``aap_config_vars.yml`` always uses manual git mode.
+  - >-
+    bootstrap_controller - Hub-only runs force manual git before and after
+    loading ``aap_config_vars.yml``; block playbook git-push when hub-only.

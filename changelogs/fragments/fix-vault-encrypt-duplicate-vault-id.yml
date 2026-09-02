@@ -1,0 +1,2 @@
+bugfixes:
+  - bootstrap_generate_env_vars - Fix preflight vault encryption when ``ANSIBLE_VAULT_PASSWORD_FILE`` is set (``vault-ids default,default``) by unsetting the env var and passing ``--encrypt-vault-id default``.

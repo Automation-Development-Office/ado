@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+state: present
+dev_hub_instance_name: chad-lab
+dev_hub_hostname: "{{ hostname | default('') }}"
+dev_hub_keycloak_realm: rhlab
+dev_hub_keycloak_client_id: rhdh
+dev_hub_gitlab_host: ""
+dev_hub_catalog_url: ""
+dev_hub_oidc_insecure_skip_tls_verify: true
+ocp_dev_hub_oidc_insecure_skip_tls_verify: true
+dev_hub_backend_secret: changeme-backend-secret
+dev_hub_oidc_client_secret: ""
+dev_hub_gitlab_token: ""
+storage: ""
+storage_size: 10Gi

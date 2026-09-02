@@ -10,16 +10,16 @@ bootstrap_generate_playbook_repo_git_branch: main
 bootstrap_generate_playbook_repo_git_message: "Generate bootstrap playbook repo"
 bootstrap_generate_playbook_repo_git_username: oauth2
 bootstrap_generate_playbook_repo_git_token: ""
+# Set to 'bearer' for Bitbucket (uses Authorization: Bearer header instead of credential store).
+bootstrap_generate_playbook_repo_git_auth_mode: "basic"
 bootstrap_generate_playbook_repo_git_sync_before_push: true
 bootstrap_generate_playbook_repo_pause_after_generate: false
 
-# When false (default), do not write Galaxy/Hub collections/requirements.yml.
-# Contoller project sync then skips install_collections. Set true only when
-# Hub publish/Galaxy is actually requested.
-bootstrap_generate_playbook_repo_write_galaxy_requirements: false
+# Controller project sync installs collections from Hub via requirements.yml only.
+# Collection trees are never committed into the git playbook repo.
+bootstrap_generate_playbook_repo_write_galaxy_requirements: true
 
-# Leave empty so generated collections/requirements.yml (Hub path only) has
-# no version pin. Set only when you must pin.
+# Leave empty so generated collections/requirements.yml has no version pin. Set only when you must pin.
 bootstrap_generate_playbook_repo_infra_ado_collection_version: ""
 
 bootstrap_generate_playbook_repo_component: all
@@ -35,6 +35,7 @@ bootstrap_generate_playbook_repo_component_map:
     - cert_manager
     - console
     - devspaces
+    - dev_hub
     - dirsrv
     - eck
     - gitops
@@ -42,11 +43,17 @@ bootstrap_generate_playbook_repo_component_map:
     - grafana
     - bookstack
     - kafka
+    - minio
     - oadp
+    - ocp_compliance
+    - ocp_descheduler
+    - ocp_virtualization
     - openshift
-    - pega
     - quay
     - rhbk
+    - gitlab_runner
+    - web_terminal
+    - zabbix
 
   rhel:
     - rhel
@@ -68,6 +75,7 @@ bootstrap_generate_playbook_repo_component_map:
     - rhbk
     - compliance
     - stig
+    - rhel_system_roles
 
   patching:
     - rhel
@@ -106,6 +114,9 @@ bootstrap_generate_playbook_repo_component_map:
 
   bookstack:
     - bookstack
+
+  minio:
+    - minio
 
   netbox:
     - netbox
@@ -171,8 +182,23 @@ bootstrap_generate_playbook_repo_component_map:
   compliance:
     - compliance
 
-  pega:
-    - pega
+  oadp:
+    - oadp
+
+  ocp_compliance:
+    - ocp_compliance
+
+  ocp_descheduler:
+    - ocp_descheduler
+
+  ocp_virtualization:
+    - ocp_virtualization
+
+  gitlab_runner:
+    - gitlab_runner
+
+  web_terminal:
+    - web_terminal
 
   elastic:
     - eck
@@ -189,6 +215,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
   - src: aap/ado-aap-ocp-install-bootstrap.yml
     dest: playbooks/aap/ado-aap-ocp-install-bootstrap.yml
     target_platform: openshift
+    category: platform
+    app: aap
+
+  - src: aap/ado-aap-rhel-install-bootstrap.yml
+    dest: playbooks/aap/ado-aap-rhel-install-bootstrap.yml
+    target_platform: rhel
     category: platform
     app: aap
 
@@ -230,6 +262,12 @@ bootstrap_generate_playbook_repo_generated_playbooks:
 
   - src: cert-manager/ado-install-and-configure-awspca-bootstrap.yml
     dest: playbooks/cert-manager/ado-install-and-configure-awspca-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: cert_manager
+
+  - src: cert-manager/ado-update-default-ingress-cert-bootstrap.yml
+    dest: playbooks/cert-manager/ado-update-default-ingress-cert-bootstrap.yml
     target_platform: openshift
     category: platform
     app: cert_manager
@@ -292,7 +330,25 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     dest: playbooks/grafana/ado-create-custom-route.yml
     target_platform: openshift
     category: platform
+    app: grafana_alternate_route
+
+  - src: grafana/ado-deploy-install-bootstrap.yml
+    dest: playbooks/grafana/ado-deploy-install-bootstrap.yml
+    target_platform: openshift
+    category: platform
     app: grafana
+
+  - src: grafana/ado-deploy-datasource-bootstrap.yml
+    dest: playbooks/grafana/ado-deploy-datasource-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: grafana_datasources
+
+  - src: grafana/ado-deploy-folders-bootstrap.yml
+    dest: playbooks/grafana/ado-deploy-folders-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: grafana_folders
 
   - src: grafana/ado-deploy-bootstrap.yml
     dest: playbooks/grafana/ado-deploy-bootstrap.yml
@@ -304,7 +360,19 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     dest: playbooks/grafana/ado-deploy-dashboards-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: grafana
+    app: grafana_dashboards
+
+  - src: grafana/ado-deploy-oidc-bootstrap.yml
+    dest: playbooks/grafana/ado-deploy-oidc-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: grafana_oidc
+
+  - src: grafana/ado-deploy-email-bootstrap.yml
+    dest: playbooks/grafana/ado-deploy-email-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: grafana_email
 
   - src: grafana/ado-install-grafana-standalone-bootstrap.yml
     dest: playbooks/grafana/ado-install-grafana-standalone-bootstrap.yml
@@ -312,17 +380,23 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     category: platform
     app: grafana_standalone
 
-  - src: docs/ado-deploy-bookstack-bootstrap.yml
-    dest: playbooks/docs/ado-deploy-bookstack-bootstrap.yml
+  - src: docs/ado-deploy-install-bootstrap.yml
+    dest: playbooks/docs/ado-deploy-install-bootstrap.yml
     target_platform: openshift
     category: applications
     app: bookstack
+
+  - src: docs/ado-deploy-oidc-bootstrap.yml
+    dest: playbooks/docs/ado-deploy-oidc-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: bookstack_oidc
 
   - src: netbox/ado-configure-netbox-oidc-bootstrap.yml
     dest: playbooks/netbox/ado-configure-netbox-oidc-bootstrap.yml
     target_platform: openshift
     category: applications
-    app: netbox
+    app: netbox_oidc
 
   - src: idm/ado-install-replica-bootstrap.yml
     dest: playbooks/idm/ado-install-replica-bootstrap.yml
@@ -396,6 +470,36 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     category: platform
     app: oadp
 
+  - src: ocp_compliance/ado-deploy-bootstrap.yml
+    dest: playbooks/ocp_compliance/ado-deploy-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: ocp_compliance
+
+  - src: web_terminal/ado-deploy-bootstrap.yml
+    dest: playbooks/web_terminal/ado-deploy-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: web_terminal
+
+  - src: gitlab_runner/ado-deploy-bootstrap.yml
+    dest: playbooks/gitlab_runner/ado-deploy-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: gitlab_runner
+
+  - src: ocp_virtualization/ado-deploy-bootstrap.yml
+    dest: playbooks/ocp_virtualization/ado-deploy-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: ocp_virtualization
+
+  - src: ocp_descheduler/ado-deploy-bootstrap.yml
+    dest: playbooks/ocp_descheduler/ado-deploy-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: ocp_descheduler
+
   - src: openshift/ado-configure-ldap-auth-bootstrap.yml
     dest: playbooks/openshift/ado-configure-ldap-auth-bootstrap.yml
     target_platform: openshift
@@ -432,17 +536,29 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     category: platform
     app: iscsi_csi
 
-  - src: openshift/ado-discover-routes-bootstrap.yml
-    dest: playbooks/openshift/ado-discover-routes-bootstrap.yml
+  - src: openshift/ado-discover-routes-print-bootstrap.yml
+    dest: playbooks/openshift/ado-discover-routes-print-bootstrap.yml
     target_platform: openshift
     category: platform
     app: openshift_discover_routes_print
 
-  - src: openshift/ado-discover-routes-bootstrap.yml
-    dest: playbooks/openshift/ado-discover-routes-bootstrap.yml
+  - src: openshift/ado-print-alt-routes-bootstrap.yml
+    dest: playbooks/openshift/ado-print-alt-routes-bootstrap.yml
     target_platform: openshift
     category: platform
-    app: openshift_discover_routes_alt
+    app: openshift_print_alt_routes
+
+  - src: openshift/ado-add-alt-routes-bootstrap.yml
+    dest: playbooks/openshift/ado-add-alt-routes-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: openshift_add_alt_routes
+
+  - src: openshift/ado-add-ingress-with-route-bootstrap.yml
+    dest: playbooks/openshift/ado-add-ingress-with-route-bootstrap.yml
+    target_platform: openshift
+    category: platform
+    app: openshift_add_ingress_with_route
 
   - src: openshift/ado-update-pull-secret-bootstrap.yml
     dest: playbooks/openshift/ado-update-pull-secret-bootstrap.yml
@@ -456,17 +572,53 @@ bootstrap_generate_playbook_repo_generated_playbooks:
     category: provision
     app: openshift_virt
 
-  - src: pega/ado-install-and-configure-bootstrap.yml
-    dest: playbooks/pega/ado-install-and-configure-bootstrap.yml
-    target_platform: openshift
-    category: applications
-    app: pega
-
-  - src: quay/ado-deploy-and-configure-bootstrap.yml
-    dest: playbooks/quay/ado-deploy-and-configure-bootstrap.yml
+  - src: quay/ado-deploy-install-bootstrap.yml
+    dest: playbooks/quay/ado-deploy-install-bootstrap.yml
     target_platform: openshift
     category: applications
     app: quay
+
+  - src: quay/ado-deploy-oidc-bootstrap.yml
+    dest: playbooks/quay/ado-deploy-oidc-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: quay_oidc
+
+  - src: minio/ado-deploy-install-bootstrap.yml
+    dest: playbooks/minio/ado-deploy-install-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: minio
+
+  - src: minio/ado-deploy-oidc-bootstrap.yml
+    dest: playbooks/minio/ado-deploy-oidc-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: minio_oidc
+
+  - src: dev_hub/ado-deploy-install-bootstrap.yml
+    dest: playbooks/dev_hub/ado-deploy-install-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: dev_hub
+
+  - src: dev_hub/ado-deploy-oidc-bootstrap.yml
+    dest: playbooks/dev_hub/ado-deploy-oidc-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: dev_hub_oidc
+
+  - src: zabbix/ado-deploy-install-bootstrap.yml
+    dest: playbooks/zabbix/ado-deploy-install-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: zabbix
+
+  - src: zabbix/ado-configure-saml-bootstrap.yml
+    dest: playbooks/zabbix/ado-configure-saml-bootstrap.yml
+    target_platform: openshift
+    category: applications
+    app: zabbix_saml
 
   - src: rhbk/ado-deploy-and-configure-bootstrap.yml
     dest: playbooks/rhbk/ado-deploy-and-configure-bootstrap.yml

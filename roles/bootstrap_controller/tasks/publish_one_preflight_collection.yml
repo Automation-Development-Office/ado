@@ -1,0 +1,228 @@
+---
+# Publish one preflight tarball to Hub validated (staging upload + pulp move).
+# Skips when version already exists in validated unless __hub_pub_force is true.
+#
+# wait:false on ah_collection — the module's import wait polls Hub and can fail
+# with DNS/URLError even after a successful upload. We wait via pulp lookup.
+
+- name: Publish preflight collection | Find tarball on bootstrap host
+  ansible.builtin.find:
+    paths: "{{ bootstrap_controller_hub_pub_search_dirs }}"
+    patterns: "{{ __hub_pub_item.tarball_glob }}"
+    recurse: false
+  register: bootstrap_controller_hub_pub_find
+
+- name: Publish preflight collection | Resolve tarball path
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_pub_tarball: >-
+      {{
+        (bootstrap_controller_hub_pub_find.files | default([]) | map(attribute='path') | sort | last | default(''))
+      }}
+
+- name: Publish preflight collection | Skip when tarball missing
+  ansible.builtin.debug:
+    msg: >-
+      Skipping {{ __hub_pub_item.name }} — tarball not found under
+      {{ bootstrap_controller_hub_pub_search_dirs | join(', ') }}
+      (glob {{ __hub_pub_item.tarball_glob }}).
+  when: bootstrap_controller_hub_pub_tarball | default('') | length == 0
+
+- name: Publish preflight collection | Publish tarball when present
+  when: bootstrap_controller_hub_pub_tarball | default('') | length > 0
+  block:
+    - name: Publish preflight collection | Parse version from tarball name
+      ansible.builtin.set_fact:
+        bootstrap_controller_hub_pub_version: "{{ (bootstrap_controller_hub_pub_tarball | basename | replace('.tar.gz', '')).split('-')[2:] | join('-') }}"
+
+    - name: Publish preflight collection | Assert version does not include archive suffix
+      ansible.builtin.assert:
+        that:
+          - bootstrap_controller_hub_pub_version | length > 0
+          - "'.tar.gz' not in bootstrap_controller_hub_pub_version"
+        fail_msg: >-
+          Could not parse collection version from
+          {{ bootstrap_controller_hub_pub_tarball | basename }}
+          (got '{{ bootstrap_controller_hub_pub_version }}').
+
+    - name: Publish preflight collection | Show publish target
+      ansible.builtin.debug:
+        msg: >-
+          {{ __hub_pub_item.name }} {{ bootstrap_controller_hub_pub_version }}
+          from {{ bootstrap_controller_hub_pub_tarball }}
+
+    - name: Publish preflight collection | Check validated for existing version
+      ansible.builtin.uri:
+        url: >-
+          {{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}/api/galaxy/content/{{
+            bootstrap_controller_hub_publish_repository | default('validated')
+          }}/v3/collections/{{ __hub_pub_item.namespace }}/{{ __hub_pub_item.collection }}/versions/{{ bootstrap_controller_hub_pub_version }}/
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200, 404]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
+      register: bootstrap_controller_hub_pub_existing
+
+    - name: Publish preflight collection | Decide whether to publish
+      ansible.builtin.set_fact:
+        bootstrap_controller_hub_pub_should_publish: >-
+          {{
+            __hub_pub_force | bool
+            or (bootstrap_controller_hub_pub_existing.status | default(404) | int) == 404
+          }}
+
+    - name: Publish preflight collection | Skip existing version
+      ansible.builtin.debug:
+        msg: >-
+          Skipping {{ __hub_pub_item.name }} {{ bootstrap_controller_hub_pub_version }} — already
+          in {{ bootstrap_controller_hub_publish_repository | default('validated') }}.
+      when: not (bootstrap_controller_hub_pub_should_publish | bool)
+
+    - name: Publish preflight collection | Ensure Hub namespace exists
+      ansible.hub.ah_namespace:
+        name: "{{ __hub_pub_item.namespace }}"
+        state: present
+        ah_host: "{{ bootstrap_controller_hub_pub_api_host }}"
+        ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        ah_token: "{{ bootstrap_controller_hub_ah_token | default(omit) }}"
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+      when:
+        - bootstrap_controller_hub_pub_should_publish | bool
+        - __hub_pub_item.namespace | length > 0
+
+    - name: Publish preflight collection | Check whether pulp already has this version
+      ansible.builtin.uri:
+        url: >-
+          {{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}/api/galaxy/pulp/api/v3/content/ansible/collection_versions/
+          ?namespace={{ __hub_pub_item.namespace }}&name={{ __hub_pub_item.collection }}
+          &version={{ bootstrap_controller_hub_pub_version }}
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
+      register: bootstrap_controller_hub_pub_cv_precheck
+      when: bootstrap_controller_hub_pub_should_publish | bool
+
+    - name: Publish preflight collection | Upload to staging (no wait — avoid import poll DNS failures)
+      ansible.hub.ah_collection:
+        namespace: "{{ __hub_pub_item.namespace }}"
+        name: "{{ __hub_pub_item.collection }}"
+        version: "{{ bootstrap_controller_hub_pub_version }}"
+        path: "{{ bootstrap_controller_hub_pub_tarball }}"
+        repository: "{{ bootstrap_controller_hub_staging_repository | default('staging') }}"
+        auto_approve: false
+        overwrite_existing: true
+        wait: false
+        timeout: "{{ bootstrap_controller_hub_publish_timeout | default(300) | int }}"
+        request_timeout: "{{ bootstrap_controller_hub_publish_request_timeout | default(60) | int }}"
+        ah_host: "{{ bootstrap_controller_hub_pub_api_host }}"
+        ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        ah_token: "{{ bootstrap_controller_hub_ah_token | default(omit) }}"
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+      register: bootstrap_controller_hub_pub_upload
+      retries: 3
+      delay: 10
+      until: bootstrap_controller_hub_pub_upload is succeeded
+      when:
+        - bootstrap_controller_hub_pub_should_publish | bool
+        - (bootstrap_controller_hub_pub_cv_precheck.json.count | default(0) | int) == 0
+          or (__hub_pub_force | bool)
+
+    - name: Publish preflight collection | Resolve pulp href for collection version
+      ansible.builtin.uri:
+        url: >-
+          {{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}/api/galaxy/pulp/api/v3/content/ansible/collection_versions/
+          ?namespace={{ __hub_pub_item.namespace }}&name={{ __hub_pub_item.collection }}
+          &version={{ bootstrap_controller_hub_pub_version }}
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
+      register: bootstrap_controller_hub_pub_cv_lookup
+      until: (bootstrap_controller_hub_pub_cv_lookup.json.count | default(0) | int) >= 1
+      retries: "{{ bootstrap_controller_hub_publish_verify_retries | default(36) | int }}"
+      delay: "{{ bootstrap_controller_hub_publish_verify_delay | default(5) | int }}"
+      when: bootstrap_controller_hub_pub_should_publish | bool
+
+    - name: Publish preflight collection | Promote from staging to validated via pulp
+      ansible.builtin.uri:
+        url: >-
+          {{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}{{
+            bootstrap_controller_hub_preflight_staging_repo.json.results[0].pulp_href
+          }}move_collection_version/
+        method: POST
+        body_format: json
+        body:
+          collection_versions:
+            - "{{ bootstrap_controller_hub_pub_cv_lookup.json.results[0].pulp_href }}"
+          destination_repositories:
+            - "{{ bootstrap_controller_hub_preflight_validated_repo.json.results[0].pulp_href }}"
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200, 202]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
+      register: bootstrap_controller_hub_pub_promote_attempt
+      when: bootstrap_controller_hub_pub_should_publish | bool
+
+    - name: Publish preflight collection | Wait for pulp promote task
+      ansible.builtin.uri:
+        url: "{{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}{{ bootstrap_controller_hub_pub_promote_attempt.json.task }}"
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
+      when:
+        - bootstrap_controller_hub_pub_should_publish | bool
+        - bootstrap_controller_hub_pub_promote_attempt.json.task is defined
+      register: bootstrap_controller_hub_pub_promote_task
+      until: (bootstrap_controller_hub_pub_promote_task.json.state | default('')) in ['completed', 'failed']
+      retries: "{{ bootstrap_controller_hub_publish_verify_retries | default(36) | int }}"
+      delay: 5
+      failed_when: (bootstrap_controller_hub_pub_promote_task.json.state | default('')) == 'failed'
+
+    - name: Publish preflight collection | Verify collection is in validated Hub repository
+      ansible.builtin.uri:
+        url: >-
+          {{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}/api/galaxy/content/{{
+            bootstrap_controller_hub_publish_repository | default('validated')
+          }}/v3/collections/{{ __hub_pub_item.namespace }}/{{ __hub_pub_item.collection }}/versions/{{ bootstrap_controller_hub_pub_version }}/
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
+      register: bootstrap_controller_hub_pub_verify
+      until: (bootstrap_controller_hub_pub_verify.status | default(0) | int) == 200
+      retries: "{{ bootstrap_controller_hub_publish_verify_retries | default(36) | int }}"
+      delay: "{{ bootstrap_controller_hub_publish_verify_delay | default(5) | int }}"
+      when: bootstrap_controller_hub_pub_should_publish | bool
+
+    - name: Publish preflight collection | Confirm publish landed in validated
+      ansible.builtin.debug:
+        msg: >-
+          Published {{ __hub_pub_item.name }} {{ bootstrap_controller_hub_pub_version }} to Hub
+          repository '{{ bootstrap_controller_hub_publish_repository | default('validated') }}'.
+      when: bootstrap_controller_hub_pub_should_publish | bool

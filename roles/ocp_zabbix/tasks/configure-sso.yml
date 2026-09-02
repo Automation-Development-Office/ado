@@ -1,0 +1,7 @@
+---
+- name: Configure Zabbix SAML SSO (Keycloak)
+  ansible.builtin.import_tasks: configure-zabbix-saml.yml
+  when:
+    - state == "present"
+    - zabbix_saml_enabled | default(false) | bool
+    - (zabbix_saml_idp_metadata_url | default('') | string | trim | length) > 0

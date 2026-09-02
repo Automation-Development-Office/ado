@@ -19,12 +19,15 @@
   ansible.builtin.debug:
     var: bootstrap_controller_controller_organizations
 
-# Always create orgs — including hub-update-only. Contoller EE / Galaxy attach
-# need the General organization even when playbook scaffolding is skipped.
+# Hub-only: do NOT create Contoller orgs/inventories before Hub publish.
+# Stale configs/controller (esp. with overwrite_generated=false) often still
+# list old orgs like DEV and would 401-block publish when Contoller OAuth is
+# missing/wrong. Hub publish uses Hub token; org/Galaxy attach runs after.
 - name: AAP 2.5+ | Create organizations directly
   ansible.controller.organization:
     name: "{{ item.name }}"
     description: "{{ item.description | default(omit) }}"
+    # Galaxy/Hub creds attach after credential dispatch — names are not resolvable yet.
     state: "{{ item.state | default('present') }}"
     controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
     controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
@@ -32,9 +35,11 @@
     controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
     validate_certs: "{{ controller_validate_certs | default(false) }}"
   loop: "{{ bootstrap_controller_controller_organizations | default([]) }}"
-  when: bootstrap_controller_controller_organizations | default([]) | length > 0
+  when:
+    - bootstrap_controller_controller_organizations | default([]) | length > 0
+    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
 
-- name: AAP 2.5+ | Ensure General organization exists (hub-only / missing from configs)
+- name: AAP 2.5+ | Ensure General organization exists (missing from configs)
   ansible.controller.organization:
     name: "{{ controller_bootstrap_organization }}"
     description: "{{ controller_bootstrap_organization }}"
@@ -45,6 +50,7 @@
     controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
     validate_certs: "{{ controller_validate_certs | default(false) }}"
   when:
+    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
     - controller_bootstrap_organization | default('') | length > 0
     - >-
       controller_bootstrap_organization not in
@@ -72,9 +78,57 @@
   ansible.builtin.set_fact:
     bootstrap_controller_hub_publish_repository: "{{ (hub_collections | first).repository | default('validated') }}"
     bootstrap_controller_hub_publish_working_dir: "/var/tmp/ado-hub-publish"
+    # Prefer Galaxy/Hub API token for Hub publish; Contoller OAuth is for Contoller only.
+    bootstrap_controller_hub_ah_token: >-
+      {{
+        vault_galaxy_hub_token
+        | default(controller_oauthtoken | default(vault_controller_oauthtoken | default(''), true), true)
+        | string
+        | trim
+      }}
+    bootstrap_controller_hub_tarball_src: >-
+      {{
+        (
+          lookup('ansible.builtin.fileglob', '/workspace/infra-ado-*.tar.gz', wantlist=True)
+          | sort
+          | last
+          | default(
+              (hub_collections | first).collection_tarball_path
+              | default(bootstrap_controller_hub_ado_collection_tarball | default(''), true),
+              true
+            )
+        )
+      }}
+    bootstrap_controller_hub_use_tarball: >-
+      {{
+        (
+          lookup('ansible.builtin.fileglob', '/workspace/infra-ado-*.tar.gz', wantlist=True)
+          | length > 0
+        )
+        or (
+          (
+            (hub_collections | first).collection_tarball_path
+            | default(bootstrap_controller_hub_ado_collection_tarball | default(''), true)
+          )
+          | length > 0
+        )
+      }}
   when:
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
+
+- name: AAP 2.5+ | Assert ADO Hub collection tarball is present
+  ansible.builtin.assert:
+    that:
+      - bootstrap_controller_hub_tarball_src | default('') | length > 0
+      - bootstrap_controller_hub_tarball_src | basename is match('^infra-ado-.*\\.tar\\.gz$')
+    fail_msg: >-
+      Expected /workspace/infra-ado-*.tar.gz for Hub publish (galaxy-compatible
+      filename). Found: {{ bootstrap_controller_hub_tarball_src | default('missing') }}
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
+    - hub_collections | default([]) | length > 0
+    - bootstrap_controller_hub_use_tarball | default(false) | bool
 
 - name: AAP 2.5+ | Reset AAP Hub collection publish working dir
   ansible.builtin.file:
@@ -93,6 +147,19 @@
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
 
+- name: AAP 2.5+ | Stage prebuilt ADO collection tarball for Hub publish
+  ansible.builtin.copy:
+    src: "{{ bootstrap_controller_hub_tarball_src }}"
+    dest: >-
+      {{ bootstrap_controller_hub_publish_working_dir }}/{{ bootstrap_controller_hub_tarball_src | basename }}
+    remote_src: true
+    mode: "0644"
+  register: bootstrap_controller_hub_tarball_stage
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
+    - hub_collections | default([]) | length > 0
+    - bootstrap_controller_hub_use_tarball | default(false) | bool
+
 - name: AAP 2.5+ | Copy ADO collection source for AAP Hub publish
   ansible.builtin.copy:
     src: "{{ __hub_collection_item.collection_local_path }}/"
@@ -105,6 +172,7 @@
   when:
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
+    - not (bootstrap_controller_hub_use_tarball | default(false) | bool)
     - __hub_collection_item.collection_local_path is defined
 
 - name: AAP 2.5+ | Build ADO collection for AAP Hub publish
@@ -119,6 +187,7 @@
   when:
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
+    - not (bootstrap_controller_hub_use_tarball | default(false) | bool)
 
 - name: AAP 2.5+ | Check built ADO collection artifact path
   ansible.builtin.stat:
@@ -130,6 +199,7 @@
   when:
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
+    - not (bootstrap_controller_hub_use_tarball | default(false) | bool)
 
 - name: AAP 2.5+ | Find built ADO collection artifact
   ansible.builtin.find:
@@ -142,19 +212,47 @@
   when:
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
+    - not (bootstrap_controller_hub_use_tarball | default(false) | bool)
 
-- name: AAP 2.5+ | Set built ADO collection artifact list
+- name: AAP 2.5+ | Set ADO collection artifact list for Hub publish
   ansible.builtin.set_fact:
-    bootstrap_controller_hub_collection_artifacts: "{{ bootstrap_controller_hub_find_results.results | default([]) | map(attribute='files') | flatten | map(attribute='path') | list }}"
+    bootstrap_controller_hub_collection_artifacts: >-
+      {{
+        [bootstrap_controller_hub_tarball_stage.dest]
+        if (bootstrap_controller_hub_use_tarball | default(false) | bool)
+        else (
+          bootstrap_controller_hub_find_results.results
+          | default([])
+          | map(attribute='files')
+          | flatten
+          | map(attribute='path')
+          | list
+        )
+      }}
   when:
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
 
 # Fresh Private Automation Hub has no namespaces; ah_collection fails with
 # "Namespace in filename not found." until `infra` exists.
+- name: AAP 2.5+ | Assert ADO Hub artifact is infra.ado (not ado namespace)
+  ansible.builtin.assert:
+    that:
+      - (__hub_collection_file | basename) is match('^infra-ado-.*\\.tar\\.gz$')
+    fail_msg: >-
+      Hub artifact must be infra-ado-*.tar.gz so the collection publishes as
+      infra.ado. Filenames like ado-collection-artifact.tar.gz wrongly create an
+      ado namespace on Hub.
+  loop: "{{ bootstrap_controller_hub_collection_artifacts | default([]) }}"
+  loop_control:
+    loop_var: __hub_collection_file
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
+    - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
+
 - name: AAP 2.5+ | Ensure Hub namespace exists for ADO collection
   ansible.hub.ah_namespace:
-    name: "{{ (__hub_collection_file | basename).split('-')[0] }}"
+    name: infra
     state: present
     ah_host: >-
       {{
@@ -164,90 +262,226 @@
       }}
     ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
     ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
-    ah_token: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    ah_token: "{{ bootstrap_controller_hub_ah_token | default(omit) }}"
     validate_certs: "{{ controller_validate_certs | default(false) }}"
-  loop: "{{ bootstrap_controller_hub_collection_artifacts | default([]) }}"
-  loop_control:
-    loop_var: __hub_collection_file
   when:
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
 
+# ansible.hub.ah_collection auto_approve ALWAYS moves staging -> published
+# (hardcoded). This Hub uses validated, not published — so auto_approve crashes
+# with IndexError after upload and never lands infra.ado in validated.
+# Correct flow: upload to staging (no approve), pulp-move into validated, then
+# GET-verify the validated content API.
 - name: AAP 2.5+ | Publish ADO collection to validated AAP Hub repository
   when:
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
     - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
+  vars:
+    bootstrap_controller_hub_api_host: >-
+      {{
+        ('https://' ~ (bootstrap_controller_hub_hostname | regex_replace('^https?://', '') | regex_replace('/.*$', '')))
+        if (bootstrap_controller_hub_hostname | default('') | string | trim | length > 0)
+        else (controller_host | default(vault_controller_hostname))
+      }}
+    bootstrap_controller_hub_uri_headers: >-
+      {{
+        {'Authorization': 'Bearer ' ~ bootstrap_controller_hub_ah_token}
+        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        else omit
+      }}
+    bootstrap_controller_hub_uri_force_basic: >-
+      {{
+        (bootstrap_controller_hub_ah_token | default('') | string | trim | length) == 0
+      }}
   block:
-    - name: AAP 2.5+ | Upload/approve ADO collection artifact on AAP Hub
+    - name: AAP 2.5+ | Upload infra.ado to Hub staging (auto_approve must stay false)
       ansible.hub.ah_collection:
-        namespace: "{{ (__hub_collection_file | basename).split('-')[0] }}"
-        name: "{{ (__hub_collection_file | basename).split('-')[1] }}"
-        version: "{{ (__hub_collection_file | basename).split('-')[2:] | join('-') | splitext | first | splitext | first }}"
+        namespace: infra
+        name: ado
+        version: "{{ bootstrap_controller_hub_artifact_coords.version }}"
         path: "{{ __hub_collection_file }}"
-        repository: "{{ bootstrap_controller_hub_publish_repository }}"
-        auto_approve: "{{ bootstrap_controller_hub_mark_ado_validated | default(true) | bool }}"
+        repository: "{{ bootstrap_controller_hub_staging_repository | default('staging') }}"
+        auto_approve: false
         overwrite_existing: "{{ bootstrap_controller_hub_force_ado_collection_update | default(true) | bool }}"
-        wait: "{{ bootstrap_controller_hub_publish_wait | default(false) | bool }}"
+        wait: true
         timeout: "{{ bootstrap_controller_hub_publish_timeout | default(300) | int }}"
         request_timeout: "{{ bootstrap_controller_hub_publish_request_timeout | default(60) | int }}"
-        ah_host: >-
-          {{
-            ('https://' ~ (bootstrap_controller_hub_hostname | regex_replace('^https?://', '') | regex_replace('/.*$', '')))
-            if (bootstrap_controller_hub_hostname | default('') | string | trim | length > 0)
-            else (controller_host | default(vault_controller_hostname))
-          }}
+        ah_host: "{{ bootstrap_controller_hub_api_host }}"
         ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
         ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
-        ah_token: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+        ah_token: "{{ bootstrap_controller_hub_ah_token | default(omit) }}"
         validate_certs: "{{ controller_validate_certs | default(false) }}"
+      vars:
+        bootstrap_controller_hub_artifact_basename: "{{ __hub_collection_file | basename }}"
+        bootstrap_controller_hub_artifact_coords:
+          version: "{{ bootstrap_controller_hub_artifact_basename.split('-')[2:] | join('-') | regex_replace('\\.tar\\.gz$', '') }}"
       loop: "{{ bootstrap_controller_hub_collection_artifacts | default([]) }}"
       loop_control:
         loop_var: __hub_collection_file
-  rescue:
-    # ansible.hub.ah_collection auto_approve crashes (IndexError) when the same
-    # namespace/name/version already exists and overwrite_existing is false.
-    # Looped failures put IndexError under results[].module_stderr, not top-level.
-    - name: AAP 2.5+ | Collect Hub publish failure text
-      ansible.builtin.set_fact:
-        bootstrap_controller_hub_publish_failure_text: "{{ ansible_failed_result | string }}"
+        label: "infra.ado:{{ bootstrap_controller_hub_artifact_coords.version }} -> staging"
+      register: bootstrap_controller_hub_publish_attempt
 
-    - name: AAP 2.5+ | Detect Hub approve crash for already-published collection version
-      ansible.builtin.set_fact:
-        # ansible.hub.ah_collection can upload successfully then crash in approve()
-        # with IndexError when staging has nothing left to move (already approved,
-        # auto-approved, or overwrite path). Treat that as non-fatal even when
-        # force update is enabled so bootstrap can continue.
-        bootstrap_controller_hub_publish_already_present: >-
-          {{
-            (
-              'IndexError' in (bootstrap_controller_hub_publish_failure_text | default('') | string)
-            )
-            or
-            (
-              'Awaiting approval not found' in (bootstrap_controller_hub_publish_failure_text | default('') | string)
-            )
-          }}
-
-    - name: AAP 2.5+ | Warn when Hub collection version already present
-      ansible.builtin.debug:
-        msg: >-
-          AAP Hub publish/approve returned no pending approval (IndexError or
-          awaiting-approval empty). Usually means this infra.ado version is
-          already in repository
-          '{{ bootstrap_controller_hub_publish_repository | default('validated') }}'
-          — not a failed upload. To replace it: enable Force collection update,
-          or bump galaxy.yml version and rerun. Artifact:
-          {{ bootstrap_controller_hub_collection_artifacts | default([]) | join(', ') }}
-          Repository: {{ bootstrap_controller_hub_publish_repository | default('validated') }}
-      when: bootstrap_controller_hub_publish_already_present | default(false) | bool
-
-    - name: AAP 2.5+ | Fail Hub collection publish for unexpected errors
+    - name: AAP 2.5+ | Fail when Hub staging upload did not change anything
       ansible.builtin.fail:
         msg: >-
-          AAP Hub collection publish failed:
-          {{ ansible_failed_result.msg | default(ansible_failed_result) }}
-      when: not (bootstrap_controller_hub_publish_already_present | default(false) | bool)
+          Staging upload reported changed=false for infra.ado — Hub did not
+          accept a new artifact. Full result:
+          {{ bootstrap_controller_hub_publish_attempt.results | default([]) | to_json }}
+      when: >-
+        (
+          bootstrap_controller_hub_publish_attempt.results
+          | default([])
+          | selectattr('changed', 'defined')
+          | selectattr('changed', 'equalto', true)
+          | list
+          | length
+        ) == 0
+
+    - name: AAP 2.5+ | Resolve pulp href for infra.ado collection version
+      ansible.builtin.uri:
+        url: >-
+          {{ bootstrap_controller_hub_api_host.rstrip('/') }}/api/galaxy/pulp/api/v3/content/ansible/collection_versions/?namespace=infra&name=ado&version={{ bootstrap_controller_hub_artifact_coords.version }}
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
+      vars:
+        bootstrap_controller_hub_artifact_basename: "{{ __hub_collection_file | basename }}"
+        bootstrap_controller_hub_artifact_coords:
+          version: "{{ bootstrap_controller_hub_artifact_basename.split('-')[2:] | join('-') | regex_replace('\\.tar\\.gz$', '') }}"
+      loop: "{{ bootstrap_controller_hub_collection_artifacts | default([]) }}"
+      loop_control:
+        loop_var: __hub_collection_file
+        label: "infra.ado:{{ bootstrap_controller_hub_artifact_coords.version }}"
+      register: bootstrap_controller_hub_cv_lookup
+      until: (bootstrap_controller_hub_cv_lookup.json.count | default(0) | int) >= 1
+      retries: "{{ bootstrap_controller_hub_publish_verify_retries | default(30) | int }}"
+      delay: "{{ bootstrap_controller_hub_publish_verify_delay | default(5) | int }}"
+
+    - name: AAP 2.5+ | Resolve Hub staging repository pulp href
+      ansible.builtin.uri:
+        url: >-
+          {{ bootstrap_controller_hub_api_host.rstrip('/') }}/api/galaxy/pulp/api/v3/repositories/?name={{ bootstrap_controller_hub_staging_repository | default('staging') }}
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
+      register: bootstrap_controller_hub_staging_repo
+
+    - name: AAP 2.5+ | Resolve Hub validated repository pulp href
+      ansible.builtin.uri:
+        url: >-
+          {{ bootstrap_controller_hub_api_host.rstrip('/') }}/api/galaxy/pulp/api/v3/repositories/?name={{ bootstrap_controller_hub_publish_repository | default('validated') }}
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
+      register: bootstrap_controller_hub_validated_repo
+
+    - name: AAP 2.5+ | Assert staging and validated pulp repos were found
+      ansible.builtin.assert:
+        that:
+          - (bootstrap_controller_hub_staging_repo.json.count | default(0) | int) >= 1
+          - (bootstrap_controller_hub_validated_repo.json.count | default(0) | int) >= 1
+        fail_msg: >-
+          Could not resolve pulp repos. staging={{ bootstrap_controller_hub_staging_repo.json | default({}) | to_json }}
+          validated={{ bootstrap_controller_hub_validated_repo.json | default({}) | to_json }}
+
+    - name: AAP 2.5+ | Promote infra.ado from staging to validated via pulp
+      ansible.builtin.uri:
+        url: >-
+          {{ bootstrap_controller_hub_api_host.rstrip('/') }}{{ bootstrap_controller_hub_staging_repo.json.results[0].pulp_href }}move_collection_version/
+        method: POST
+        body_format: json
+        body:
+          collection_versions:
+            - "{{ item.json.results[0].pulp_href }}"
+          destination_repositories:
+            - "{{ bootstrap_controller_hub_validated_repo.json.results[0].pulp_href }}"
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200, 202]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
+      loop: "{{ bootstrap_controller_hub_cv_lookup.results | default([bootstrap_controller_hub_cv_lookup]) }}"
+      loop_control:
+        label: "{{ item.json.results[0].pulp_href | default('cv') }}"
+      register: bootstrap_controller_hub_promote_attempt
+
+    - name: AAP 2.5+ | Wait for pulp promote task(s)
+      ansible.builtin.uri:
+        url: "{{ bootstrap_controller_hub_api_host.rstrip('/') }}{{ item.json.task }}"
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
+      loop: "{{ bootstrap_controller_hub_promote_attempt.results | default([bootstrap_controller_hub_promote_attempt]) }}"
+      loop_control:
+        label: "{{ item.json.task | default('task') }}"
+      when: item.json.task is defined
+      register: bootstrap_controller_hub_promote_task
+      until: (bootstrap_controller_hub_promote_task.json.state | default('')) in ['completed', 'failed']
+      retries: "{{ bootstrap_controller_hub_publish_verify_retries | default(30) | int }}"
+      delay: 5
+      failed_when: (bootstrap_controller_hub_promote_task.json.state | default('')) == 'failed'
+
+    - name: AAP 2.5+ | Verify infra.ado is in validated Hub repository
+      ansible.builtin.uri:
+        url: >-
+          {{ bootstrap_controller_hub_api_host.rstrip('/') }}/api/galaxy/content/{{
+            bootstrap_controller_hub_publish_repository | default('validated')
+          }}/v3/collections/infra/ado/versions/{{ bootstrap_controller_hub_artifact_coords.version }}/
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_uri_headers }}"
+        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
+      vars:
+        bootstrap_controller_hub_artifact_basename: "{{ __hub_collection_file | basename }}"
+        bootstrap_controller_hub_artifact_coords:
+          version: "{{ bootstrap_controller_hub_artifact_basename.split('-')[2:] | join('-') | regex_replace('\\.tar\\.gz$', '') }}"
+      loop: "{{ bootstrap_controller_hub_collection_artifacts | default([]) }}"
+      loop_control:
+        loop_var: __hub_collection_file
+        label: "infra.ado:{{ bootstrap_controller_hub_artifact_coords.version }} in validated"
+      register: bootstrap_controller_hub_publish_verify
+      until: (bootstrap_controller_hub_publish_verify.status | default(0) | int) == 200
+      retries: "{{ bootstrap_controller_hub_publish_verify_retries | default(30) | int }}"
+      delay: "{{ bootstrap_controller_hub_publish_verify_delay | default(10) | int }}"
+
+    - name: AAP 2.5+ | Confirm infra.ado publish landed in validated
+      ansible.builtin.debug:
+        msg: >-
+          infra.ado is present in Hub repository
+          '{{ bootstrap_controller_hub_publish_repository | default('validated') }}'.
+
+- name: AAP 2.5+ | Publish other preflight tarballs to Hub when opted in
+  ansible.builtin.include_tasks: publish_preflight_collections_to_hub.yml
+  when:
+    - bootstrap_controller_hub_publish_preflight_collections | default(false) | bool
 
 - name: AAP 2.5+ | Push ADO EE image to AAP Hub registry
   ansible.builtin.include_tasks: push_hub_ee.yml
@@ -303,39 +537,88 @@
       }}
   when: bootstrap_controller_hub_update_collection_only | default(false) | bool
 
+# Galaxy attach needs the General org. Create only that org (not stale DEV/etc).
+# Only when Galaxy setup is explicitly enabled — do NOT infer from leftover
+# credential YAML in the git repo (overwrite_generated=false), or Hub-only
+# publish succeeds then Contoller 401 fails the whole run.
+- name: AAP 2.5+ | Ensure General organization for hub-only Galaxy attach
+  ansible.controller.organization:
+    name: "{{ controller_bootstrap_organization }}"
+    description: "{{ controller_bootstrap_organization }}"
+    state: present
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  register: bootstrap_controller_hub_only_org
+  failed_when: false
+  when:
+    - bootstrap_controller_hub_update_collection_only | default(false) | bool
+    - controller_bootstrap_organization | default('') | length > 0
+    # Do not use Jinja "x if y else z" inside when: — Ansible wraps when in
+    # {% if ... %} and a bare ternary breaks templating (hub-only Galaxy attach).
+    - bootstrap_generate_env_vars_preflight is defined
+    - bootstrap_generate_env_vars_preflight.aap.galaxy_setup_enabled | default(false) | bool
+
+- name: AAP 2.5+ | Warn Contoller org attach failed after Hub publish
+  ansible.builtin.debug:
+    msg:
+      - >-
+        Hub collection publish already completed; Contoller organization
+        '{{ controller_bootstrap_organization | default('ADO') }}' failed
+        ({{ bootstrap_controller_hub_only_org.msg | default('unknown') }}).
+      - >-
+        Contoller host is
+        {{ controller_host | default(vault_controller_hostname | default('unset')) }}
+        — Hub host is
+        {{ bootstrap_controller_hub_hostname | default('unset') }}.
+        Contoller OAuth must be valid for the Contoller hostname. Galaxy
+        credential attach will be skipped so Hub publish is not marked failed.
+  when:
+    - bootstrap_controller_hub_only_org is defined
+    - (bootstrap_controller_hub_only_org.failed | default(false) | bool)
+      or (bootstrap_controller_hub_only_org.msg is defined
+          and ('401' in (bootstrap_controller_hub_only_org.msg | string)
+               or 'Invalid authentication' in (bootstrap_controller_hub_only_org.msg | string)))
+
 # Hub-only ends before full Contoller credential dispatch — still apply Galaxy tab
 # credentials when enabled so Hub + Galaxy (or either alone) both work when selected.
-- name: AAP 2.5+ | Apply Galaxy/Hub credentials before hub-only stop
+- name: AAP 2.5+ | Apply Galaxy/Hub credentials before standalone AAP stop
   ansible.builtin.include_tasks: apply_galaxy_hub_credentials.yml
   when:
     - bootstrap_controller_hub_update_collection_only | default(false) | bool
+    - bootstrap_generate_env_vars_preflight is defined
+    - bootstrap_generate_env_vars_preflight.aap.galaxy_setup_enabled | default(false) | bool
     - >-
-      (
-        (
-          (
-            bootstrap_generate_env_vars_preflight.aap.galaxy_setup_enabled
-            | default(false)
-            | bool
-          )
-          if bootstrap_generate_env_vars_preflight is defined
-          else false
+      bootstrap_controller_hub_only_org is not defined
+      or bootstrap_controller_hub_only_org is skipped
+      or not (
+        (bootstrap_controller_hub_only_org.failed | default(false) | bool)
+        or (
+          bootstrap_controller_hub_only_org.msg is defined
+          and ('401' in (bootstrap_controller_hub_only_org.msg | string)
+               or 'Invalid authentication' in (bootstrap_controller_hub_only_org.msg | string))
         )
-        or
-        (
-          bootstrap_controller_controller_credentials
-          | default(controller_credentials | default([]), true)
-          | selectattr('credential_type', 'defined')
-          | selectattr(
-              'credential_type',
-              'equalto',
-              'Ansible Galaxy/Automation Hub API Token'
-            )
-          | list
-          | length
-        ) > 0
       )
 
-- name: AAP 2.5+ | Stop after ADO Hub collection / EE update
+- name: AAP 2.5+ | Create onboard Keycloak groups (standalone)
+  ansible.builtin.include_tasks: apply_onboard_keycloak_groups.yml
+  when:
+    - bootstrap_controller_hub_update_collection_only | default(false) | bool
+    - aap_onboard_keycloak_configure | default(false) | bool
+
+- name: AAP 2.5+ | Apply gateway authenticators from preflight Auth (standalone)
+  ansible.builtin.include_tasks: apply_gateway_auth.yml
+  when:
+    - bootstrap_controller_hub_update_collection_only | default(false) | bool
+    - aap_auth_configure_gateway | default(false) | bool
+
+# Hub-only: publish collection(s) to Hub and apply optional AAP tab work only.
+# Git requirements.yml and Controller project sync happen on full bootstrap
+# (generate_playbooks), not here.
+
+- name: AAP 2.5+ | Stop after standalone AAP tab work
   ansible.builtin.meta: end_host
   when: bootstrap_controller_hub_update_collection_only | default(false) | bool
 
@@ -355,7 +638,7 @@
         )
       }}
   loop: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/configs/job_templates/*.jt.yml') }}"
-  when: bootstrap_apply_aap_configs | default(false) | bool
+  when: bootstrap_controller_apply_aap_configs | default(false) | bool
 
 - name: AAP 2.5+ | Debug loaded job template count
   ansible.builtin.debug:
@@ -377,7 +660,7 @@
         )
       }}
   loop: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/configs/workflows/*.wf.yml') }}"
-  when: bootstrap_apply_aap_configs | default(false) | bool
+  when: bootstrap_controller_apply_aap_configs | default(false) | bool
 
 - name: AAP 2.5+ | Debug loaded workflow count
   ansible.builtin.debug:
@@ -549,6 +832,26 @@
     bootstrap_controller_labels_to_create: >-
       {{ bootstrap_controller_labels_sanitize_result.stdout | from_json }}
 
+- name: AAP 2.5+ | Assert sanitized labels are name/organization mappings
+  ansible.builtin.assert:
+    that:
+      - bootstrap_controller_labels_to_create is sequence
+      - bootstrap_controller_labels_to_create | select('mapping') | list | length
+        == (bootstrap_controller_labels_to_create | length)
+      - >-
+        (
+          bootstrap_controller_labels_to_create
+          | map(attribute='name')
+          | select('string')
+          | list
+          | length
+        ) == (bootstrap_controller_labels_to_create | length)
+    fail_msg: >-
+      Label create list is corrupt after sanitize (expected list of
+      {name, organization} dicts). Got:
+      {{ bootstrap_controller_labels_to_create | default([]) | to_json }}
+  when: bootstrap_controller_labels_to_create | default([]) | length > 0
+
 - name: AAP 2.5+ | Resolve controller API URL for label verification
   ansible.builtin.set_fact:
     bootstrap_controller_aap_api_url: >-
@@ -570,17 +873,23 @@
         | default('/api/controller/v2', true)
       }}
 
+# throttle/serial avoids controller API races; explicit loop_control prevents
+# leftover Hub publish loop labels from leaking into this task's display.
 - name: AAP 2.5+ | Create labels directly before job templates
   ansible.controller.label:
-    name: "{{ item.name }}"
-    organization: "{{ item.organization | default(controller_bootstrap_organization | default(bootstrap_controller_organization), true) }}"
-    state: "{{ item.state | default('present') }}"
+    name: "{{ label_item.name }}"
+    organization: "{{ label_item.organization | default(controller_bootstrap_organization | default(bootstrap_controller_organization), true) }}"
+    state: "{{ label_item.state | default('present') }}"
     controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
     controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
     controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
     controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
     validate_certs: "{{ controller_validate_certs | default(false) }}"
   loop: "{{ bootstrap_controller_labels_to_create }}"
+  loop_control:
+    loop_var: label_item
+    label: "{{ label_item.name }} ({{ label_item.organization | default('?') }})"
+  throttle: 1
   when: bootstrap_controller_labels_to_create | default([]) | length > 0
   register: bootstrap_controller_created_labels_result
 
@@ -887,6 +1196,12 @@
       | default(0)
       | int == 0
 
+- name: AAP 2.5+ | Create onboard Keycloak groups
+  ansible.builtin.include_tasks: apply_onboard_keycloak_groups.yml
+  when:
+    - aap_onboard_keycloak_configure | default(false) | bool
+    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
+
 - name: AAP 2.5+ | Apply gateway authenticators from preflight Auth
   ansible.builtin.include_tasks: apply_gateway_auth.yml
   when:
@@ -939,6 +1254,13 @@
         var: controller_credentials
         tags: credentials
   when: controller_credentials | default([]) | length > 0
+
+- name: AAP 2.5+ | Attach Galaxy credentials to organization after credential create
+  ansible.builtin.include_tasks: apply_galaxy_hub_credentials.yml
+  when:
+    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
+    - bootstrap_generate_env_vars_preflight is defined
+    - bootstrap_generate_env_vars_preflight.aap.galaxy_setup_enabled | default(false) | bool
 
 - name: AAP 2.5+ | Skip existing execution environments
   ansible.builtin.include_tasks: skip_existing_execution_environments.yml
@@ -1003,7 +1325,7 @@
           controller_projects
           | default(controller_bootstrap_controller_projects | default([]), true)
         )
-        | map('combine', {'update_project': false, 'wait': false})
+        | map('combine', {'update_project': false, 'wait': false, 'scm_clean': true})
         | list
       }}
 
@@ -1016,6 +1338,31 @@
 - name: AAP 2.5+ | Debug controller projects before apply
   ansible.builtin.debug:
     var: controller_projects
+
+- name: AAP 2.5+ | Ignore Galaxy TLS verify for lab Hub (project collection install)
+  ansible.builtin.uri:
+    url: "{{ (controller_host | default(vault_controller_hostname)).rstrip('/') }}/api/controller/v2/settings/jobs/"
+    method: PATCH
+    body_format: json
+    body:
+      GALAXY_IGNORE_CERTS: true
+    status_code: [200]
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+    headers: >-
+      {{
+        {'Authorization': 'Bearer ' ~ (controller_oauthtoken | default(vault_controller_oauthtoken | default('')))}
+        if (controller_oauthtoken | default(vault_controller_oauthtoken | default('')) | string | trim | length) > 0
+        else omit
+      }}
+    user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    force_basic_auth: >-
+      {{
+        (controller_oauthtoken | default(vault_controller_oauthtoken | default('')) | string | trim | length) == 0
+      }}
+  when:
+    - not (controller_validate_certs | default(false) | bool)
+    - controller_projects | default([]) | length > 0
 
 - name: AAP 2.5+ | Apply projects
   ansible.builtin.include_role:
@@ -1032,6 +1379,7 @@
     scm_url: "{{ item.scm_url | default(omit) }}"
     scm_branch: "{{ item.scm_branch | default(omit) }}"
     scm_credential: "{{ item.credential | default(item.scm_credential | default(omit)) }}"
+    scm_clean: true
     update_project: false
     wait: false
     state: present
@@ -1073,40 +1421,90 @@
         bootstrap_controller_project_sync_result.results
         | default([])
         | selectattr('status', 'defined')
-        | selectattr('status', 'equalto', 'failed')
+        | rejectattr('status', 'equalto', 'successful')
         | list
       }}
   when:
     - controller_projects | default([]) | length > 0
     - bootstrap_controller_project_sync_result is defined
 
+- name: AAP 2.5+ | Fetch failed project update stdout
+  ansible.builtin.uri:
+    url: >-
+      {{
+        (controller_host | default(vault_controller_hostname)).rstrip('/')
+      }}/api/controller/v2/project_updates/{{ item.id }}/stdout/?format=txt
+    method: GET
+    return_content: true
+    status_code: [200]
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+    headers: >-
+      {{
+        {'Authorization': 'Bearer ' ~ (controller_oauthtoken | default(vault_controller_oauthtoken | default('')))}
+        if (controller_oauthtoken | default(vault_controller_oauthtoken | default('')) | string | trim | length) > 0
+        else omit
+      }}
+    user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    force_basic_auth: >-
+      {{
+        (controller_oauthtoken | default(vault_controller_oauthtoken | default('')) | string | trim | length) == 0
+      }}
+  loop: "{{ bootstrap_controller_project_sync_failures | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name | default(item.id) }}"
+  register: bootstrap_controller_project_sync_stdout
+  failed_when: false
+  when:
+    - bootstrap_controller_project_sync_failures | default([]) | length > 0
+    - item.id is defined
+
 - name: AAP 2.5+ | Fail with actionable project sync guidance
   ansible.builtin.fail:
     msg: >-
-      Contoller project sync failed for:
+      Controller project sync did not finish before bootstrap continued for:
       {{
         bootstrap_controller_project_sync_failures
         | map(attribute='item.name')
         | list
         | join(', ')
       }}.
-      Contoller git project update failed. If Hub collection update was not
-      requested, bootstrap should not write collections/requirements.yml and
-      should not need Galaxy/Hub. Check the Contoller project update stdout
-      (git clone/auth vs leftover Galaxy requirements). Module message:
+      Module message:
       {{
         bootstrap_controller_project_sync_failures
         | map(attribute='msg')
         | list
         | join(' | ')
       }}
+      Status:
+      {{
+        bootstrap_controller_project_sync_failures
+        | map(attribute='status')
+        | list
+        | join(', ')
+      }}.
+      If status is pending, the sync may still be running in AAP — wait for
+      CKTEST-project to finish, then re-run bootstrap or increase
+      aap.project_sync_timeout in preflight JSON (default 600).
+      Job stdout (tail):
+      {{
+        bootstrap_controller_project_sync_stdout.results
+        | default([])
+        | map(attribute='content')
+        | map('default', '', true)
+        | map('regex_replace', '(?s)^.*((?:\\n|^)(?:.*\\n){0,40})$', '\\1')
+        | list
+        | join('\n---\n')
+      }}
   when:
     - bootstrap_controller_project_sync_failures | default([]) | length > 0
 
 - name: AAP 2.5+ | Wait for project playbooks to become available
   ansible.builtin.pause:
-    seconds: "{{ bootstrap_controller_project_playbook_wait_seconds | default(30) }}"
-  when: controller_projects | default([]) | length > 0
+    seconds: "{{ bootstrap_controller_project_playbook_wait_seconds | default(60) }}"
+  when:
+    - controller_projects | default([]) | length > 0
+    - bootstrap_controller_project_sync_failures | default([]) | length == 0
 
 # Hosts before templates
 - name: AAP 2.5+ | Apply hosts
@@ -1197,7 +1595,30 @@
       - "controller_workflow_job_templates={{ controller_workflow_job_templates | default([]) | length }}"
       - "controller_workflows={{ controller_workflows | default([]) | length }}"
 
-- name: AAP 2.5+ | Apply job templates and workflows
+# Job templates and workflows must not share one dispatch include: infra.aap_configuration
+# runs controller_job_templates first and aborts the play on failure, so
+# controller_workflow_job_templates never runs. That leaves destroy_current_nodes
+# workflows empty when a prior partial apply wiped nodes (Managing Workflows runs
+# before simplified_workflow_nodes schema is rebuilt).
+- name: AAP 2.5+ | Apply job templates
+  block:
+    - name: AAP 2.5+ | Dispatch job templates to Controller
+      ansible.builtin.include_role:
+        name: infra.aap_configuration.dispatch
+      vars:
+        gateway_configuration_dispatcher_roles: []
+        hub_configuration_dispatcher_roles: []
+        eda_configuration_dispatcher_roles: []
+        controller_configuration_dispatcher_roles:
+          - role: controller_job_templates
+            var: controller_templates
+            tags: job_templates
+  rescue:
+    - name: AAP 2.5+ | Record job template apply failure (workflows will still run)
+      ansible.builtin.set_fact:
+        bootstrap_controller_job_template_apply_failed: true
+
+- name: AAP 2.5+ | Apply workflow job templates
   ansible.builtin.include_role:
     name: infra.aap_configuration.dispatch
   vars:
@@ -1205,12 +1626,18 @@
     hub_configuration_dispatcher_roles: []
     eda_configuration_dispatcher_roles: []
     controller_configuration_dispatcher_roles:
-      - role: controller_job_templates
-        var: controller_templates
-        tags: job_templates
       - role: controller_workflow_job_templates
         var: controller_workflows
         tags: workflow_job_templates
+  when: controller_workflows | default([]) | length > 0
+
+- name: AAP 2.5+ | Fail bootstrap after workflows when job template apply failed
+  ansible.builtin.fail:
+    msg: >-
+      One or more job templates failed to apply on Controller (see log above).
+      Workflow templates were still updated. Fix the job template error and
+      re-run bootstrap, or sync the project and re-launch failed jobs.
+  when: bootstrap_controller_job_template_apply_failed | default(false) | bool
 
 - name: AAP 2.5+ | Verify generated templates exist with organization prefix
   no_log: "{{ bootstrap_controller_aap_connectivity_no_log | default(true) }}"

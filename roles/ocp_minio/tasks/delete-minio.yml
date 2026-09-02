@@ -1,0 +1,67 @@
+---
+- name: Delete MinIO Deployment
+  kubernetes.core.k8s:
+    state: absent
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ name_space }}"
+    name: "{{ minio_deployment_name }}"
+  register: ocp_minio_delete_deployment
+  failed_when: >-
+    ocp_minio_delete_deployment is failed
+    and ('not found' not in (ocp_minio_delete_deployment.msg | default('') | lower))
+
+- name: Delete MinIO Service
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Service
+    namespace: "{{ name_space }}"
+    name: "{{ minio_service_name }}"
+  register: ocp_minio_delete_service
+  failed_when: >-
+    ocp_minio_delete_service is failed
+    and ('not found' not in (ocp_minio_delete_service.msg | default('') | lower))
+
+- name: Delete MinIO Routes
+  kubernetes.core.k8s:
+    state: absent
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ name_space }}"
+    name: "{{ item }}"
+  loop:
+    - minio-api
+    - minio-console
+  register: ocp_minio_delete_routes
+  failed_when: >-
+    ocp_minio_delete_routes is failed
+    and ('not found' not in (ocp_minio_delete_routes.msg | default('') | lower))
+
+- name: Delete MinIO PVC
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ name_space }}"
+    name: minio-data
+  when: minio_delete_pvc | default(false) | bool
+  register: ocp_minio_delete_pvc
+  failed_when: >-
+    ocp_minio_delete_pvc is failed
+    and ('not found' not in (ocp_minio_delete_pvc.msg | default('') | lower))
+
+- name: Delete MinIO Secrets
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Secret
+    namespace: "{{ name_space }}"
+    name: "{{ item }}"
+  loop:
+    - minio-creds
+    - minio-oidc
+  register: ocp_minio_delete_secrets
+  failed_when: >-
+    ocp_minio_delete_secrets is failed
+    and ('not found' not in (ocp_minio_delete_secrets.msg | default('') | lower))

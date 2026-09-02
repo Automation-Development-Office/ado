@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+galaxy_info:
+  author: Chad Elliott
+  description: Deploy Zabbix monitoring stack on OpenShift (MariaDB + server + web).
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.16.0"
+dependencies: []

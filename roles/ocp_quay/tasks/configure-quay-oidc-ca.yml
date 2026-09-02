@@ -1,0 +1,110 @@
+---
+# Mount lab/Keycloak CA so Quay OIDC discovery trusts Keycloak HTTPS.
+
+- name: Configure Quay OIDC CA trust bundle
+  when: quay_oidc_enabled | default(false) | bool
+  block:
+    - name: Resolve Quay OIDC CA secret name
+      ansible.builtin.set_fact:
+        ocp_quay_oidc_ca_secret: "{{ quay_oidc_ca_secret | default('quay-oidc-ca') }}"
+
+    - name: Read Keycloak TLS certificate from cluster when CA content not provided
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        namespace: "{{ quay_keycloak_namespace | default(keycloak_namespace | default('keycloak')) }}"
+        name: "{{ quay_keycloak_tls_secret | default(rhbk_tls_secret_name | default('keycloak-tls-secret')) }}"
+      register: ocp_quay_keycloak_tls
+      when: (ocp_quay_oidc_ca_pem | default('') | string | length) == 0
+
+    - name: Set Quay OIDC CA PEM from Keycloak TLS secret
+      ansible.builtin.set_fact:
+        ocp_quay_oidc_ca_pem: "{{ ocp_quay_keycloak_tls.resources[0].data['tls.crt'] | b64decode }}"
+      when:
+        - (ocp_quay_oidc_ca_pem | default('') | string | length) == 0
+        - ocp_quay_keycloak_tls.resources | default([]) | length > 0
+        - ocp_quay_keycloak_tls.resources[0].data['tls.crt'] is defined
+      no_log: true
+
+    - name: Skip Quay OIDC CA when no certificate resolved
+      ansible.builtin.debug:
+        msg: No Keycloak/OIDC CA certificate resolved; Quay OIDC may fail TLS verify against Keycloak.
+      when: (ocp_quay_oidc_ca_pem | default('') | string | length) == 0
+
+    - name: Create Quay OIDC CA secret
+      kubernetes.core.k8s:
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "{{ ocp_quay_oidc_ca_secret }}"
+            namespace: "{{ name_space }}"
+          type: Opaque
+          stringData:
+            ca.crt: "{{ ocp_quay_oidc_ca_pem }}"
+      when: (ocp_quay_oidc_ca_pem | default('') | string | length) > 0
+      no_log: true
+
+    - name: Add OIDC CA volume to Quay Deployment
+      kubernetes.core.k8s_json_patch:
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ name_space }}"
+        name: quay
+        patch:
+          - op: add
+            path: /spec/template/spec/volumes/-
+            value:
+              name: oidc-ca-volume
+              secret:
+                secretName: "{{ ocp_quay_oidc_ca_secret }}"
+          - op: add
+            path: /spec/template/spec/containers/0/volumeMounts/-
+            value:
+              name: oidc-ca-volume
+              mountPath: /conf/stack/extra_ca_certs
+              readOnly: true
+      register: ocp_quay_oidc_ca_patch
+      failed_when: false
+      when: (ocp_quay_oidc_ca_pem | default('') | string | length) > 0
+
+    - name: Replace OIDC CA volume on Quay Deployment when patch reported duplicate
+      kubernetes.core.k8s_json_patch:
+        api_version: apps/v1
+        kind: Deployment
+        namespace: "{{ name_space }}"
+        name: quay
+        patch:
+          - op: replace
+            path: /spec/template/spec/volumes
+            value: "{{ ocp_quay_deploy_volumes }}"
+          - op: replace
+            path: /spec/template/spec/containers/0/volumeMounts
+            value: "{{ ocp_quay_deploy_volume_mounts }}"
+      vars:
+        ocp_quay_deploy_info: >-
+          {{
+            lookup('kubernetes.core.k8s', kind='Deployment', namespace=name_space, resource_name='quay')
+          }}
+        ocp_quay_deploy_volumes: >-
+          {{
+            (
+              ocp_quay_deploy_info.spec.template.spec.volumes | default([])
+              | rejectattr('name', 'equalto', 'oidc-ca-volume')
+              | list
+            )
+            + [{'name': 'oidc-ca-volume', 'secret': {'secretName': ocp_quay_oidc_ca_secret}}]
+          }}
+        ocp_quay_deploy_volume_mounts: >-
+          {{
+            (
+              ocp_quay_deploy_info.spec.template.spec.containers[0].volumeMounts | default([])
+              | rejectattr('name', 'equalto', 'oidc-ca-volume')
+              | list
+            )
+            + [{'name': 'oidc-ca-volume', 'mountPath': '/conf/stack/extra_ca_certs', 'readOnly': true}]
+          }}
+      when:
+        - (ocp_quay_oidc_ca_pem | default('') | string | length) > 0
+        - ocp_quay_oidc_ca_patch is defined
+        - ocp_quay_oidc_ca_patch.failed | default(false) | bool

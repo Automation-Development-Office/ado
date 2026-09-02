@@ -1,0 +1,10 @@
+---
+bugfixes:
+  - gitlab OCP playbook - Install operator CR + Route (was routes-print only).
+  - quay playbook - Run ocp_quay (PVC/DB/Deployment/Service/Route); was OLM only.
+  - kafka_install - Create Kafka CR with Route listeners by default.
+  - install_elastic - Create Elasticsearch + Kibana + Routes by default.
+  - ocp_discover_routes - Human-readable route table; OpenShift workflow ends on
+    Print ADO Routes (always included when openshift is selected).
+  - OpenShift workflow - Cert/ingress then RHBK then OIDC then apps; wire DevSpaces
+    and Web Terminal; converge to route print.

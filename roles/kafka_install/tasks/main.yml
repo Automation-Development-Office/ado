@@ -55,6 +55,32 @@
     - kafka_install_pm is defined
   changed_when: false
 
+# Env overrides sometimes pin a stale channel (e.g. 2.11) that is gone from the catalog.
+# Fall back to PackageManifest defaultChannel currentCSV so installs still converge.
+- name: Kafka Install Fall back to PackageManifest defaultChannel currentCSV
+  ansible.builtin.set_fact:
+    kafka_install_operator_starting_csv_effective: >-
+      {{
+        (
+          kafka_install_pm.resources[0].status.channels
+          | default([])
+          | selectattr('name','equalto', (kafka_install_pm.resources[0].status.defaultChannel | default('')))
+          | map(attribute='currentCSV')
+          | list
+          | first
+          | default('')
+        )
+        | string
+        | trim
+      }}
+  when:
+    - kafka_install_starting_csv_clean | length == 0
+    - kafka_install_pm is defined
+    - (kafka_install_operator_starting_csv_effective | default('') | string | trim | length) == 0
+    - (kafka_install_pm.resources | default([]) | length) > 0
+    - (kafka_install_pm.resources[0].status.defaultChannel | default('') | string | trim | length) > 0
+  changed_when: false
+
 - name: Kafka Install Assert required inputs
   ansible.builtin.assert:
     that:
@@ -70,6 +96,17 @@
       Need: operator_name, operator_channel, operator_source, operator_source_namespace,
             operator_subscription_namespace (or default openshift-operators),
             name_space (operand namespace), and a resolvable CSV (startingCSV or currentCSV).
+      Got: operator_name='{{ operator_name | default('') }}' channel='{{ operator_channel | default('') }}'
+           starting_csv='{{ operator_starting_csv | default('') }}'
+           effective_csv='{{ kafka_install_operator_starting_csv_effective | default('') }}'
+           defaultChannel='{{
+             (kafka_install_pm.resources[0].status.defaultChannel | default(''))
+             if (
+               kafka_install_pm is defined
+               and (kafka_install_pm.resources | default([]) | length) > 0
+             )
+             else ''
+           }}'
 
 - name: Kafka Install Wait for CSV to exist in operator namespace
   kubernetes.core.k8s_info:
@@ -99,39 +136,311 @@
   changed_when: false
 
 # CFK operator deployment name is 'confluent-operator' (what you saw in oc describe)
-- name: Kafka Install Wait for operator Deployment to be Available
+- name: Kafka Install Build operator Deployment namespace candidates
+  ansible.builtin.set_fact:
+    kafka_install_operator_deploy_namespaces: >-
+      {{
+        [
+          kafka_install_operator_namespace,
+          'confluent-operator-system',
+          'cfk-operator',
+          'openshift-operators'
+        ]
+        | map('string')
+        | map('trim')
+        | reject('equalto', '')
+        | unique
+        | list
+      }}
+  changed_when: false
+
+- name: Kafka Install Probe operator Deployment in candidate namespaces
   kubernetes.core.k8s_info:
     api_version: apps/v1
     kind: Deployment
-    namespace: "{{ kafka_install_operator_namespace }}"
+    namespace: "{{ item }}"
     name: confluent-operator
-  register: kafka_install_op_deploy
+  loop: "{{ kafka_install_operator_deploy_namespaces }}"
+  register: kafka_install_op_deploy_probe
   until: >
-    kafka_install_op_deploy.resources is defined and
-    (kafka_install_op_deploy.resources | length) > 0 and
-    (kafka_install_op_deploy.resources[0].status.availableReplicas | default(0) | int) >= 1
+    kafka_install_op_deploy_probe.resources is defined and
+    (kafka_install_op_deploy_probe.resources | length) > 0 and
+    (kafka_install_op_deploy_probe.resources[0].status.availableReplicas | default(0) | int) >= 1
   retries: 40
   delay: 6
   changed_when: false
+  failed_when: false
+
+- name: Kafka Install Remember operator Deployment namespace
+  ansible.builtin.set_fact:
+    kafka_install_operator_namespace: "{{ item.item }}"
+  loop: "{{ kafka_install_op_deploy_probe.results | default([]) }}"
+  when:
+    - item.resources is defined
+    - (item.resources | length) > 0
+    - (item.resources[0].status.availableReplicas | default(0) | int) >= 1
+  loop_control:
+    label: "{{ item.item | default('unknown') }}"
+
+- name: Kafka Install Assert CFK operator Deployment is ready
+  ansible.builtin.assert:
+    that:
+      - kafka_install_operator_namespace is defined
+      - (kafka_install_operator_namespace | string | length) > 0
+    fail_msg: >-
+      confluent-operator Deployment not ready in any of:
+      {{ kafka_install_operator_deploy_namespaces | join(', ') }}.
+      Check CFK operator subscription namespace matches the running operator.
+
+# CFK 3.x OLM ClusterRole often omits cluster-scoped jobs.batch; operator CrashLoops
+# without list/watch on Jobs. Supplemental RoleBinding is idempotent and OLM-safe.
+- name: Kafka Install Ensure CFK SA can manage Jobs cluster-wide
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: ado-cfk-jobs-cluster
+        labels:
+          app.kubernetes.io/managed-by: infra.ado
+          app.kubernetes.io/part-of: kafka-install
+      rules:
+        - apiGroups: ["batch"]
+          resources: ["jobs"]
+          verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+- name: Kafka Install Bind CFK SA to Jobs ClusterRole
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: ado-cfk-jobs-cluster
+        labels:
+          app.kubernetes.io/managed-by: infra.ado
+          app.kubernetes.io/part-of: kafka-install
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: ado-cfk-jobs-cluster
+      subjects:
+        - kind: ServiceAccount
+          name: confluent-for-kubernetes
+          namespace: "{{ kafka_install_operator_namespace }}"
+
+# CFK operand pods run as uid 1001; OpenShift restricted SCC blocks that.
+- name: Kafka Install Allow default SA anyuid for CFK operands
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: ado-cfk-anyuid
+        namespace: "{{ kafka_install_operand_namespace }}"
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: system:openshift:scc:anyuid
+      subjects:
+        - kind: ServiceAccount
+          name: default
+          namespace: "{{ kafka_install_operand_namespace }}"
+        - kind: ServiceAccount
+          name: confluent-for-kubernetes
+          namespace: "{{ kafka_install_operator_namespace }}"
+
+- name: Kafka Install Ensure CFK auto-TLS CA secret exists
+  when:
+    - kafka_install_create_cr | default(false) | bool
+    - kafka_install_external_tls | default(false) | bool
+  block:
+    - name: Kafka Install Check for ca-pair-sslcerts
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        namespace: "{{ kafka_install_operand_namespace }}"
+        name: ca-pair-sslcerts
+      register: kafka_install_ca_secret
+
+    - name: Kafka Install Generate lab CA material when missing
+      when: (kafka_install_ca_secret.resources | default([]) | length) == 0
+      ansible.builtin.command:
+        argv:
+          - openssl
+          - req
+          - -x509
+          - -newkey
+          - rsa:2048
+          - -nodes
+          - -days
+          - "3650"
+          - -keyout
+          - /tmp/ado-cfk-ca.key
+          - -out
+          - /tmp/ado-cfk-ca.crt
+          - -subj
+          - /CN=cfk-lab-ca/O=ADO
+      changed_when: true
+
+    - name: Kafka Install Create ca-pair-sslcerts Secret
+      when: (kafka_install_ca_secret.resources | default([]) | length) == 0
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: ca-pair-sslcerts
+            namespace: "{{ kafka_install_operand_namespace }}"
+          type: kubernetes.io/tls
+          data:
+            tls.crt: "{{ lookup('file', '/tmp/ado-cfk-ca.crt') | b64encode }}"
+            tls.key: "{{ lookup('file', '/tmp/ado-cfk-ca.key') | b64encode }}"
+      no_log: true
 
 # IMPORTANT: Installing the operator alone will not create pods in operand namespace.
 # We create a minimal Kafka CR so pods actually appear.
 # IMPORTANT:
 # By default, the kafka_install role only validates/waits.
 # Creating a Kafka CR is OPTIONAL and gated by kafka_install_create_cr=true.
+- name: Kafka Install Build KRaftController definition
+  ansible.builtin.set_fact:
+    kafka_install_kraft_definition: >-
+      {{
+        {
+          'apiVersion': 'platform.confluent.io/v1beta1',
+          'kind': 'KRaftController',
+          'metadata': {
+            'name': kafka_install_kraft_name | default('kraftcontroller'),
+            'namespace': kafka_install_operand_namespace,
+          },
+          'spec': {
+            'replicas': kafka_install_kraft_replicas | default(1) | int,
+            'dataVolumeCapacity': kafka_install_data_volume_capacity | default('10Gi'),
+            'image': {
+              'application': kafka_install_image_application | default(kafka_install_image),
+              'init': kafka_install_image_init | default('confluentinc/confluent-init-container:2.8.0'),
+            },
+          },
+        }
+      }}
+  when: kafka_install_create_cr | default(false) | bool
+
+- name: Kafka Install Ensure KRaftController exists (CFK 3.x)
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ kafka_install_kraft_definition }}"
+  when: kafka_install_create_cr | default(false) | bool
+
+- name: Kafka Install Build Kafka CR definition (with external route)
+  ansible.builtin.set_fact:
+    kafka_install_cr_definition: >-
+      {{
+        {
+          'apiVersion': 'platform.confluent.io/v1beta1',
+          'kind': 'Kafka',
+          'metadata': {
+            'name': kafka_install_cluster_name | default('kafka-cluster'),
+            'namespace': kafka_install_operand_namespace,
+          },
+          'spec': {
+            'replicas': kafka_install_replicas | default(1) | int,
+            'image': (
+              kafka_install_image
+              if (kafka_install_image is mapping)
+              else {
+                'application': kafka_install_image_application | default(kafka_install_image),
+                'init': kafka_install_image_init | default('confluentinc/confluent-init-container:2.8.0'),
+              }
+            ),
+            'dataVolumeCapacity': kafka_install_data_volume_capacity | default('1Gi'),
+            'tls': {
+              'autoGeneratedCerts': true,
+            },
+            'dependencies': {
+              'kRaftController': {
+                'clusterRef': {
+                  'name': kafka_install_kraft_name | default('kraftcontroller'),
+                },
+              },
+            },
+            'listeners': {
+              'external': {
+                'tls': {
+                  'enabled': kafka_install_external_tls | default(true) | bool,
+                },
+                'externalAccess': {
+                  'type': 'route',
+                  'route': {
+                    'domain': kafka_install_route_domain,
+                  },
+                },
+              },
+            },
+          },
+        }
+      }}
+  when:
+    - kafka_install_create_cr | default(false) | bool
+    - (kafka_install_route_domain | default('') | string | trim | length) > 0
+
 - name: Kafka Install Create Kafka CR (optional)
   kubernetes.core.k8s:
     state: present
-    definition:
-      apiVersion: platform.confluent.io/v1beta1
-      kind: Kafka
-      metadata:
-        name: "{{ kafka_install_cluster_name | default('kafka-cluster') }}"
-        namespace: "{{ kafka_install_operand_namespace }}"
-      spec:
-        replicas: "{{ kafka_install_replicas | default(1) | int }}"
-        dataVolumeCapacity: "{{ kafka_install_data_volume_capacity | default('1Gi') }}"
-  when: kafka_install_create_cr | default(false) | bool
+    definition: "{{ kafka_install_cr_definition }}"
+  when:
+    - kafka_install_create_cr | default(false) | bool
+    - (kafka_install_route_domain | default('') | string | trim | length) > 0
+
+- name: Kafka Install Build Kafka CR definition (no external route)
+  ansible.builtin.set_fact:
+    kafka_install_cr_definition: >-
+      {{
+        {
+          'apiVersion': 'platform.confluent.io/v1beta1',
+          'kind': 'Kafka',
+          'metadata': {
+            'name': kafka_install_cluster_name | default('kafka-cluster'),
+            'namespace': kafka_install_operand_namespace,
+          },
+          'spec': {
+            'replicas': kafka_install_replicas | default(1) | int,
+            'image': (
+              kafka_install_image
+              if (kafka_install_image is mapping)
+              else {
+                'application': kafka_install_image_application | default(kafka_install_image),
+                'init': kafka_install_image_init | default('confluentinc/confluent-init-container:2.8.0'),
+              }
+            ),
+            'dataVolumeCapacity': kafka_install_data_volume_capacity | default('1Gi'),
+            'tls': {
+              'autoGeneratedCerts': true,
+            },
+            'dependencies': {
+              'kRaftController': {
+                'clusterRef': {
+                  'name': kafka_install_kraft_name | default('kraftcontroller'),
+                },
+              },
+            },
+          },
+        }
+      }}
+  when:
+    - kafka_install_create_cr | default(false) | bool
+    - (kafka_install_route_domain | default('') | string | trim | length) == 0
+
+- name: Kafka Install Create Kafka CR without external route (no domain)
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ kafka_install_cr_definition }}"
+  when:
+    - kafka_install_create_cr | default(false) | bool
+    - (kafka_install_route_domain | default('') | string | trim | length) == 0
 
 # Wait for operand pods to exist and be Running
 - name: Kafka Install Wait for operand pods to appear (only when CR is created)
@@ -165,3 +474,10 @@
   delay: 10
   changed_when: false
   when: kafka_install_create_cr | default(false) | bool
+
+- name: Kafka Install Patch CFK routes to edge termination (ingress cert)
+  ansible.builtin.import_tasks: patch-cfk-routes-ingress-cert.yml
+  when:
+    - kafka_install_create_cr | default(false) | bool
+    - not (kafka_install_external_tls | default(false) | bool)
+    - kafka_install_use_ingress_cert | default(true) | bool

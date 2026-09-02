@@ -25,14 +25,14 @@ ocp_search_dirsrv_pretty_tables: true # awk pretty output for the two built-ins
 ocp_search_dirsrv_queries:
   - name: "Users (inetOrgPerson)"
     kind: users
-    base: "ou=people,{{ ocp_search_dirsrv__suffix }}"
+    base: "ou=people,{{ ocp_search_dirsrv_suffix }}"
     filter: "(objectClass=inetOrgPerson)"
     attrs: ["dn", "uid", "cn", "mail"]
     scope: "sub"
 
   - name: "Groups (posixGroup / groupOfNames)"
     kind: groups
-    base: "ou=groups,{{ ocp_search_dirsrv__suffix }}"
+    base: "ou=groups,{{ ocp_search_dirsrv_suffix }}"
     filter: "(|(objectClass=posixGroup)(objectClass=groupOfNames))"
     attrs: ["dn", "cn", "gidNumber", "member", "memberUid"]
     scope: "sub"

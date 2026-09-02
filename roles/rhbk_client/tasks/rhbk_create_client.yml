@@ -12,8 +12,13 @@
   ansible.builtin.set_fact:
     rhbk_client_kc_url: >-
       {{
-        'https://' ~ rhbk_hostname ~
-        (rhbk_auth_base_path | default('') | string)
+        (
+          rhbk_keycloak_base_url
+          | default(
+              'https://' ~ rhbk_hostname ~ (rhbk_auth_base_path | default('') | string),
+              true
+            )
+        )
       }}
 
 # Create / update the client with requireds + optionals (sent only if defined)

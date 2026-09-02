@@ -1,0 +1,44 @@
+---
+- name: Read Grafana CR for config patch
+  kubernetes.core.k8s_info:
+    api_version: grafana.integreatly.org/v1beta1
+    kind: Grafana
+    name: grafana
+    namespace: "{{ name_space }}"
+  register: grafana_install_cr_info
+
+- name: Fail when Grafana CR is missing for config patch
+  ansible.builtin.fail:
+    msg: >-
+      Grafana CR 'grafana' was not found in namespace '{{ name_space }}'.
+      Run ADO | Deploy Grafana before OIDC/email configuration JTs.
+  when: (grafana_install_cr_info.resources | default([]) | length) == 0
+
+- name: Build merged Grafana CR config for patch
+  ansible.builtin.set_fact:
+    grafana_install_config: >-
+      {{
+        (grafana_install_cr_info.resources[0].spec.config | default({}))
+        | combine((grafana_install_config_patch | default({})), recursive=True)
+      }}
+
+- name: Patch Grafana CR config
+  kubernetes.core.k8s:
+    merge_type: merge
+    definition:
+      apiVersion: grafana.integreatly.org/v1beta1
+      kind: Grafana
+      metadata:
+        name: grafana
+        namespace: "{{ name_space }}"
+      spec:
+        config: "{{ grafana_install_config }}"
+
+- name: Delete Grafana pods to pick up config changes
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Pod
+    namespace: "{{ name_space }}"
+    label_selectors:
+      - app=grafana

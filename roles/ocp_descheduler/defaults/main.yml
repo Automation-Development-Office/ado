@@ -1,2 +1,12 @@
 ---
-# defaults file for loki-stack
+# Kube Descheduler Operator instance (after OLM subscription).
+state: present
+kube_descheduler_state: present
+instance_name: cluster
+name_space: openshift-kube-descheduler-operator
+scheduling_interval: 3600
+descheduler_profiles:
+  - AffinityAndTaints
+  - TopologyAndDuplicates
+  # SoftTopologyAndDuplicates conflicts with TopologyAndDuplicates (API rejects both).
+  - LifecycleAndUtilization

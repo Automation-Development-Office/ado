@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - >-
+    Quay Keycloak login uses Database internal auth plus KEYCLOAK_LOGIN_CONFIG
+    (AUTHENTICATION_TYPE OIDC crashes migration). RHBK realms default to
+    enabled=true in rhbk_realm, components_defaults, env-var generation, and
+    preflight UI so OIDC apps do not hit Realm not enabled.

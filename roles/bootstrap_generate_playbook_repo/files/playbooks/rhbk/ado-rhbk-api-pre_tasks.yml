@@ -1,0 +1,99 @@
+---
+# Shared pre_tasks for RHBK admin-API playbooks (realm, client, mapper, scopes, IdP).
+# No OpenShift token/API required — only rhbk_hostname + admin credentials.
+- name: ADO | Resolve vars for component from framework defaults + env overrides
+  ansible.builtin.include_role:
+    name: infra.ado.bootstrap_resolve_component
+
+- name: ADO | Detect RHBK deployment target
+  ansible.builtin.set_fact:
+    rhbk_install_platform_effective: >-
+      {{
+        (
+          install_rhbk_platform
+          | default(rhbk_platform, true)
+          | default('openshift', true)
+          | string
+          | lower
+        )
+      }}
+
+- name: ADO | Normalize RHBK API hostname (standalone VM or OpenShift route)
+  ansible.builtin.set_fact:
+    rhbk_hostname: >-
+      {{
+        (
+          rhbk_hostname | default('', true)
+          | default(rhbk_standalone_hostname, true)
+          | default(install_rhbk_standalone_hostname, true)
+          | default(ocp_rhbk_hostname, true)
+          | default(hostname, true)
+          | default(
+              ('keycloak.' ~ (apps_domain | default(app_domain | default(''))))
+              if (
+                rhbk_install_platform_effective
+                not in ['rhel', 'standalone', 'vm', 'baremetal']
+                and (apps_domain | default(app_domain | default('')) | length) > 0
+              )
+              else '',
+              true
+            )
+        )
+        | regex_replace('^https?://', '')
+        | regex_replace('/.*$', '')
+        | trim
+      }}
+    rhbk_host: >-
+      {{
+        (
+          rhbk_host | default('', true)
+          | default(rhbk_hostname, true)
+        )
+        | regex_replace('^https?://', '')
+        | regex_replace('/.*$', '')
+        | trim
+      }}
+
+- name: ADO | Build Keycloak admin API base URL
+  ansible.builtin.set_fact:
+    rhbk_keycloak_base_url: >-
+      {{
+        (
+          rhbk_keycloak_base_url | default('', true)
+          | regex_replace('/$', '')
+        )
+        if (rhbk_keycloak_base_url | default('', true) | length) > 0
+        else (
+          (
+            ('https' if (install_rhbk_standalone_https_enabled | default(false) | bool) else 'http')
+            ~ '://'
+            ~ rhbk_hostname
+            ~ (
+              ''
+              if (':' in (rhbk_hostname | default('') | string))
+              else (
+                ':'
+                ~ (
+                  install_rhbk_standalone_https_port | default(8443)
+                  if (install_rhbk_standalone_https_enabled | default(false) | bool)
+                  else install_rhbk_standalone_http_port | default(8080)
+                )
+                | string
+              )
+            )
+          )
+          if rhbk_install_platform_effective in ['rhel', 'standalone', 'vm', 'baremetal']
+          else ('https://' ~ rhbk_hostname)
+        )
+      }}
+
+- name: ADO | Assert RHBK API target is configured
+  ansible.builtin.assert:
+    that:
+      - rhbk_hostname | default('') | length > 0
+      - rhbk_admin_user | default('') | length > 0
+      - rhbk_admin_password is defined
+    fail_msg: >-
+      Set rhbk_hostname (standalone VM or route host), rhbk_admin_user, and
+      rhbk_admin_password in vars_rhbk.yml / vault_rhbk.yml. OpenShift API
+      token is not required for this playbook.

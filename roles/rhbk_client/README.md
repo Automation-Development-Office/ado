@@ -17,6 +17,8 @@ Automation Development Office
 | Variable | Description |
 |----------|-------------|
 | `rhbk_client_state` | Desired state used by role tasks when supported. |
+| `rhbk_default_client_scopes` | Client scope names to attach as defaults after create (e.g. `groups`). |
+| `rhbk_attach_default_client_scopes` | When true, attach `rhbk_default_client_scopes` after client create. |
 
 ## 🚀 Role Usage
 

@@ -1,11 +1,14 @@
 ---
 - name: Include BookStack namespace tasks
   ansible.builtin.include_tasks: namespace.yml
+  when: (bookstack_install_scope | default('install')) != 'oidc'
   tags: [bookstack, bookstack_namespace]
 
 - name: Include BookStack secret tasks
   ansible.builtin.include_tasks: secrets.yml
-  when: bookstack_state | default('present') == 'present'
+  when:
+    - bookstack_state | default('present') == 'present'
+    - (bookstack_install_scope | default('install')) != 'oidc'
   tags: [bookstack, bookstack_database, bookstack_app]
 
 - name: Include BookStack OIDC CA trust tasks
@@ -18,23 +21,46 @@
 
 - name: Include BookStack database tasks
   ansible.builtin.include_tasks: database.yml
-  when: bookstack_state | default('present') == 'present'
+  when:
+    - bookstack_state | default('present') == 'present'
+    - (bookstack_install_scope | default('install')) != 'oidc'
   tags: [bookstack, bookstack_database, bookstack_storage]
+
+- name: Include BookStack OIDC issuer resolution
+  ansible.builtin.include_tasks: oidc.yml
+  when:
+    - bookstack_state | default('present') == 'present'
+    - bookstack_oidc_enabled | default(false) | bool
+  tags: [bookstack, bookstack_oidc]
 
 - name: Include BookStack application tasks
   ansible.builtin.include_tasks: bookstack.yml
-  when: bookstack_state | default('present') == 'present'
+  when:
+    - bookstack_state | default('present') == 'present'
+    - (bookstack_install_scope | default('install')) != 'oidc'
   tags: [bookstack, bookstack_app, bookstack_storage]
 
 - name: Include BookStack route tasks
   ansible.builtin.include_tasks: route.yml
-  when: bookstack_state | default('present') == 'present'
+  when:
+    - bookstack_state | default('present') == 'present'
+    - (bookstack_install_scope | default('install')) != 'oidc'
   tags: [bookstack, bookstack_route]
 
 - name: Validate BookStack deployment
   ansible.builtin.include_tasks: validate.yml
-  when: bookstack_state | default('present') == 'present'
+  when:
+    - bookstack_state | default('present') == 'present'
+    - (bookstack_install_scope | default('install')) != 'oidc'
   tags: [bookstack]
+
+- name: Apply BookStack OIDC to existing deployment
+  ansible.builtin.include_tasks: configure-oidc.yml
+  when:
+    - bookstack_state | default('present') == 'present'
+    - (bookstack_install_scope | default('install')) == 'oidc'
+    - bookstack_oidc_enabled | default(false) | bool
+  tags: [bookstack, bookstack_oidc]
 
 - name: Include BookStack admin / OIDC post-install tasks
   ansible.builtin.include_tasks: admin.yml

@@ -25,5 +25,9 @@
     - name: Resolve vars for component from framework defaults + env overrides
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component
-  roles:
-    - pega
+    - name: Fail — PEGA install role is not part of infra.ado
+      ansible.builtin.fail:
+        msg: >-
+          No infra.ado PEGA role exists (no install_pega / ocp_pega / pega_install).
+          Add a PEGA role to the collection or remove this playbook from the
+          generated component map before enabling the PEGA job template.

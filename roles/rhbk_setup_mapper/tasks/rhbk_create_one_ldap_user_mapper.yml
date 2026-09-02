@@ -1,0 +1,54 @@
+---
+- name: Skip LDAP user mapper when it already exists
+  ansible.builtin.meta: end_host
+  when: >-
+    ldap_user_mapper.name in (
+      rhbk_setup_mapper_ldap_mappers.json | default([])
+      | map(attribute='name') | list
+    )
+
+- name: Normalize ldap user mapper config for Keycloak Component API
+  ansible.builtin.set_fact:
+    rhbk_setup_mapper_user_mapper_config: {}
+
+- name: Build MultivaluedHashMap ldap user mapper config
+  ansible.builtin.set_fact:
+    rhbk_setup_mapper_user_mapper_config: >-
+      {{
+        rhbk_setup_mapper_user_mapper_config
+        | combine({
+            item.key: (
+              [item.value | string]
+              if (item.value is string)
+                 or (item.value is number)
+                 or (item.value is boolean)
+              else (
+                (item.value | map('string') | list)
+                if (item.value is sequence)
+                else [item.value | string]
+              )
+            )
+          })
+      }}
+  loop: "{{ ldap_user_mapper.config | default({}) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Create LDAP user attribute mapper ({{ ldap_user_mapper.name }})
+  ansible.builtin.uri:
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/components"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ rhbk_setup_mapper_auth.json.access_token }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      name: "{{ ldap_user_mapper.name }}"
+      parentId: "{{ rhbk_setup_mapper_ldap_component_id }}"
+      providerId: "{{ ldap_user_mapper.providerId | default('user-attribute-ldap-mapper') }}"
+      providerType: "org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
+      config: "{{ rhbk_setup_mapper_user_mapper_config }}"
+    validate_certs: "{{ rhbk_verify_ssl }}"
+    status_code:
+      - 201
+      - 409

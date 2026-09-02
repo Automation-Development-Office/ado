@@ -1,4 +1,51 @@
 ---
+- name: Resolve Quay storage class when unset
+  when: (storage | default('') | string | trim | length) == 0
+  block:
+    - name: List cluster StorageClasses for Quay
+      kubernetes.core.k8s_info:
+        api_version: storage.k8s.io/v1
+        kind: StorageClass
+      register: ocp_quay_storage_classes
+
+    - name: Pick default StorageClass for Quay PVCs
+      ansible.builtin.set_fact:
+        ocp_quay_storage: >-
+          {{
+            (
+              ocp_quay_storage_classes.resources
+              | default([])
+              | selectattr(
+                'metadata.annotations.storageclass.kubernetes.io/is-default-class',
+                'defined'
+              )
+              | selectattr(
+                'metadata.annotations.storageclass.kubernetes.io/is-default-class',
+                'equalto',
+                'true'
+              )
+              | map(attribute='metadata.name')
+              | list
+              | first
+            )
+            | default(
+              ocp_quay_storage_classes.resources
+              | default([])
+              | map(attribute='metadata.name')
+              | list
+              | first
+              | default('')
+            )
+          }}
+
+- name: Assert Quay storage class is set
+  ansible.builtin.assert:
+    that:
+      - (storage | default('') | string | trim | length) > 0
+    fail_msg: >-
+      Quay requires a StorageClass (set storage / storage_class in preflight or
+      openshift.default_storage_class so PVCs for Postgres and registry can bind).
+
 - name: Create Quay Namespace
   kubernetes.core.k8s:
     api_version: v1
@@ -21,37 +68,50 @@
             storage: "{{ storage_size }}"
         storageClassName: "{{ storage }}"
 
-- name: Set Quay config
+- name: Resolve Quay OIDC issuer URL
   ansible.builtin.set_fact:
-    ocp_quay_config: |
-      SERVER_HOSTNAME: {{ ocp_quay_hostname }}
-      DATABASE_SECRET_KEY: changeme-secret-key
-      SUPER_USERS:
-        - {{ ocp_quay_admin_user }}
-      FEATURE_USER_INITIALIZE: true
-      USER_INITIALIZE:
-        username: {{ ocp_quay_admin_user }}
-        password: {{ ocp_quay_admin_password }}
-        email: "{{ ocp_quay_admin_user }}@example.com"
-        access_token: true
-      DB_URI: postgresql://quay:quaypass@postgres-db:5432/quay
-      REDIS_HOST: localhost
-      BUILDLOGS_REDIS:
-        host: localhost
-        port: 6379
-      USER_EVENTS_REDIS:
-        host: localhost
-        port: 6379
-      DISTRIBUTED_STORAGE_CONFIG:
-        default:
-          - LocalStorage
-          - storage_path: /datastorage/registry
-      AUTHENTICATION_TYPE: Database
-      AUTHENTICATION_CONFIG: {}
-      FEATURE_TEAM_SYNCING: false
-      FEATURE_ACTION_LOG_ROTATION: true
-      FEATURE_APP_REGISTRY: false
-      FEATURE_MAILING: false
+    ocp_quay_oidc_issuer_url: >-
+      {{
+        (
+          ocp_quay_oidc_issuer_url | default('') | string | trim | length > 0
+        ) | ternary(
+          ocp_quay_oidc_issuer_url | string | trim,
+          'https://'
+          ~ (rhbk_hostname | default(keycloak_hostname | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))))
+          ~ '/realms/'
+          ~ (quay_keycloak_realm | default(rhbk_realm | default(ocp_rhbk_realm | default('rhlab'))))
+          ~ '/'
+        )
+      }}
+  when: quay_oidc_enabled | default(false) | bool
+
+- name: Fetch Quay OIDC client secret from Keycloak when vault empty
+  ansible.builtin.include_role:
+    name: infra.ado.ocp_rhbk_client_secrets
+  vars:
+    ocp_rhbk_secret_client_key: quay_client
+    ocp_rhbk_secret_client_id: "{{ quay_oidc_client_id | default('quay') }}"
+    ocp_rhbk_secret_target_var: ocp_quay_oidc_client_secret
+    ocp_rhbk_secret_optional: true
+  when:
+    - quay_oidc_enabled | default(false) | bool
+    - (ocp_quay_oidc_client_secret | default('') | string | length) == 0
+  no_log: true
+
+- name: Prefer fetched Quay OIDC client secret for initial install
+  ansible.builtin.set_fact:
+    ocp_quay_oidc_client_secret: "{{ ocp_rhbk_client_secrets__value }}"
+  when:
+    - quay_oidc_enabled | default(false) | bool
+    - (ocp_quay_oidc_client_secret | default('') | string | length) == 0
+    - ocp_rhbk_client_secrets__value is defined
+    - (ocp_rhbk_client_secrets__value | string | length) > 0
+  no_log: true
+
+- name: Build Quay config
+  ansible.builtin.set_fact:
+    ocp_quay_config: "{{ lookup('template', 'quay-config.yaml.j2') }}"
+  no_log: "{{ quay_oidc_enabled | default(false) | bool }}"
 
 - name: Create Quay Configuration Secret
   kubernetes.core.k8s:
@@ -64,6 +124,26 @@
       type: Opaque
       data:
         config.yaml: "{{ ocp_quay_config | b64encode }}"
+
+# registry.redhat.io/rhel9/postgresql-15 runs as uid/gid 26. OpenShift
+# restricted SCCs reject that unless the SA can use anyuid.
+- name: Allow default SA anyuid SCC for Quay Postgres
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: quay-postgres-anyuid
+        namespace: "{{ name_space }}"
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: system:openshift:scc:anyuid
+      subjects:
+        - kind: ServiceAccount
+          name: default
+          namespace: "{{ name_space }}"
 
 - name: Deploy PostgreSQL StatefulSet
   kubernetes.core.k8s:
@@ -84,11 +164,51 @@
             labels:
               app: postgres-db
           spec:
+            # NFS (synology-csi) often root-squashes; postgres entrypoint chmod fails
+            # without a root initContainer fixing ownership first.
             securityContext:
               fsGroup: 26
+              fsGroupChangePolicy: OnRootMismatch
+            initContainers:
+              - name: fix-data-perms
+                image: "{{ postgres_image }}"
+                command:
+                  - /bin/sh
+                  - -ec
+                  - |
+                    mkdir -p /var/lib/pgsql/data/userdata
+                    chown -R 26:26 /var/lib/pgsql/data /var/lib/pgsql/data/userdata || true
+                    chmod -R ug+rwX /var/lib/pgsql/data /var/lib/pgsql/data/userdata || true
+                securityContext:
+                  runAsUser: 0
+                volumeMounts:
+                  - name: data-volume
+                    mountPath: /var/lib/pgsql/data/userdata
             containers:
               - name: postgres-db
                 image: "{{ postgres_image }}"
+                # RHEL image entrypoint always chmod's PGDATA; Synology NFS
+                # root_squash returns EPERM and CrashLoops the pod. Strip chmod
+                # from container scripts, then start normally.
+                command:
+                  - /bin/bash
+                  - -ec
+                  - |
+                    set -e
+                    mkdir -p /var/lib/pgsql/data/userdata
+                    for f in /usr/share/container-scripts/postgresql/*.sh \
+                             /usr/bin/run-postgresql \
+                             /usr/libexec/s2i/run; do
+                      [ -e "$f" ] || continue
+                      sed -i \
+                        -e 's/\bchmod\b/true #chmod/g' \
+                        -e 's/\bchown\b/true #chown/g' \
+                        "$f" 2>/dev/null || true
+                    done
+                    if [ -x /usr/bin/run-postgresql ]; then
+                      exec /usr/bin/run-postgresql
+                    fi
+                    exec /usr/libexec/s2i/run
                 ports:
                   - containerPort: 5432
                 volumeMounts:
@@ -138,10 +258,11 @@
       - "app=postgres-db"
   register: ocp_quay_pg_pods
   until:
-    - ocp_quay_pg_pods.resources | length > 0
+    - ocp_quay_pg_pods.resources | default([]) | length > 0
+    - (ocp_quay_pg_pods.resources[0].status.containerStatuses | default([]) | length) > 0
     - (ocp_quay_pg_pods.resources[0].status.containerStatuses[0].ready | default(false)) | bool
-  retries: 40
-  delay: 6
+  retries: 60
+  delay: 10
 
 - name: Wait for Postgres service endpoint to exist
   kubernetes.core.k8s_info:
@@ -155,6 +276,18 @@
     - (ocp_quay_pg_eps.resources[0].subsets | default([])) | length > 0
   retries: 40
   delay: 6
+
+- name: Ensure Postgres pg_trgm extension for Quay
+  kubernetes.core.k8s_exec:
+    namespace: "{{ name_space }}"
+    pod: "{{ ocp_quay_pg_pods.resources[0].metadata.name }}"
+    container: postgres-db
+    command: >-
+      psql -U postgres -d quay -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+  register: ocp_quay_pg_trgm
+  changed_when: >-
+    'CREATE EXTENSION' in (ocp_quay_pg_trgm.stdout | default(''))
+  failed_when: false
 
 - name: Deploy Quay Registry with Redis Sidecar
   kubernetes.core.k8s:
@@ -185,7 +318,7 @@
               - name: quay
                 image: quay.io/projectquay/quay:latest
                 ports:
-                  - containerPort: 8443
+                  - containerPort: 8080
                 volumeMounts:
                   - name: config-volume
                     mountPath: /conf/stack
@@ -195,6 +328,22 @@
                 image: redis:7-alpine
                 ports:
                   - containerPort: 6379
+
+- name: Deploy Quay Service
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: quay
+        namespace: "{{ name_space }}"
+      spec:
+        selector:
+          app: quay
+        ports:
+          - name: http
+            port: 8080
+            targetPort: 8080
 
 - name: Expose Quay with OpenShift Route
   kubernetes.core.k8s:
@@ -209,7 +358,10 @@
         to:
           kind: Service
           name: quay
+        port:
+          targetPort: http
         tls:
+          # Quay nginx listens on HTTP 8080 in this install path.
           termination: edge
           insecureEdgeTerminationPolicy: Redirect
 

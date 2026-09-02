@@ -1,0 +1,9 @@
+---
+bugfixes:
+  - >-
+    kafka_install - Grant CFK SA cluster Jobs RBAC (OLM ClusterRole omits
+    ``batch/jobs`` and CrashLoops). Create ``KRaftController`` and wire
+    ``spec.dependencies.kRaftController`` on the Kafka CR for CFK 3.x.
+  - >-
+    gitlab_install - Default chart version fallback ``10.3.0`` → ``9.5.0`` in
+    the CR builder (matches components_defaults; chart 10 needs external DB).

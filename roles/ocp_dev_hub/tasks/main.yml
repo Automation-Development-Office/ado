@@ -1,0 +1,12 @@
+---
+- name: Install Developer Hub (RHDH)
+  ansible.builtin.import_tasks: install-dev-hub.yml
+  when:
+    - state == "present"
+    - (dev_hub_install_scope | default('install')) == 'install'
+
+- name: Configure Developer Hub OIDC
+  ansible.builtin.import_tasks: configure-dev-hub-oidc.yml
+  when:
+    - state == "present"
+    - (dev_hub_install_scope | default('install')) == 'oidc'

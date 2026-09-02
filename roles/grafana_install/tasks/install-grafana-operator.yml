@@ -1,13 +1,64 @@
 ---
 # =========================================================
-# Grafana: build config (base + optional Keycloak OIDC)
+# Grafana: normalize inputs + build config (base + optional Keycloak OIDC)
 # =========================================================
 
-- name: Set OIDC enabled flag (safe default)
+- name: Normalize grafana_install vars from component resolve / playbook
   ansible.builtin.set_fact:
-    grafana_install_oidc_enabled: "{{ (oidc.enabled | default(false)) | bool }}"
-  when:
-    - oidc is defined
+    # Prefer OpenShift route hostname over RHEL standalone lab default.
+    grafana_install_hostname: >-
+      {{
+        (
+          (
+            hostname
+            if (
+              (hostname | default('') | string | trim | length) > 0
+              and ('server.lab' not in (hostname | default('') | string))
+            )
+            else (
+              grafana_hostname
+              if (
+                (grafana_hostname | default('') | string | trim | length) > 0
+                and ('server.lab' not in (grafana_hostname | default('') | string))
+              )
+              else (
+                hostname
+                | default(grafana_hostname)
+                | default(grafana_install_hostname)
+                | default('')
+              )
+            )
+          )
+          | string
+          | regex_replace('^https?://', '')
+          | regex_replace('/.*$', '')
+          | trim
+        )
+      }}
+    grafana_install_admin_user: >-
+      {{ grafana_install_admin_user | default(grafana_admin_user | default('admin')) }}
+    grafana_install_admin_password: >-
+      {{ grafana_install_admin_password | default(grafana_admin_password | default('')) }}
+    grafana_install_route_name: >-
+      {{ grafana_install_route_name | default(grafana_route_name | default('grafana')) }}
+    grafana_install_route_backend_svc: >-
+      {{ grafana_install_route_backend_svc | default(grafana_route_backend_svc | default('grafana-service')) }}
+    grafana_install_route_tls_termination: >-
+      {{ grafana_install_route_tls_termination | default(grafana_route_tls_termination | default('edge')) }}
+  changed_when: false
+
+- name: Resolve Grafana OIDC/SMTP inclusion flags
+  ansible.builtin.set_fact:
+    grafana_install_oidc_enabled: "{{ grafana_install_include_oidc | default(false) | bool }}"
+    grafana_install_email_enabled: "{{ grafana_install_include_email | default(false) | bool }}"
+  changed_when: false
+
+- name: Assert grafana_install_hostname is set
+  ansible.builtin.assert:
+    that:
+      - (grafana_install_hostname | string | trim | length) > 0
+    fail_msg: >-
+      grafana_install_hostname / grafana_hostname must be set (components_defaults grafana_hostname).
 
 - name: Build base Grafana config
   ansible.builtin.set_fact:
@@ -29,129 +80,15 @@
         admin_password: "{{ grafana_install_admin_password }}"
 
 # ---------------------------------------------------------
-# If OIDC enabled, fetch Keycloak client secret
+# Optional OIDC + SMTP fragments (gated; separate JTs when not on install)
 # ---------------------------------------------------------
-- name: Fetch Keycloak client secret for Grafana (when OIDC enabled) # noqa var-naming[no-role-prefix]
-  ansible.builtin.include_role:
-    name: openshift_tools_rhbk_get_client_secrets_
-  vars:
-    openshift_install_rhbk_secret_client_id: "{{ (oidc.client_id | default(client_id | default('grafana'))) }}"
-    openshift_install_rhbk_secret_target_var: "grafana_install_oidc_client_secret"
-    openshift_install_rhbk_component_name: "rhbk"
-  when:
-    - grafana_install_oidc_enabled | default(false) | bool
-  no_log: true
+- name: Build Grafana OIDC config when included on install
+  ansible.builtin.import_tasks: build-grafana-oidc-config.yml
+  when: grafana_install_oidc_enabled | default(false) | bool
 
-- name: Ensure grafana_install_oidc_client_secret is set after fetch (fallback)
-  ansible.builtin.set_fact:
-    grafana_install_oidc_client_secret: "{{ openshift_tools_rhbk_get_client_secrets__value }}"
-  when:
-    - grafana_install_oidc_enabled | default(false) | bool
-    - grafana_install_oidc_client_secret is not defined
-    - openshift_tools_rhbk_get_client_secrets__value is defined
-    - (openshift_tools_rhbk_get_client_secrets__value | string | length) > 0
-  no_log: true
-
-- name: Fail if OIDC enabled but client secret missing
-  ansible.builtin.fail:
-    msg: >-
-      Grafana OIDC enabled but grafana_install_oidc_client_secret is not defined.
-      clientId='{{ (oidc.client_id | default(client_id | default("grafana"))) }}'
-  when:
-    - grafana_install_oidc_enabled | default(false) | bool
-    - grafana_install_oidc_client_secret is not defined
-  no_log: true
-
-# ---------------------------------------------------------
-# Build issuer URL using outputs from secret role
-# ---------------------------------------------------------
-- name: Derive issuer URL for Keycloak
-  ansible.builtin.set_fact:
-    grafana_install_oidc_issuer_url: >-
-      https://{{ openshift_tools_rhbk_get_client_secrets__hostname }}/realms/{{ openshift_tools_rhbk_get_client_secrets__realm }}
-  when:
-    - grafana_install_oidc_enabled | default(false) | bool
-    - openshift_tools_rhbk_get_client_secrets__hostname is defined
-    - (openshift_tools_rhbk_get_client_secrets__hostname | length) > 0
-    - openshift_tools_rhbk_get_client_secrets__realm is defined
-    - (openshift_tools_rhbk_get_client_secrets__realm | length) > 0
-  no_log: true
-
-- name: Fail if OIDC enabled but issuer URL cannot be derived
-  ansible.builtin.fail:
-    msg: >-
-      Grafana OIDC enabled but grafana_install_oidc_issuer_url could not be built.
-      Ensure rhbk component has openshift_install_rhbk_hostname + openshift_install_rhbk_realm and secret role exports them.
-  when:
-    - grafana_install_oidc_enabled | default(false) | bool
-    - grafana_install_oidc_issuer_url is not defined
-
-# ---------------------------------------------------------
-# Build role mapping from Keycloak groups -> Grafana role
-# ---------------------------------------------------------
-- name: Build Grafana role_attribute_path expression from oidc.role_map (optional)
-  ansible.builtin.set_fact:
-    grafana_install_role_attribute_path: >-
-      {%- set parts = [] -%}
-      {%- for item in (oidc.role_map | default([])) -%}
-      {%-   set _ = parts.append("contains(groups[*], '" ~ item.group ~ "') && '" ~ item.role ~ "'") -%}
-      {%- endfor -%}
-      {{ (parts | join(" || ")) ~ (" || '" ~ (oidc.default_role | default('Viewer')) ~ "'") }}
-  when:
-    - grafana_install_oidc_enabled | default(false) | bool
-  no_log: true
-
-# ---------------------------------------------------------
-# Build Grafana OIDC config fragment
-# ---------------------------------------------------------
-- name: Build Grafana OIDC config fragment
-  ansible.builtin.set_fact:
-    grafana_install_config_oidc:
-      auth:
-        oauth_auto_login: "{{ (oidc.oauth_auto_login | default(true)) | ternary('true', 'false') }}"
-      "auth.generic_oauth":
-        enabled: "true"
-        name: "Keycloak"
-        allow_sign_up: "true"
-        client_id: "{{ (oidc.client_id | default(client_id | default('grafana'))) }}"
-        client_secret: "{{ grafana_install_oidc_client_secret }}"
-        scopes: "{{ (oidc.scopes | default(['openid', 'profile', 'email'])) | join(' ') }}"
-        auth_url: "{{ grafana_install_oidc_issuer_url }}/protocol/openid-connect/auth"
-        token_url: "{{ grafana_install_oidc_issuer_url }}/protocol/openid-connect/token"
-        api_url: "{{ grafana_install_oidc_issuer_url }}/protocol/openid-connect/userinfo"
-        login_attribute_path: "{{ (oidc.claims.login | default('preferred_username')) }}"
-        name_attribute_path: "{{ (oidc.claims.name | default('name')) }}"
-        email_attribute_path: "{{ (oidc.claims.email | default('email')) }}"
-        groups_attribute_path: "{{ (oidc.claims.groups | default('groups')) }}"
-        role_attribute_path: "{{ grafana_install_role_attribute_path | default(omit) }}"
-        role_attribute_strict: "{{ (oidc.role_attribute_strict | default(true)) | ternary('true', 'false') }}"
-        allow_assign_grafana_admin: "{{ (oidc.allow_assign_grafana_admin | default(true)) | ternary('true', 'false') }}"
-        tls_skip_verify_insecure: "true"
-  when:
-    - grafana_install_oidc_enabled | default(false) | bool
-  no_log: true
-
-- name: Normalize grafana_email from email alias
-  ansible.builtin.set_fact:
-    grafana_email: "{{ email }}"  # noqa: var-naming[no-role-prefix]
-  when:
-    - grafana_email is not defined
-    - email is defined
-
-- name: Build Grafana SMTP config when email enabled
-  ansible.builtin.set_fact:
-    grafana_install_config_smtp:
-      smtp:
-        enabled: "true"
-        host: "{{ (grafana_email.host | default('')) ~ ':' ~ (grafana_email.port | default(587) | string) }}"
-        user: "{{ grafana_email.user | default('') }}"
-        password: "{{ grafana_email.password | default('') }}"
-        from_address: "{{ grafana_email.from_address | default('') }}"
-        from_name: "{{ grafana_email.from_name | default('Grafana') }}"
-  when:
-    - grafana_email is defined
-    - (grafana_email.enabled | default(false) | bool)
-  no_log: true
+- name: Build Grafana SMTP config when included on install
+  ansible.builtin.import_tasks: build-grafana-email-config.yml
+  when: grafana_install_email_enabled | default(false) | bool
 
 - name: Merge Grafana config (base + optional OIDC + optional SMTP)
   ansible.builtin.set_fact:
@@ -165,6 +102,16 @@
 # =========================================================
 # Grafana instance + SCC + route (your existing tasks)
 # =========================================================
+
+- name: Wait for Grafana CRD before creating instance
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: grafanas.grafana.integreatly.org
+  register: grafana_install_crd
+  until: (grafana_install_crd.resources | default([])) | length > 0
+  retries: "{{ grafana_install_crd_retries | default(60) | int }}"
+  delay: "{{ grafana_install_crd_delay | default(10) | int }}"
 
 - name: Deploy Grafana instance using Operator
   kubernetes.core.k8s:

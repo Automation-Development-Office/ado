@@ -1,0 +1,27 @@
+apiVersion: {{ ocp_dev_hub_api_version | default('rhdh.redhat.com/v1alpha5') }}
+kind: Backstage
+metadata:
+  name: {{ ocp_dev_hub_instance }}
+  namespace: {{ name_space }}
+spec:
+  application:
+    # Inject OIDC_CLIENT_SECRET (and peers) from Secret into the Backstage container.
+    extraEnvs:
+{% if dev_hub_oidc_insecure_skip_tls_verify | default(ocp_dev_hub_oidc_insecure_skip_tls_verify | default(true)) | bool %}
+      envs:
+        - name: NODE_TLS_REJECT_UNAUTHORIZED
+          value: "0"
+{% endif %}
+      secrets:
+        - name: rhdh-secrets
+    # RHDH loads auth/OIDC from ConfigMaps listed here (not extraFiles mounts).
+    appConfig:
+      configMaps:
+        - name: rhdh-app-config
+    route:
+      enabled: true
+{% if ocp_dev_hub_route_host is defined and (ocp_dev_hub_route_host | string | trim | length) > 0 %}
+      host: {{ ocp_dev_hub_route_host }}
+{% endif %}
+  monitoring:
+    enabled: {{ ocp_dev_hub_monitoring_enabled | default(false) | bool | ternary('true', 'false') }}

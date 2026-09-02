@@ -1,3 +1,19 @@
 # SPDX-License-Identifier: GPL-3.0-or-later-0
 # ---
 # defaults file for rhbk_setup_mapper
+rhbk_host: >-
+  {{
+    (
+      rhbk_host | default('', true)
+      | default(rhbk_hostname, true)
+      | default(rhbk_standalone_hostname, true)
+      | default(install_rhbk_standalone_hostname, true)
+      | default(ocp_rhbk_hostname, true)
+      | default(hostname, true)
+      | default('', true)
+    )
+    | regex_replace('^https?://', '')
+    | regex_replace('/.*$', '')
+  }}
+rhbk_federation_name: "{{ federation_name | default('LDAP') }}"
+rhbk_setup_ldap_user_mappers: true

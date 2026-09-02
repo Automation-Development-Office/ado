@@ -1,8 +1,0 @@
----
-- name: initialization | Get OpenShift API token
-  redhat.openshift.openshift_auth:
-    host: "{{ aap_ocp_install_connection['host'] | mandatory }}"
-    username: "{{ aap_ocp_install_connection['username'] | mandatory }}"
-    password: "{{ aap_ocp_install_connection['password'] | mandatory }}"
-    validate_certs: "{{ aap_ocp_install_connection['validate_certs'] | default(omit) }}"
-  register: __aap_ocp_install_auth_results

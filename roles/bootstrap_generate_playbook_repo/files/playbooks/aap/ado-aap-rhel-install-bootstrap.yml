@@ -1,0 +1,20 @@
+---
+- name: ADO | Install AAP on RHEL (validated aap_utilities setup roles)
+  hosts: bastion
+  gather_facts: false
+  become: true
+  vars:
+    component: aap
+    install_aap_target: rhel
+  vars_files:
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_aap.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_aap.yml"
+  pre_tasks:
+    - name: ADO | Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: infra.ado.bootstrap_resolve_component
+  roles:
+    - role: infra.ado.install_aap
+      vars:
+        install_aap_target: rhel

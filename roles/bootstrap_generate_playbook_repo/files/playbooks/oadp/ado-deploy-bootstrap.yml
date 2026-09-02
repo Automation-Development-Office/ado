@@ -20,5 +20,10 @@
     - role: infra.ado.ocp_namespace
     - role: infra.ado.ocp_operatorgroups
     - role: infra.ado.ocp_operator_subscription
+    - role: infra.ado.ocp_wait_operator
     - role: infra.ado.ocp_oadp
-    - role: infra.ado.ocp_wait_pods
+  post_tasks:
+    - name: ADO | Wait for OADP operand pods only when DPA configure is enabled
+      ansible.builtin.include_role:
+        name: infra.ado.ocp_wait_pods
+      when: oadp_configure | default(false) | bool

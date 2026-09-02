@@ -24,14 +24,43 @@
 #   ocp_rhbk_secret_hostname_resolved
 #   ocp_rhbk_client_secrets__value / _client_id / _client_uuid / _realm / _hostname
 
-# - name: Rhbk_get_client_secrets  Set Role Defaults # noqa var-naming[no-role-prefix]
-#  ansible.builtin.set_fact:
-#    ocp_rhbk_client_secrets__component_name_effective: "{{ component_name  default('rhbk') }}"
-#    ocp_rhbk_client_secrets__secret_validate_certs_effective: "{{ validate_certs  default(false)  bool }}"
-#    ocp_rhbk_client_secrets__secret_base_path_effective: "{{ base_path  default('') }}"
-#  changed_when: false
+- name: Rhbk_get_client_secrets  Set Role Defaults # noqa var-naming[no-role-prefix]
+  ansible.builtin.set_fact:
+    ocp_rhbk_component_name_effective: "{{ ocp_rhbk_component_name | default(component_name | default('rhbk')) }}"
+    ocp_rhbk_secret_validate_certs_effective: >-
+      {{
+        ocp_rhbk_secret_validate_certs
+        | default(ocp_rhbk_client_secrets_validate_certs | default(false))
+        | bool
+      }}
+    ocp_rhbk_secret_base_path_effective: >-
+      {{
+        ocp_rhbk_secret_base_path
+        | default(ocp_rhbk_client_secrets_base_path | default(''))
+      }}
+    ocp_rhbk_secret_client_id: >-
+      {{
+        ocp_rhbk_secret_client_id
+        | default(ocp_rhbk_client_secrets_client_id | default(''))
+      }}
+    ocp_rhbk_secret_client_key: >-
+      {{
+        ocp_rhbk_secret_client_key
+        | default(ocp_rhbk_client_secrets_client_key | default(''))
+      }}
+    ocp_rhbk_secret_realm: >-
+      {{
+        ocp_rhbk_secret_realm
+        | default(ocp_rhbk_client_secrets_realm | default(''))
+      }}
+    ocp_rhbk_secret_target_var: >-
+      {{
+        ocp_rhbk_secret_target_var
+        | default(ocp_rhbk_client_secrets_set_var_name | default(''))
+      }}
+  changed_when: false
 
-- name: Rhbk_get_client_secrets  Snapshot components_env (safe default)
+- name: Rhbk_get_client_secrets  Snapshot components_env (safe | default)
   ansible.builtin.set_fact:
     ocp_rhbk_secret_components_env: "{{ components_env | default({}) }}"
   changed_when: false
@@ -50,7 +79,7 @@
 
 - name: Rhbk_get_client_secrets  Render registry file (Jinja evaluated)
   ansible.builtin.template:
-    src: "{{ role_path }}/../resolve_component/files/components_defaults.yml"
+    src: "{{ role_path }}/../bootstrap_resolve_component/files/components_defaults.yml"
     dest: "{{ ocp_rhbk_client_secrets__registry_tmp.path }}"
     mode: "0644"
   changed_when: false
@@ -85,8 +114,14 @@
     ocp_rhbk_secret_rhbk: >-
       {{
         ocp_rhbk_secret_registry.components_defaults[ocp_rhbk_component_name_effective]
-        | combine((ocp_rhbk_secret_components_env | default({})).get(ocp_rhbk_component_name_effective, {}), recursive=True)
-        | combine((components_override | default({})).get(ocp_rhbk_component_name_effective, {}), recursive=True)
+        | combine(
+            (ocp_rhbk_secret_components_env | default({})).get(ocp_rhbk_component_name_effective, {}),
+            recursive=True,
+          )
+        | combine(
+            (components_override | default({})).get(ocp_rhbk_component_name_effective, {}),
+            recursive=True,
+          )
       }}
   changed_when: false
   no_log: true
@@ -97,7 +132,27 @@
 # -----------------------------
 - name: Rhbk_get_client_secrets  Resolve hostname
   ansible.builtin.set_fact:
-    ocp_rhbk_secret_hostname_resolved: "{{ ocp_rhbk_secret_rhbk.ocp_rhbk_hostname | default('') }}"
+    ocp_rhbk_secret_hostname_resolved: >-
+      {{
+        (
+          [
+            ocp_rhbk_secret_hostname | default(''),
+            ocp_rhbk_hostname | default(''),
+            rhbk_hostname | default(''),
+            keycloak_hostname | default(''),
+            ocp_rhbk_secret_rhbk.ocp_rhbk_hostname | default(''),
+            ocp_rhbk_secret_rhbk.rhbk_hostname | default('')
+          ]
+          | map('string')
+          | map('trim')
+          | reject('equalto', '')
+          | list
+          | first
+          | default('')
+        )
+        | regex_replace('^https?://', '')
+        | regex_replace('/.*$', '')
+      }}
   changed_when: false
   no_log: true
   # noqa: var-naming
@@ -106,8 +161,19 @@
   ansible.builtin.set_fact:
     ocp_rhbk_secret_realm_resolved: >-
       {{
-        (ocp_rhbk_secret_realm | default('') | string | length > 0)
-          | ternary(ocp_rhbk_secret_realm, (ocp_rhbk_secret_rhbk.ocp_rhbk_realm | default('')))
+        [
+          ocp_rhbk_secret_realm | default(''),
+          ocp_rhbk_realm | default(''),
+          rhbk_realm | default(''),
+          ocp_rhbk_secret_rhbk.ocp_rhbk_realm | default(''),
+          ocp_rhbk_secret_rhbk.rhbk_realm | default('')
+        ]
+        | map('string')
+        | map('trim')
+        | reject('equalto', '')
+        | list
+        | first
+        | default('')
       }}
   changed_when: false
   no_log: true
@@ -117,17 +183,19 @@
   ansible.builtin.set_fact:
     ocp_rhbk_secret_client_id_resolved: >-
       {{
-        ((ocp_rhbk_secret_client_id | default('')) | length > 0)
-          | ternary(
+        ((ocp_rhbk_secret_client_id | default('')) | length > 0) | ternary(
               ocp_rhbk_secret_client_id,
               (
                 (
-                  ocp_rhbk_secret_rhbk.ocp_rhbk_clients[ocp_rhbk_secret_client_key].client_id
-                  | default(ocp_rhbk_secret_client_key)
+                  (
+                    (ocp_rhbk_secret_rhbk.ocp_rhbk_clients | default(ocp_rhbk_secret_rhbk.rhbk_clients | default({})))
+                    [ocp_rhbk_secret_client_key].client_id
+                    | default(ocp_rhbk_secret_client_key)
+                  )
                 )
                 if ((ocp_rhbk_secret_client_key | default('')) | length > 0
-                    and ocp_rhbk_secret_rhbk.ocp_rhbk_clients is defined
-                    and ocp_rhbk_secret_rhbk.ocp_rhbk_clients[ocp_rhbk_secret_client_key] is defined)
+                    and (ocp_rhbk_secret_rhbk.ocp_rhbk_clients | default(ocp_rhbk_secret_rhbk.rhbk_clients | default({}))) is mapping
+                    and ocp_rhbk_secret_client_key in (ocp_rhbk_secret_rhbk.ocp_rhbk_clients | default(ocp_rhbk_secret_rhbk.rhbk_clients | default({}))))
                 else ''
               )
             )
@@ -138,161 +206,222 @@
 
 - name: Rhbk_get_client_secrets  Resolve admin username/password
   ansible.builtin.set_fact:
-    ocp_rhbk_secret_admin_user_resolved: >-
+    ocp_rhbk_client_secrets_admin_user_resolved: >-
       {{
         ocp_rhbk_secret_admin_user
         | default(ocp_rhbk_admin_user
-        | default(ocp_rhbk_secret_rhbk.ocp_rhbk_admin_user
-        | default('admin')))
+          | default(rhbk_admin_user
+            | default(ocp_rhbk_secret_rhbk.ocp_rhbk_admin_user
+              | default(ocp_rhbk_secret_rhbk.rhbk_admin_user | default('admin')))))
       }}
-    ocp_rhbk_secret_admin_password_resolved: >-
+    ocp_rhbk_client_secrets_admin_password_resolved: >-
       {{
         ocp_rhbk_secret_admin_password
         | default(ocp_rhbk_admin_password
-        | default(ocp_rhbk_secret_rhbk.ocp_rhbk_admin_password
-        | default('')))
+          | default(rhbk_admin_password
+            | default(ocp_rhbk_secret_rhbk.ocp_rhbk_admin_password
+              | default(ocp_rhbk_secret_rhbk.rhbk_admin_password | default('')))))
       }}
   changed_when: false
   no_log: true
   # noqa: var-naming
 
+- name: Rhbk_get_client_secrets  Fetch Keycloak admin credentials from cluster when vault unset
+  when:
+    - (ocp_rhbk_client_secrets_admin_password_resolved | default('') | string | length) == 0
+  block:
+    - name: Rhbk_get_client_secrets  Read keycloak-admin-creds Secret
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        namespace: "{{ ocp_rhbk_secret_keycloak_namespace | default(keycloak_namespace | default('keycloak')) }}"
+        name: keycloak-admin-creds
+      register: ocp_rhbk_client_secrets_admin_secret
+      no_log: true
+
+    - name: Rhbk_get_client_secrets  Decode Keycloak admin credentials from cluster
+      ansible.builtin.set_fact:
+        ocp_rhbk_client_secrets_admin_user_resolved: >-
+          {{
+            ocp_rhbk_secret_admin_secret.resources[0].data.username | b64decode
+            if (
+              ocp_rhbk_secret_admin_secret.resources | default([]) | length > 0
+              and ocp_rhbk_secret_admin_secret.resources[0].data.username is defined
+            )
+            else ocp_rhbk_client_secrets_admin_user_resolved
+          }}
+        ocp_rhbk_client_secrets_admin_password_resolved: >-
+          {{
+            ocp_rhbk_secret_admin_secret.resources[0].data.password | b64decode
+            if (
+              ocp_rhbk_secret_admin_secret.resources | default([]) | length > 0
+              and ocp_rhbk_secret_admin_secret.resources[0].data.password is defined
+            )
+            else ocp_rhbk_client_secrets_admin_password_resolved
+          }}
+      no_log: true
+
 - name: Rhbk_get_client_secrets  Assert required inputs
   ansible.builtin.assert:
     that:
-      - (ocp_rhbk_secret_hostname_resolved  length) > 0
-      - (ocp_rhbk_secret_realm_resolved  length) > 0
-      - (ocp_rhbk_secret_client_id_resolved  length) > 0
-      - (ocp_rhbk_secret_admin_user_resolved  length) > 0
-      - (ocp_rhbk_secret_admin_password_resolved  length) > 0
+      - (ocp_rhbk_secret_hostname_resolved | length) > 0
+      - (ocp_rhbk_secret_realm_resolved | length) > 0
+      - (ocp_rhbk_secret_client_id_resolved | length) > 0
+      - (ocp_rhbk_client_secrets_admin_user_resolved | length) > 0
+      - (ocp_rhbk_client_secrets_admin_password_resolved | length) > 0
     fail_msg: >-
       Missing required inputs for ocp_rhbk_client_secrets_.
       Resolved: host='{{ ocp_rhbk_secret_hostname_resolved }}'
       realm='{{ ocp_rhbk_secret_realm_resolved }}'
       client_id='{{ ocp_rhbk_secret_client_id_resolved }}'
   changed_when: false
+  when: not (ocp_rhbk_secret_optional | default(false) | bool)
 
-# -----------------------------
-# Get admin access token
-# -----------------------------
-- name: Rhbk_get_client_secrets  Get Keycloak access token (password grant)
-  ansible.builtin.uri:
-    url: >-
-      https://{{ ocp_rhbk_secret_hostname_resolved }}{{ ocp_rhbk_secret_base_path_effective
-      }}/realms/master/protocol/openid-connect/token
-    method: POST
-    validate_certs: "{{ ocp_rhbk_secret_validate_certs_effective }}"
-    headers:
-      Content-Type: "application/x-www-form-urlencoded"
-    body_format: form-urlencoded
-    body:
-      grant_type: password
-      client_id: admin-cli
-      username: "{{ ocp_rhbk_secret_admin_user_resolved }}"
-      password: "{{ ocp_rhbk_secret_admin_password_resolved }}"
-    return_content: true
-    status_code: [200]
-  register: ocp_rhbk_client_secrets__token_rsp
-  no_log: true
-
-- name: Rhbk_get_client_secrets  Extract access token
-  ansible.builtin.set_fact:
-    ocp_rhbk_secret_access_token: "{{ ocp_rhbk_client_secrets__token_rsp.json.access_token }}"
-  changed_when: false
-  no_log: true
-  # noqa: var-naming
-
-# -----------------------------
-# Find client UUID by clientId
-# -----------------------------
-- name: Rhbk_get_client_secrets  Lookup client UUID by clientId
-  ansible.builtin.uri:
-    url: >-
-      https://{{ ocp_rhbk_secret_hostname_resolved
-      }}{{ ocp_rhbk_secret_base_path_effective
-      }}/admin/realms/{{ ocp_rhbk_secret_realm_resolved
-      }}/clients?clientId={{ ocp_rhbk_secret_client_id_resolved | urlencode }}
-    method: GET
-    validate_certs: "{{ ocp_rhbk_secret_validate_certs_effective }}"
-    headers:
-      Authorization: "Bearer {{ ocp_rhbk_secret_access_token }}"
-    return_content: true
-    status_code: [200]
-  register: ocp_rhbk_client_secrets__clients_rsp
-  no_log: true
-
-- name: Rhbk_get_client_secrets  Assert client exists
-  ansible.builtin.assert:
-    that:
-      - ocp_rhbk_client_secrets__clients_rsp.json is defined
-      - (ocp_rhbk_client_secrets__clients_rsp.json  length) > 0
-      - ocp_rhbk_client_secrets__clients_rsp.json[0].id is defined
-    fail_msg: >-
-      Could not find Keycloak client with clientId='{{ ocp_rhbk_secret_client_id_resolved }}'
-      in realm='{{ ocp_rhbk_secret_realm_resolved }}'.
-  changed_when: false
-
-- name: Rhbk_get_client_secrets  Set client UUID
-  ansible.builtin.set_fact:
-    ocp_rhbk_secret_client_uuid: "{{ ocp_rhbk_client_secrets__clients_rsp.json[0].id }}"
-  changed_when: false
-  no_log: true
-  # noqa: var-naming
-
-# -----------------------------
-# Fetch client secret
-# -----------------------------
-- name: Rhbk_get_client_secrets  Fetch Client Secret
-  ansible.builtin.uri:
-    url: >-
-      https://{{ ocp_rhbk_secret_hostname_resolved
-      }}{{ ocp_rhbk_secret_base_path_effective
-      }}/admin/realms/{{ ocp_rhbk_secret_realm_resolved
-      }}/clients/{{ ocp_rhbk_secret_client_uuid
-      }}/client-secret
-    method: GET
-    validate_certs: "{{ ocp_rhbk_secret_validate_certs_effective }}"
-    headers:
-      Authorization: "Bearer {{ ocp_rhbk_secret_access_token }}"
-    return_content: true
-    status_code: [200]
-  register: ocp_rhbk_client_secrets__secret_rsp
-  no_log: true
-
-- name: Rhbk_get_client_secrets  Set fetched secret facts
-  ansible.builtin.set_fact:
-    # canonical internal value
-    ocp_rhbk_secret_value: "{{ ocp_rhbk_client_secrets__secret_rsp.json.value | default('') }}"
-    # backward compatible name you were using
-    ocp_rhbk_fetched_client_secret: "{{ ocp_rhbk_client_secrets__secret_rsp.json.value | default('') }}"
-  changed_when: false
-  no_log: true
-  # noqa: var-naming
-
-- name: Rhbk_get_client_secrets  Assert fetched secret is present
-  ansible.builtin.assert:
-    that:
-      - (ocp_rhbk_secret_value  string  length) > 0
-    fail_msg: >-
-      Keycloak client secret was not returned.
-      Check if the client is confidential and has a secret (not public).
-      clientId='{{ ocp_rhbk_secret_client_id_resolved }}' realm='{{ ocp_rhbk_secret_realm_resolved }}'
-  changed_when: false
-
-# Optional: set caller-provided var name to secret (like ocp_grafana_oidc_client_secret)
-- name: Rhbk_get_client_secrets  Set target var with secret (optional)
-  ansible.builtin.set_fact:
-    "{{ ocp_rhbk_secret_target_var }}": "{{ ocp_rhbk_secret_value }}"
+- name: Rhbk_get_client_secrets  Skip fetch when optional and unconfigured
+  ansible.builtin.debug:
+    msg: >-
+      Skipping RHBK client secret fetch (ocp_rhbk_secret_optional=true).
+      host='{{ ocp_rhbk_secret_hostname_resolved | default('') }}'
+      realm='{{ ocp_rhbk_secret_realm_resolved | default('') }}'
+      client_id='{{ ocp_rhbk_secret_client_id_resolved | default('') }}'
   when:
-    - (ocp_rhbk_secret_target_var  default('')  length) > 0
-  no_log: true
-
-# Standard outputs callers can rely on
-- name: Rhbk_get_client_secrets  Set standard output facts (for callers)
-  ansible.builtin.set_fact:
-    ocp_rhbk_client_secrets__value: "{{ ocp_rhbk_secret_value }}"
-    ocp_rhbk_client_secrets__client_id: "{{ ocp_rhbk_secret_client_id_resolved }}"
-    ocp_rhbk_client_secrets__client_uuid: "{{ ocp_rhbk_secret_client_uuid }}"
-    ocp_rhbk_client_secrets__realm: "{{ ocp_rhbk_secret_realm_resolved }}"
-    ocp_rhbk_client_secrets__hostname: "{{ ocp_rhbk_secret_hostname_resolved }}"
+    - ocp_rhbk_secret_optional | default(false) | bool
+    - >-
+      (ocp_rhbk_secret_realm_resolved | default('') | length) == 0
+      or (ocp_rhbk_secret_client_id_resolved | default('') | length) == 0
+      or (ocp_rhbk_secret_hostname_resolved | default('') | length) == 0
+      or (ocp_rhbk_client_secrets_admin_password_resolved | default('') | length) == 0
   changed_when: false
-  no_log: true
+
+- name: Rhbk_get_client_secrets  Mark skip for remaining tasks
+  ansible.builtin.set_fact:
+    ocp_rhbk_client_secrets_skip_fetch: >-
+      {{
+        (ocp_rhbk_secret_optional | default(false) | bool)
+        and (
+          (ocp_rhbk_secret_realm_resolved | default('') | length) == 0
+          or (ocp_rhbk_secret_client_id_resolved | default('') | length) == 0
+          or (ocp_rhbk_secret_hostname_resolved | default('') | length) == 0
+          or (ocp_rhbk_client_secrets_admin_password_resolved | default('') | length) == 0
+        )
+      }}
+  changed_when: false
+
+# -----------------------------
+# Get admin access token / fetch secret (skipped when optional + unconfigured)
+# -----------------------------
+- name: Rhbk_get_client_secrets  Fetch client secret from RHBK
+  when: not (ocp_rhbk_client_secrets_skip_fetch | default(false) | bool)
+  block:
+    - name: Rhbk_get_client_secrets  Get Keycloak access token (password grant)
+      ansible.builtin.uri:
+        url: >-
+          https://{{ ocp_rhbk_secret_hostname_resolved }}{{ ocp_rhbk_secret_base_path_effective
+          }}/realms/master/protocol/openid-connect/token
+        method: POST
+        validate_certs: "{{ ocp_rhbk_secret_validate_certs_effective }}"
+        headers:
+          Content-Type: "application/x-www-form-urlencoded"
+        body_format: form-urlencoded
+        body:
+          grant_type: password
+          client_id: admin-cli
+          username: "{{ ocp_rhbk_client_secrets_admin_user_resolved }}"
+          password: "{{ ocp_rhbk_client_secrets_admin_password_resolved }}"
+        return_content: true
+        status_code: [200]
+      register: ocp_rhbk_client_secrets__token_rsp
+      no_log: true
+
+    - name: Rhbk_get_client_secrets  Extract access token
+      ansible.builtin.set_fact:
+        ocp_rhbk_secret_access_token: "{{ ocp_rhbk_client_secrets__token_rsp.json.access_token }}"
+      changed_when: false
+      no_log: true
+      # noqa: var-naming
+
+    - name: Rhbk_get_client_secrets  Lookup client UUID by clientId
+      ansible.builtin.uri:
+        url: >-
+          https://{{ ocp_rhbk_secret_hostname_resolved
+          }}{{ ocp_rhbk_secret_base_path_effective
+          }}/admin/realms/{{ ocp_rhbk_secret_realm_resolved
+          }}/clients?clientId={{ ocp_rhbk_secret_client_id_resolved | urlencode }}
+        method: GET
+        validate_certs: "{{ ocp_rhbk_secret_validate_certs_effective }}"
+        headers:
+          Authorization: "Bearer {{ ocp_rhbk_secret_access_token }}"
+        return_content: true
+        status_code: [200]
+      register: ocp_rhbk_client_secrets__clients_rsp
+      no_log: true
+
+    - name: Rhbk_get_client_secrets  Assert client exists
+      ansible.builtin.assert:
+        that:
+          - ocp_rhbk_client_secrets__clients_rsp.json is defined
+          - (ocp_rhbk_client_secrets__clients_rsp.json | length) > 0
+          - ocp_rhbk_client_secrets__clients_rsp.json[0].id is defined
+        fail_msg: >-
+          Could not find Keycloak client with clientId='{{ ocp_rhbk_secret_client_id_resolved }}'
+          in realm='{{ ocp_rhbk_secret_realm_resolved }}'.
+      changed_when: false
+
+    - name: Rhbk_get_client_secrets  Set client UUID
+      ansible.builtin.set_fact:
+        ocp_rhbk_secret_client_uuid: "{{ ocp_rhbk_client_secrets__clients_rsp.json[0].id }}"
+      changed_when: false
+      no_log: true
+      # noqa: var-naming
+
+    - name: Rhbk_get_client_secrets  Fetch Client Secret
+      ansible.builtin.uri:
+        url: >-
+          https://{{ ocp_rhbk_secret_hostname_resolved
+          }}{{ ocp_rhbk_secret_base_path_effective
+          }}/admin/realms/{{ ocp_rhbk_secret_realm_resolved
+          }}/clients/{{ ocp_rhbk_secret_client_uuid
+          }}/client-secret
+        method: GET
+        validate_certs: "{{ ocp_rhbk_secret_validate_certs_effective }}"
+        headers:
+          Authorization: "Bearer {{ ocp_rhbk_secret_access_token }}"
+        return_content: true
+        status_code: [200]
+      register: ocp_rhbk_client_secrets__secret_rsp
+      no_log: true
+
+    - name: Rhbk_get_client_secrets  Set fetched secret facts
+      ansible.builtin.set_fact:
+        ocp_rhbk_secret_value: "{{ ocp_rhbk_client_secrets__secret_rsp.json.value | default('') }}"
+        ocp_rhbk_fetched_client_secret: "{{ ocp_rhbk_client_secrets__secret_rsp.json.value | default('') }}"
+      changed_when: false
+      no_log: true
+      # noqa: var-naming
+
+    - name: Rhbk_get_client_secrets  Assert fetched secret is present
+      ansible.builtin.assert:
+        that:
+          - (ocp_rhbk_secret_value | string | length) > 0
+        fail_msg: >-
+          Keycloak client secret was not returned.
+          Check if the client is confidential and has a secret (not public).
+          clientId='{{ ocp_rhbk_secret_client_id_resolved }}' realm='{{ ocp_rhbk_secret_realm_resolved }}'
+      changed_when: false
+
+    - name: Rhbk_get_client_secrets  Set target var with secret (optional)
+      ansible.builtin.set_fact:
+        "{{ ocp_rhbk_secret_target_var }}": "{{ ocp_rhbk_secret_value }}"
+      when:
+        - (ocp_rhbk_secret_target_var | default('') | length) > 0
+      no_log: true
+
+    - name: Rhbk_get_client_secrets  Set standard output facts (for callers)
+      ansible.builtin.set_fact:
+        ocp_rhbk_client_secrets__value: "{{ ocp_rhbk_secret_value }}"
+        ocp_rhbk_client_secrets__client_id: "{{ ocp_rhbk_secret_client_id_resolved }}"
+        ocp_rhbk_client_secrets__client_uuid: "{{ ocp_rhbk_secret_client_uuid }}"
+        ocp_rhbk_client_secrets__realm: "{{ ocp_rhbk_secret_realm_resolved }}"
+        ocp_rhbk_client_secrets__hostname: "{{ ocp_rhbk_secret_hostname_resolved }}"
+      changed_when: false
+      no_log: true

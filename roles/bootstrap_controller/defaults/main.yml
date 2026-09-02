@@ -28,13 +28,15 @@ bootstrap_controller_aap_smoke_test_poll_delay: 5
 bootstrap_controller_aap_smoke_test_poll_retries: 60
 
 # When true (from preflight component_config.aap.install_during_bootstrap),
-# bootstrap runs infra.ado.aap_ocp_install before apply_aap_configs and omits
+# bootstrap runs infra.ado.install_aap (openshift → aap_utilities.aap_ocp_install)
+# before apply_aap_configs and omits
 # the Install AAP on OpenShift job template.
 bootstrap_controller_aap_install_during_bootstrap: false
 
 bootstrap_controller_hub_publish_wait: false
 bootstrap_controller_hub_publish_timeout: 300
 bootstrap_controller_hub_publish_request_timeout: 60
+bootstrap_controller_hub_staging_repository: staging
 bootstrap_controller_hub_hostname: ""
 bootstrap_controller_hub_push_ee: false
 bootstrap_controller_hub_ee_source_image: ""
@@ -46,7 +48,13 @@ bootstrap_controller_hub_ee_create_execution_environment: true
 bootstrap_controller_hub_ee_execution_environment_name: ""
 bootstrap_controller_hub_ee_description: ""
 bootstrap_controller_hub_publish_ado_collection: false
+# Opt-in: publish preflight tarball collections to Hub validated when missing.
+# Never forced; infra.ado may still be force-republished via hub_force_ado_collection_update.
+bootstrap_controller_hub_publish_preflight_collections: false
 bootstrap_controller_hub_update_collection_only: false
+# When true: only generate group_vars (vars/vault) and optionally git-push them.
+# Skips playbook regeneration and Contoller object apply.
+bootstrap_controller_vars_only: false
 
 # Common placeholders. Real values belong in group_vars/all/vars_<env>.yml
 bootstrap_controller_organization: ""

@@ -1,5 +1,5 @@
 ---
-- name: ADO | Deploy and Configure Grafana dashboards (and datasources)
+- name: ADO | Upload Grafana dashboards and alerts
   hosts: localhost
   gather_facts: false
   vars:
@@ -17,6 +17,5 @@
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component
   roles:
-    - role: infra.ado.grafana_create_datasource
-    - role: infra.ado.grafana_manage_folders
     - role: infra.ado.grafana_upload_dashboards
+    - role: infra.ado.grafana_upload_alerts

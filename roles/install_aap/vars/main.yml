@@ -1,3 +1,2 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
-# defaults file for advanced-cluster-management
+---
+# No role-local vars. OpenShift: aap_ocp_install_* ; RHEL: aap_setup_*.

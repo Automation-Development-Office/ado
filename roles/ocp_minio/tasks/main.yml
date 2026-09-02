@@ -1,0 +1,16 @@
+---
+- name: Install MinIO on OpenShift
+  ansible.builtin.import_tasks: install-minio.yml
+  when:
+    - state == "present"
+    - (minio_install_scope | default('install')) == 'install'
+
+- name: Configure MinIO OIDC on existing deployment
+  ansible.builtin.import_tasks: configure-minio-oidc.yml
+  when:
+    - state == "present"
+    - (minio_install_scope | default('install')) == 'oidc'
+
+- name: Remove MinIO from OpenShift
+  ansible.builtin.import_tasks: delete-minio.yml
+  when: state == "absent"

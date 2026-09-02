@@ -22,11 +22,21 @@ generate_env_vars_components:  # noqa: var-naming[no-role-prefix]
   - keycloak
   - ldap_auth_openshift
   - oadp
+  - ocp_compliance
+  - ocp_descheduler
+  - ocp_virtualization
   - openshift_virt
   - ec2_ami_copy
   - pega
   - quay
+  - minio
+  - dev_hub
+  - zabbix
+  - bookstack
+  - netbox
   - rhbk
+  - gitlab_runner
+  - web_terminal
 
 # Internal role-prefixed variables used by tasks
 bootstrap_generate_env_vars_force: >-
@@ -47,6 +57,7 @@ bootstrap_generate_env_vars_components: "{{ generate_env_vars_components }}"
 # AAP generated object defaults
 bootstrap_generate_env_vars_aap_additional_credentials: []
 bootstrap_generate_env_vars_hub_publish_ado_collection: false
+bootstrap_generate_env_vars_hub_publish_preflight_collections: false
 bootstrap_generate_env_vars_hub_mark_ado_validated: false
 bootstrap_generate_env_vars_hub_force_ado_collection_update: false
 bootstrap_generate_env_vars_hub_update_collection_only: false
@@ -55,6 +66,7 @@ bootstrap_generate_env_vars_hub_ee_pull: false
 bootstrap_generate_env_vars_hub_ee_create_execution_environment: true
 bootstrap_generate_env_vars_hub_ee_source_image: ghcr.io/automation-development-office/ado-ee:latest
 bootstrap_generate_env_vars_hub_ado_collection_path: "."
+bootstrap_generate_env_vars_hub_ado_collection_tarball: ""
 bootstrap_generate_env_vars_aap_ee_image: >-
   registry.redhat.io/ansible-automation-platform-27/ee-supported-rhel9:latest
 

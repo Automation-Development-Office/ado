@@ -1,5 +1,5 @@
 ---
-- name: ADO | Deploy and Configure Quay
+- name: ADO | Deploy and Configure GitOps
   hosts: localhost
   gather_facts: false
   vars:
@@ -20,6 +20,7 @@
     - role: infra.ado.ocp_namespace
     - role: infra.ado.ocp_operatorgroups
     - role: infra.ado.ocp_operator_subscription
+    - role: infra.ado.ocp_wait_operator
     - role: infra.ado.ocp_gitops
     - role: infra.ado.ocp_wait_pods
     - role: infra.ado.ocp_routes

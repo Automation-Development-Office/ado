@@ -1,0 +1,5 @@
+minor_changes:
+  - bootstrap_controller - Add ``ADO | RHBK Workflow`` and ``ADO | Grafana Workflow`` sub-workflows; OpenShift workflow calls them instead of inline JT chains.
+  - bootstrap_controller - Gate Grafana datasource/folder/dashboard/alternate-route job templates on preflight ``component_options.grafana``.
+  - bootstrap_controller - Gate RHBK LDAP group mapper JT on ``group_mapper`` / ``client_mappers`` options.
+  - bootstrap_generate_playbook_repo - Split Grafana OpenShift playbooks into install, datasource, folders, and dashboards steps.

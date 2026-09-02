@@ -1,1 +1,7 @@
-# vars
+---
+# Deploy GitLab Runner into an OpenShift namespace.
+name_space: gitlab-runner
+image: registry.gitlab.com/gitlab-org/gitlab-runner:alpine
+gitlab_url: https://gitlab.com
+runner_token: ""
+runner_name: ado-openshift-runner

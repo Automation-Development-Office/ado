@@ -1,0 +1,341 @@
+---
+# yamllint disable rule:line-length
+- name: Skip AAP license activation when mode is none
+  ansible.builtin.meta: end_host
+  when: (aap_ocp_install_license_mode | default('none') | lower) in ['', 'none', 'skip']
+
+- name: Resolve controller/gateway route host for license activation
+  ansible.builtin.set_fact:
+    install_aap_controller_route_host: >-
+      {{
+        (
+          aap_ocp_install_controller_route_host
+          | default('', true)
+          | default(
+              (
+                aap_ocp_install_controller_route
+                | default(aap_ocp_install_platform_route | default(''), true)
+              )
+              | regex_replace('^https?://', '')
+              | regex_replace('/$', ''),
+              true
+            )
+          | default(controller_route_host | default(''), true)
+          | default(aap_hostname | default(''), true)
+          | default(hostname | default(''), true)
+          | default(
+              (aap_ocp_install_platform.hostname | default(''))
+              if (aap_ocp_install_platform is defined and aap_ocp_install_platform is mapping)
+              else '',
+              true
+            )
+        )
+        | regex_replace('^https?://', '')
+        | regex_replace('/$', '')
+      }}
+
+- name: Assert controller route host for license activation
+  ansible.builtin.assert:
+    that:
+      - install_aap_controller_route_host | length > 0
+    fail_msg: >-
+      Set install_aap_controller_route_host or component_config.aap.hostname
+      before license activation.
+
+- name: Wait for Controller config API before license activation
+  ansible.builtin.uri:
+    url: "https://{{ install_aap_controller_route_host }}/api/controller/v2/config/"
+    method: GET
+    user: "{{ aap_ocp_install_admin_user | default(admin_user | default('admin')) }}"
+    password: "{{ aap_ocp_install_admin_password | default(aap_admin_password | default('')) }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: [200]
+    return_content: true
+  register: install_aap_license_config_ready
+  retries: 30
+  delay: 10
+  until: >-
+    install_aap_license_config_ready is succeeded
+    and (install_aap_license_config_ready.json is mapping)
+  no_log: true
+
+- name: Fail when Controller config API did not return JSON (wrong host or auth)
+  ansible.builtin.fail:
+    msg: >-
+      Controller config API at
+      https://{{ install_aap_controller_route_host }}/api/controller/v2/config/
+      did not return JSON. Confirm General → AAP Hostname URL and Admin password
+      point at the live AAP (got status={{ install_aap_license_config_ready.status | default('n/a') }}).
+  when: >-
+    install_aap_license_config_ready is not defined
+    or install_aap_license_config_ready.json is not mapping
+
+- name: Upload subscription manifest to AAP Controller
+  ansible.builtin.uri:
+    url: "https://{{ install_aap_controller_route_host }}/api/controller/v2/config/"
+    method: POST
+    user: "{{ aap_ocp_install_admin_user | default(admin_user | default('admin')) }}"
+    password: "{{ aap_ocp_install_admin_password | default(aap_admin_password | default('')) }}"
+    force_basic_auth: true
+    validate_certs: false
+    body_format: form-multipart
+    body:
+      manifest:
+        filename: "{{ aap_ocp_install_subscription_manifest_filename | default('manifest.zip') }}"
+        content: "{{ lookup('file', aap_ocp_install_subscription_manifest_path) }}"
+    status_code: [200, 201, 204]
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'manifest'
+    - aap_ocp_install_subscription_manifest_path | default('') | length > 0
+  no_log: true
+
+- name: Upload subscription manifest from base64 content
+  ansible.builtin.uri:
+    url: "https://{{ install_aap_controller_route_host }}/api/controller/v2/config/"
+    method: POST
+    user: "{{ aap_ocp_install_admin_user | default(admin_user | default('admin')) }}"
+    password: "{{ aap_ocp_install_admin_password | default(aap_admin_password | default('')) }}"
+    force_basic_auth: true
+    validate_certs: false
+    body_format: form-multipart
+    body:
+      manifest:
+        filename: "{{ aap_ocp_install_subscription_manifest_filename | default('manifest.zip') }}"
+        content: "{{ aap_ocp_install_subscription_manifest_content_base64 | b64decode }}"
+    status_code: [200, 201, 204]
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'manifest'
+    - aap_ocp_install_subscription_manifest_path | default('') | length == 0
+    - aap_ocp_install_subscription_manifest_content_base64 | default('') | length > 0
+  no_log: true
+
+- name: Seed RHN credential facts from role vars
+  ansible.builtin.set_fact:
+    install_aap_rhn_client_id: "{{ aap_ocp_install_rhn_client_id | default('') }}"
+    install_aap_rhn_client_secret: "{{ aap_ocp_install_rhn_client_secret | default('') }}"
+    install_aap_rhn_username: "{{ aap_ocp_install_rhn_username | default('') }}"
+    install_aap_rhn_password: "{{ aap_ocp_install_rhn_password | default('') }}"
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+  no_log: true
+
+- name: Detect portal-login stuffed into service-account client_id
+  ansible.builtin.set_fact:
+    install_aap_rhn_client_id_is_portal_login: >-
+      {{
+        (install_aap_rhn_client_id | default('') | length > 0)
+        and (
+          (install_aap_rhn_client_id | regex_search('^(rh-ee-|rhn-)|@')) is not none
+        )
+      }}
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+
+- name: Remap portal-style client_id/secret to username/password
+  ansible.builtin.set_fact:
+    install_aap_rhn_username: >-
+      {{
+        install_aap_rhn_username
+        if (install_aap_rhn_username | default('') | length > 0)
+        else install_aap_rhn_client_id
+      }}
+    install_aap_rhn_password: >-
+      {{
+        install_aap_rhn_password
+        if (install_aap_rhn_password | default('') | length > 0)
+        else install_aap_rhn_client_secret
+      }}
+    install_aap_rhn_client_id: ""
+    install_aap_rhn_client_secret: ""
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+    - install_aap_rhn_client_id_is_portal_login | default(false) | bool
+  no_log: true
+
+- name: Warn when remapping portal login out of client_id fields
+  ansible.builtin.debug:
+    msg: >-
+      rhn_client_id looked like a Red Hat portal username (e.g. rh-ee-*), not a
+      service-account client ID. Remapped those values to username/password for
+      the Controller API. For AAP 2.5+ on console.redhat.com, create a service
+      account at https://console.redhat.com/iam/service-accounts (Subscriptions
+      viewers), paste the real client ID + secret, or upload a manifest ZIP —
+      portal username/password is often rejected with Missing subscription credentials.
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+    - install_aap_rhn_client_id_is_portal_login | default(false) | bool
+
+- name: Build Red Hat subscription list request body
+  ansible.builtin.set_fact:
+    # Controller expects subscriptions_* field names (see ansible.controller.subscriptions).
+    install_aap_rhn_list_body: >-
+      {{
+        {
+          'subscriptions_client_id': install_aap_rhn_client_id,
+          'subscriptions_client_secret': install_aap_rhn_client_secret
+        }
+        if (install_aap_rhn_client_id | default('') | length > 0)
+        else {
+          'subscriptions_username': install_aap_rhn_username,
+          'subscriptions_password': install_aap_rhn_password
+        }
+      }}
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+    - >-
+      (
+        (install_aap_rhn_username | default('') | length > 0)
+        and (install_aap_rhn_password | default('') | length > 0)
+      ) or (
+        (install_aap_rhn_client_id | default('') | length > 0)
+        and (install_aap_rhn_client_secret | default('') | length > 0)
+      )
+  no_log: true
+
+- name: List Red Hat subscriptions available to attach
+  ansible.builtin.uri:
+    url: "https://{{ install_aap_controller_route_host }}/api/controller/v2/config/subscriptions/"
+    method: POST
+    user: "{{ aap_ocp_install_admin_user | default(admin_user | default('admin')) }}"
+    password: "{{ aap_ocp_install_admin_password | default(aap_admin_password | default('')) }}"
+    force_basic_auth: true
+    validate_certs: false
+    body_format: json
+    body: "{{ install_aap_rhn_list_body }}"
+    status_code: [200]
+    return_content: true
+  register: install_aap_rhn_subscriptions
+  failed_when: false
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+    - install_aap_rhn_list_body is defined
+  no_log: true
+
+- name: Fail with safe details when RHN subscription list fails
+  ansible.builtin.fail:
+    msg: >-
+      RHN subscription list failed against
+      https://{{ install_aap_controller_route_host }}/api/controller/v2/config/subscriptions/
+      (AAP host from General tab).
+      HTTP status={{ install_aap_rhn_subscriptions.status | default('n/a') }}.
+      API message={{
+        (
+          install_aap_rhn_subscriptions.json.error
+          | default(install_aap_rhn_subscriptions.json.detail, true)
+          | default(install_aap_rhn_subscriptions.msg, true)
+          | default('', true)
+        )
+        | string
+        | truncate(400)
+      }}.
+      {% if 'Missing subscription credentials' in
+        (
+          install_aap_rhn_subscriptions.json.error
+          | default('', true)
+          | string
+        )
+      -%}
+      AAP 2.5+ usually requires a Red Hat service account (client_id + client_secret)
+      from https://console.redhat.com/iam/service-accounts — portal username/password
+      is often rejected. Or upload a subscription manifest ZIP instead.
+      {% else -%}
+      Confirm RHN/service-account credentials, that this AAP can reach
+      subscription.rhsm.redhat.com, and General → Admin password is correct.
+      Prefer a subscription manifest if the cluster is disconnected from Red Hat.
+      {% endif %}
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+    - install_aap_rhn_subscriptions is defined
+    - install_aap_rhn_subscriptions.status | default(0) | int != 200
+
+- name: Normalize Red Hat subscription list
+  ansible.builtin.set_fact:
+    install_aap_rhn_subscription_list: >-
+      {{
+        install_aap_rhn_subscriptions.json.results
+        if (
+          install_aap_rhn_subscriptions.json is mapping
+          and (install_aap_rhn_subscriptions.json.results is defined)
+        )
+        else (
+          install_aap_rhn_subscriptions.json
+          if (install_aap_rhn_subscriptions.json is sequence)
+          else []
+        )
+      }}
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+    - install_aap_rhn_subscriptions is defined
+    - install_aap_rhn_subscriptions is succeeded
+
+- name: Select Red Hat subscription to attach
+  ansible.builtin.set_fact:
+    install_aap_selected_subscription_id: >-
+      {{
+        aap_ocp_install_rhn_subscription_id
+        if (aap_ocp_install_rhn_subscription_id | default('') | string | length > 0)
+        else (
+          (
+            install_aap_rhn_subscription_list
+            | default([])
+            | selectattr('product_name', 'defined')
+            | selectattr('product_name', 'search', 'Ansible Automation Platform')
+            | list
+            | map(attribute='subscription_id')
+            | list
+            | first
+            | default(
+                (
+                  install_aap_rhn_subscription_list
+                  | default([])
+                  | map(attribute='subscription_id')
+                  | list
+                  | first
+                  | default('', true)
+                ),
+                true
+              )
+          )
+        )
+      }}
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+    - install_aap_rhn_subscription_list is defined
+
+- name: Fail when RHN login returned no attachable subscription
+  ansible.builtin.fail:
+    msg: >-
+      RHN/service-account login succeeded but no subscription_id was selected.
+      Set component_config.aap.rhn_subscription_id to a pool from the wizard list,
+      or confirm the Red Hat account has an Ansible Automation Platform entitlement.
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+    - install_aap_selected_subscription_id | default('') | string | length == 0
+
+- name: Attach selected Red Hat subscription to AAP
+  ansible.builtin.uri:
+    url: "https://{{ install_aap_controller_route_host }}/api/controller/v2/config/attach/"
+    method: POST
+    user: "{{ aap_ocp_install_admin_user | default(admin_user | default('admin')) }}"
+    password: "{{ aap_ocp_install_admin_password | default(aap_admin_password | default('')) }}"
+    force_basic_auth: true
+    validate_certs: false
+    body_format: json
+    body:
+      subscription_id: "{{ install_aap_selected_subscription_id }}"
+    status_code: [200, 201, 204]
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+    - install_aap_selected_subscription_id | default('') | string | length > 0
+  no_log: true
+
+- name: Report attached subscription id
+  ansible.builtin.debug:
+    msg: >-
+      Attached AAP subscription_id={{ install_aap_selected_subscription_id }}
+      via {{ install_aap_controller_route_host }}.
+  when:
+    - (aap_ocp_install_license_mode | default('none') | lower) == 'rhn'
+    - install_aap_selected_subscription_id | default('') | string | length > 0
+# yamllint enable rule:line-length

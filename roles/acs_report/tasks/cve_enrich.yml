@@ -1,0 +1,123 @@
+---
+# Enrich RHACS scrubbed CSV with acs-cve-plugin (Red Hat advisory fix data).
+
+- name: CVE enrich | Install acs-cve-tool
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -m
+      - pip
+      - install
+      - --upgrade
+      - >-
+        {{
+          'git+https://github.com/andykrohg/acs-cve-plugin.git#egg=acs-cve-tool[cluster]'
+          if (acs_report_cve_enrich_cluster | default(false) | bool)
+          else acs_report_cve_enrich_pip_package
+        }}
+  register: acs_report_cve_enrich_pip
+  changed_when: >-
+    'Successfully installed' in (acs_report_cve_enrich_pip.stdout | default(''))
+    or 'Successfully installed' in (acs_report_cve_enrich_pip.stderr | default(''))
+
+- name: CVE enrich | Resolve scrubbed CSV input
+  block:
+    - name: CVE enrich | Find existing scrubbed CSV
+      ansible.builtin.find:
+        paths: "{{ acs_report_outdir }}"
+        patterns: "RHACS_Vulnerability_Report_SCRUBBED_*.csv"
+      register: acs_report_cve_enrich_scrubbed_find
+
+    - name: CVE enrich | Generate scrubbed CSV when missing
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ acs_report_parser_dest }}"
+          - all
+          - "{{ acs_report_component | default('') }}"
+          - "{{ acs_report_outdir }}"
+          - "{{ '1' if (acs_report_all_scope | default(false) | bool) else '0' }}"
+          - "{{ '1' if (acs_report_rhsre | default(false) | bool) else '0' }}"
+          - "{{ '1' if (acs_report_show_sev | default(false) | bool) else '0' }}"
+          - "{{ (acs_report_clusters | default([])) | join(',') }}"
+          - "{{ acs_report_export_file }}"
+      register: acs_report_cve_enrich_scrubbed_run
+      changed_when: true
+      when: (acs_report_cve_enrich_scrubbed_find.matched | default(0) | int) == 0
+
+    - name: CVE enrich | Refresh scrubbed CSV search
+      ansible.builtin.find:
+        paths: "{{ acs_report_outdir }}"
+        patterns: "RHACS_Vulnerability_Report_SCRUBBED_*.csv"
+      register: acs_report_cve_enrich_scrubbed_find
+      when: (acs_report_cve_enrich_scrubbed_find.matched | default(0) | int) == 0
+
+- name: CVE enrich | Assert scrubbed CSV exists
+  ansible.builtin.assert:
+    that:
+      - (acs_report_cve_enrich_scrubbed_find.matched | default(0) | int) > 0
+    fail_msg: >-
+      CVE enrichment requires a RHACS scrubbed CSV
+      (RHACS_Vulnerability_Report_SCRUBBED_*.csv) in {{ acs_report_outdir }}.
+
+- name: CVE enrich | Select newest scrubbed CSV
+  ansible.builtin.set_fact:
+    acs_report_cve_enrich_source_csv: >-
+      {{
+        (
+          acs_report_cve_enrich_scrubbed_find.files
+          | sort(attribute='mtime')
+          | last
+        ).path
+      }}
+
+- name: CVE enrich | Set enriched output base path
+  ansible.builtin.set_fact:
+    acs_report_cve_enrich_output_file: >-
+      {{ acs_report_outdir }}/RHACS_Vulnerability_Report_ENRICHED_{{ acs_report_stamp }}.csv
+
+- name: CVE enrich | Build enrich-rows argv
+  ansible.builtin.set_fact:
+    acs_report_cve_enrich_argv: >-
+      {{
+        [
+          'acs-cve',
+          'enrich-rows',
+          acs_report_cve_enrich_source_csv,
+          '--output-file',
+          acs_report_cve_enrich_output_file,
+          '--sort',
+          (acs_report_cve_enrich_sort | default('status') | string),
+        ]
+        + (['--security-view'] if (acs_report_cve_enrich_security_view | default(false) | bool) else [])
+        + (['--actionable-only'] if (acs_report_cve_enrich_actionable_only | default(false) | bool) else [])
+        + (['--rh-images-only'] if (acs_report_cve_enrich_rh_images_only | default(false) | bool) else [])
+        + (['--no-collapse'] if (acs_report_cve_enrich_no_collapse | default(false) | bool) else [])
+        + (
+          ['--kubeconfig', acs_report_cve_enrich_kubeconfig]
+          if (acs_report_cve_enrich_kubeconfig | default('') | length) > 0
+          else []
+        )
+        + (
+          ['--context', acs_report_cve_enrich_context]
+          if (acs_report_cve_enrich_context | default('') | length) > 0
+          else []
+        )
+      }}
+
+- name: CVE enrich | Run acs-cve enrich-rows
+  ansible.builtin.command:
+    argv: "{{ acs_report_cve_enrich_argv }}"
+  register: acs_report_cve_enrich_run
+  changed_when: true
+  environment: >-
+    {{
+      {'KUBECONFIG': acs_report_cve_enrich_kubeconfig}
+      if (acs_report_cve_enrich_kubeconfig | default('') | length) > 0
+      else {}
+    }}
+
+- name: CVE enrich | Show enrich stdout
+  ansible.builtin.debug:
+    msg: "{{ acs_report_cve_enrich_run.stdout_lines | default([]) }}"
+  when: (acs_report_cve_enrich_run.stdout_lines | default([]) | length) > 0

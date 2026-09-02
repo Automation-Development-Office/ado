@@ -1,0 +1,48 @@
+SERVER_HOSTNAME: {{ ocp_quay_hostname }}
+PREFERRED_URL_SCHEME: https
+EXTERNAL_TLS_TERMINATION: true
+SETUP_COMPLETE: true
+DATABASE_SECRET_KEY: changeme-secret-key
+SUPER_USERS:
+  - {{ ocp_quay_admin_user }}
+FEATURE_USER_INITIALIZE: true
+USER_INITIALIZE:
+  username: {{ ocp_quay_admin_user }}
+  password: {{ ocp_quay_admin_password }}
+  email: "{{ ocp_quay_admin_user }}@example.com"
+  access_token: true
+DB_URI: postgresql://quay:quaypass@postgres-db:5432/quay
+REDIS_HOST: localhost
+BUILDLOGS_REDIS:
+  host: localhost
+  port: 6379
+USER_EVENTS_REDIS:
+  host: localhost
+  port: 6379
+DISTRIBUTED_STORAGE_CONFIG:
+  default:
+    - LocalStorage
+    - storage_path: /datastorage/registry
+# Keep Database as internal auth. Keycloak is an external OIDC login provider.
+# AUTHENTICATION_TYPE: OIDC crashes Quay during migration (Unknown authentication type).
+AUTHENTICATION_TYPE: Database
+AUTHENTICATION_CONFIG: {}
+{% if (quay_oidc_enabled | default(false) | bool) and (quay_oidc_client_secret | default('') | string | length > 0) and (quay_oidc_issuer_url | default('') | string | trim | length > 0) %}
+{{ quay_oidc_service_id | default('keycloak') | upper }}_LOGIN_CONFIG:
+  CLIENT_ID: {{ quay_oidc_client_id | default('quay') }}
+  CLIENT_SECRET: {{ quay_oidc_client_secret }}
+  OIDC_SERVER: {{ quay_oidc_issuer_url }}
+  SERVICE_NAME: {{ quay_oidc_service_name | default('Keycloak') }}
+  VERIFIED_EMAIL_CLAIM_NAME: email
+  PREFERRED_USERNAME_CLAIM_NAME: preferred_username
+  LOGIN_SCOPES:
+    - openid
+    - email
+    - profile
+  OIDC_DISABLE_USER_ENDPOINT: false
+EXTRA_CA_CERTS_DIR: /conf/stack/extra_ca_certs
+{% endif %}
+FEATURE_TEAM_SYNCING: false
+FEATURE_ACTION_LOG_ROTATION: false
+FEATURE_APP_REGISTRY: false
+FEATURE_MAILING: false

@@ -48,4 +48,4 @@
         - "{{ playbook_dir }}/../../group_vars/all/{{ env | default('prod') }}/vars_gitlab.yml"
       failed_when: false
   roles:
-    - role: "{{ playbook_dir }}/../../collections/ansible_collections/infra/ado/roles/install_gitlab"
+    - role: infra.ado.install_gitlab

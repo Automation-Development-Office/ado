@@ -1,0 +1,9 @@
+---
+minor_changes:
+  - >-
+    bootstrap - Add rhel_system_roles meta-component that expands selected
+    system roles into Contoller playbooks/JTs calling
+    redhat.rhel_system_roles.* directly (no new infra.ado wrappers).
+  - >-
+    preflight-ui - Expose RHEL System Roles under RHEL components with nested
+    role checkboxes as config options.

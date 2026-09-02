@@ -2,6 +2,13 @@
   ansible.builtin.import_tasks: rhbk_create_client.yml
   when: state == "present"
 
+- name: Attach default client scopes to OIDC client
+  ansible.builtin.import_tasks: rhbk_attach_default_client_scopes.yml
+  when:
+    - state == "present"
+    - (rhbk_attach_default_client_scopes | default(true) | bool)
+    - (rhbk_default_client_scopes | default(['groups']) | length) > 0
+
 - name: Delete RHBK client
   ansible.builtin.import_tasks: rhbk_delete_client.yml
   when: state == "absent"

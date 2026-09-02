@@ -1,0 +1,4 @@
+bugfixes:
+  - rhbk_client_scope - Wire ``groups`` client scope JT into RHBK workflow; attach default scope to OIDC clients (fixes Grafana missing ``groups`` claim in dev).
+  - rhbk_setup_mapper - Seed IdM LDAP user-attribute mappers matching prod; honor preflight ``federation_name`` as ``rhbk_federation_name``.
+  - bootstrap_generate_env_vars - Normalize ``client_scope_name`` to ``groups``; merge federation LDAP settings into vault ``ldap_config``.

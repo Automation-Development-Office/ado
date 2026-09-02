@@ -1,6 +1,8 @@
 ---
 # Upload ACS policies (and optional reports) from git or local path.
-# Plain .json posted as-is; .json.j2 templated first.
+# Policies: infra.rhacs_configuration.rhacs_policy (or rhacs_policy_import).
+# Reports: Central REST POST (no rhacs_policy equivalent).
+# Plain .json applied as-is; .json.j2 templated first.
 
 - name: Skip when no policies source configured
   ansible.builtin.meta: end_host

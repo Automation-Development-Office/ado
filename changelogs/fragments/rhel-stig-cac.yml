@@ -1,0 +1,5 @@
+minor_changes:
+  - rhel_stig_cac - Add DISA STIG Compliance-as-Code role for RHEL 8, 9, and 10 using OpenSCAP and scap-security-guide.
+  - bootstrap_generate_playbook_repo - STIG hardening playbook branches on ``stig_engine`` (``cac`` vs ``system_role``).
+  - bootstrap_controller - Extend RHEL STIG job template survey with engine, RHEL 10 profile, and CaC remediate toggle.
+  - bootstrap_generate_env_vars - Emit ``stig_engine`` and ``rhel_stig_cac_remediate`` in generated ``vars_stig.yml``.

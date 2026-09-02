@@ -249,6 +249,7 @@
         name: cluster
       spec:
         identityProviders: "{{ ocp_htpasswd_admin_updated_identity_providers }}"
+  register: ocp_htpasswd_admin_oauth_result
   when: >
     (not ocp_htpasswd_admin_htpasswd_exists and (ocp_htpasswd_admin_effective_map | length) > 0)
     or (ocp_htpasswd_admin_action == 'remove' and (ocp_htpasswd_admin_effective_map | length) == 0 and ocp_htpasswd_admin_htpasswd_exists)
@@ -262,14 +263,27 @@
   until: >
     ocp_htpasswd_admin_auth_co.resources is defined and
     ocp_htpasswd_admin_auth_co.resources | length > 0 and
-    (ocp_htpasswd_admin_auth_co.resources[0].status.conditions
-      | selectattr('type','equalto','Progressing')
-      | list | first).status | default('False')
-    == 'False'
-  retries: 20
-  delay: 10
+    (
+      (ocp_htpasswd_admin_auth_co.resources[0].status.conditions
+        | selectattr('type','equalto','Available')
+        | list | first).status | default('False')
+    ) == 'True' and
+    (
+      (ocp_htpasswd_admin_auth_co.resources[0].status.conditions
+        | selectattr('type','equalto','Progressing')
+        | list | first).status | default('False')
+    ) == 'False' and
+    (
+      (ocp_htpasswd_admin_auth_co.resources[0].status.conditions
+        | selectattr('type','equalto','Degraded')
+        | list | first).status | default('False')
+    ) == 'False'
+  retries: "{{ ocp_htpasswd_admin_auth_wait_retries | default(60) | int }}"
+  delay: "{{ ocp_htpasswd_admin_auth_wait_delay | default(10) | int }}"
   changed_when: false
+  when: ocp_htpasswd_admin_oauth_result is changed  # noqa: no-handler
 
 - name: Give the new identity providers a few seconds to propagate
   ansible.builtin.pause:
     seconds: 25
+  when: ocp_htpasswd_admin_oauth_result is changed  # noqa: no-handler

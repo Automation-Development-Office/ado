@@ -172,19 +172,35 @@
       {{ grafana_create_datasource_item_bearer_token }}
   when: grafana_create_datasource_item_bearer_token | length > 0
 
+- name: Assert Prometheus bearer token is present
+  ansible.builtin.assert:
+    that:
+      - grafana_create_datasource_prometheus_bearer_token | default('') | length > 0
+    fail_msg: >-
+      No Prometheus bearer token for datasource {{ grafana_create_datasource_item_name }}.
+      For remote targets set bearer_token or bearer_token_secret on the grafana_datasources
+      item; for local Routes ensure the ServiceAccount token Secret was created.
+
+# cluster-monitoring-view can query metrics; /api/v1/status/config often returns 401/403
+# for that role and caused false "Prometheus not ready" failures.
 - name: Wait until Prometheus API is responsive
   ansible.builtin.uri:
-    url: "https://{{ grafana_create_datasource_prometheus_source_hostname }}/api/v1/status/config"
+    url: "https://{{ grafana_create_datasource_prometheus_source_hostname }}/api/v1/query?query=up"
     method: GET
     headers:
       Authorization: "Bearer {{ grafana_create_datasource_prometheus_bearer_token }}"
     validate_certs: false
-    return_content: false
-    status_code: 200
+    return_content: true
+    status_code: [200]
   register: grafana_create_datasource_prometheus_ready
-  retries: 30
+  retries: 36
   delay: 5
-  until: grafana_create_datasource_prometheus_ready.status == 200
+  until: >-
+    (grafana_create_datasource_prometheus_ready.status | default(0) | int) == 200
+    and (
+      (grafana_create_datasource_prometheus_ready.json.status | default('')) == 'success'
+      or ('"status":"success"' in (grafana_create_datasource_prometheus_ready.content | default('')))
+    )
   no_log: true
 
 - name: Create or update Prometheus datasource in Grafana

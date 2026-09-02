@@ -1,0 +1,6 @@
+---
+bugfixes:
+  - bootstrap_resolve_component - Skip registry keys containing ``.`` before
+    ``set_fact`` export (Ansible validates dynamic fact names before ``when``);
+    fixes ``Deploy RHBK Realm`` and other JTs that only need API vars, not
+    ``infra.ado.ocp_operatorgroups``.

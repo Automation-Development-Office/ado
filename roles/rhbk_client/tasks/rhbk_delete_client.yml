@@ -1,6 +1,6 @@
 - name: Login to Keycloak and get admin token
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/realms/master/protocol/openid-connect/token"
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/realms/master/protocol/openid-connect/token"
     method: POST
     headers:
       Content-Type: "application/x-www-form-urlencoded"
@@ -21,7 +21,7 @@
 
 - name: Lookup Keycloak client by clientId
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/clients?clientId={{ rhbk_client_id }}"
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/clients?clientId={{ rhbk_client_id }}"
     method: GET
     headers:
       Authorization: "Bearer {{ rhbk_client_auth.json.access_token }}"
@@ -40,7 +40,7 @@
 
 - name: Delete Keycloak client if it exists
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/clients/{{ rhbk_client_uuid }}"
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/clients/{{ rhbk_client_uuid }}"
     method: DELETE
     headers:
       Authorization: "Bearer {{ rhbk_auth.json.access_token }}"

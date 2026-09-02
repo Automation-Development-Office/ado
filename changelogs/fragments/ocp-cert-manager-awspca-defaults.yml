@@ -1,0 +1,6 @@
+bugfixes:
+  - >-
+    ocp_cert_manager - define role defaults and cert_manager_* aliases for
+    ocp_cert_manager_* so Deploy cert-manager no longer fails on undefined
+    ocp_cert_manager_root_ca_awspca_enabled; skip CA ClusterIssuer unless TLS
+    material is present (IdM ACME uses its own playbook).

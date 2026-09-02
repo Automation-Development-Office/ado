@@ -1,6 +1,35 @@
 ---
-- name: Create/Delete Kube Descheduler Instance
+- name: Normalize descheduler profiles (API rejects SoftTopology + Topology together)
+  ansible.builtin.set_fact:
+    ocp_descheduler_profiles: >-
+      {{
+        (
+          ocp_descheduler_profiles
+          | default([])
+          | unique
+          | reject('equalto', 'SoftTopologyAndDuplicates')
+          | list
+        )
+        if ('TopologyAndDuplicates' in (ocp_descheduler_profiles | default([])))
+        else (
+          ocp_descheduler_profiles
+          | default([])
+          | unique
+          | list
+        )
+      }}
+
+- name: Create Kube Descheduler instance
   kubernetes.core.k8s:
-    state: "{{ kube_descheduler_state }}"
-    template: "kube_cluster.j2"
-  when: state == "present"
+    state: present
+    template: kube_cluster.j2
+  when: state | default('present') == 'present'
+
+- name: Delete Kube Descheduler instance
+  kubernetes.core.k8s:
+    state: absent
+    api_version: operator.openshift.io/v1
+    kind: KubeDescheduler
+    name: "{{ instance_name }}"
+    namespace: "{{ name_space }}"
+  when: state | default('present') == 'absent'

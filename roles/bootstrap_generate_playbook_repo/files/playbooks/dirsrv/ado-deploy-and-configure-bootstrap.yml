@@ -3,13 +3,16 @@
   hosts: localhost
   gather_facts: false
   vars:
+    # Registry key in components_defaults (flat operator/app vars live here).
     component: 389ds
   vars_files:
+    # GitLab bootstrap-sample historically names these vault_dirsrv / vars_dirsrv
+    # (not vault_389ds). Load those so passwords under dirsrv: are available.
     - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
-    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_{{ component }}.yml"
-    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_{{ component }}.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_dirsrv.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_dirsrv.yml"
   environment:
-    K8S_AUTH_HOST: '{{ host | default(api_host) }}'
+    K8S_AUTH_HOST: '{{ host | default(api_host | default("")) }}'
     K8S_AUTH_API_KEY: '{{ token }}'
     K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'',''no'') }}'
   pre_tasks:
@@ -18,4 +21,4 @@
         name: infra.ado.bootstrap_resolve_component
   roles:
     - role: infra.ado.ocp_namespace
-    - role: infra.ado.ocp_search_dirsrv
+    - role: infra.ado.install_dirsrv

@@ -1,6 +1,6 @@
 - name: Login to RHBK and get admin token
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/realms/master/protocol/openid-connect/token"
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/realms/master/protocol/openid-connect/token"
     method: POST
     headers:
       Content-Type: "application/x-www-form-urlencoded"
@@ -16,7 +16,7 @@
 
 - name: Get list of client scopes
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/client-scopes"
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/client-scopes"
     method: GET
     headers:
       Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
@@ -36,7 +36,7 @@
 
 - name: Create client scope if it does not exist
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/client-scopes"
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/client-scopes"
     method: POST
     headers:
       Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
@@ -44,21 +44,23 @@
     body_format: json
     body:
       name: "{{ rhbk_client_scope_name }}"
-      protocol: "openid-connect"
+      protocol: "{{ rhbk_client_scope_protocol | default('openid-connect') }}"
       attributes:
         "include.in.token.scope": "true"
         "display.on.consent.screen": "false"
-        "consent.screen.text": "Groups"
-    status_code: 201
+        "consent.screen.text": "{{ rhbk_client_scope_name }}"
+    status_code:
+      - 201
+      - 409
     validate_certs: "{{ rhbk_verify_ssl }}"
-  when: rhbk_client_scope_existing_scope_obj | length == 0
+  when: (rhbk_client_scope_existing_scope_obj.id | default('') | length) == 0
   register: rhbk_client_scope_create_scope_result
 
 # --- FIX: Re-query to ensure .id is captured properly ---
 
 - name: Re-query client scopes to ensure full object info
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/client-scopes"
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/client-scopes"
     method: GET
     headers:
       Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
@@ -89,7 +91,9 @@
 
 - name: Get existing mappers for client scope
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/client-scopes/{{ rhbk_client_scope_groups_scope_id }}/protocol-mappers/models"
+    url: >-
+      {{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/client-scopes/
+      {{ rhbk_client_scope_groups_scope_id }}/protocol-mappers/models
     method: GET
     headers:
       Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
@@ -102,29 +106,35 @@
     rhbk_client_scope_groups_mapper_exists: >-
       {{
         rhbk_client_scope_existing_mappers.json
-        | selectattr('name', 'equalto', 'groups')
+        | default([])
+        | selectattr('name', 'equalto', (rhbk_client_mapper_name | default('groups')))
         | list | length > 0
       }}
 
-- name: Add "groups" protocol mapper to client scope
+- name: Add groups protocol mapper to client scope
   ansible.builtin.uri:
-    url: "https://{{ rhbk_host }}/admin/realms/{{ rhbk_realm }}/client-scopes/{{ rhbk_client_scope_groups_scope_id }}/protocol-mappers/models"
+    url: >-
+      {{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/client-scopes/
+      {{ rhbk_client_scope_groups_scope_id }}/protocol-mappers/models
     method: POST
     headers:
       Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
       Content-Type: "application/json"
     body_format: json
     body:
-      name: "groups"
+      name: "{{ rhbk_client_mapper_name | default('groups') }}"
       protocol: "openid-connect"
       protocolMapper: "oidc-group-membership-mapper"
+      # Protocol-mapper config uses plain strings (unlike Component MultivaluedHashMap).
       config:
-        "claim.name": "groups"
+        "claim.name": "{{ rhbk_client_mapper_claim | default(group_mapper_claim | default('groups')) }}"
         "full.path": "false"
         "id.token.claim": "true"
         "access.token.claim": "true"
         "userinfo.token.claim": "true"
-        "jsonType.label": "String"
-    status_code: 201
+        "jsonType.label": "{{ rhbk_client_mapper_claim_type | default('String') }}"
+    status_code:
+      - 201
+      - 409
     validate_certs: "{{ rhbk_verify_ssl }}"
-  when: not rhbk_client_scope_groups_mapper_exists
+  when: not (rhbk_client_scope_groups_mapper_exists | bool)

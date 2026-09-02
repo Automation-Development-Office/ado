@@ -1,0 +1,21 @@
+---
+# Apply remediations (true) or evaluate only (false).
+rhel_stig_cac_remediate: true
+
+# Optional label from preflight/JT survey (for example "RHEL 9 STIG").
+rhel_stig_cac_profile_label: ""
+
+# Force a major version (8, 9, or 10). Empty uses ansible_distribution_major_version.
+rhel_stig_cac_os_major: ""
+
+# XCCDF profile ID from scap-security-guide.
+rhel_stig_cac_xccdf_profile: xccdf_org.ssgproject.content_profile_stig
+
+# Packages providing DISA STIG Compliance-as-Code content on RHEL.
+rhel_stig_cac_packages:
+  - scap-security-guide
+  - openscap-scanner
+  - openscap-utils
+
+# Directory for OpenSCAP results and HTML reports.
+rhel_stig_cac_results_dir: /var/log/ado-stig-cac

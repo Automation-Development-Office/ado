@@ -1,20 +1,62 @@
 ---
 # Wire NetBox ConfigMap OIDC settings (avoids helm upgrade PDB/StatefulSet conflicts).
 
+# Survey extra_vars beat set_fact on the same name — use *_resolved for effective values.
+- name: Resolve NetBox OIDC issuer from RHBK when unset
+  ansible.builtin.set_fact:
+    netbox_oidc_issuer_resolved: >-
+      {{
+        netbox_oidc_issuer | default('', true)
+        | default(oidc_issuer | default('', true), true)
+        | default(
+            'https://'
+            ~ (ocp_rhbk_hostname | default(rhbk_hostname | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))))
+            ~ '/realms/'
+            ~ (ocp_rhbk_realm | default(rhbk_realm | default('rhlab'))),
+            true
+          )
+      }}
+  when: netbox_oidc_state | default('present') == 'present'
+
+- name: Fetch NetBox OIDC client secret from Keycloak when unset
+  ansible.builtin.include_role:
+    name: infra.ado.ocp_rhbk_client_secrets
+    public: true
+  vars:
+    ocp_rhbk_secret_client_id: "{{ netbox_oidc_client_id }}"
+    ocp_rhbk_component_name: rhbk
+  when:
+    - netbox_oidc_state | default('present') == 'present'
+    - (netbox_oidc_client_secret | default('') | string | length) == 0
+  no_log: true
+
+- name: Resolve NetBox OIDC client secret
+  ansible.builtin.set_fact:
+    netbox_oidc_client_secret_resolved: >-
+      {{
+        (netbox_oidc_client_secret | default('') | trim)
+        if (netbox_oidc_client_secret | default('') | trim | length) > 0
+        else (ocp_rhbk_client_secrets__value | default(ocp_rhbk_secret_value | default('')))
+      }}
+  when: netbox_oidc_state | default('present') == 'present'
+  no_log: true
+
 - name: Assert NetBox OIDC inputs
   ansible.builtin.assert:
     that:
-      - netbox_oidc_client_secret | default('') | length > 0
-      - netbox_oidc_issuer | default('') | length > 0
+      - netbox_oidc_client_secret_resolved | default('') | length > 0
+      - netbox_oidc_issuer_resolved | default('', true) | length > 0
       - netbox_oidc_client_id | default('') | length > 0
     fail_msg: >-
       netbox_oidc requires issuer, client_id, and client_secret
-      (create confidential client netbox in Keycloak realm rhlab first).
+      (create confidential client {{ netbox_oidc_client_id | default('netbox') }}
+      in Keycloak realm {{ ocp_rhbk_realm | default(rhbk_realm | default('')) }} first).
   when: netbox_oidc_state | default('present') == 'present'
 
 - name: Create NetBox OIDC Secret (reference / audit)
   kubernetes.core.k8s:
     state: present
+    apply: true
     definition:
       apiVersion: v1
       kind: Secret
@@ -27,10 +69,19 @@
       type: Opaque
       stringData:
         SOCIAL_AUTH_OIDC_KEY: "{{ netbox_oidc_client_id }}"
-        SOCIAL_AUTH_OIDC_SECRET: "{{ netbox_oidc_client_secret }}"
+        SOCIAL_AUTH_OIDC_SECRET: "{{ netbox_oidc_client_secret_resolved }}"
     validate_certs: "{{ netbox_oidc_validate_certs }}"
+  register: netbox_oidc_secret_apply
   when: netbox_oidc_state | default('present') == 'present'
-  no_log: true
+
+- name: Fail when NetBox OIDC Secret apply failed
+  ansible.builtin.fail:
+    msg: >-
+      Failed to create/update Secret {{ netbox_oidc_secret_name }} in
+      {{ netbox_oidc_namespace }}: {{ netbox_oidc_secret_apply.msg | default(netbox_oidc_secret_apply) }}
+  when:
+    - netbox_oidc_state | default('present') == 'present'
+    - netbox_oidc_secret_apply is failed
 
 - name: Read current NetBox ConfigMap
   kubernetes.core.k8s_info:
@@ -72,9 +123,9 @@
         )
         | combine({
             'REMOTE_AUTH_BACKEND': ['social_core.backends.open_id_connect.OpenIdConnectAuth'],
-            'SOCIAL_AUTH_OIDC_OIDC_ENDPOINT': netbox_oidc_issuer,
+            'SOCIAL_AUTH_OIDC_OIDC_ENDPOINT': netbox_oidc_issuer_resolved,
             'SOCIAL_AUTH_OIDC_KEY': netbox_oidc_client_id,
-            'SOCIAL_AUTH_OIDC_SECRET': netbox_oidc_client_secret,
+            'SOCIAL_AUTH_OIDC_SECRET': netbox_oidc_client_secret_resolved,
             'SOCIAL_AUTH_BACKEND_ATTRS': {
               'oidc': ['Keycloak', 'shield-key-outline']
             },
@@ -133,6 +184,6 @@
 - name: Show NetBox OIDC status
   ansible.builtin.debug:
     msg: >-
-      NetBox OIDC configured for issuer {{ netbox_oidc_issuer }}
+      NetBox OIDC configured for issuer {{ netbox_oidc_issuer_resolved }}
       (client={{ netbox_oidc_client_id }}). Use OpenID Connect on the NetBox login page.
   when: netbox_oidc_state | default('present') == 'present'

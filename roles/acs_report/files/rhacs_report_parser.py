@@ -6,6 +6,11 @@ import os
 from datetime import datetime, timezone
 from collections import defaultdict
 
+try:
+    csv.field_size_limit(sys.maxsize)
+except OverflowError:
+    csv.field_size_limit(2**31 - 1)
+
 MODE = sys.argv[1]
 FILTER_COMPONENT = sys.argv[2].strip().lower()
 OUTDIR = sys.argv[3]
@@ -19,6 +24,7 @@ CLUSTER_FILTER = {
     for c in _raw_clusters.split(",")
     if c.strip()
 }
+_input_path = sys.argv[8].strip() if len(sys.argv) > 8 else ""
 
 # ============================================================
 # COMPONENT DEFINITIONS
@@ -1066,7 +1072,8 @@ if MODE == "all":
 # STREAM INPUT
 # ============================================================
 
-for line in sys.stdin:
+_in_fh = open(_input_path, encoding="utf-8") if _input_path else sys.stdin
+for line in _in_fh:
 
     line = line.strip()
 
@@ -1256,9 +1263,13 @@ for line in sys.stdin:
                 age90[group] += 1
 
 
+if _input_path:
+    _in_fh.close()
+
 # ============================================================
 # COMPANION JSON SUMMARY (table modes)
 # ============================================================
+
 
 def write_summary_json(visible_order):
     """Write Grafana-friendly summary next to table reports."""

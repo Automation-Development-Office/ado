@@ -7,11 +7,46 @@
       No gateway_authenticators configured; skipping AAP Auth apply.
   when: not (aap_auth_configure_gateway | default(false) | bool)
 
+- name: Gateway auth | Prefer admin basic auth for Gateway API when credentials available
+  ansible.builtin.set_fact:
+    bootstrap_controller_gateway_use_password_auth: >-
+      {{
+        (
+          aap_username | default(vault_controller_username | default(''), true) | length > 0
+        )
+        and (
+          aap_password | default(vault_controller_password | default(''), true) | length > 0
+        )
+      }}
+
+- name: Gateway auth | Show Gateway API auth mode
+  ansible.builtin.debug:
+    msg: >-
+      Gateway authenticator apply using
+      {{ 'admin basic auth' if bootstrap_controller_gateway_use_password_auth | bool
+         else 'OAuth token' }}.
+
 - name: Gateway auth | Apply authenticators and authenticator maps
   ansible.builtin.include_role:
     name: infra.aap_configuration.dispatch
   vars:
-    gateway_authenticators_secure_logging: true
+    # Show API errors during bootstrap; secrets are already in generated vault files.
+    gateway_authenticators_secure_logging: false
+    gateway_authenticator_maps_secure_logging: false
+    # include_role vars with omit do not unset host facts from map_controller_auth;
+    # pass empty token so ansible.platform falls back to username/password.
+    aap_token: >-
+      {{
+        ''
+        if bootstrap_controller_gateway_use_password_auth | bool
+        else vault_controller_oauthtoken | default('')
+      }}
+    aap_oauthtoken: >-
+      {{
+        ''
+        if bootstrap_controller_gateway_use_password_auth | bool
+        else vault_controller_oauthtoken | default('')
+      }}
     gateway_configuration_dispatcher_roles:
       - role: gateway_authenticators
         var: gateway_authenticators

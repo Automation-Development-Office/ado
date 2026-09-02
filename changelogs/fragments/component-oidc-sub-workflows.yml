@@ -1,0 +1,5 @@
+minor_changes:
+  - preflight-ui - Quay, MinIO, Dev Hub, BookStack, NetBox, and Zabbix get Grafana-style optional OIDC/SAML checkboxes; auto-enabled when RHBK is selected.
+  - bootstrap_controller - Component sub-workflows (install then optional OIDC/SAML JT) for Quay, MinIO, Dev Hub, BookStack, NetBox, and Zabbix; OpenShift workflow uses workflow nodes instead of single deploy JTs.
+  - bootstrap_generate_env_vars - Gate quay_oidc, minio_oidc, dev_hub_oidc, bookstack_oidc, netbox_oidc, and zabbix_saml on component_options selections.
+  - infra.ado.ocp_quay, ocp_minio, ocp_dev_hub, bookstack_openshift, ocp_zabbix - Split install vs auth configure paths using install_scope flags.
