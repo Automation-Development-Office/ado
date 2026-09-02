@@ -17,7 +17,7 @@
 
 - name: Set RHBK lookup vars from parsed Grafana issuer URL
   ansible.builtin.set_fact:
-    ocp_rhbk_secret_hostname: >-
+    grafana_install_ocp_rhbk_secret_hostname: >-
       {{
         (
           ocp_rhbk_hostname
@@ -35,7 +35,7 @@
         | regex_replace('/.*$', '')
         | trim
       }}
-    ocp_rhbk_secret_realm: >-
+    grafana_install_ocp_rhbk_secret_realm: >-
       {{
         ocp_rhbk_realm
         | default(rhbk_realm)
@@ -60,7 +60,7 @@
     grafana_install_oidc_secret_hostname: >-
       {{
         (
-          ocp_rhbk_secret_hostname
+          grafana_install_ocp_rhbk_secret_hostname
           | default(ocp_rhbk_hostname | default(rhbk_hostname | default('')), true)
           | default(
               (
@@ -77,7 +77,7 @@
       }}
     grafana_install_oidc_secret_realm: >-
       {{
-        ocp_rhbk_secret_realm
+        grafana_install_ocp_rhbk_secret_realm
         | default(ocp_rhbk_realm | default(rhbk_realm | default('')), true)
         | default(
             (
@@ -98,8 +98,8 @@
   ansible.builtin.include_role:
     name: infra.ado.ocp_rhbk_client_secrets
   vars:
-    ocp_rhbk_secret_hostname: "{{ grafana_install_oidc_secret_hostname }}"
-    ocp_rhbk_secret_realm: "{{ grafana_install_oidc_secret_realm }}"
+    grafana_install_ocp_rhbk_secret_hostname: "{{ grafana_install_oidc_secret_hostname }}"
+    grafana_install_ocp_rhbk_secret_realm: "{{ grafana_install_oidc_secret_realm }}"
     ocp_rhbk_secret_client_id: "{{ (oidc.client_id | default(client_id | default('grafana-client'))) }}"
     ocp_rhbk_secret_client_key: "{{ (oidc.client_key | default('grafana-client')) }}"
     ocp_rhbk_secret_target_var: "grafana_install_oidc_client_secret"

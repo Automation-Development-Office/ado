@@ -2,9 +2,9 @@
 - name: Enable Grafana email/SMTP configuration
   ansible.builtin.set_fact:
     grafana_install_email_enabled: true
-    grafana_email: >-
+    grafana_install_grafana_email: >-
       {{
-        (grafana_email | default(email | default({})))
+        (grafana_install_grafana_email | default(email | default({})))
         | combine({'enabled': true}, recursive=True)
       }}
   changed_when: false

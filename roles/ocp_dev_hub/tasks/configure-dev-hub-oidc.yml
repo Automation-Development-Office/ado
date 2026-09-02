@@ -22,15 +22,15 @@
   vars:
     ocp_rhbk_secret_client_key: rhdh_client
     ocp_rhbk_secret_client_id: "{{ dev_hub_keycloak_client_id | default('rhdh') }}"
-    ocp_rhbk_secret_target_var: dev_hub_oidc_client_secret
-  when: (dev_hub_oidc_client_secret | default('') | string | length) == 0
+    ocp_rhbk_secret_target_var: ocp_dev_hub_oidc_client_secret
+  when: (ocp_dev_hub_oidc_client_secret | default('') | string | length) == 0
   no_log: true
 
 - name: Prefer fetched Dev Hub OIDC client secret
   ansible.builtin.set_fact:
-    dev_hub_oidc_client_secret: "{{ ocp_rhbk_client_secrets__value }}"
+    ocp_dev_hub_oidc_client_secret: "{{ ocp_rhbk_client_secrets__value }}"
   when:
-    - (dev_hub_oidc_client_secret | default('') | string | length) == 0
+    - (ocp_dev_hub_oidc_client_secret | default('') | string | length) == 0
     - ocp_rhbk_client_secrets__value is defined
     - (ocp_rhbk_client_secrets__value | string | length) > 0
   no_log: true
@@ -40,11 +40,11 @@
     msg: >-
       Dev Hub OIDC requires a client secret. Set dev_hub.oidc_client_secret in
       preflight or run RHBK client bootstrap first.
-  when: (dev_hub_oidc_client_secret | default('') | string | length) == 0
+  when: (ocp_dev_hub_oidc_client_secret | default('') | string | length) == 0
 
 - name: Enable OIDC in Developer Hub install context
   ansible.builtin.set_fact:
-    dev_hub_install_include_oidc: true
+    ocp_dev_hub_install_include_oidc: true
 
 - name: Patch Developer Hub secrets with OIDC client secret
   kubernetes.core.k8s:
@@ -57,7 +57,7 @@
         name: rhdh-secrets
         namespace: "{{ name_space }}"
       stringData:
-        OIDC_CLIENT_SECRET: "{{ dev_hub_oidc_client_secret | default('') }}"
+        OIDC_CLIENT_SECRET: "{{ ocp_dev_hub_oidc_client_secret | default('') }}"
   no_log: true
 
 - name: Update Developer Hub app-config ConfigMap for OIDC

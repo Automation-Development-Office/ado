@@ -113,7 +113,15 @@
   ansible.builtin.set_fact:
     ocp_rhbk_secret_rhbk: >-
       {{
-        ocp_rhbk_secret_registry.components_defaults[ocp_rhbk_component_name_effective] | combine((ocp_rhbk_secret_components_env | default({})).get(ocp_rhbk_component_name_effective, {}), recursive=True) | combine((components_override | default({})).get(ocp_rhbk_component_name_effective, {}), recursive=True)
+        ocp_rhbk_secret_registry.components_defaults[ocp_rhbk_component_name_effective]
+        | combine(
+            (ocp_rhbk_secret_components_env | default({})).get(ocp_rhbk_component_name_effective, {}),
+            recursive=True,
+          )
+        | combine(
+            (components_override | default({})).get(ocp_rhbk_component_name_effective, {}),
+            recursive=True,
+          )
       }}
   changed_when: false
   no_log: true
@@ -198,7 +206,7 @@
 
 - name: Rhbk_get_client_secrets  Resolve admin username/password
   ansible.builtin.set_fact:
-    ocp_rhbk_secret_admin_user_resolved: >-
+    ocp_rhbk_client_secrets_admin_user_resolved: >-
       {{
         ocp_rhbk_secret_admin_user
         | default(ocp_rhbk_admin_user
@@ -206,7 +214,7 @@
             | default(ocp_rhbk_secret_rhbk.ocp_rhbk_admin_user
               | default(ocp_rhbk_secret_rhbk.rhbk_admin_user | default('admin')))))
       }}
-    ocp_rhbk_secret_admin_password_resolved: >-
+    ocp_rhbk_client_secrets_admin_password_resolved: >-
       {{
         ocp_rhbk_secret_admin_password
         | default(ocp_rhbk_admin_password
@@ -219,6 +227,8 @@
   # noqa: var-naming
 
 - name: Rhbk_get_client_secrets  Fetch Keycloak admin credentials from cluster when vault unset
+  when:
+    - (ocp_rhbk_client_secrets_admin_password_resolved | default('') | string | length) == 0
   block:
     - name: Rhbk_get_client_secrets  Read keycloak-admin-creds Secret
       kubernetes.core.k8s_info:
@@ -226,32 +236,30 @@
         kind: Secret
         namespace: "{{ ocp_rhbk_secret_keycloak_namespace | default(keycloak_namespace | default('keycloak')) }}"
         name: keycloak-admin-creds
-      register: ocp_rhbk_secret_admin_secret
+      register: ocp_rhbk_client_secrets_admin_secret
       no_log: true
 
     - name: Rhbk_get_client_secrets  Decode Keycloak admin credentials from cluster
       ansible.builtin.set_fact:
-        ocp_rhbk_secret_admin_user_resolved: >-
+        ocp_rhbk_client_secrets_admin_user_resolved: >-
           {{
             ocp_rhbk_secret_admin_secret.resources[0].data.username | b64decode
             if (
               ocp_rhbk_secret_admin_secret.resources | default([]) | length > 0
               and ocp_rhbk_secret_admin_secret.resources[0].data.username is defined
             )
-            else ocp_rhbk_secret_admin_user_resolved
+            else ocp_rhbk_client_secrets_admin_user_resolved
           }}
-        ocp_rhbk_secret_admin_password_resolved: >-
+        ocp_rhbk_client_secrets_admin_password_resolved: >-
           {{
             ocp_rhbk_secret_admin_secret.resources[0].data.password | b64decode
             if (
               ocp_rhbk_secret_admin_secret.resources | default([]) | length > 0
               and ocp_rhbk_secret_admin_secret.resources[0].data.password is defined
             )
-            else ocp_rhbk_secret_admin_password_resolved
+            else ocp_rhbk_client_secrets_admin_password_resolved
           }}
       no_log: true
-  when:
-    - (ocp_rhbk_secret_admin_password_resolved | default('') | string | length) == 0
 
 - name: Rhbk_get_client_secrets  Assert required inputs
   ansible.builtin.assert:
@@ -259,8 +267,8 @@
       - (ocp_rhbk_secret_hostname_resolved | length) > 0
       - (ocp_rhbk_secret_realm_resolved | length) > 0
       - (ocp_rhbk_secret_client_id_resolved | length) > 0
-      - (ocp_rhbk_secret_admin_user_resolved | length) > 0
-      - (ocp_rhbk_secret_admin_password_resolved | length) > 0
+      - (ocp_rhbk_client_secrets_admin_user_resolved | length) > 0
+      - (ocp_rhbk_client_secrets_admin_password_resolved | length) > 0
     fail_msg: >-
       Missing required inputs for ocp_rhbk_client_secrets_.
       Resolved: host='{{ ocp_rhbk_secret_hostname_resolved }}'
@@ -282,19 +290,19 @@
       (ocp_rhbk_secret_realm_resolved | default('') | length) == 0
       or (ocp_rhbk_secret_client_id_resolved | default('') | length) == 0
       or (ocp_rhbk_secret_hostname_resolved | default('') | length) == 0
-      or (ocp_rhbk_secret_admin_password_resolved | default('') | length) == 0
+      or (ocp_rhbk_client_secrets_admin_password_resolved | default('') | length) == 0
   changed_when: false
 
 - name: Rhbk_get_client_secrets  Mark skip for remaining tasks
   ansible.builtin.set_fact:
-    ocp_rhbk_secret_skip_fetch: >-
+    ocp_rhbk_client_secrets_skip_fetch: >-
       {{
         (ocp_rhbk_secret_optional | default(false) | bool)
         and (
           (ocp_rhbk_secret_realm_resolved | default('') | length) == 0
           or (ocp_rhbk_secret_client_id_resolved | default('') | length) == 0
           or (ocp_rhbk_secret_hostname_resolved | default('') | length) == 0
-          or (ocp_rhbk_secret_admin_password_resolved | default('') | length) == 0
+          or (ocp_rhbk_client_secrets_admin_password_resolved | default('') | length) == 0
         )
       }}
   changed_when: false
@@ -303,7 +311,7 @@
 # Get admin access token / fetch secret (skipped when optional + unconfigured)
 # -----------------------------
 - name: Rhbk_get_client_secrets  Fetch client secret from RHBK
-  when: not (ocp_rhbk_secret_skip_fetch | default(false) | bool)
+  when: not (ocp_rhbk_client_secrets_skip_fetch | default(false) | bool)
   block:
     - name: Rhbk_get_client_secrets  Get Keycloak access token (password grant)
       ansible.builtin.uri:
@@ -318,8 +326,8 @@
         body:
           grant_type: password
           client_id: admin-cli
-          username: "{{ ocp_rhbk_secret_admin_user_resolved }}"
-          password: "{{ ocp_rhbk_secret_admin_password_resolved }}"
+          username: "{{ ocp_rhbk_client_secrets_admin_user_resolved }}"
+          password: "{{ ocp_rhbk_client_secrets_admin_password_resolved }}"
         return_content: true
         status_code: [200]
       register: ocp_rhbk_client_secrets__token_rsp

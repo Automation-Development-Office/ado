@@ -1,0 +1,8 @@
+bugfixes:
+  - bootstrap_controller - Prefix Hub publish task facts with ``bootstrap_controller_`` and fix line-length for pulp API URLs.
+  - install_aap - Prefix license/reset task facts with ``install_aap_``; replace ``ignore_errors`` with explicit ``failed_when``.
+  - ocp_minio - Prefix role-local facts with ``ocp_minio_``; replace delete task ``ignore_errors`` with ``failed_when``.
+  - ocp_quay - Prefix OIDC/storage resolution facts with ``ocp_quay_``; fix task key order.
+  - ocp_oidc_auth - Prefix RHBK/OIDC resolution facts with ``ocp_oidc_auth_``.
+  - install_dirsrv - Break long ldap/dsconf commands and port list set_fact for ansible-lint line-length.
+  - grafana_install - Prefix role-local OIDC/email facts with ``grafana_install_``.

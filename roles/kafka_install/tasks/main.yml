@@ -99,7 +99,14 @@
       Got: operator_name='{{ operator_name | default('') }}' channel='{{ operator_channel | default('') }}'
            starting_csv='{{ operator_starting_csv | default('') }}'
            effective_csv='{{ kafka_install_operator_starting_csv_effective | default('') }}'
-           defaultChannel='{{ (kafka_install_pm.resources[0].status.defaultChannel | default('')) if (kafka_install_pm is defined and (kafka_install_pm.resources | default([]) | length) > 0) else '' }}'
+           defaultChannel='{{
+             (kafka_install_pm.resources[0].status.defaultChannel | default(''))
+             if (
+               kafka_install_pm is defined
+               and (kafka_install_pm.resources | default([]) | length) > 0
+             )
+             else ''
+           }}'
 
 - name: Kafka Install Wait for CSV to exist in operator namespace
   kubernetes.core.k8s_info:

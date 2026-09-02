@@ -64,7 +64,13 @@
     install_elastic_eck_operator_starting_csv_effective: >-
       {{
         (
-          install_elastic_eck_pm.resources[0].status.channels | default([]) | selectattr('name','equalto', install_elastic_eck_channel_str) | map(attribute='currentCSV') | list | first | default('')
+          install_elastic_eck_pm.resources[0].status.channels
+          | default([])
+          | selectattr('name', 'equalto', install_elastic_eck_channel_str)
+          | map(attribute='currentCSV')
+          | list
+          | first
+          | default('')
         ) | string | trim
       }}
   when:

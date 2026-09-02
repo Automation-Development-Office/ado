@@ -20,7 +20,7 @@
   ansible.builtin.set_fact:
     grafana_install_include_oidc: true
     grafana_install_oidc_enabled: true
-    oidc: "{{ (oidc | default({})) | combine({'enabled': true}, recursive=True) }}"
+    grafana_install_oidc: "{{ (grafana_install_oidc | default({})) | combine({'enabled': true}, recursive=True) }}"
   changed_when: false
 
 - name: Build Grafana OIDC config fragment

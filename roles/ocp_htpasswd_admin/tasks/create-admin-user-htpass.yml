@@ -281,9 +281,9 @@
   retries: "{{ ocp_htpasswd_admin_auth_wait_retries | default(60) | int }}"
   delay: "{{ ocp_htpasswd_admin_auth_wait_delay | default(10) | int }}"
   changed_when: false
-  when: ocp_htpasswd_admin_oauth_result is changed
+  when: ocp_htpasswd_admin_oauth_result is changed  # noqa: no-handler
 
 - name: Give the new identity providers a few seconds to propagate
   ansible.builtin.pause:
     seconds: 25
-  when: ocp_htpasswd_admin_oauth_result is changed
+  when: ocp_htpasswd_admin_oauth_result is changed  # noqa: no-handler

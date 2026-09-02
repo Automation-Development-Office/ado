@@ -96,7 +96,7 @@
     ADO_TLS_CRT: "{{ tls_crt | string }}"
     ADO_TLS_KEY: "{{ tls_key | string }}"
     ADO_CA_CRT: "{{ ca_crt | default('', true) | string }}"
-  register: ocp_default_ingress_pem_normalize
+  register: ocp_default_ingress_cert_pem_normalize
   changed_when: false
   no_log: true
   failed_when: false
@@ -201,7 +201,7 @@
 
 - name: Default ingress cert | Resolve CA PEM for cluster-wide trust
   ansible.builtin.set_fact:
-    ocp_default_ingress_trust_ca_pem: >-
+    ocp_default_ingress_cert_trust_ca_pem: >-
       {{
         ca_crt
         | default(ingress_ca_crt, true)
@@ -238,8 +238,8 @@
     print((blocks[-1] if len(blocks) > 1 else blocks[0]).strip() + "\n")
     PY
   environment:
-    ADO_TRUST_CA: "{{ ocp_default_ingress_trust_ca_pem | string }}"
-  register: ocp_default_ingress_trust_ca_norm
+    ADO_TRUST_CA: "{{ ocp_default_ingress_cert_trust_ca_pem | string }}"
+  register: ocp_default_ingress_cert_trust_ca_norm
   when:
     - (state | default('present')) == 'present'
     - >-

@@ -256,7 +256,7 @@
 
 - name: Map OpenShift auth for validated vm_provision
   ansible.builtin.set_fact:
-    vm_provision_openshift_host: >-
+    ocp_virtualization_vm_provision_openshift_host: >-
       {{
         provision_openshift_virt_api_host
         | default(
@@ -268,7 +268,7 @@
             true
           )
       }}
-    vm_provision_api_key: >-
+    ocp_virtualization_vm_provision_api_key: >-
       {{
         provision_openshift_virt_api_token
         | default(
@@ -280,7 +280,7 @@
             true
           )
       }}
-    vm_provision_openshift_verify_ssl: >-
+    ocp_virtualization_vm_provision_openshift_verify_ssl: >-
       {{
         validate_certs
         | default(
@@ -292,7 +292,7 @@
             true
           )
       }}
-    vm_provision_request:
+    ocp_virtualization_vm_provision_request:
       - "{{ ocp_virtualization_vm_definition }}"
 
 - name: Provision VirtualMachine via infra.openshift_virtualization_ops.vm_provision

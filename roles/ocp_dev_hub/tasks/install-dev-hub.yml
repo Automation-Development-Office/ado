@@ -36,18 +36,18 @@
   vars:
     ocp_rhbk_secret_client_key: rhdh_client
     ocp_rhbk_secret_client_id: "{{ dev_hub_keycloak_client_id | default('rhdh') }}"
-    ocp_rhbk_secret_target_var: dev_hub_oidc_client_secret
+    ocp_rhbk_secret_target_var: ocp_dev_hub_oidc_client_secret
   when:
-    - dev_hub_install_include_oidc | default(false) | bool
-    - (dev_hub_oidc_client_secret | default('') | string | length) == 0
+    - ocp_dev_hub_install_include_oidc | default(false) | bool
+    - (ocp_dev_hub_oidc_client_secret | default('') | string | length) == 0
   no_log: true
 
 - name: Prefer fetched Dev Hub OIDC client secret
   ansible.builtin.set_fact:
-    dev_hub_oidc_client_secret: "{{ ocp_rhbk_client_secrets__value }}"
+    ocp_dev_hub_oidc_client_secret: "{{ ocp_rhbk_client_secrets__value }}"
   when:
-    - dev_hub_install_include_oidc | default(false) | bool
-    - (dev_hub_oidc_client_secret | default('') | string | length) == 0
+    - ocp_dev_hub_install_include_oidc | default(false) | bool
+    - (ocp_dev_hub_oidc_client_secret | default('') | string | length) == 0
     - ocp_rhbk_client_secrets__value is defined
     - (ocp_rhbk_client_secrets__value | string | length) > 0
   no_log: true
@@ -60,8 +60,8 @@
       in realm {{ dev_hub_keycloak_realm | default(rhbk_realm | default('rhlab')) }},
       or run RHBK client bootstrap first.
   when:
-    - dev_hub_install_include_oidc | default(false) | bool
-    - (dev_hub_oidc_client_secret | default('') | string | length) == 0
+    - ocp_dev_hub_install_include_oidc | default(false) | bool
+    - (ocp_dev_hub_oidc_client_secret | default('') | string | length) == 0
 
 - name: Fail when Dev Hub GitLab token is empty but GitLab integration is configured
   ansible.builtin.fail:
@@ -84,7 +84,7 @@
       type: Opaque
       stringData:
         BACKEND_SECRET: "{{ dev_hub_backend_secret }}"
-        OIDC_CLIENT_SECRET: "{{ dev_hub_oidc_client_secret | default('') if (dev_hub_install_include_oidc | default(false) | bool) else '' }}"
+        OIDC_CLIENT_SECRET: "{{ ocp_dev_hub_oidc_client_secret | default('') if (ocp_dev_hub_install_include_oidc | default(false) | bool) else '' }}"
         GITLAB_TOKEN: "{{ dev_hub_gitlab_token | default('') }}"
   no_log: true
 

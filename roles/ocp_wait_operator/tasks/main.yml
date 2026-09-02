@@ -14,11 +14,11 @@
 
 # Resolve CSV/deployment match string once. Callers often only set operator_name
 # (e.g. RHBK); aliases alone do nothing when neither substring nor csv_contains exists.
-- name: Resolve operator_name_substring
+- name: Resolve ocp_wait_operator_name_substring
   ansible.builtin.set_fact:
-    operator_name_substring: >-
+    ocp_wait_operator_name_substring: >-
       {{
-        operator_name_substring
+        ocp_wait_operator_name_substring
         | default(operator_csv_contains)
         | default(operator_name)
         | default('')
@@ -30,7 +30,7 @@
     ocp_wait_operator__csv_match_alt: >-
       {{
         (
-          operator_name_substring
+          ocp_wait_operator_name_substring
           | default(operator_csv_contains)
           | default(operator_name)
           | default('')
@@ -40,12 +40,12 @@
         )
       }}
 
-- name: Assert operator_name_substring is set
+- name: Assert ocp_wait_operator_name_substring is set
   ansible.builtin.assert:
     that:
-      - (operator_name_substring | length) > 0
+      - (ocp_wait_operator_name_substring | length) > 0
     fail_msg: >-
-      operator_name_substring is undefined/empty. Set operator_name_substring,
+      ocp_wait_operator_name_substring is undefined/empty. Set ocp_wait_operator_name_substring,
       operator_csv_contains, or operator_name for component wait in namespace
       '{{ name_space | default("") }}'.
 
@@ -61,7 +61,7 @@
         (
           ocp_wait_operator__installed_operator_csvs.resources
           | default([])
-          | selectattr('metadata.name', 'search', operator_name_substring)
+          | selectattr('metadata.name', 'search', ocp_wait_operator_name_substring)
           | list
           | length > 0
         )
@@ -81,7 +81,7 @@
     - name: Fail with actionable Operator CSV guidance
       ansible.builtin.fail:
         msg: >-
-          No ClusterServiceVersion matching '{{ operator_name_substring }}'
+          No ClusterServiceVersion matching '{{ ocp_wait_operator_name_substring }}'
           (or hyphen-stripped '{{ ocp_wait_operator__csv_match_alt }}') in namespace
           '{{ ocp_wait_operator__namespace }}'. CSVs present:
           {{
@@ -100,7 +100,7 @@
 - name: Debug operator installation status
   ansible.builtin.debug:
     msg: >-
-      Operator '{{ operator_name_substring }}' CSV is installed in '{{ ocp_wait_operator__namespace }}'.
+      Operator '{{ ocp_wait_operator_name_substring }}' CSV is installed in '{{ ocp_wait_operator__namespace }}'.
       Operator installed: {{ ocp_wait_operator__operator_installed }}
 
 - name: Resolve operator deployment name pattern
@@ -108,7 +108,7 @@
     ocp_wait_operator__operator_deployment_pattern: >-
       {{
         operator_deployment_pattern
-        | default(operator_name_substring)
+        | default(ocp_wait_operator_name_substring)
         | string
         | trim
       }}
@@ -116,7 +116,7 @@
       {{
         (
           operator_deployment_pattern
-          | default(operator_name | default(operator_name_substring) | default(''))
+          | default(operator_name | default(ocp_wait_operator_name_substring) | default(''))
           | string
           | trim
           | regex_replace('-', '')

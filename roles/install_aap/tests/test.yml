@@ -1,7 +1,8 @@
 ---
 # Include install_aap against live inventory with aap_ocp_install_* (OpenShift)
 # or aap_setup_* (RHEL) vars; this file is a placeholder for role packaging.
-- hosts: localhost
+- name: Install AAP placeholder live test
+  hosts: localhost
   gather_facts: false
   tasks:
     - name: Document install_aap live test expectation

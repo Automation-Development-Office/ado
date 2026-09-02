@@ -54,7 +54,7 @@
 
 - name: Resolve RHBK TLS mode
   ansible.builtin.set_fact:
-    ocp_rhbk_tls_mode: >-
+    install_rhbk_tls_mode: >-
       {{
         'cert_manager' if (cert_manager | default(false) | bool)
         else (
@@ -86,7 +86,7 @@
         issuerRef:
           name: "{{ ocp_rhbk_issuer_name }}"
           kind: "{{ ocp_rhbk_issuer_kind }}"
-  when: ocp_rhbk_tls_mode == 'cert_manager'
+  when: install_rhbk_tls_mode == 'cert_manager'
 
 - name: Wait for cert-manager Certificate to be Ready
   kubernetes.core.k8s_info:
@@ -94,7 +94,7 @@
     kind: Certificate
     name: "{{ ocp_rhbk_cert_name }}"
     namespace: "{{ name_space }}"
-  register: ocp_rhbk_certificate_info
+  register: install_rhbk_certificate_info
   until: >-
     ocp_rhbk_certificate_info.resources | default([]) | length > 0
     and (
@@ -109,7 +109,7 @@
   delay: "{{ ocp_rhbk_certificate_wait_delay | default(10) | int }}"
   when:
     - state == 'present'
-    - ocp_rhbk_tls_mode == 'cert_manager'
+    - install_rhbk_tls_mode == 'cert_manager'
 
 - name: Guard — manual TLS requires tls_crt + tls_key
   ansible.builtin.assert:
@@ -117,10 +117,10 @@
       - tls_crt is defined and (tls_crt | string | length) > 0
       - tls_key is defined and (tls_key | string | length) > 0
     fail_msg: "manual TLS mode requires tls_crt and tls_key."
-  when: ocp_rhbk_tls_mode == 'manual'
+  when: install_rhbk_tls_mode == 'manual'
 
 - name: Resolve default IngressController certificate secret name
-  when: ocp_rhbk_tls_mode == 'ingress_copy'
+  when: install_rhbk_tls_mode == 'ingress_copy'
   block:
     - name: Read default IngressController
       kubernetes.core.k8s_info:
@@ -128,16 +128,16 @@
         kind: IngressController
         name: "{{ ocp_rhbk_ingress_controller_name | default('default') }}"
         namespace: "{{ ocp_rhbk_ingress_operator_namespace | default('openshift-ingress-operator') }}"
-      register: ocp_rhbk_ingress_controller
+      register: install_rhbk_ingress_controller
 
     - name: Set default ingress TLS secret reference
       ansible.builtin.set_fact:
-        ocp_rhbk_ingress_tls_secret_name: >-
+        install_rhbk_ingress_tls_secret_name: >-
           {{
             ocp_rhbk_ingress_controller.resources[0].spec.defaultCertificate.name
             | default('router-certs-' ~ (ocp_rhbk_ingress_controller_name | default('default')))
           }}
-        ocp_rhbk_ingress_tls_secret_namespace: >-
+        install_rhbk_ingress_tls_secret_namespace: >-
           {{
             ocp_rhbk_ingress_controller.resources[0].spec.defaultCertificate.namespace
             | default('openshift-ingress')
@@ -147,19 +147,19 @@
       kubernetes.core.k8s_info:
         api_version: v1
         kind: Secret
-        name: "{{ ocp_rhbk_ingress_tls_secret_name }}"
-        namespace: "{{ ocp_rhbk_ingress_tls_secret_namespace }}"
-      register: ocp_rhbk_ingress_tls_secret
+        name: "{{ install_rhbk_ingress_tls_secret_name }}"
+        namespace: "{{ install_rhbk_ingress_tls_secret_namespace }}"
+      register: install_rhbk_ingress_tls_secret
 
     - name: Decode and validate default ingress PEM material
       ansible.builtin.set_fact:
-        ocp_rhbk_ingress_tls_crt_pem: >-
+        install_rhbk_ingress_tls_crt_pem: >-
           {{
             ocp_rhbk_ingress_tls_secret.resources[0].data['tls.crt']
             | default('')
             | b64decode
           }}
-        ocp_rhbk_ingress_tls_key_pem: >-
+        install_rhbk_ingress_tls_key_pem: >-
           {{
             ocp_rhbk_ingress_tls_secret.resources[0].data['tls.key']
             | default('')
@@ -171,13 +171,13 @@
       ansible.builtin.assert:
         that:
           - (ocp_rhbk_ingress_tls_secret.resources | default([]) | length) > 0
-          - "'BEGIN CERTIFICATE' in (ocp_rhbk_ingress_tls_crt_pem | default(''))"
+          - "'BEGIN CERTIFICATE' in (install_rhbk_ingress_tls_crt_pem | default(''))"
           - >-
-            ('BEGIN' in (ocp_rhbk_ingress_tls_key_pem | default('')))
-            and ('PRIVATE KEY' in (ocp_rhbk_ingress_tls_key_pem | default('')))
+            ('BEGIN' in (install_rhbk_ingress_tls_key_pem | default('')))
+            and ('PRIVATE KEY' in (install_rhbk_ingress_tls_key_pem | default('')))
         fail_msg: >-
           Default ingress TLS secret
-          {{ ocp_rhbk_ingress_tls_secret_namespace }}/{{ ocp_rhbk_ingress_tls_secret_name }}
+          {{ install_rhbk_ingress_tls_secret_namespace }}/{{ install_rhbk_ingress_tls_secret_name }}
           is missing or has empty/invalid PEM data (OpenShift warning:
           "tls: failed to find any PEM data in certificate input").
           Run "Update Default Ingress Certificate" / cert-manager first,
@@ -210,7 +210,7 @@
       data:
         tls.crt: "{{ tls_crt | b64encode }}"
         tls.key: "{{ tls_key | b64encode }}"
-  when: ocp_rhbk_tls_mode == 'manual'
+  when: install_rhbk_tls_mode == 'manual'
 
 # -----------------------
 # Postgres: handle immutable SS changes safely
@@ -335,10 +335,10 @@
 
 - name: Build Keycloak CR http section for TLS mode
   ansible.builtin.set_fact:
-    ocp_rhbk_http_spec: >-
+    install_rhbk_http_spec: >-
       {{
         {'httpEnabled': true}
-        if (ocp_rhbk_tls_mode | default('edge')) == 'edge'
+        if (install_rhbk_tls_mode | default('edge')) == 'edge'
         else {'tlsSecret': ocp_rhbk_tls_secret_name}
       }}
   changed_when: false
@@ -370,7 +370,7 @@
             name: "{{ postgres_secret_name }}"
             key: password
 
-        http: "{{ ocp_rhbk_http_spec }}"
+        http: "{{ install_rhbk_http_spec }}"
 
         hostname:
           hostname: "{{ ocp_rhbk_hostname }}"
@@ -399,4 +399,4 @@
           insecureEdgeTerminationPolicy: Redirect
   when:
     - state == 'present'
-    - (ocp_rhbk_tls_mode | default('edge')) == 'edge'
+    - (install_rhbk_tls_mode | default('edge')) == 'edge'

@@ -1,16 +1,16 @@
 ---
-- name: Normalize grafana_email from email alias
+- name: Normalize grafana_install_grafana_email from email alias
   ansible.builtin.set_fact:
-    grafana_email: "{{ email }}"  # noqa: var-naming[no-role-prefix]
+    grafana_install_grafana_email: "{{ email }}"  # noqa: var-naming[no-role-prefix]
   when:
-    - grafana_email is not defined
+    - grafana_install_grafana_email is not defined
     - email is defined
 
-- name: Normalize grafana_email SMTP field aliases from preflight
+- name: Normalize grafana_install_grafana_email SMTP field aliases from preflight
   ansible.builtin.set_fact:
-    grafana_email: >-
+    grafana_install_grafana_email: >-
       {{
-        (grafana_email | default({}))
+        (grafana_install_grafana_email | default({}))
         | combine({
             'host': (
               grafana_email.host
@@ -30,7 +30,7 @@
             ),
           }, recursive=True)
       }}
-  when: grafana_email is defined
+  when: grafana_install_grafana_email is defined
 
 - name: Build Grafana SMTP config when email enabled
   ansible.builtin.set_fact:
@@ -44,5 +44,5 @@
         from_name: "{{ grafana_email.from_name | default('Grafana') }}"
   when:
     - grafana_install_email_enabled | default(false) | bool
-    - grafana_email is defined
+    - grafana_install_grafana_email is defined
   no_log: true

@@ -1,14 +1,14 @@
 ---
 - name: Resolve MinIO console and API hostnames
   ansible.builtin.set_fact:
-    minio_console_hostname_effective: >-
+    ocp_minio_console_hostname_effective: >-
       {{
         minio_console_hostname
         | default(hostname)
         | default('minio-console-' ~ (name_space | default('minio')) ~ '.'
           ~ (apps_domain | default(app_domain | default('apps.example.com'))))
       }}
-    minio_api_hostname_effective: >-
+    ocp_minio_api_hostname_effective: >-
       {{
         minio_api_hostname
         | default('minio-api-' ~ (name_space | default('minio')) ~ '.'
@@ -17,8 +17,8 @@
 
 - name: Resolve MinIO console URL and OIDC discovery URL
   ansible.builtin.set_fact:
-    minio_console_url: "https://{{ minio_console_hostname_effective }}"
-    minio_oidc_config_url_effective: >-
+    ocp_minio_console_url: "https://{{ ocp_minio_console_hostname_effective }}"
+    ocp_minio_oidc_config_url_effective: >-
       {{
             minio_oidc_config_url
         | default(
@@ -46,7 +46,7 @@
 
 - name: Pick default StorageClass for MinIO PVC
   ansible.builtin.set_fact:
-    storage: >-
+    ocp_minio_storage: >-
       {{
         (
           ocp_minio_storage_classes.resources
@@ -118,33 +118,33 @@
       type: Opaque
       stringData:
         MINIO_IDENTITY_OPENID_CLIENT_ID: "{{ minio_oidc_client_id }}"
-        MINIO_IDENTITY_OPENID_CLIENT_SECRET: "{{ minio_oidc_client_secret | default('') }}"
-        MINIO_IDENTITY_OPENID_CONFIG_URL: "{{ minio_oidc_config_url_effective }}"
+        MINIO_IDENTITY_OPENID_CLIENT_SECRET: "{{ ocp_minio_oidc_client_secret | default('') }}"
+        MINIO_IDENTITY_OPENID_CONFIG_URL: "{{ ocp_minio_oidc_config_url_effective }}"
         MINIO_IDENTITY_OPENID_CLAIM_NAME: "{{ minio_oidc_claim_name | default('policy') }}"
         MINIO_IDENTITY_OPENID_DISPLAY_NAME: "{{ minio_oidc_display_name | default('Keycloak') }}"
         MINIO_IDENTITY_OPENID_SCOPES: "{{ minio_oidc_scopes | default('openid,profile,email') }}"
   when:
     - minio_oidc_enabled | default(false) | bool
-    - minio_oidc_client_secret is defined
-    - (minio_oidc_client_secret | string | length) > 0
+    - ocp_minio_oidc_client_secret is defined
+    - (ocp_minio_oidc_client_secret | string | length) > 0
   no_log: true
 
 - name: Build MinIO container envFrom list
   ansible.builtin.set_fact:
-    minio_env_from:
+    ocp_minio_env_from:
       - secretRef:
           name: minio-creds
-    minio_extra_env:
+    ocp_minio_extra_env:
       - name: MINIO_BROWSER_REDIRECT_URL
-        value: "{{ minio_console_url }}"
+        value: "{{ ocp_minio_console_url }}"
 
 - name: Append MinIO OIDC envFrom when enabled
   ansible.builtin.set_fact:
-    minio_env_from: "{{ minio_env_from + [{'secretRef': {'name': 'minio-oidc'}}] }}"
+    ocp_minio_env_from: "{{ ocp_minio_env_from + [{'secretRef': {'name': 'minio-oidc'}}] }}"
   when:
     - minio_oidc_enabled | default(false) | bool
-    - minio_oidc_client_secret is defined
-    - (minio_oidc_client_secret | string | length) > 0
+    - ocp_minio_oidc_client_secret is defined
+    - (ocp_minio_oidc_client_secret | string | length) > 0
 
 - name: Create MinIO data PVC
   kubernetes.core.k8s:
@@ -167,7 +167,7 @@
 
 - name: Build MinIO Deployment definition
   ansible.builtin.set_fact:
-    minio_deployment_definition: >-
+    ocp_minio_deployment_definition: >-
       {{
         {
           'apiVersion': 'apps/v1',
@@ -200,8 +200,8 @@
                     {'name': 'api', 'containerPort': minio_api_port | int},
                     {'name': 'console', 'containerPort': minio_console_port | int},
                   ],
-                  'env': minio_extra_env,
-                  'envFrom': minio_env_from,
+                  'env': ocp_minio_extra_env,
+                  'envFrom': ocp_minio_env_from,
                   'resources': minio_resources,
                   'volumeMounts': [{'name': 'data', 'mountPath': '/data'}],
                 }],
@@ -240,11 +240,11 @@
 - name: Deploy MinIO
   kubernetes.core.k8s:
     state: present
-    definition: "{{ minio_deployment_definition }}"
+    definition: "{{ ocp_minio_deployment_definition }}"
 
 - name: Build MinIO Service definition
   ansible.builtin.set_fact:
-    minio_service_definition: >-
+    ocp_minio_service_definition: >-
       {{
         {
           'apiVersion': 'v1',
@@ -268,7 +268,7 @@
 - name: Create MinIO Service
   kubernetes.core.k8s:
     state: present
-    definition: "{{ minio_service_definition }}"
+    definition: "{{ ocp_minio_service_definition }}"
 
 - name: Wait for MinIO Service endpoints
   kubernetes.core.k8s_info:
@@ -296,7 +296,7 @@
         labels:
           app.kubernetes.io/name: minio
       spec:
-        host: "{{ minio_api_hostname_effective }}"
+        host: "{{ ocp_minio_api_hostname_effective }}"
         to:
           kind: Service
           name: "{{ minio_service_name }}"
@@ -318,7 +318,7 @@
         labels:
           app.kubernetes.io/name: minio
       spec:
-        host: "{{ minio_console_hostname_effective }}"
+        host: "{{ ocp_minio_console_hostname_effective }}"
         to:
           kind: Service
           name: "{{ minio_service_name }}"
@@ -344,7 +344,7 @@
   ansible.builtin.debug:
     msg: |
       MinIO endpoints:
-      - API: https://{{ minio_api_hostname_effective }}
-      - Console: https://{{ minio_console_hostname_effective }}
+      - API: https://{{ ocp_minio_api_hostname_effective }}
+      - Console: https://{{ ocp_minio_console_hostname_effective }}
       - OIDC: {{ 'enabled (' ~ minio_oidc_display_name ~ ')' if (minio_oidc_enabled | default(false) | bool) else 'disabled' }}
       - Root user: {{ minio_root_user }} (password in vault / minio-creds Secret)

@@ -108,5 +108,5 @@
 - name: Discover Routes | Export candidates for downstream roles
   ansible.builtin.set_fact:
     ocp_discover_routes__alt_routes_candidates: "{{ ocp_discover_routes__alt_candidates }}"
-    route_alt_candidates: "{{ ocp_discover_routes__alt_candidates }}"
+    ocp_discover_routes_alt_candidates: "{{ ocp_discover_routes__alt_candidates }}"
     ocp_discover_routes_printed: "{{ ocp_discover_routes__printed }}"

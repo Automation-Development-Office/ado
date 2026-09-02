@@ -91,7 +91,9 @@
 
 - name: Get existing mappers for client scope
   ansible.builtin.uri:
-    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/client-scopes/{{ rhbk_client_scope_groups_scope_id }}/protocol-mappers/models"
+    url: >-
+      {{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/client-scopes/
+      {{ rhbk_client_scope_groups_scope_id }}/protocol-mappers/models
     method: GET
     headers:
       Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"
@@ -111,7 +113,9 @@
 
 - name: Add groups protocol mapper to client scope
   ansible.builtin.uri:
-    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/client-scopes/{{ rhbk_client_scope_groups_scope_id }}/protocol-mappers/models"
+    url: >-
+      {{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/client-scopes/
+      {{ rhbk_client_scope_groups_scope_id }}/protocol-mappers/models
     method: POST
     headers:
       Authorization: "Bearer {{ rhbk_client_scope_auth.json.access_token }}"

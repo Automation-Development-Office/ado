@@ -59,8 +59,42 @@
 # Build port maps in pure Jinja so | int stays numeric.
 - name: DirSrv Coerce Service / container ports to int
   ansible.builtin.set_fact:
-    install_dirsrv_internal_ports: "{{ [{'name': 'dirsrv-nonsecure', 'port': ldap_port | int, 'targetPort': ldap_port | int, 'protocol': 'TCP'}, {'name': 'dirsrv-secure', 'port': ldaps_port | int, 'targetPort': ldaps_port | int, 'protocol': 'TCP'}] }}"
-    install_dirsrv_external_ports: "{{ [{'name': 'dirsrv-nonsecure', 'port': ldap_port | int, 'targetPort': ldap_port | int, 'protocol': 'TCP', 'nodePort': nodeport_ldap | int}, {'name': 'dirsrv-secure', 'port': ldaps_port | int, 'targetPort': ldaps_port | int, 'protocol': 'TCP', 'nodePort': nodeport_ldaps | int}] }}"
+    install_dirsrv_internal_ports: >-
+      {{
+        [
+          {
+            'name': 'dirsrv-nonsecure',
+            'port': ldap_port | int,
+            'targetPort': ldap_port | int,
+            'protocol': 'TCP',
+          },
+          {
+            'name': 'dirsrv-secure',
+            'port': ldaps_port | int,
+            'targetPort': ldaps_port | int,
+            'protocol': 'TCP',
+          },
+        ]
+      }}
+    install_dirsrv_external_ports: >-
+      {{
+        [
+          {
+            'name': 'dirsrv-nonsecure',
+            'port': ldap_port | int,
+            'targetPort': ldap_port | int,
+            'protocol': 'TCP',
+            'nodePort': nodeport_ldap | int,
+          },
+          {
+            'name': 'dirsrv-secure',
+            'port': ldaps_port | int,
+            'targetPort': ldaps_port | int,
+            'protocol': 'TCP',
+            'nodePort': nodeport_ldaps | int,
+          },
+        ]
+      }}
     install_dirsrv_container_ports: "{{ [{'name': 'ldap', 'containerPort': ldap_port | int}, {'name': 'ldaps', 'containerPort': ldaps_port | int}] }}"
     install_dirsrv_probe_port: "{{ [ldap_port | int] }}"
     # Keep replicas as a one-element list so | first stays int32 for k8s (quoted | int becomes string).
@@ -354,15 +388,22 @@
     - "aci-anon-read.ldif"
   when: enable_bootstrap | default(true) | bool
 
+- name: Dirsrv Set ldap manager bind args for bootstrap
+  ansible.builtin.set_fact:
+    install_dirsrv_ldap_mgr_bind: >-
+      -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}"
+  when: enable_bootstrap | default(true) | bool
+  changed_when: false
+
 - name: Dirsrv Ensure suffix root exists (idempotent)
   kubernetes.core.k8s_exec:
     namespace: "{{ install_dirsrv_target_namespace }}"
     pod: "{{ install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
-    # Keep the shell on one logical line — extra-indented YAML folded lines
-    # become real newlines and break ldapsearch argv ("-D: command not found").
     command: >-
-      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -b "{{ install_dirsrv_ds_suffix_effective }}" -s base "(objectClass=*)" dn >/dev/null 2>&1 || ldapadd -x -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -f /tmp/suffix.ldif'
+      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }}
+      -b "{{ install_dirsrv_ds_suffix_effective }}" -s base "(objectClass=*)" dn >/dev/null 2>&1
+      || ldapadd -x -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }} -f /tmp/suffix.ldif'
   when: enable_bootstrap | default(true) | bool
 
 - name: Dirsrv Ensure ou=people exists (idempotent)
@@ -371,7 +412,9 @@
     pod: "{{ install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
-      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -b "ou=people,{{ install_dirsrv_ds_suffix_effective }}" -s base "(objectClass=*)" dn >/dev/null 2>&1 || ldapadd -x -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -f /tmp/ou-people.ldif'
+      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }}
+      -b "ou=people,{{ install_dirsrv_ds_suffix_effective }}" -s base "(objectClass=*)" dn >/dev/null 2>&1
+      || ldapadd -x -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }} -f /tmp/ou-people.ldif'
   when: enable_bootstrap | default(true) | bool
 
 - name: Dirsrv Ensure ou=groups exists (idempotent)
@@ -380,7 +423,9 @@
     pod: "{{ install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
-      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -b "ou=groups,{{ install_dirsrv_ds_suffix_effective }}" -s base "(objectClass=*)" dn >/dev/null 2>&1 || ldapadd -x -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -f /tmp/ou-groups.ldif'
+      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }}
+      -b "ou=groups,{{ install_dirsrv_ds_suffix_effective }}" -s base "(objectClass=*)" dn >/dev/null 2>&1
+      || ldapadd -x -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }} -f /tmp/ou-groups.ldif'
   when: enable_bootstrap | default(true) | bool
 
 - name: Dirsrv Ensure test group exists (idempotent)
@@ -389,7 +434,9 @@
     pod: "{{ install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
-      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -b "cn=testgroup,ou=groups,{{ install_dirsrv_ds_suffix_effective }}" -s base "(objectClass=*)" dn >/dev/null 2>&1 || ldapadd -x -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -f /tmp/test-group.ldif'
+      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }}
+      -b "cn=testgroup,ou=groups,{{ install_dirsrv_ds_suffix_effective }}" -s base "(objectClass=*)" dn >/dev/null 2>&1
+      || ldapadd -x -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }} -f /tmp/test-group.ldif'
   when: enable_bootstrap | default(true) | bool
 
 - name: Dirsrv Ensure test user exists (idempotent)
@@ -398,7 +445,10 @@
     pod: "{{ install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
-      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -b "uid={{ install_dirsrv_test_user_uid_effective }},ou=people,{{ install_dirsrv_ds_suffix_effective }}" -s base "(objectClass=*)" dn >/dev/null 2>&1 || ldapadd -x -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -f /tmp/test-user.ldif'
+      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }}
+      -b "uid={{ install_dirsrv_test_user_uid_effective }},ou=people,{{ install_dirsrv_ds_suffix_effective }}"
+      -s base "(objectClass=*)" dn >/dev/null 2>&1
+      || ldapadd -x -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }} -f /tmp/test-user.ldif'
   when: enable_bootstrap | default(true) | bool
 
 - name: Dirsrv Ensure test user is member of test group (idempotent)
@@ -407,7 +457,11 @@
     pod: "{{ install_dirsrv_pods_list[0] }}"
     container: dirsrv-container
     command: >-
-      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -b "cn=testgroup,ou=groups,{{ install_dirsrv_ds_suffix_effective }}" "(member=uid={{ install_dirsrv_test_user_uid_effective }},ou=people,{{ install_dirsrv_ds_suffix_effective }})" dn >/dev/null 2>&1 || ldapmodify -x -H ldap://localhost:{{ ldap_port }} -D "cn=Directory Manager" -w "{{ install_dirsrv_dm_password }}" -f /tmp/test-group-member.ldif'
+      sh -lc 'ldapsearch -x -LLL -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }}
+      -b "cn=testgroup,ou=groups,{{ install_dirsrv_ds_suffix_effective }}"
+      "(member=uid={{ install_dirsrv_test_user_uid_effective }},ou=people,{{ install_dirsrv_ds_suffix_effective }})"
+      dn >/dev/null 2>&1 || ldapmodify -x -H ldap://localhost:{{ ldap_port }} {{ install_dirsrv_ldap_mgr_bind }}
+      -f /tmp/test-group-member.ldif'
   when: enable_bootstrap | default(true) | bool
 
 - name: Dirsrv Apply user-groups LDIF (non-fatal; may already exist)
@@ -429,7 +483,9 @@
     pod: "{{ item.pod }}"
     container: dirsrv-container
     command: >-
-      sh -lc 'dsconf localhost replication enable --suffix "{{ install_dirsrv_ds_suffix_effective }}" --role supplier --replica-id {{ item.replica_id }} --bind-dn "{{ repl_manager_dn }}" --bind-passwd "{{ install_dirsrv_repl_manager_password_effective }}"'
+      sh -lc 'dsconf localhost replication enable --suffix "{{ install_dirsrv_ds_suffix_effective }}"
+      --role supplier --replica-id {{ item.replica_id }} --bind-dn "{{ repl_manager_dn }}"
+      --bind-passwd "{{ install_dirsrv_repl_manager_password_effective }}"'
   register: install_dirsrv_repl_enable
   failed_when: >
     (install_dirsrv_repl_enable.rc != 0) and
@@ -454,7 +510,10 @@
       AGREEMENT="to-pod-1"
       TARGET="{{ install_dirsrv_pods_list[1] }}.dirsrv-internal-svc.{{ install_dirsrv_target_namespace }}.svc.cluster.local"
       dsconf localhost repl-agmt list --suffix "{{ install_dirsrv_ds_suffix_effective }}" | grep -q "$AGREEMENT" && exit 0
-      dsconf localhost repl-agmt create --suffix "{{ install_dirsrv_ds_suffix_effective }}" --host "$TARGET" --port {{ ldap_port }} --conn-protocol LDAP --bind-method SIMPLE --bind-dn "{{ repl_manager_dn }}" --bind-passwd "{{ install_dirsrv_repl_manager_password_effective }}" "$AGREEMENT"'
+      dsconf localhost repl-agmt create --suffix "{{ install_dirsrv_ds_suffix_effective }}"
+      --host "$TARGET" --port {{ ldap_port }} --conn-protocol LDAP --bind-method SIMPLE
+      --bind-dn "{{ repl_manager_dn }}" --bind-passwd "{{ install_dirsrv_repl_manager_password_effective }}"
+      "$AGREEMENT"'
   when:
     - enable_replication | default(true) | bool
     - (install_dirsrv_pods_list | length) >= 2

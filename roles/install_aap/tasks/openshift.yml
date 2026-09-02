@@ -24,7 +24,7 @@
       - (aap_ocp_install_license_mode | default('none') | lower) not in ['', 'none', 'skip']
       - >-
         (
-          aap_ocp_install_controller_route_host | default('') | length > 0
+          install_aap_controller_route_host | default('') | length > 0
         )
         or (hostname | default('') | length > 0)
         or (aap_hostname | default('') | length > 0)

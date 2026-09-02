@@ -1,18 +1,18 @@
 ---
 - name: Normalize descheduler profiles (API rejects SoftTopology + Topology together)
   ansible.builtin.set_fact:
-    descheduler_profiles: >-
+    ocp_descheduler_profiles: >-
       {{
         (
-          descheduler_profiles
+          ocp_descheduler_profiles
           | default([])
           | unique
           | reject('equalto', 'SoftTopologyAndDuplicates')
           | list
         )
-        if ('TopologyAndDuplicates' in (descheduler_profiles | default([])))
+        if ('TopologyAndDuplicates' in (ocp_descheduler_profiles | default([])))
         else (
-          descheduler_profiles
+          ocp_descheduler_profiles
           | default([])
           | unique
           | list
