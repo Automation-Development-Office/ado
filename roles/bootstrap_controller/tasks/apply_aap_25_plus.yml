@@ -78,10 +78,27 @@
   ansible.builtin.set_fact:
     bootstrap_controller_hub_publish_repository: "{{ (hub_collections | first).repository | default('validated') }}"
     bootstrap_controller_hub_publish_working_dir: "/var/tmp/ado-hub-publish"
-    # Hub publish requires a Hub API token — do not fall back to Controller OAuth.
+    # Gateway AAP Hub Galaxy v3 (namespaces/upload) accepts Contoller OAuth or
+    # admin basic auth. Hub User Access / Galaxy API tokens authenticate
+    # ansible-galaxy pulls (org Galaxy credentials), not Hub admin APIs.
     bootstrap_controller_hub_ah_token: >-
       {{
-        vault_galaxy_hub_token | default('', true) | string | trim
+        (
+          controller_oauthtoken
+          | default(vault_controller_oauthtoken | default('', true), true)
+          | string
+          | trim
+        )
+        if (
+          (
+            controller_oauthtoken
+            | default(vault_controller_oauthtoken | default('', true), true)
+            | string
+            | trim
+          )
+          | length
+        ) > 0
+        else (vault_galaxy_hub_token | default('', true) | string | trim)
       }}
     bootstrap_controller_hub_tarball_src: >-
       {{
@@ -309,9 +326,11 @@
         if (bootstrap_controller_hub_hostname | default('') | string | trim | length > 0)
         else (controller_host | default(vault_controller_hostname))
       }}
+    # Contoller OAuth works with Bearer or Token on gateway Hub; Hub User
+    # Access tokens do not authorize Galaxy v3 / Pulp admin calls.
     bootstrap_controller_hub_uri_headers: >-
       {{
-        {'Authorization': 'Token ' ~ bootstrap_controller_hub_ah_token}
+        {'Authorization': 'Bearer ' ~ bootstrap_controller_hub_ah_token}
         if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
         else omit
       }}
