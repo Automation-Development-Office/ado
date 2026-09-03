@@ -16,7 +16,8 @@ on: # yamllint disable-line rule:truthy
 env:
   # Resolve galaxy.yml dependencies that transitively require Automation Hub content.
   ANSIBLE_GALAXY_SERVER_LIST: certified,galaxy
-  ANSIBLE_GALAXY_SERVER_CERTIFIED_URL: https://cloud.redhat.com/api/automation-hub/
+  ANSIBLE_GALAXY_SERVER_GALAXY_URL: https://galaxy.ansible.com/
+  ANSIBLE_GALAXY_SERVER_CERTIFIED_URL: https://console.redhat.com/api/automation-hub/content/published/
   ANSIBLE_GALAXY_SERVER_CERTIFIED_AUTH_URL: >-
     https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
   ANSIBLE_GALAXY_SERVER_CERTIFIED_TOKEN: ${{ secrets.AUTOMATION_HUB_TOKEN }}
@@ -110,7 +111,7 @@ jobs:
     secrets:
       galaxy_server_token: ${{ secrets.AUTOMATION_HUB_TOKEN }}
     with:
-      galaxy_server_url: https://cloud.redhat.com/api/automation-hub/
+      galaxy_server_url: https://console.redhat.com/api/automation-hub/content/published/
       galaxy_server_auth_url: >-
         https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
   unit-galaxy:
@@ -118,7 +119,7 @@ jobs:
     secrets:
       galaxy_server_token: ${{ secrets.AUTOMATION_HUB_TOKEN }}
     with:
-      galaxy_server_url: https://cloud.redhat.com/api/automation-hub/
+      galaxy_server_url: https://console.redhat.com/api/automation-hub/content/published/
       galaxy_server_auth_url: >-
         https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
   unit-source:
