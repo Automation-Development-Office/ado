@@ -119,13 +119,13 @@ on:
 
 env:
   COLLECTION_DIR: ${{ github.workspace }}
-  # Resolve galaxy.yml dependencies that transitively require Automation Hub content.
   ANSIBLE_GALAXY_SERVER_LIST: certified,galaxy
   ANSIBLE_GALAXY_SERVER_GALAXY_URL: https://galaxy.ansible.com/
   ANSIBLE_GALAXY_SERVER_CERTIFIED_URL: https://console.redhat.com/api/automation-hub/content/published/
   ANSIBLE_GALAXY_SERVER_CERTIFIED_AUTH_URL: >-
     https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
   ANSIBLE_GALAXY_SERVER_CERTIFIED_TOKEN: ${{ secrets.AUTOMATION_HUB_TOKEN }}
+  ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
 
 jobs:
   # Quality stage
@@ -160,6 +160,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Verify Automation Hub connectivity
+        run: |
+          pip install ansible-core
+          scripts/ci/verify-automation-hub.sh
+
       - name: Install Ansible collections
         run: |
           set -euo pipefail
@@ -182,7 +187,6 @@ jobs:
           fi
         env:
           ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
-          ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
 
       - name: Run ansible-lint
         env:
@@ -452,9 +456,12 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-utils podman
+          sudo apt-get install -y qemu-utils podman curl
           pip install --upgrade pip
           pip install ansible-core 'molecule-plugins[docker,podman]' docker
+
+      - name: Verify Automation Hub connectivity
+        run: scripts/ci/verify-automation-hub.sh
 
       - name: Install collection from local source
         run: |
@@ -478,7 +485,6 @@ jobs:
           fi
         env:
           ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
-          ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
 
       - name: Set ANSIBLE_COLLECTIONS_PATH for subsequent steps
         run: echo "ANSIBLE_COLLECTIONS_PATH=$HOME/.ansible/collections" >> "$GITHUB_ENV"
