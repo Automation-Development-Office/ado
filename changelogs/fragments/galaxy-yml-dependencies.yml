@@ -1,0 +1,7 @@
+---
+minor_changes:
+  - >-
+    galaxy.yml - Declare public Galaxy runtime collection dependencies
+    (kubernetes.core, community.general, ansible.controller, and others)
+    with PEP 440 version ranges; document Automation Hub-only collections
+    excluded from ``dependencies`` per Red Hat collection publishing practice.
