@@ -160,13 +160,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Verify Automation Hub connectivity
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends bash curl
-          pip install ansible-core
-          bash scripts/ci/verify-automation-hub.sh
-
       - name: Install Ansible collections
         run: |
           set -euo pipefail
