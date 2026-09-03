@@ -53,6 +53,7 @@ issues: https://github.com/automation-development-office/ado/issues
 
 # File glob-like patterns to filter from the built collection artifact.
 build_ignore:
+  - ansible.cfg
   - .gitignore
   - .ansible
   - .ansible/*

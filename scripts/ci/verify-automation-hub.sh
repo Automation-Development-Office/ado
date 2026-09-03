@@ -2,11 +2,14 @@
 # Verify console.redhat.com Automation Hub URLs and optional token auth.
 set -euo pipefail
 
-HUB_PUBLISHED_URL="${AUTOMATION_HUB_PUBLISHED_URL:-${ANSIBLE_GALAXY_SERVER_CERTIFIED_URL:-https://console.redhat.com/api/automation-hub/content/published/}}"
-HUB_AUTH_URL="${AUTOMATION_HUB_AUTH_URL:-${ANSIBLE_GALAXY_SERVER_CERTIFIED_AUTH_URL:-https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token}}"
-GALAXY_URL="${ANSIBLE_GALAXY_SERVER_GALAXY_URL:-https://galaxy.ansible.com}"
+# shellcheck source=/dev/null
+source "$(dirname "${BASH_SOURCE[0]}")/setup-automation-hub.sh"
+
+HUB_PUBLISHED_URL="${AUTOMATION_HUB_PUBLISHED_URL:-${ANSIBLE_GALAXY_SERVER_CERTIFIED_URL}}"
+HUB_AUTH_URL="${AUTOMATION_HUB_AUTH_URL:-${ANSIBLE_GALAXY_SERVER_CERTIFIED_AUTH_URL}}"
+GALAXY_URL="${ANSIBLE_GALAXY_SERVER_GALAXY_URL}"
 GALAXY_URL="${GALAXY_URL%/}"
-TOKEN="${AUTOMATION_HUB_TOKEN:-${ANSIBLE_GALAXY_SERVER_CERTIFIED_TOKEN:-}}"
+TOKEN="${ANSIBLE_GALAXY_SERVER_CERTIFIED_TOKEN:-}"
 
 probe_url() {
   local label="$1"
@@ -34,11 +37,6 @@ tmpdir="$(mktemp -d)"
 trap 'rm -rf "${tmpdir}"' EXIT
 
 export ANSIBLE_COLLECTIONS_PATH="${tmpdir}"
-export ANSIBLE_GALAXY_SERVER_LIST=certified,galaxy
-export ANSIBLE_GALAXY_SERVER_GALAXY_URL="${GALAXY_URL}/"
-export ANSIBLE_GALAXY_SERVER_CERTIFIED_URL="${HUB_PUBLISHED_URL}"
-export ANSIBLE_GALAXY_SERVER_CERTIFIED_AUTH_URL="${HUB_AUTH_URL}"
-export ANSIBLE_GALAXY_SERVER_CERTIFIED_TOKEN="${TOKEN}"
 
 echo "Checking authenticated install of ansible.platform from Automation Hub..."
 ansible-galaxy collection install ansible.platform -p "${tmpdir}" --force >/dev/null

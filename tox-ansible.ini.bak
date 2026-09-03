@@ -18,16 +18,3 @@ skip =
     py3.14
     py3.14-devel
     py3.14-milestone
-
-# Forward Hub/Galaxy env into tox so ade install can resolve certified collections.
-# Required because tox-ansible only passes GITHUB_TOKEN by default.
-[testenv]
-pass_env =
-    GITHUB_TOKEN
-    ANSIBLE_GALAXY_SERVER_LIST
-    ANSIBLE_GALAXY_SERVER_GALAXY_URL
-    ANSIBLE_GALAXY_SERVER_CERTIFIED_URL
-    ANSIBLE_GALAXY_SERVER_CERTIFIED_AUTH_URL
-    ANSIBLE_GALAXY_SERVER_CERTIFIED_TOKEN
-    ANSIBLE_GALAXY_SERVER_TIMEOUT
-    AUTOMATION_HUB_TOKEN

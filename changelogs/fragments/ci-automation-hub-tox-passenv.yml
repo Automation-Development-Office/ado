@@ -1,0 +1,5 @@
+---
+bugfixes:
+  - >-
+    Forward Automation Hub Galaxy server env vars through tox-ansible so sanity
+    and unit jobs resolve certified collection dependencies from console.redhat.com.
