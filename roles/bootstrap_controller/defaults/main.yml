@@ -16,6 +16,7 @@ bootstrap_controller_enabled_objects:
   - workflow_job_templates
 
 bootstrap_controller_generate_job_templates_from_manifest: true
+bootstrap_controller_generate_aap_configs_force_job_workflows: false
 
 bootstrap_controller_aap_connectivity_check_enabled: true
 bootstrap_controller_aap_connectivity_no_log: true

@@ -320,6 +320,31 @@
     )
 %}
 {% set bootstrap_generate_env_vars_git_auto_push = bootstrap_generate_env_vars_aap_git_auto_push %}
+{% set preflight_git_overrides = preflight_git.overrides | default({}) if bootstrap_generate_env_vars_preflight is defined else {} %}
+{% set bootstrap_generate_env_vars_git_override_all =
+    (
+      preflight_git_overrides.all | default(false)
+      or preflight_git.overwrite_generated | default(false)
+    )
+    if bootstrap_generate_env_vars_preflight is defined
+    else (bootstrap_generate_env_vars_git_override_all | default(false))
+%}
+{% set bootstrap_generate_env_vars_git_override_group_vars_env =
+    (
+      bootstrap_generate_env_vars_git_override_all
+      or preflight_git_overrides.group_vars_current_env | default(false)
+    )
+    if bootstrap_generate_env_vars_preflight is defined
+    else (bootstrap_generate_env_vars_git_override_group_vars_env | default(false))
+%}
+{% set bootstrap_generate_env_vars_git_override_jt_wf =
+    (
+      bootstrap_generate_env_vars_git_override_all
+      or preflight_git_overrides.job_and_workflow_templates | default(false)
+    )
+    if bootstrap_generate_env_vars_preflight is defined
+    else (bootstrap_generate_env_vars_git_override_jt_wf | default(false))
+%}
 {% set controller_bootstrap_scm_credential = bootstrap_generate_env_vars_aap_project ~ '-git-token' %}
 {% set bootstrap_generate_env_vars_aap_additional_credentials = preflight_aap.additional_credentials | default(bootstrap_generate_env_vars_aap_additional_credentials | default([]), true) %}
 {% set bootstrap_generate_env_vars_rhel_hostname = preflight_rhel_config.hostname | default('', true) %}
@@ -918,6 +943,11 @@ controller_bootstrap_controller_labels:
   - name: "{{ bootstrap_generate_env_vars_aap_org }}"
     organization: "{{ bootstrap_generate_env_vars_aap_org }}"
 
+
+bootstrap_generate_env_vars_force: "{{ bootstrap_generate_env_vars_git_override_group_vars_env | bool }}"
+generate_env_vars_force: "{{ bootstrap_generate_env_vars_git_override_group_vars_env | bool }}"
+bootstrap_generate_playbook_repo_force: "{{ bootstrap_generate_env_vars_git_override_all | bool }}"
+bootstrap_controller_generate_aap_configs_force_job_workflows: "{{ bootstrap_generate_env_vars_git_override_jt_wf | bool }}"
 
 generate_playbook_repo_git_mode: "{{ 'push' if bootstrap_generate_env_vars_git_auto_push else 'manual' }}"
 generate_playbook_repo_git_push: "{{ bootstrap_generate_env_vars_git_auto_push }}"
