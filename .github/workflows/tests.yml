@@ -113,15 +113,17 @@ jobs:
     secrets:
       galaxy_server_token: ${{ secrets.AUTOMATION_HUB_TOKEN }}
     with:
-      galaxy_server_url: ${{ env.ANSIBLE_GALAXY_SERVER_CERTIFIED_URL }}
-      galaxy_server_auth_url: ${{ env.ANSIBLE_GALAXY_SERVER_CERTIFIED_AUTH_URL }}
+      galaxy_server_url: https://console.redhat.com/api/automation-hub/content/published/
+      galaxy_server_auth_url: >-
+        https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
   unit-galaxy:
     uses: ansible/ansible-content-actions/.github/workflows/unit.yaml@main
     secrets:
       galaxy_server_token: ${{ secrets.AUTOMATION_HUB_TOKEN }}
     with:
-      galaxy_server_url: ${{ env.ANSIBLE_GALAXY_SERVER_CERTIFIED_URL }}
-      galaxy_server_auth_url: ${{ env.ANSIBLE_GALAXY_SERVER_CERTIFIED_AUTH_URL }}
+      galaxy_server_url: https://console.redhat.com/api/automation-hub/content/published/
+      galaxy_server_auth_url: >-
+        https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
   unit-source:
     uses: ansible-network/github_actions/.github/workflows/unit_source.yml@main
     if: false

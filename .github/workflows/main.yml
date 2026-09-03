@@ -162,8 +162,10 @@ jobs:
 
       - name: Verify Automation Hub connectivity
         run: |
+          apt-get update
+          apt-get install -y --no-install-recommends bash curl
           pip install ansible-core
-          scripts/ci/verify-automation-hub.sh
+          bash scripts/ci/verify-automation-hub.sh
 
       - name: Install Ansible collections
         run: |
