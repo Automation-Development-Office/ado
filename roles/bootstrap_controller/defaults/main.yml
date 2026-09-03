@@ -52,6 +52,8 @@ bootstrap_controller_hub_publish_ado_collection: false
 # Never forced; infra.ado may still be force-republished via hub_force_ado_collection_update.
 bootstrap_controller_hub_publish_preflight_collections: false
 bootstrap_controller_hub_update_collection_only: false
+bootstrap_controller_ignore_galaxy_cert: false
+ansible_dispatch_ignore_galaxy_cert: false
 # When true: only generate group_vars (vars/vault) and optionally git-push them.
 # Skips playbook regeneration and Contoller object apply.
 bootstrap_controller_vars_only: false

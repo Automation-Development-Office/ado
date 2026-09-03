@@ -17,15 +17,7 @@
     bootstrap_controller_hub_ah_token: >-
       {{
         bootstrap_controller_hub_ah_token
-        | default(
-            vault_galaxy_hub_token
-            | default(
-                controller_oauthtoken
-                | default(vault_controller_oauthtoken | default(''), true),
-              true
-            ),
-            true
-          )
+        | default(vault_galaxy_hub_token | default('', true), true)
         | string
         | trim
       }}
@@ -40,13 +32,25 @@
       }}
     bootstrap_controller_hub_pub_uri_headers: >-
       {{
-        {'Authorization': 'Bearer ' ~ bootstrap_controller_hub_ah_token}
+        {'Authorization': 'Token ' ~ bootstrap_controller_hub_ah_token}
         if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
         else omit
       }}
     bootstrap_controller_hub_pub_uri_force_basic: >-
       {{
         (bootstrap_controller_hub_ah_token | default('') | string | trim | length) == 0
+      }}
+    bootstrap_controller_hub_pub_uri_user: >-
+      {{
+        omit
+        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        else (controller_username | default(vault_controller_username | default(omit)))
+      }}
+    bootstrap_controller_hub_pub_uri_password: >-
+      {{
+        omit
+        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        else (controller_password | default(vault_controller_password | default(omit)))
       }}
 
 - name: Publish preflight collections | Resolve tarball search directories
@@ -94,8 +98,8 @@
     status_code: [200]
     return_content: true
     headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
-    user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-    password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    user: "{{ bootstrap_controller_hub_pub_uri_user }}"
+    password: "{{ bootstrap_controller_hub_pub_uri_password }}"
     force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
   register: bootstrap_controller_hub_preflight_staging_repo
 
@@ -109,8 +113,8 @@
     status_code: [200]
     return_content: true
     headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
-    user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-    password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    user: "{{ bootstrap_controller_hub_pub_uri_user }}"
+    password: "{{ bootstrap_controller_hub_pub_uri_password }}"
     force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
   register: bootstrap_controller_hub_preflight_validated_repo
 

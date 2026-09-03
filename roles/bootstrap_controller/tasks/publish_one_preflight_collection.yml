@@ -61,8 +61,8 @@
         status_code: [200, 404]
         return_content: true
         headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_pub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_pub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
       register: bootstrap_controller_hub_pub_existing
 
@@ -105,8 +105,8 @@
         status_code: [200]
         return_content: true
         headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_pub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_pub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
       register: bootstrap_controller_hub_pub_cv_precheck
       when: bootstrap_controller_hub_pub_should_publish | bool
@@ -148,8 +148,8 @@
         status_code: [200]
         return_content: true
         headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_pub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_pub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
       register: bootstrap_controller_hub_pub_cv_lookup
       until: (bootstrap_controller_hub_pub_cv_lookup.json.count | default(0) | int) >= 1
@@ -174,8 +174,8 @@
         status_code: [200, 202]
         return_content: true
         headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_pub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_pub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
       register: bootstrap_controller_hub_pub_promote_attempt
       when: bootstrap_controller_hub_pub_should_publish | bool
@@ -188,8 +188,8 @@
         status_code: [200]
         return_content: true
         headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_pub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_pub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
       when:
         - bootstrap_controller_hub_pub_should_publish | bool
@@ -211,8 +211,8 @@
         status_code: [200]
         return_content: true
         headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_pub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_pub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
       register: bootstrap_controller_hub_pub_verify
       until: (bootstrap_controller_hub_pub_verify.status | default(0) | int) == 200

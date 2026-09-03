@@ -9,11 +9,8 @@ vault_controller_username: "{{ preflight_aap.admin_username | default('admin', t
 vault_controller_password: "{{ preflight_aap.admin_password | default('', true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_password.user_input }}"
 vault_controller_vault_password: "{{ preflight_aap.vault_password | default(preflight_aap.admin_password | default('', true), true) if bootstrap_generate_env_vars_preflight is defined else bootstrap_generate_env_vars_prompt_aap_password.user_input }}"
 vault_controller_git_token: "{{ preflight_git.token | default('', true) if bootstrap_generate_env_vars_preflight is defined else (bootstrap_generate_env_vars_prompt_aap_project_scm_token.user_input | default('', true)) }}"
-{# Galaxy tab: empty shared token falls back to OAuth / admin password (same as Hub General creds). #}
-{% set preflight_galaxy_hub_token =
-    preflight_aap.galaxy_hub_token
-    | default(preflight_aap.oauth_token | default(preflight_aap.admin_password | default('', true), true), true)
-%}
+{# Hub/Galaxy API token is separate from Controller OAuth (General tab). #}
+{% set preflight_galaxy_hub_token = preflight_aap.galaxy_hub_token | default('', true) %}
 {% set preflight_galaxy_registry = preflight_aap.container_registry_credential | default({}) %}
 vault_galaxy_hub_token: "{{ preflight_galaxy_hub_token }}"
 vault_galaxy_registry_username: "{{ preflight_galaxy_registry.username | default(preflight_aap.admin_username | default('admin', true), true) }}"

@@ -78,13 +78,10 @@
   ansible.builtin.set_fact:
     bootstrap_controller_hub_publish_repository: "{{ (hub_collections | first).repository | default('validated') }}"
     bootstrap_controller_hub_publish_working_dir: "/var/tmp/ado-hub-publish"
-    # Prefer Galaxy/Hub API token for Hub publish; Contoller OAuth is for Contoller only.
+    # Hub publish requires a Hub API token — do not fall back to Controller OAuth.
     bootstrap_controller_hub_ah_token: >-
       {{
-        vault_galaxy_hub_token
-        | default(controller_oauthtoken | default(vault_controller_oauthtoken | default(''), true), true)
-        | string
-        | trim
+        vault_galaxy_hub_token | default('', true) | string | trim
       }}
     bootstrap_controller_hub_tarball_src: >-
       {{
@@ -250,6 +247,33 @@
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
 
+# Hub-only: Galaxy credential attach and optional Contoller EE need the General org
+# before any Controller API work. Hub publish itself uses the Hub API token only.
+- name: AAP 2.5+ | Ensure General organization before Hub/Galaxy Controller work (hub-only)
+  ansible.controller.organization:
+    name: "{{ controller_bootstrap_organization }}"
+    description: "{{ controller_bootstrap_organization }}"
+    state: present
+    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
+    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
+    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  register: bootstrap_controller_hub_only_org
+  failed_when: false
+  when:
+    - bootstrap_controller_hub_update_collection_only | default(false) | bool
+    - controller_bootstrap_organization | default('') | length > 0
+    - bootstrap_generate_env_vars_preflight is defined
+    - >-
+      (
+        bootstrap_generate_env_vars_preflight.aap.galaxy_setup_enabled | default(false) | bool
+      )
+      or (
+        bootstrap_controller_hub_push_ee | default(false) | bool
+        and bootstrap_controller_hub_ee_create_execution_environment | default(true) | bool
+      )
+
 - name: AAP 2.5+ | Ensure Hub namespace exists for ADO collection
   ansible.hub.ah_namespace:
     name: infra
@@ -287,13 +311,25 @@
       }}
     bootstrap_controller_hub_uri_headers: >-
       {{
-        {'Authorization': 'Bearer ' ~ bootstrap_controller_hub_ah_token}
+        {'Authorization': 'Token ' ~ bootstrap_controller_hub_ah_token}
         if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
         else omit
       }}
     bootstrap_controller_hub_uri_force_basic: >-
       {{
         (bootstrap_controller_hub_ah_token | default('') | string | trim | length) == 0
+      }}
+    bootstrap_controller_hub_uri_user: >-
+      {{
+        omit
+        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        else (controller_username | default(vault_controller_username | default(omit)))
+      }}
+    bootstrap_controller_hub_uri_password: >-
+      {{
+        omit
+        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        else (controller_password | default(vault_controller_password | default(omit)))
       }}
   block:
     - name: AAP 2.5+ | Upload infra.ado to Hub staging (auto_approve must stay false)
@@ -348,8 +384,8 @@
         status_code: [200]
         return_content: true
         headers: "{{ bootstrap_controller_hub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
       vars:
         bootstrap_controller_hub_artifact_basename: "{{ __hub_collection_file | basename }}"
@@ -373,8 +409,8 @@
         status_code: [200]
         return_content: true
         headers: "{{ bootstrap_controller_hub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
       register: bootstrap_controller_hub_staging_repo
 
@@ -387,8 +423,8 @@
         status_code: [200]
         return_content: true
         headers: "{{ bootstrap_controller_hub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
       register: bootstrap_controller_hub_validated_repo
 
@@ -416,8 +452,8 @@
         status_code: [200, 202]
         return_content: true
         headers: "{{ bootstrap_controller_hub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
       loop: "{{ bootstrap_controller_hub_cv_lookup.results | default([bootstrap_controller_hub_cv_lookup]) }}"
       loop_control:
@@ -432,8 +468,8 @@
         status_code: [200]
         return_content: true
         headers: "{{ bootstrap_controller_hub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
       loop: "{{ bootstrap_controller_hub_promote_attempt.results | default([bootstrap_controller_hub_promote_attempt]) }}"
       loop_control:
@@ -456,8 +492,8 @@
         status_code: [200]
         return_content: true
         headers: "{{ bootstrap_controller_hub_uri_headers }}"
-        user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+        user: "{{ bootstrap_controller_hub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_uri_force_basic }}"
       vars:
         bootstrap_controller_hub_artifact_basename: "{{ __hub_collection_file | basename }}"
@@ -537,30 +573,8 @@
       }}
   when: bootstrap_controller_hub_update_collection_only | default(false) | bool
 
-# Galaxy attach needs the General org. Create only that org (not stale DEV/etc).
-# Only when Galaxy setup is explicitly enabled — do NOT infer from leftover
-# credential YAML in the git repo (overwrite_generated=false), or Hub-only
-# publish succeeds then Contoller 401 fails the whole run.
-- name: AAP 2.5+ | Ensure General organization for hub-only Galaxy attach
-  ansible.controller.organization:
-    name: "{{ controller_bootstrap_organization }}"
-    description: "{{ controller_bootstrap_organization }}"
-    state: present
-    controller_host: "{{ controller_host | default(vault_controller_hostname) }}"
-    controller_oauthtoken: "{{ controller_oauthtoken | default(vault_controller_oauthtoken | default(omit)) }}"
-    controller_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-    controller_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
-    validate_certs: "{{ controller_validate_certs | default(false) }}"
-  register: bootstrap_controller_hub_only_org
-  failed_when: false
-  when:
-    - bootstrap_controller_hub_update_collection_only | default(false) | bool
-    - controller_bootstrap_organization | default('') | length > 0
-    # Do not use Jinja "x if y else z" inside when: — Ansible wraps when in
-    # {% if ... %} and a bare ternary breaks templating (hub-only Galaxy attach).
-    - bootstrap_generate_env_vars_preflight is defined
-    - bootstrap_generate_env_vars_preflight.aap.galaxy_setup_enabled | default(false) | bool
-
+# Galaxy attach needs the General org (created earlier on hub-only when Galaxy or
+# EE Controller objects are enabled). Do NOT infer Galaxy from stale credential YAML.
 - name: AAP 2.5+ | Warn Contoller org attach failed after Hub publish
   ansible.builtin.debug:
     msg:
@@ -1339,7 +1353,7 @@
   ansible.builtin.debug:
     var: controller_projects
 
-- name: AAP 2.5+ | Ignore Galaxy TLS verify for lab Hub (project collection install)
+- name: AAP 2.5+ | Set Controller jobs GALAXY_IGNORE_CERTS when opted in
   ansible.builtin.uri:
     url: "{{ (controller_host | default(vault_controller_hostname)).rstrip('/') }}/api/controller/v2/settings/jobs/"
     method: PATCH
@@ -1361,7 +1375,7 @@
         (controller_oauthtoken | default(vault_controller_oauthtoken | default('')) | string | trim | length) == 0
       }}
   when:
-    - not (controller_validate_certs | default(false) | bool)
+    - ansible_dispatch_ignore_galaxy_cert | default(bootstrap_controller_ignore_galaxy_cert | default(false)) | bool
     - controller_projects | default([]) | length > 0
 
 - name: AAP 2.5+ | Apply projects
@@ -1486,6 +1500,9 @@
       If status is pending, the sync may still be running in AAP — wait for
       CKTEST-project to finish, then re-run bootstrap or increase
       aap.project_sync_timeout in preflight JSON (default 600).
+      For Bitbucket Server, set preflight git.username (account name) and
+      git.token (HTTP access token); Controller Source Control credentials
+      use basic auth, not OAuth2 or Bearer headers.
       Job stdout (tail):
       {{
         bootstrap_controller_project_sync_stdout.results

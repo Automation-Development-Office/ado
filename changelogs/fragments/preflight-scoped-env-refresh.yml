@@ -1,0 +1,7 @@
+---
+bugfixes:
+  - >-
+    Preflight bootstrap (ado-preflight-ui) — When git.overwrite_generated is
+    false, reuse the existing pod clone instead of wiping and re-cloning, keep
+    group_vars/all/<env> files (manual pod edits), and pass
+    generate_env_vars_force=false so templates skip existing vars files.

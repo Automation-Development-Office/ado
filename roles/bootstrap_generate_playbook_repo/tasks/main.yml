@@ -62,9 +62,9 @@
       }}/collections/requirements.yml
     mode: "0644"
 
-- name: Generate playbook repo | Write ansible.cfg so project Galaxy install skips Hub TLS verify
-  ansible.builtin.copy:
-    src: playbook_repo_seed/ansible.cfg
+- name: Generate playbook repo | Write ansible.cfg (Galaxy cert verify follows preflight)
+  ansible.builtin.template:
+    src: ansible.cfg.j2
     dest: "{{ bootstrap_generate_playbook_repo_dest_resolved }}/ansible.cfg"
     mode: "0644"
     force: true
