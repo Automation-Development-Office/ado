@@ -9,6 +9,14 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  # galaxy.yml dependencies for changelog generation may require Automation Hub.
+  ANSIBLE_GALAXY_SERVER_LIST: certified,galaxy
+  ANSIBLE_GALAXY_SERVER_CERTIFIED_URL: https://cloud.redhat.com/api/automation-hub/
+  ANSIBLE_GALAXY_SERVER_CERTIFIED_AUTH_URL: >-
+    https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+  ANSIBLE_GALAXY_SERVER_CERTIFIED_TOKEN: ${{ secrets.AUTOMATION_HUB_TOKEN }}
+
 jobs:
   release_assets:
     name: Build and Attach Collection

@@ -13,6 +13,13 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  ANSIBLE_GALAXY_SERVER_LIST: certified,galaxy
+  ANSIBLE_GALAXY_SERVER_CERTIFIED_URL: https://cloud.redhat.com/api/automation-hub/
+  ANSIBLE_GALAXY_SERVER_CERTIFIED_AUTH_URL: >-
+    https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+  ANSIBLE_GALAXY_SERVER_CERTIFIED_TOKEN: ${{ secrets.AUTOMATION_HUB_TOKEN }}
+
 jobs:
   open_changelog_pr:
     name: Open changelog PR for release tag
