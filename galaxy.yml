@@ -25,6 +25,8 @@ tags:
 # Automation Hub-only collections are omitted so public Galaxy installs do not
 # fail to resolve Red Hat certified content. Bundle them on the execution
 # environment or Controller project instead:
+#   - ansible.controller (bootstrap_controller; AAP 2.5+ apply paths)
+#   - hashicorp.vault (ocp_secret_replicator)
 #   - infra.openshift_virtualization_ops (ocp_virtualization / vm_provision)
 #   - redhat.openshift (username/password OpenShift login paths)
 #   - redhat.rhel_idm (IdM install, client, trust, DNS, replica roles)
@@ -32,13 +34,11 @@ tags:
 #   - redhat.satellite (satellite_install, satellite_config, content_view)
 dependencies:
   "amazon.aws": ">=8.0.0"
-  "ansible.controller": ">=4.6.0"
   "ansible.posix": ">=1.5.0"
   "community.crypto": ">=2.0.0"
   "community.general": ">=8.0.0"
   "community.grafana": ">=1.5.0"
   "freeipa.ansible_freeipa": ">=1.0.0"
-  "hashicorp.vault": ">=5.0.0"
   "infra.aap_configuration": ">=4.6.0"
   "infra.aap_utilities": ">=3.5.0"
   "infra.controller_configuration": ">=2.9.0"
