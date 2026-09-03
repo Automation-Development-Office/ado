@@ -1,5 +1,0 @@
-bugfixes:
-  - >-
-    bootstrap_resolve_component - seed grafana_dev_prometheus_url before templating
-    components_defaults, and stop referencing that play var inside the registry so
-    non-grafana component deploys (ACM, descheduler, etc.) do not fail.

@@ -1,4 +1,0 @@
----
-bugfixes:
-  - ocp_operatorgroups - Fixed OperatorGroup create/reconcile tasks nested under
-    a debug task ``when`` clause; restores valid task schema for ansible-lint.

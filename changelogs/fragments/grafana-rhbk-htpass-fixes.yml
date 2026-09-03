@@ -1,9 +1,0 @@
----
-bugfixes:
-  - grafana_create_datasource / grafana_install - OpenShift Grafana now defaults
-    admin password (lab ``redhat123``) so datasource create does not assert on
-    an empty password when UI left it blank.
-  - rhbk_realm - Wait for Keycloak HTTPS ``/realms/master`` before realm API;
-    ``validate_certs`` defaults false (lab/self-signed ingress).
-  - ocp_htpasswd_admin - Only wait for authentication operator when OAuth was
-    actually updated; require Available and not Degraded; longer retries.

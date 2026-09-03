@@ -1,7 +1,0 @@
----
-bugfixes:
-  - >-
-    bootstrap_controller - Force infra.ado Hub collection update deletes the
-    existing version (auto_approve false), waits for async delete, uploads to
-    validated with auto_approve false (staging approve path is broken), and
-    verifies the version exists on Hub before succeeding.

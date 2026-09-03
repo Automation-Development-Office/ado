@@ -1,6 +1,0 @@
----
-bugfixes:
-  - install_rhbk - Default to OpenShift edge TLS (httpEnabled, no tlsSecret) so
-    empty default-ingress PEMs no longer break Keycloak HTTPS with
-    SSL UNEXPECTED_EOF. Validate ingress PEMs when copy mode is used; wait for
-    cert-manager Certificate Ready when cert_manager=true.

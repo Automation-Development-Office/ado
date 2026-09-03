@@ -1,2 +1,0 @@
-bugfixes:
-  - bootstrap_generate_playbook_repo - Seed ``grafana_oidc`` and ``grafana_email`` playbooks so Controller job templates are not skipped when the matching playbook file is missing.

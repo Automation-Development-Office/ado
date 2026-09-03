@@ -1,5 +1,0 @@
-minor_changes:
-  - preflight-ui - Alternate Routes tab with Print Alternate Routes, Add Alternate Route, and Add Ingress with Route sub-options; Discover Routes tab supports all routes, namespace list, or selected-app namespaces.
-  - bootstrap_controller - Added ADO Alt Routes Workflow and split route JTs/playbooks; OpenShift workflow ends with Print ADO Routes and optional Alt Routes Workflow.
-  - bootstrap_generate_env_vars - Gate discover-routes print on checkbox; overlay writes vars_routes.yml from preflight route settings.
-  - infra.ado.ocp_alt_routes - Support default route labels, custom alternate route names, and ingress-controller router labels.
