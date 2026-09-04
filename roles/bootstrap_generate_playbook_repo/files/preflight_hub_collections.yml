@@ -33,6 +33,30 @@ collections:
     hub_publish: true
     force_when_exists: false
 
+  - tarball_glob: redhat-satellite-*.tar.gz
+    name: redhat.satellite
+    namespace: redhat
+    collection: satellite
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: redhat-rhel_idm-*.tar.gz
+    name: redhat.rhel_idm
+    namespace: redhat
+    collection: rhel_idm
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: redhat-rhel_system_roles-*.tar.gz
+    name: redhat.rhel_system_roles
+    namespace: redhat
+    collection: rhel_system_roles
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
   - tarball_glob: community-general-*.tar.gz
     name: community.general
     namespace: community
@@ -45,6 +69,46 @@ collections:
     name: community.grafana
     namespace: community
     collection: grafana
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: community-hashi_vault-*.tar.gz
+    name: community.hashi_vault
+    namespace: community
+    collection: hashi_vault
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: community-kubernetes-*.tar.gz
+    name: community.kubernetes
+    namespace: community
+    collection: kubernetes
+    controller_requirements: false
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: freeipa-ansible_freeipa-*.tar.gz
+    name: freeipa.ansible_freeipa
+    namespace: freeipa
+    collection: ansible_freeipa
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: ansible-posix-*.tar.gz
+    name: ansible.posix
+    namespace: ansible
+    collection: posix
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: ansible-utils-*.tar.gz
+    name: ansible.utils
+    namespace: ansible
+    collection: utils
     controller_requirements: true
     hub_publish: true
     force_when_exists: false
@@ -90,6 +154,22 @@ collections:
     hub_publish: true
     force_when_exists: false
 
+  - tarball_glob: infra-aap_utilities-*.tar.gz
+    name: infra.aap_utilities
+    namespace: infra
+    collection: aap_utilities
+    controller_requirements: false
+    hub_publish: true
+    force_when_exists: false
+
+  - tarball_glob: infra-rhacs_configuration-*.tar.gz
+    name: infra.rhacs_configuration
+    namespace: infra
+    collection: rhacs_configuration
+    controller_requirements: false
+    hub_publish: true
+    force_when_exists: false
+
   - tarball_glob: ansible-platform-*.tar.gz
     name: ansible.platform
     namespace: ansible
@@ -114,11 +194,12 @@ collections:
     hub_publish: true
     force_when_exists: false
 
-# Optional Galaxy names Contoller project sync can resolve without AH-only
-# content. Do NOT list AH-only / unpublished collections here (project sync
-# fails the whole requirements.yml). Put those on the Contoller EE instead:
-#   - infra.openshift_virtualization_ops (validated; not on public Galaxy)
+# Contoller project sync installs ONLY what Hub/Galaxy credentials can resolve.
+# Do NOT list collections that are missing from Private Hub (sync fails the whole
+# requirements.yml). Bundle these on the Contoller EE (or publish to Hub) when a
+# JT needs them:
+#   - infra.aap_utilities (install_aap / aap_ocp_install)
+#   - infra.rhacs_configuration (ACS configuration JTs)
+#   - infra.openshift_virtualization_ops (validated; AH-only)
 #   - redhat.rhel_system_roles (Automation Hub certified)
-controller_requirements_galaxy_only:
-  - name: infra.aap_utilities
-  - name: infra.rhacs_configuration
+controller_requirements_galaxy_only: []
