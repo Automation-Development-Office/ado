@@ -14,8 +14,8 @@
   ansible.builtin.set_fact:
     bootstrap_controller_hub_publish_repository: >-
       {{ bootstrap_controller_hub_publish_repository | default('validated') }}
-    # Prefer Contoller OAuth Bearer for URI/Pulp; ansible.hub Token auth is
-    # probed separately by ensure_hub_namespace when infra.ado is published.
+    # Prefer Contoller OAuth / Hub token with Token scheme for URI/Pulp (Bearer
+    # is ignored on some gateways). Prefer the ansible.hub winning token when set.
     bootstrap_controller_hub_uri_oauth: >-
       {{
         controller_oauthtoken
@@ -32,6 +32,19 @@
       }}
     bootstrap_controller_hub_ah_use_basic: >-
       {{ bootstrap_controller_hub_ah_use_basic | default(false) | bool }}
+    bootstrap_controller_hub_uri_token: >-
+      {{
+        bootstrap_controller_hub_ah_token
+        if (
+          not (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
+          and (bootstrap_controller_hub_ah_token | length > 0)
+        )
+        else (
+          bootstrap_controller_hub_uri_oauth
+          if (bootstrap_controller_hub_uri_oauth | length > 0)
+          else ''
+        )
+      }}
 
 - name: Publish preflight collections | Resolve Hub API host
   ansible.builtin.set_fact:
@@ -43,23 +56,44 @@
       }}
     bootstrap_controller_hub_pub_uri_headers: >-
       {{
-        {'Authorization': 'Bearer ' ~ bootstrap_controller_hub_uri_oauth}
-        if (bootstrap_controller_hub_uri_oauth | default('') | length > 0)
+        {'Authorization': 'Token ' ~ bootstrap_controller_hub_uri_token}
+        if (bootstrap_controller_hub_uri_token | default('') | length > 0)
         else omit
       }}
     bootstrap_controller_hub_pub_uri_force_basic: >-
-      {{ (bootstrap_controller_hub_uri_oauth | default('') | length) == 0 }}
+      {{
+        (
+          bootstrap_controller_hub_ah_use_basic | default(false) | bool
+        )
+        or ((bootstrap_controller_hub_uri_token | default('') | length) == 0)
+      }}
     bootstrap_controller_hub_pub_uri_user: >-
       {{
-        omit
-        if (bootstrap_controller_hub_uri_oauth | default('') | length > 0)
-        else (controller_username | default(vault_controller_username | default(omit)))
+        (
+          controller_username
+          | default(vault_controller_username | default(omit))
+        )
+        if (
+          (
+            bootstrap_controller_hub_ah_use_basic | default(false) | bool
+          )
+          or ((bootstrap_controller_hub_uri_token | default('') | length) == 0)
+        )
+        else omit
       }}
     bootstrap_controller_hub_pub_uri_password: >-
       {{
-        omit
-        if (bootstrap_controller_hub_uri_oauth | default('') | length > 0)
-        else (controller_password | default(vault_controller_password | default(omit)))
+        (
+          controller_password
+          | default(vault_controller_password | default(omit))
+        )
+        if (
+          (
+            bootstrap_controller_hub_ah_use_basic | default(false) | bool
+          )
+          or ((bootstrap_controller_hub_uri_token | default('') | length) == 0)
+        )
+        else omit
       }}
 
 - name: Publish preflight collections | Resolve tarball search directories

@@ -297,8 +297,9 @@
         if (bootstrap_controller_hub_hostname | default('') | string | trim | length > 0)
         else (controller_host | default(vault_controller_hostname))
       }}
-    # Raw URI/Pulp calls use Bearer Contoller OAuth (or basic). Do not reuse the
-    # Hub User Access token as Bearer — ansible.hub Token auth is separate.
+    # Pulp URI calls must match ansible.hub auth. On some gateways Bearer is
+    # ignored ("credentials were not provided"); Token + the winning Hub/OAuth
+    # token, or admin basic, is what works after a successful staging upload.
     bootstrap_controller_hub_uri_oauth: >-
       {{
         controller_oauthtoken
@@ -306,25 +307,70 @@
         | string
         | trim
       }}
+    bootstrap_controller_hub_uri_token: >-
+      {{
+        (
+          bootstrap_controller_hub_ah_token
+          | default('', true)
+          | string
+          | trim
+        )
+        if not (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
+        else ''
+      }}
     bootstrap_controller_hub_uri_headers: >-
       {{
-        {'Authorization': 'Bearer ' ~ bootstrap_controller_hub_uri_oauth}
-        if (bootstrap_controller_hub_uri_oauth | length > 0)
-        else omit
+        {'Authorization': 'Token ' ~ bootstrap_controller_hub_uri_token}
+        if (bootstrap_controller_hub_uri_token | length > 0)
+        else (
+          {'Authorization': 'Token ' ~ bootstrap_controller_hub_uri_oauth}
+          if (bootstrap_controller_hub_uri_oauth | length > 0)
+          else omit
+        )
       }}
     bootstrap_controller_hub_uri_force_basic: >-
-      {{ bootstrap_controller_hub_uri_oauth | length == 0 }}
+      {{
+        (
+          bootstrap_controller_hub_ah_use_basic | default(false) | bool
+        )
+        or (
+          (bootstrap_controller_hub_uri_token | length) == 0
+          and (bootstrap_controller_hub_uri_oauth | length) == 0
+        )
+      }}
     bootstrap_controller_hub_uri_user: >-
       {{
-        omit
-        if (bootstrap_controller_hub_uri_oauth | length > 0)
-        else (controller_username | default(vault_controller_username | default(omit)))
+        (
+          controller_username
+          | default(vault_controller_username | default(omit))
+        )
+        if (
+          (
+            bootstrap_controller_hub_ah_use_basic | default(false) | bool
+          )
+          or (
+            (bootstrap_controller_hub_uri_token | length) == 0
+            and (bootstrap_controller_hub_uri_oauth | length) == 0
+          )
+        )
+        else omit
       }}
     bootstrap_controller_hub_uri_password: >-
       {{
-        omit
-        if (bootstrap_controller_hub_uri_oauth | length > 0)
-        else (controller_password | default(vault_controller_password | default(omit)))
+        (
+          controller_password
+          | default(vault_controller_password | default(omit))
+        )
+        if (
+          (
+            bootstrap_controller_hub_ah_use_basic | default(false) | bool
+          )
+          or (
+            (bootstrap_controller_hub_uri_token | length) == 0
+            and (bootstrap_controller_hub_uri_oauth | length) == 0
+          )
+        )
+        else omit
       }}
   block:
     - name: AAP 2.5+ | Upload infra.ado to Hub staging (auto_approve must stay false)
