@@ -13,6 +13,15 @@ on: # yamllint disable-line rule:truthy
   # schedule:
     # - cron: '0 0 * * *'
 
+env:
+  ANSIBLE_GALAXY_SERVER_LIST: certified,galaxy
+  ANSIBLE_GALAXY_SERVER_GALAXY_URL: https://galaxy.ansible.com/
+  ANSIBLE_GALAXY_SERVER_CERTIFIED_URL: https://console.redhat.com/api/automation-hub/content/published/
+  ANSIBLE_GALAXY_SERVER_CERTIFIED_AUTH_URL: >-
+    https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+  ANSIBLE_GALAXY_SERVER_CERTIFIED_TOKEN: ${{ secrets.AUTOMATION_HUB_TOKEN }}
+  ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
+
 jobs:
   changelog:
     uses: ansible/ansible-content-actions/.github/workflows/changelog.yaml@main
@@ -37,17 +46,20 @@ jobs:
 
       - name: Install ansible-lint
         run: |
-          pip install ansible-lint
+          pip install ansible-lint ansible-core
           ansible-lint --version
+
+      - name: Verify Automation Hub connectivity
+        run: scripts/ci/verify-automation-hub.sh
 
       - name: Install Ansible collections
         run: |
           collections_path="${{ github.workspace }}/.ansible/collections"
           mkdir -p "$collections_path"
-          ansible-galaxy collection install -r collections/requirements.yml -p "$collections_path"
+          sh scripts/ci/ansible-galaxy-with-retry.sh collection install \
+            -r collections/requirements.yml -p "$collections_path"
         env:
           ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
-          ANSIBLE_GALAXY_SERVER_TIMEOUT: "120"
 
       - name: Run ansible-lint
         env:
@@ -99,8 +111,20 @@ jobs:
           retention-days: 30
   sanity:
     uses: ansible/ansible-content-actions/.github/workflows/sanity.yaml@main
+    secrets:
+      galaxy_server_token: ${{ secrets.AUTOMATION_HUB_TOKEN }}
+    with:
+      galaxy_server_url: https://console.redhat.com/api/automation-hub/content/published/
+      galaxy_server_auth_url: >-
+        https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
   unit-galaxy:
     uses: ansible/ansible-content-actions/.github/workflows/unit.yaml@main
+    secrets:
+      galaxy_server_token: ${{ secrets.AUTOMATION_HUB_TOKEN }}
+    with:
+      galaxy_server_url: https://console.redhat.com/api/automation-hub/content/published/
+      galaxy_server_auth_url: >-
+        https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
   unit-source:
     uses: ansible-network/github_actions/.github/workflows/unit_source.yml@main
     if: false

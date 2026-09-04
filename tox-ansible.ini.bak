@@ -1,0 +1,20 @@
+[ansible]
+
+skip =
+    py3.7
+    py3.8
+    2.9
+    2.10
+    2.11
+    2.12
+    2.13
+    # Ansible 2.16 is EOL; requires_ansible is >=2.17 (also needed by amazon.aws)
+    2.16
+    # ansible milestone currently requires Python >=3.13
+    py3.12-devel
+    py3.12-milestone
+    # Python 3.14 compile treats return-in-finally as SyntaxWarning; ansible-test
+    # sanity fails on site-packages/impacket, not collection code.
+    py3.14
+    py3.14-devel
+    py3.14-milestone

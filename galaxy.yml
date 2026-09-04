@@ -19,17 +19,31 @@ tags:
   - openshift
   - rhel
   - satellite
-# amazon.aws is required by infra.ado.ec2_ami_copy (AnsibleAWSModule / doc
-# fragments). Other runtime collections remain EE/container-bundled so offline
-# artifact installs are not forced to resolve them from Galaxy.
+# Collection-to-collection dependencies (PEP 440 version ranges). These are
+# installed automatically by `ansible-galaxy collection install infra.ado`.
+#
+# Automation Hub-only collections are omitted so public Galaxy installs do not
+# fail to resolve Red Hat certified content. Bundle them on the execution
+# environment or Controller project instead:
+#   - ansible.controller (bootstrap_controller; AAP 2.5+ apply paths)
+#   - hashicorp.vault (ocp_secret_replicator)
+#   - infra.openshift_virtualization_ops (ocp_virtualization / vm_provision)
+#   - redhat.openshift (username/password OpenShift login paths)
+#   - redhat.rhel_idm (IdM install, client, trust, DNS, replica roles)
+#   - redhat.rhel_system_roles (rhel_ext_system_roles seed playbooks)
+#   - redhat.satellite (satellite_install, satellite_config, content_view)
 dependencies:
-  amazon.aws: ">=8.0.0"
-  community.grafana: ">=1.5.0"
-  # AAP install (install_aap) and ACS policy upload (acs_upload_policies).
-  # Virt ops is Hub/git-only — not declared here so offline Galaxy installs
-  # of infra.ado still resolve.
-  infra.aap_utilities: ">=3.5.0"
-  infra.rhacs_configuration: ">=2.0.0"
+  "amazon.aws": ">=8.0.0"
+  "ansible.posix": ">=1.5.0"
+  "community.crypto": ">=2.0.0"
+  "community.general": ">=8.0.0"
+  "community.grafana": ">=1.5.0"
+  "freeipa.ansible_freeipa": ">=1.0.0"
+  "infra.aap_configuration": ">=4.6.0"
+  "infra.aap_utilities": ">=3.5.0"
+  "infra.controller_configuration": ">=2.9.0"
+  "infra.rhacs_configuration": ">=2.0.0"
+  "kubernetes.core": ">=3.0.0"
 
 repository: https://github.com/automation-development-office/ado
 documentation: >-
@@ -39,6 +53,7 @@ issues: https://github.com/automation-development-office/ado/issues
 
 # File glob-like patterns to filter from the built collection artifact.
 build_ignore:
+  - ansible.cfg
   - .gitignore
   - .ansible
   - .ansible/*
