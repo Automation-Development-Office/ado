@@ -39,10 +39,23 @@ fi
 
 export PATH="${env_dir}/bin:${PATH}"
 
-set +e
-ade install "${editable_args[@]}" --venv "${env_dir}" --acv "${acv}" --no-seed --im none .
-rc=$?
-set -e
+max_attempts=3
+attempt=1
+rc=1
+while (( attempt <= max_attempts )); do
+  set +e
+  ade install "${editable_args[@]}" --venv "${env_dir}" --acv "${acv}" --no-seed --im none .
+  rc=$?
+  set -e
+  if [[ "${rc}" -eq 0 || "${rc}" -eq 2 ]]; then
+    break
+  fi
+  if (( attempt < max_attempts )); then
+    echo "WARN: ade install failed with exit ${rc} (attempt ${attempt}/${max_attempts}); retrying in 15s..." >&2
+    sleep 15
+  fi
+  (( attempt++ ))
+done
 if [[ "${rc}" -ne 0 && "${rc}" -ne 2 ]]; then
   exit "${rc}"
 fi
