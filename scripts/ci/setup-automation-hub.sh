@@ -16,7 +16,4 @@ export ANSIBLE_GALAXY_SERVER_TIMEOUT="${ANSIBLE_GALAXY_SERVER_TIMEOUT:-120}"
 if [[ -n "${token}" ]]; then
   export ANSIBLE_GALAXY_SERVER_CERTIFIED_TOKEN="${token}"
   export AUTOMATION_HUB_TOKEN="${token}"
-  mkdir -p .ansible
-  printf '%s' "${token}" > .ansible/automation_hub_token
-  chmod 600 .ansible/automation_hub_token
 fi

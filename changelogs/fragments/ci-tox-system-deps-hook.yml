@@ -1,0 +1,5 @@
+---
+bugfixes:
+  - >-
+    Install native build dependencies before tox ade install so sanity and unit
+    jobs can resolve Hub collection Python requirements such as systemd-python.

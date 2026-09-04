@@ -1,0 +1,8 @@
+# Compile-time system packages for collection Python deps (e.g. systemd-python from
+# ansible.eda when Hub dependencies are installed during tox ade install).
+libsystemd-dev [compile platform:dpkg]
+gcc [compile platform:dpkg]
+pkg-config [compile platform:dpkg]
+systemd-devel [compile platform:rpm]
+gcc [compile platform:rpm]
+pkg-config [compile platform:rpm]
