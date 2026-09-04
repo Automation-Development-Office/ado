@@ -424,7 +424,12 @@
     src_dir = Path("{{ role_path }}/files/job_templates")
     dest_dir = Path("{{ playbook_dir }}/configs/job_templates")
     dest_dir.mkdir(parents=True, exist_ok=True)
-    force_overwrite = {{ bootstrap_controller_jt_wf_force | bool | tojson }}
+    force_overwrite = {{
+      bootstrap_controller_jt_wf_force
+      | default(false)
+      | bool
+      | ternary('True', 'False')
+    }}
 
     organization = "{{ bootstrap_controller_organization | default(controller_bootstrap_organization, true) }}"
     inventory = "{{ bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true) }}"
