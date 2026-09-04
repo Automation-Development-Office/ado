@@ -293,12 +293,12 @@
 # with IndexError after upload and never lands infra.ado in validated.
 # Correct flow: upload to staging (no approve), pulp-move into validated, then
 # GET-verify the validated content API.
-- name: AAP 2.5+ | Publish ADO collection to validated AAP Hub repository
+- name: AAP 2.5+ | Resolve Hub URI auth for collection publish
   when:
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - hub_collections | default([]) | length > 0
     - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
-  vars:
+  ansible.builtin.set_fact:
     bootstrap_controller_hub_api_host: >-
       {{
         ('https://' ~ (bootstrap_controller_hub_hostname | regex_replace('^https?://', '') | regex_replace('/.*$', '')))
@@ -326,13 +326,20 @@
         if not (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
         else ''
       }}
+
+- name: AAP 2.5+ | Resolve Hub URI headers and basic-auth fallback
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
+    - hub_collections | default([]) | length > 0
+    - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
+  ansible.builtin.set_fact:
     bootstrap_controller_hub_uri_headers: >-
       {{
         {'Authorization': 'Token ' ~ bootstrap_controller_hub_uri_token}
-        if (bootstrap_controller_hub_uri_token | length > 0)
+        if (bootstrap_controller_hub_uri_token | default('') | length > 0)
         else (
           {'Authorization': 'Token ' ~ bootstrap_controller_hub_uri_oauth}
-          if (bootstrap_controller_hub_uri_oauth | length > 0)
+          if (bootstrap_controller_hub_uri_oauth | default('') | length > 0)
           else omit
         )
       }}
@@ -342,8 +349,8 @@
           bootstrap_controller_hub_ah_use_basic | default(false) | bool
         )
         or (
-          (bootstrap_controller_hub_uri_token | length) == 0
-          and (bootstrap_controller_hub_uri_oauth | length) == 0
+          (bootstrap_controller_hub_uri_token | default('') | length) == 0
+          and (bootstrap_controller_hub_uri_oauth | default('') | length) == 0
         )
       }}
     bootstrap_controller_hub_uri_user: >-
@@ -357,8 +364,8 @@
             bootstrap_controller_hub_ah_use_basic | default(false) | bool
           )
           or (
-            (bootstrap_controller_hub_uri_token | length) == 0
-            and (bootstrap_controller_hub_uri_oauth | length) == 0
+            (bootstrap_controller_hub_uri_token | default('') | length) == 0
+            and (bootstrap_controller_hub_uri_oauth | default('') | length) == 0
           )
         )
         else omit
@@ -374,12 +381,18 @@
             bootstrap_controller_hub_ah_use_basic | default(false) | bool
           )
           or (
-            (bootstrap_controller_hub_uri_token | length) == 0
-            and (bootstrap_controller_hub_uri_oauth | length) == 0
+            (bootstrap_controller_hub_uri_token | default('') | length) == 0
+            and (bootstrap_controller_hub_uri_oauth | default('') | length) == 0
           )
         )
         else omit
       }}
+
+- name: AAP 2.5+ | Publish ADO collection to validated AAP Hub repository
+  when:
+    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
+    - hub_collections | default([]) | length > 0
+    - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
   block:
     - name: AAP 2.5+ | Upload infra.ado to Hub staging (auto_approve must stay false)
       ansible.hub.ah_collection:

@@ -1449,8 +1449,6 @@ def merge_component(component, cfg):
                 vars_data["components_env"]["rhbk"]["install_rhbk_platform"] = "rhel"
                 vars_data_changed = True
             zip_url = first_present(public_values.get("standalone_zip_url"))
-            if zip_url:
-                vars_data["rhbk_standalone_zip_url"] = str(zip_url)
             zip_filename = first_present(
                 public_values.get("standalone_zip_file"),
                 Path(str(public_values.get("standalone_zip") or "")).name
@@ -1459,29 +1457,74 @@ def merge_component(component, cfg):
             )
             zip_upload = first_present(public_values.get("standalone_zip_upload_path"))
             zip_content = first_present(secret_values.get("standalone_zip_content_base64"))
-            if zip_content:
-                zip_target = write_repo_file_from_preflight(
-                    zip_filename,
-                    zip_content,
-                    "rhbk.zip",
-                    "base64",
-                )
-                vars_data["rhbk_standalone_zip"] = QuotedString(playbook_file_ref(zip_target.name))
-            elif zip_upload and Path(str(zip_upload)).is_file():
-                zip_target = copy_repo_file_from_path(
-                    zip_upload,
-                    zip_filename,
-                    "rhbk.zip",
-                )
-                vars_data["rhbk_standalone_zip"] = QuotedString(playbook_file_ref(zip_target.name))
-            elif zip_filename and str(zip_filename).lower().endswith(".zip"):
-                typed_zip = str(public_values.get("standalone_zip") or "")
-                if typed_zip.startswith("/"):
-                    vars_data["rhbk_standalone_zip"] = typed_zip
+            zip_git_repo = first_present(public_values.get("standalone_zip_git_repo"))
+            zip_git_path = first_present(public_values.get("standalone_zip_git_path"))
+            zip_git_branch = first_present(public_values.get("standalone_zip_git_branch"))
+            zip_source = str(
+                first_present(public_values.get("standalone_zip_source")) or ""
+            ).strip().lower()
+            if zip_source not in ("url", "git", "upload"):
+                if zip_git_repo:
+                    zip_source = "git"
+                elif zip_url:
+                    zip_source = "url"
+                elif zip_content or zip_upload or zip_filename:
+                    zip_source = "upload"
                 else:
-                    vars_data["rhbk_standalone_zip"] = QuotedString(
-                        playbook_file_ref(Path(str(zip_filename)).name)
+                    zip_source = ""
+            if zip_source:
+                vars_data["rhbk_standalone_zip_source"] = zip_source
+                vars_data["install_rhbk_standalone_zip_source"] = zip_source
+                vars_data_changed = True
+            if zip_source in ("", "url") and zip_url:
+                vars_data["rhbk_standalone_zip_url"] = str(zip_url)
+                vars_data_changed = True
+            if zip_source == "git":
+                if zip_git_repo:
+                    vars_data["rhbk_standalone_zip_git_repo"] = str(zip_git_repo)
+                    vars_data["install_rhbk_standalone_zip_git_repo"] = str(zip_git_repo)
+                    vars_data_changed = True
+                if zip_git_path:
+                    vars_data["rhbk_standalone_zip_git_path"] = str(zip_git_path)
+                    vars_data["install_rhbk_standalone_zip_git_path"] = str(zip_git_path)
+                    vars_data_changed = True
+                if zip_git_branch:
+                    vars_data["rhbk_standalone_zip_git_branch"] = str(zip_git_branch)
+                    vars_data["install_rhbk_standalone_zip_git_branch"] = str(
+                        zip_git_branch
                     )
+                    vars_data_changed = True
+            if zip_source in ("", "upload"):
+                if zip_content:
+                    zip_target = write_repo_file_from_preflight(
+                        zip_filename,
+                        zip_content,
+                        "rhbk.zip",
+                        "base64",
+                    )
+                    vars_data["rhbk_standalone_zip"] = QuotedString(
+                        playbook_file_ref(zip_target.name)
+                    )
+                    vars_data_changed = True
+                elif zip_upload and Path(str(zip_upload)).is_file():
+                    zip_target = copy_repo_file_from_path(
+                        zip_upload,
+                        zip_filename,
+                        "rhbk.zip",
+                    )
+                    vars_data["rhbk_standalone_zip"] = QuotedString(
+                        playbook_file_ref(zip_target.name)
+                    )
+                    vars_data_changed = True
+                elif zip_filename and str(zip_filename).lower().endswith(".zip"):
+                    typed_zip = str(public_values.get("standalone_zip") or "")
+                    if typed_zip.startswith("/"):
+                        vars_data["rhbk_standalone_zip"] = typed_zip
+                    else:
+                        vars_data["rhbk_standalone_zip"] = QuotedString(
+                            playbook_file_ref(Path(str(zip_filename)).name)
+                        )
+                    vars_data_changed = True
             if public_values.get("standalone_admin_user"):
                 vars_data["rhbk_admin_user"] = str(public_values.get("standalone_admin_user"))
             if secret_values.get("standalone_admin_password"):
@@ -1508,16 +1551,6 @@ def merge_component(component, cfg):
             if tls_crt and tls_key:
                 vars_data["rhbk_standalone_https_enabled"] = True
                 vars_data["install_rhbk_standalone_https_enabled"] = True
-            rhn_org = first_present(public_values.get("standalone_rhn_org_id"))
-            if rhn_org:
-                vars_data["install_rhbk_rhn_org_id"] = str(rhn_org)
-            rhn_key = first_present(secret_values.get("standalone_rhn_activation_key"))
-            if rhn_key:
-                vars_data["install_rhbk_rhn_activation_key"] = vault_ref(
-                    "vault_rhbk_rhn_activation_key"
-                )
-                vault_data["vault_rhbk_rhn_activation_key"] = QuotedString(str(rhn_key))
-                vault_data_changed = True
             for mapper_key in (
                 "group_mapper_name",
                 "group_mapper_claim",

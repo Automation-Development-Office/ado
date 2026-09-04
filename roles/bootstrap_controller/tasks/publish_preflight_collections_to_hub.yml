@@ -32,16 +32,21 @@
       }}
     bootstrap_controller_hub_ah_use_basic: >-
       {{ bootstrap_controller_hub_ah_use_basic | default(false) | bool }}
+
+# Second set_fact: cannot reference sibling keys from the previous task in the
+# same set_fact (Ansible evaluates all expressions against prior host vars).
+- name: Publish preflight collections | Resolve Hub URI token
+  ansible.builtin.set_fact:
     bootstrap_controller_hub_uri_token: >-
       {{
         bootstrap_controller_hub_ah_token
         if (
           not (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
-          and (bootstrap_controller_hub_ah_token | length > 0)
+          and (bootstrap_controller_hub_ah_token | default('') | length > 0)
         )
         else (
           bootstrap_controller_hub_uri_oauth
-          if (bootstrap_controller_hub_uri_oauth | length > 0)
+          if (bootstrap_controller_hub_uri_oauth | default('') | length > 0)
           else ''
         )
       }}

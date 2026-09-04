@@ -7,20 +7,55 @@
     path: "{{ install_rhbk_standalone_home }}/.ado-rhbk-unpacked"
   register: install_rhbk_unpack_marker
 
+- name: Resolve RHBK zip source mode
+  ansible.builtin.set_fact:
+    install_rhbk_zip_source_effective: >-
+      {{
+        (install_rhbk_standalone_zip_source | default('') | string | lower)
+        if (install_rhbk_standalone_zip_source | default('') | length > 0)
+        else (
+          'upload'
+          if (install_rhbk_standalone_zip | default('') | length > 0)
+          else (
+            'url'
+            if (install_rhbk_standalone_zip_url | default('') | length > 0)
+            else (
+              'git'
+              if (install_rhbk_standalone_zip_git_repo | default('') | length > 0)
+              else ''
+            )
+          )
+        )
+      }}
+
 - name: Guard — standalone RHBK requires hostname, admin password, and zip (unless already unpacked)
   ansible.builtin.assert:
     that:
       - install_rhbk_standalone_hostname | length > 0
       - install_rhbk_standalone_admin_password | length > 0
       - (
-          (install_rhbk_standalone_zip | default('') | length > 0)
-          or (install_rhbk_standalone_zip_url | default('') | length > 0)
+          (install_rhbk_zip_source_effective | default('') | length > 0)
           or (install_rhbk_unpack_marker.stat.exists | default(false))
         )
+      - >
+        (install_rhbk_unpack_marker.stat.exists | default(false))
+        or (install_rhbk_zip_source_effective != 'upload')
+        or (install_rhbk_standalone_zip | default('') | length > 0)
+      - >
+        (install_rhbk_unpack_marker.stat.exists | default(false))
+        or (install_rhbk_zip_source_effective != 'url')
+        or (install_rhbk_standalone_zip_url | default('') | length > 0)
+      - >
+        (install_rhbk_unpack_marker.stat.exists | default(false))
+        or (install_rhbk_zip_source_effective != 'git')
+        or (
+          (install_rhbk_standalone_zip_git_repo | default('') | length > 0)
+          and (install_rhbk_standalone_zip_git_path | default('') | length > 0)
+        )
     fail_msg: >-
-      Standalone RHBK needs hostname, admin password, and
-      install_rhbk_standalone_zip (local path) or install_rhbk_standalone_zip_url
-      (or an existing install at {{ install_rhbk_standalone_home }}/.ado-rhbk-unpacked).
+      Standalone RHBK needs hostname, admin password, and a zip source
+      (upload path, HTTP/Satellite URL, or git repo+path), or an existing
+      install at {{ install_rhbk_standalone_home }}/.ado-rhbk-unpacked.
 
 - name: Ensure Java and unzip are installed for RHBK
   ansible.builtin.dnf:
@@ -44,6 +79,29 @@
     - not (install_rhbk_standalone_skip_packages | default(false) | bool)
     - (install_rhbk_packages.rc | default(0)) != 0
       or (install_rhbk_packages.failed | default(false))
+
+- name: Ensure git is installed when fetching RHBK zip from git
+  ansible.builtin.dnf:
+    name: git
+    state: present
+  when:
+    - not (install_rhbk_unpack_marker.stat.exists | default(false))
+    - install_rhbk_zip_source_effective | default('') == 'git'
+    - not (install_rhbk_standalone_skip_packages | default(false) | bool)
+  register: install_rhbk_git_pkg
+  failed_when: false
+
+- name: Fail when git package missing for git zip source
+  ansible.builtin.fail:
+    msg: >-
+      Could not install git via dnf for RHBK zip clone.
+      Pre-install git or use HTTP/Satellite URL / upload zip source.
+  when:
+    - not (install_rhbk_unpack_marker.stat.exists | default(false))
+    - install_rhbk_zip_source_effective | default('') == 'git'
+    - not (install_rhbk_standalone_skip_packages | default(false) | bool)
+    - (install_rhbk_git_pkg.rc | default(0)) != 0
+      or (install_rhbk_git_pkg.failed | default(false))
 
 - name: Stat optional pre-staged Java at /opt/java
   ansible.builtin.stat:
@@ -75,24 +133,61 @@
     - "{{ install_rhbk_standalone_data_dir }}"
     - /var/lib/rhbk-stage
 
-- name: Stage RHBK zip from controller/local path
+- name: Stage RHBK zip from controller/bootstrap path onto Keycloak host
   ansible.builtin.copy:
     src: "{{ install_rhbk_standalone_zip }}"
     dest: /var/lib/rhbk-stage/rhbk.zip
     mode: "0644"
   when:
     - not (install_rhbk_unpack_marker.stat.exists | default(false))
+    - install_rhbk_zip_source_effective | default('') == 'upload'
     - install_rhbk_standalone_zip | default('') | length > 0
 
-- name: Download RHBK zip when URL provided
+- name: Download RHBK zip on Keycloak host from HTTP/Satellite URL
   ansible.builtin.get_url:
     url: "{{ install_rhbk_standalone_zip_url }}"
     dest: /var/lib/rhbk-stage/rhbk.zip
     mode: "0644"
   when:
     - not (install_rhbk_unpack_marker.stat.exists | default(false))
-    - install_rhbk_standalone_zip | default('') | length == 0
+    - install_rhbk_zip_source_effective | default('') == 'url'
     - install_rhbk_standalone_zip_url | default('') | length > 0
+
+- name: Remove previous RHBK git stage directory
+  ansible.builtin.file:
+    path: /var/lib/rhbk-stage/git
+    state: absent
+  when:
+    - not (install_rhbk_unpack_marker.stat.exists | default(false))
+    - install_rhbk_zip_source_effective | default('') == 'git'
+
+- name: Clone RHBK zip git repository onto Keycloak host
+  ansible.builtin.git:
+    repo: "{{ install_rhbk_standalone_zip_git_repo }}"
+    dest: /var/lib/rhbk-stage/git
+    version: >-
+      {{
+        install_rhbk_standalone_zip_git_branch
+        if (install_rhbk_standalone_zip_git_branch | default('') | length > 0)
+        else omit
+      }}
+    depth: 1
+    force: true
+  when:
+    - not (install_rhbk_unpack_marker.stat.exists | default(false))
+    - install_rhbk_zip_source_effective | default('') == 'git'
+    - install_rhbk_standalone_zip_git_repo | default('') | length > 0
+
+- name: Stage RHBK zip from git checkout path on Keycloak host
+  ansible.builtin.copy:
+    src: "/var/lib/rhbk-stage/git/{{ install_rhbk_standalone_zip_git_path }}"
+    dest: /var/lib/rhbk-stage/rhbk.zip
+    remote_src: true
+    mode: "0644"
+  when:
+    - not (install_rhbk_unpack_marker.stat.exists | default(false))
+    - install_rhbk_zip_source_effective | default('') == 'git'
+    - install_rhbk_standalone_zip_git_path | default('') | length > 0
 
 - name: Unpack RHBK distribution with unzip when available
   ansible.builtin.unarchive:

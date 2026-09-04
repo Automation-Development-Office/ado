@@ -47,9 +47,17 @@ install_rhbk_standalone_admin_user: "{{ rhbk_admin_user | default('admin') }}"
 install_rhbk_standalone_admin_password: "{{ rhbk_admin_password | default('redhat123') }}"
 install_rhbk_standalone_home: /opt/rhbk
 install_rhbk_standalone_data_dir: /var/lib/rhbk
-# Local path on the Ansible controller (copied to the VM), e.g. ~/Downloads/rhbk-26.6.5.zip
+# Zip source: url (HTTP/Satellite), git (clone on host), or upload (controller copy).
+# Empty source keeps legacy precedence: local zip → URL → git.
+install_rhbk_standalone_zip_source: "{{ rhbk_standalone_zip_source | default('') }}"
+# Local/controller path (copied to the VM), e.g. files/rhbk-26.6.5.zip from bootstrap.
 install_rhbk_standalone_zip: "{{ rhbk_standalone_zip | default('') }}"
+# HTTP(S) URL the Keycloak host can reach (Satellite example: http://sat/pub/rhbk.zip).
 install_rhbk_standalone_zip_url: "{{ rhbk_standalone_zip_url | default('') }}"
+# Git clone on the Keycloak host; zip path is relative to the repo root.
+install_rhbk_standalone_zip_git_repo: "{{ rhbk_standalone_zip_git_repo | default('') }}"
+install_rhbk_standalone_zip_git_path: "{{ rhbk_standalone_zip_git_path | default('') }}"
+install_rhbk_standalone_zip_git_branch: "{{ rhbk_standalone_zip_git_branch | default('') }}"
 # When the VM has no Satellite/repos, pre-stage Java and set skip_packages.
 install_rhbk_standalone_skip_packages: false
 install_rhbk_standalone_java_home: ""
