@@ -71,10 +71,12 @@ echo "Installing system packages for tox ade install: ${packages[*]}"
 install_packages "${packages[@]}"
 
 if command -v pkg-config >/dev/null 2>&1; then
-  if ! pkg-config --exists libsystemd libsystemd-journal 2>/dev/null; then
+  # systemd-python only needs libsystemd.pc; libsystemd-journal.pc is not
+  # shipped separately on Ubuntu (journal APIs are in libsystemd).
+  if ! pkg-config --exists libsystemd 2>/dev/null; then
     echo "ERROR: libsystemd is still missing after package install (needed for systemd-python)." >&2
     pkg-config --list-all 2>/dev/null | grep -i systemd || true
     exit 1
   fi
-  echo "OK: pkg-config found libsystemd."
+  echo "OK: pkg-config found libsystemd ($(pkg-config --modversion libsystemd))."
 fi
