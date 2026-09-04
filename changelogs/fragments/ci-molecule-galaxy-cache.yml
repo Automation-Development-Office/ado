@@ -1,0 +1,5 @@
+---
+bugfixes:
+  - >-
+    Add ansible-galaxy install retries, a shared Molecule collections cache job,
+    and matrix max-parallel to reduce Galaxy 504/resolver flakes in CI.

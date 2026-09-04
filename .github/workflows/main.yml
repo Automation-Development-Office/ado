@@ -166,19 +166,8 @@ jobs:
           collections_path="${{ github.workspace }}/.ansible/collections"
           mkdir -p "$collections_path"
           if [ -f collections/requirements.yml ]; then
-            attempts=3
-            for attempt in $(seq 1 "$attempts"); do
-              if ansible-galaxy collection install -r collections/requirements.yml -p "$collections_path"; then
-                break
-              fi
-              if [ "$attempt" -eq "$attempts" ]; then
-                echo "Collection install failed after ${attempts} attempts."
-                exit 1
-              fi
-              sleep_seconds=$((attempt * 15))
-              echo "Collection install failed on attempt ${attempt}/${attempts}. Retrying in ${sleep_seconds}s..."
-              sleep "$sleep_seconds"
-            done
+            bash scripts/ci/ansible-galaxy-with-retry.sh collection install \
+              -r collections/requirements.yml -p "$collections_path"
           fi
         env:
           ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
@@ -428,15 +417,50 @@ jobs:
           echo "Discovered scenarios: $json"
           echo "scenarios=$json" >> "$GITHUB_OUTPUT"
 
-  molecule:
-    name: Molecule - ${{ matrix.scenario_dir }}
+  molecule-collections-cache:
+    name: Molecule Collections Cache
     runs-on: ubuntu-latest
     needs: discover-molecule-scenarios
     if: |
       (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') &&
       needs.discover-molecule-scenarios.outputs.scenarios != '[]'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install ansible-core
+        run: pip install ansible-core
+
+      - name: Build Molecule collections cache
+        run: bash scripts/ci/install-molecule-collections-cache.sh
+        env:
+          ANSIBLE_COLLECTIONS_PATH: ${{ runner.temp }}/ansible-collections
+
+      - name: Upload collections cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: molecule-collections-cache
+          path: ${{ runner.temp }}/ansible-collections
+          if-no-files-found: error
+          retention-days: 1
+
+  molecule:
+    name: Molecule - ${{ matrix.scenario_dir }}
+    runs-on: ubuntu-latest
+    needs:
+      - discover-molecule-scenarios
+      - molecule-collections-cache
+    if: |
+      (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') &&
+      needs.discover-molecule-scenarios.outputs.scenarios != '[]'
     strategy:
       fail-fast: false
+      max-parallel: 10
       matrix:
         scenario_dir: ${{ fromJson(needs.discover-molecule-scenarios.outputs.scenarios) }}
     steps:
@@ -455,29 +479,16 @@ jobs:
           pip install --upgrade pip
           pip install ansible-core 'molecule-plugins[docker,podman]' docker
 
-      - name: Verify Automation Hub connectivity
-        run: scripts/ci/verify-automation-hub.sh
+      - name: Restore Molecule collections cache
+        uses: actions/download-artifact@v4
+        with:
+          name: molecule-collections-cache
+          path: ~/.ansible/collections
 
-      - name: Install collection from local source
+      - name: Overlay local collection from checkout
         run: |
-          # --no-deps: infra.ado galaxy.yml may declare runtime deps (e.g. amazon.aws)
-          # for modules/sanity; Molecule role scenarios do not need those resolved
-          # from Galaxy and offline/rate-limit failures would break unrelated tests.
-          ansible-galaxy collection install . --force --no-deps -p ~/.ansible/collections
-          ansible-galaxy collection install ansible.posix --force -p ~/.ansible/collections
-          ansible-galaxy collection install community.general --force -p ~/.ansible/collections
-          ansible-galaxy collection install containers.podman --force -p ~/.ansible/collections
-        env:
-          ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
-
-      - name: Install scenario collection requirements
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          requirements_file="${{ github.workspace }}/${{ matrix.scenario_dir }}/requirements.yml"
-          if [ -f "$requirements_file" ]; then
-            ansible-galaxy collection install -r "$requirements_file" -p ~/.ansible/collections
-          fi
+          bash scripts/ci/ansible-galaxy-with-retry.sh collection install \
+            . --force --no-deps -p ~/.ansible/collections
         env:
           ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
 
@@ -564,6 +575,7 @@ jobs:
     needs:
       - linting
       - discover-molecule-scenarios
+      - molecule-collections-cache
       - molecule
     steps:
       - name: Assert Molecule scenarios exist
@@ -575,6 +587,7 @@ jobs:
           python -c "assert set([
           '${{ needs.linting.result }}',
           '${{ needs.discover-molecule-scenarios.result }}',
+          '${{ needs.molecule-collections-cache.result }}',
           '${{ needs.molecule.result }}'
           ]) <= {'success'}"
 
