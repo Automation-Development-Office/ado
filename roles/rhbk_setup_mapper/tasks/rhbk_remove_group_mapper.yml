@@ -16,9 +16,7 @@
 
 - name: Get all LDAP group mappers
   ansible.builtin.uri:
-    url: >-
-      {{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/components
-      ?type=org.keycloak.storage.ldap.mappers.LDAPStorageMapper
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/components?type=org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
     method: GET
     headers:
       Authorization: "Bearer {{ rhbk_setup_mapper_auth.json.access_token }}"

@@ -52,9 +52,7 @@
 
 - name: Get all existing LDAP mappers for component
   ansible.builtin.uri:
-    url: >-
-      {{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/components?parent={{
-      rhbk_setup_mapper_ldap_component_id }}&type=org.keycloak.storage.ldap.mappers.LDAPStorageMapper
+    url: "{{ rhbk_keycloak_base_url | default('https://' ~ rhbk_host) }}/admin/realms/{{ rhbk_realm }}/components?parent={{ rhbk_setup_mapper_ldap_component_id }}&type=org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
     method: GET
     headers:
       Authorization: "Bearer {{ rhbk_setup_mapper_auth.json.access_token }}"

@@ -120,7 +120,7 @@
 
 - name: Publish preflight collections | Build publish list (skip infra.ado)
   ansible.builtin.set_fact:
-    bootstrap_controller_hub_preflight_publish_list: >-
+    bootstrap_controller_hub_preflight_publish_candidates: >-
       {{
         bootstrap_controller_hub_preflight_manifest.collections
         | default([])
@@ -128,6 +128,25 @@
         | selectattr('hub_publish')
         | rejectattr('name', 'equalto', 'infra.ado')
         | list
+      }}
+
+- name: Publish preflight collections | Filter to selected collection names
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_preflight_publish_list: >-
+      {{
+        bootstrap_controller_hub_preflight_publish_candidates
+        if (
+          (bootstrap_controller_hub_preflight_collection_names | default([]) | length) == 0
+        )
+        else (
+          bootstrap_controller_hub_preflight_publish_candidates
+          | selectattr(
+              'name',
+              'in',
+              bootstrap_controller_hub_preflight_collection_names | default([])
+            )
+          | list
+        )
       }}
 
 - name: Publish preflight collections | Show collections to publish when missing
@@ -138,9 +157,8 @@
 
 - name: Publish preflight collections | Resolve Hub staging repository pulp href
   ansible.builtin.uri:
-    url: >-
-      {{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}/api/galaxy/pulp/api/v3/repositories/
-      ?name={{ bootstrap_controller_hub_staging_repository | default('staging') }}
+    # Keep URL on one line: YAML >- joins lines with a space (breaks ?query).
+    url: "{{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}/api/galaxy/pulp/api/v3/repositories/?name={{ bootstrap_controller_hub_staging_repository | default('staging') }}"
     method: GET
     validate_certs: "{{ controller_validate_certs | default(false) }}"
     status_code: [200]
@@ -153,9 +171,7 @@
 
 - name: Publish preflight collections | Resolve Hub validated repository pulp href
   ansible.builtin.uri:
-    url: >-
-      {{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}/api/galaxy/pulp/api/v3/repositories/
-      ?name={{ bootstrap_controller_hub_publish_repository | default('validated') }}
+    url: "{{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}/api/galaxy/pulp/api/v3/repositories/?name={{ bootstrap_controller_hub_publish_repository | default('validated') }}"
     method: GET
     validate_certs: "{{ controller_validate_certs | default(false) }}"
     status_code: [200]
@@ -183,4 +199,5 @@
     loop_var: __hub_pub_item
     label: "{{ __hub_pub_item.name }}"
   vars:
-    __hub_pub_force: "{{ __hub_pub_item.force_when_exists | default(false) | bool }}"
+    # Additional collections never force; only infra.ado has force.
+    __hub_pub_force: false
