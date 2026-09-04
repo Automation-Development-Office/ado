@@ -56,7 +56,7 @@ jobs:
         run: |
           collections_path="${{ github.workspace }}/.ansible/collections"
           mkdir -p "$collections_path"
-          bash scripts/ci/ansible-galaxy-with-retry.sh collection install \
+          sh scripts/ci/ansible-galaxy-with-retry.sh collection install \
             -r collections/requirements.yml -p "$collections_path"
         env:
           ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections

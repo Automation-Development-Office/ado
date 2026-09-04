@@ -166,7 +166,7 @@ jobs:
           collections_path="${{ github.workspace }}/.ansible/collections"
           mkdir -p "$collections_path"
           if [ -f collections/requirements.yml ]; then
-            bash scripts/ci/ansible-galaxy-with-retry.sh collection install \
+            sh scripts/ci/ansible-galaxy-with-retry.sh collection install \
               -r collections/requirements.yml -p "$collections_path"
           fi
         env:
@@ -460,7 +460,6 @@ jobs:
       needs.discover-molecule-scenarios.outputs.scenarios != '[]'
     strategy:
       fail-fast: false
-      max-parallel: 10
       matrix:
         scenario_dir: ${{ fromJson(needs.discover-molecule-scenarios.outputs.scenarios) }}
     steps:
@@ -487,7 +486,7 @@ jobs:
 
       - name: Overlay local collection from checkout
         run: |
-          bash scripts/ci/ansible-galaxy-with-retry.sh collection install \
+          sh scripts/ci/ansible-galaxy-with-retry.sh collection install \
             . --force --no-deps -p ~/.ansible/collections
         env:
           ANSIBLE_COLLECTIONS_PATH: ~/.ansible/collections
