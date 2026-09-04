@@ -134,7 +134,7 @@
   ansible.builtin.set_fact:
     bootstrap_controller_hub_preflight_publish_list: >-
       {{
-        bootstrap_controller_hub_preflight_publish_candidates
+        []
         if (
           (bootstrap_controller_hub_preflight_collection_names | default([]) | length) == 0
         )
