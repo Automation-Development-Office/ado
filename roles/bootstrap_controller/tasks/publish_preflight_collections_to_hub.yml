@@ -14,33 +14,24 @@
   ansible.builtin.set_fact:
     bootstrap_controller_hub_publish_repository: >-
       {{ bootstrap_controller_hub_publish_repository | default('validated') }}
+    # Prefer Contoller OAuth Bearer for URI/Pulp; ansible.hub Token auth is
+    # probed separately by ensure_hub_namespace when infra.ado is published.
+    bootstrap_controller_hub_uri_oauth: >-
+      {{
+        controller_oauthtoken
+        | default(vault_controller_oauthtoken | default('', true), true)
+        | string
+        | trim
+      }}
     bootstrap_controller_hub_ah_token: >-
       {{
-        (
-          bootstrap_controller_hub_ah_token
-          | default(
-              controller_oauthtoken
-              | default(vault_controller_oauthtoken | default('', true), true),
-              true
-            )
-          | string
-          | trim
-        )
-        if (
-          (
-            bootstrap_controller_hub_ah_token
-            | default(
-                controller_oauthtoken
-                | default(vault_controller_oauthtoken | default('', true), true),
-                true
-              )
-            | string
-            | trim
-          )
-          | length
-        ) > 0
-        else (vault_galaxy_hub_token | default('', true) | string | trim)
+        bootstrap_controller_hub_ah_token
+        | default(vault_galaxy_hub_token | default('', true), true)
+        | string
+        | trim
       }}
+    bootstrap_controller_hub_ah_use_basic: >-
+      {{ bootstrap_controller_hub_ah_use_basic | default(false) | bool }}
 
 - name: Publish preflight collections | Resolve Hub API host
   ansible.builtin.set_fact:
@@ -52,24 +43,22 @@
       }}
     bootstrap_controller_hub_pub_uri_headers: >-
       {{
-        {'Authorization': 'Bearer ' ~ bootstrap_controller_hub_ah_token}
-        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        {'Authorization': 'Bearer ' ~ bootstrap_controller_hub_uri_oauth}
+        if (bootstrap_controller_hub_uri_oauth | default('') | length > 0)
         else omit
       }}
     bootstrap_controller_hub_pub_uri_force_basic: >-
-      {{
-        (bootstrap_controller_hub_ah_token | default('') | string | trim | length) == 0
-      }}
+      {{ (bootstrap_controller_hub_uri_oauth | default('') | length) == 0 }}
     bootstrap_controller_hub_pub_uri_user: >-
       {{
         omit
-        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        if (bootstrap_controller_hub_uri_oauth | default('') | length > 0)
         else (controller_username | default(vault_controller_username | default(omit)))
       }}
     bootstrap_controller_hub_pub_uri_password: >-
       {{
         omit
-        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        if (bootstrap_controller_hub_uri_oauth | default('') | length > 0)
         else (controller_password | default(vault_controller_password | default(omit)))
       }}
 

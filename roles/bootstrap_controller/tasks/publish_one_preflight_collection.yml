@@ -86,9 +86,30 @@
         name: "{{ __hub_pub_item.namespace }}"
         state: present
         ah_host: "{{ bootstrap_controller_hub_pub_api_host }}"
-        ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
-        ah_token: "{{ bootstrap_controller_hub_ah_token | default(omit) }}"
+        ah_username: >-
+          {{
+            omit
+            if not (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
+            else (
+              controller_username
+              | default(vault_controller_username | default(omit))
+            )
+          }}
+        ah_password: >-
+          {{
+            omit
+            if not (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
+            else (
+              controller_password
+              | default(vault_controller_password | default(omit))
+            )
+          }}
+        ah_token: >-
+          {{
+            omit
+            if (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
+            else (bootstrap_controller_hub_ah_token | default(omit))
+          }}
         validate_certs: "{{ controller_validate_certs | default(false) }}"
       when:
         - bootstrap_controller_hub_pub_should_publish | bool
@@ -124,9 +145,30 @@
         timeout: "{{ bootstrap_controller_hub_publish_timeout | default(300) | int }}"
         request_timeout: "{{ bootstrap_controller_hub_publish_request_timeout | default(60) | int }}"
         ah_host: "{{ bootstrap_controller_hub_pub_api_host }}"
-        ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
-        ah_token: "{{ bootstrap_controller_hub_ah_token | default(omit) }}"
+        ah_username: >-
+          {{
+            omit
+            if not (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
+            else (
+              controller_username
+              | default(vault_controller_username | default(omit))
+            )
+          }}
+        ah_password: >-
+          {{
+            omit
+            if not (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
+            else (
+              controller_password
+              | default(vault_controller_password | default(omit))
+            )
+          }}
+        ah_token: >-
+          {{
+            omit
+            if (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
+            else (bootstrap_controller_hub_ah_token | default(omit))
+          }}
         validate_certs: "{{ controller_validate_certs | default(false) }}"
       register: bootstrap_controller_hub_pub_upload
       retries: 3

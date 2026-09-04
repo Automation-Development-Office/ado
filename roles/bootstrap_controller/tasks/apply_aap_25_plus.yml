@@ -78,28 +78,11 @@
   ansible.builtin.set_fact:
     bootstrap_controller_hub_publish_repository: "{{ (hub_collections | first).repository | default('validated') }}"
     bootstrap_controller_hub_publish_working_dir: "/var/tmp/ado-hub-publish"
-    # Gateway AAP Hub Galaxy v3 (namespaces/upload) accepts Contoller OAuth or
-    # admin basic auth. Hub User Access / Galaxy API tokens authenticate
-    # ansible-galaxy pulls (org Galaxy credentials), not Hub admin APIs.
-    bootstrap_controller_hub_ah_token: >-
-      {{
-        (
-          controller_oauthtoken
-          | default(vault_controller_oauthtoken | default('', true), true)
-          | string
-          | trim
-        )
-        if (
-          (
-            controller_oauthtoken
-            | default(vault_controller_oauthtoken | default('', true), true)
-            | string
-            | trim
-          )
-          | length
-        ) > 0
-        else (vault_galaxy_hub_token | default('', true) | string | trim)
-      }}
+    # ansible.hub Token-scheme auth is resolved later by ensure_hub_namespace.yml
+    # (Hub token → Contoller OAuth → admin basic). Keep empty until that probe.
+    bootstrap_controller_hub_ah_token: ""
+    bootstrap_controller_hub_ah_auth_mode: ""
+    bootstrap_controller_hub_ah_use_basic: false
     bootstrap_controller_hub_tarball_src: >-
       {{
         (
@@ -292,19 +275,7 @@
       )
 
 - name: AAP 2.5+ | Ensure Hub namespace exists for ADO collection
-  ansible.hub.ah_namespace:
-    name: infra
-    state: present
-    ah_host: >-
-      {{
-        ('https://' ~ (bootstrap_controller_hub_hostname | regex_replace('^https?://', '') | regex_replace('/.*$', '')))
-        if (bootstrap_controller_hub_hostname | default('') | string | trim | length > 0)
-        else (controller_host | default(vault_controller_hostname))
-      }}
-    ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-    ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
-    ah_token: "{{ bootstrap_controller_hub_ah_token | default(omit) }}"
-    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  ansible.builtin.include_tasks: ensure_hub_namespace.yml
   when:
     - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
     - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
@@ -326,28 +297,33 @@
         if (bootstrap_controller_hub_hostname | default('') | string | trim | length > 0)
         else (controller_host | default(vault_controller_hostname))
       }}
-    # Contoller OAuth works with Bearer or Token on gateway Hub; Hub User
-    # Access tokens do not authorize Galaxy v3 / Pulp admin calls.
+    # Raw URI/Pulp calls use Bearer Contoller OAuth (or basic). Do not reuse the
+    # Hub User Access token as Bearer — ansible.hub Token auth is separate.
+    bootstrap_controller_hub_uri_oauth: >-
+      {{
+        controller_oauthtoken
+        | default(vault_controller_oauthtoken | default('', true), true)
+        | string
+        | trim
+      }}
     bootstrap_controller_hub_uri_headers: >-
       {{
-        {'Authorization': 'Bearer ' ~ bootstrap_controller_hub_ah_token}
-        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        {'Authorization': 'Bearer ' ~ bootstrap_controller_hub_uri_oauth}
+        if (bootstrap_controller_hub_uri_oauth | length > 0)
         else omit
       }}
     bootstrap_controller_hub_uri_force_basic: >-
-      {{
-        (bootstrap_controller_hub_ah_token | default('') | string | trim | length) == 0
-      }}
+      {{ bootstrap_controller_hub_uri_oauth | length == 0 }}
     bootstrap_controller_hub_uri_user: >-
       {{
         omit
-        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        if (bootstrap_controller_hub_uri_oauth | length > 0)
         else (controller_username | default(vault_controller_username | default(omit)))
       }}
     bootstrap_controller_hub_uri_password: >-
       {{
         omit
-        if (bootstrap_controller_hub_ah_token | default('') | string | trim | length) > 0
+        if (bootstrap_controller_hub_uri_oauth | length > 0)
         else (controller_password | default(vault_controller_password | default(omit)))
       }}
   block:
@@ -364,9 +340,30 @@
         timeout: "{{ bootstrap_controller_hub_publish_timeout | default(300) | int }}"
         request_timeout: "{{ bootstrap_controller_hub_publish_request_timeout | default(60) | int }}"
         ah_host: "{{ bootstrap_controller_hub_api_host }}"
-        ah_username: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
-        ah_password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
-        ah_token: "{{ bootstrap_controller_hub_ah_token | default(omit) }}"
+        ah_username: >-
+          {{
+            omit
+            if not (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
+            else (
+              controller_username
+              | default(vault_controller_username | default(omit))
+            )
+          }}
+        ah_password: >-
+          {{
+            omit
+            if not (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
+            else (
+              controller_password
+              | default(vault_controller_password | default(omit))
+            )
+          }}
+        ah_token: >-
+          {{
+            omit
+            if (bootstrap_controller_hub_ah_use_basic | default(false) | bool)
+            else (bootstrap_controller_hub_ah_token | default(omit))
+          }}
         validate_certs: "{{ controller_validate_certs | default(false) }}"
       vars:
         bootstrap_controller_hub_artifact_basename: "{{ __hub_collection_file | basename }}"
