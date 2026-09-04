@@ -56,9 +56,9 @@ if [[ -f bindep.txt && -n "${bindep_cmd}" ]]; then
 fi
 
 if command -v apt-get >/dev/null 2>&1; then
-  add_packages libsystemd-dev libsystemd0 pkg-config gcc build-essential
+  add_packages libsystemd-dev libsystemd0 libkrb5-dev pkg-config gcc build-essential
 elif command -v dnf >/dev/null 2>&1; then
-  add_packages systemd-devel pkg-config gcc
+  add_packages systemd-devel krb5-devel krb5-libs pkg-config gcc
 fi
 
 if [[ "${#package_set[@]}" -eq 0 ]]; then
