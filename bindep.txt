@@ -1,8 +1,7 @@
-# Compile-time system packages for collection Python deps (e.g. systemd-python from
-# ansible.eda when Hub dependencies are installed during tox ade install).
-libsystemd-dev [compile platform:dpkg]
-gcc [compile platform:dpkg]
-pkg-config [compile platform:dpkg]
+# Native build deps for Hub collection Python requirements (e.g. systemd-python).
+# Match ansible.eda bindep profile names (debian/rpm, not dpkg).
+pkg-config [compile]
+gcc [compile]
+libsystemd0 [platform:debian]
+libsystemd-dev [compile platform:debian]
 systemd-devel [compile platform:rpm]
-gcc [compile platform:rpm]
-pkg-config [compile platform:rpm]

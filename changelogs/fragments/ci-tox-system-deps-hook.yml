@@ -3,3 +3,6 @@ bugfixes:
   - >-
     Install native build dependencies before tox ade install so sanity and unit
     jobs can resolve Hub collection Python requirements such as systemd-python.
+  - >-
+    Fix bindep platform profiles and always install libsystemd-dev before ade
+    pip requirements (avoids empty bindep match skipping the apt fallback).
