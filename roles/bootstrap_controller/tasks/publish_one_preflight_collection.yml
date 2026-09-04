@@ -191,6 +191,25 @@
       delay: "{{ bootstrap_controller_hub_publish_verify_delay | default(5) | int }}"
       when: bootstrap_controller_hub_pub_should_publish | bool
 
+    # wait:false upload can register pulp content before the version is in the
+    # staging repository. Moving too early returns Hub HTTP 500 with empty HTML.
+    - name: Publish preflight collection | Wait until version is visible in staging
+      ansible.builtin.uri:
+        url: "{{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}/api/galaxy/content/{{ bootstrap_controller_hub_staging_repository | default('staging') }}/v3/collections/{{ __hub_pub_item.namespace }}/{{ __hub_pub_item.collection }}/versions/{{ bootstrap_controller_hub_pub_version }}/"
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200, 404]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
+        user: "{{ bootstrap_controller_hub_pub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_pub_uri_password }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
+      register: bootstrap_controller_hub_pub_staging_ready
+      until: (bootstrap_controller_hub_pub_staging_ready.status | default(0) | int) == 200
+      retries: "{{ bootstrap_controller_hub_publish_verify_retries | default(36) | int }}"
+      delay: "{{ bootstrap_controller_hub_publish_verify_delay | default(5) | int }}"
+      when: bootstrap_controller_hub_pub_should_publish | bool
+
     - name: Publish preflight collection | Promote from staging to validated via pulp
       ansible.builtin.uri:
         url: "{{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}{{ bootstrap_controller_hub_preflight_staging_repo.json.results[0].pulp_href }}move_collection_version/"
@@ -209,10 +228,80 @@
         password: "{{ bootstrap_controller_hub_pub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
       register: bootstrap_controller_hub_pub_promote_attempt
-      when: bootstrap_controller_hub_pub_should_publish | bool
+      until: (bootstrap_controller_hub_pub_promote_attempt.status | default(0) | int) in [200, 202]
+      retries: 6
+      delay: 10
       failed_when: false
+      when: bootstrap_controller_hub_pub_should_publish | bool
 
-    - name: Publish preflight collection | Re-check validated after promote conflict/500
+    - name: Publish preflight collection | Copy to validated when move keep failing (Hub 500 workaround)
+      ansible.builtin.uri:
+        url: "{{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}{{ bootstrap_controller_hub_preflight_staging_repo.json.results[0].pulp_href }}copy_collection_version/"
+        method: POST
+        body_format: json
+        body:
+          collection_versions:
+            - "{{ bootstrap_controller_hub_pub_cv_lookup.json.results[0].pulp_href }}"
+          destination_repositories:
+            - "{{ bootstrap_controller_hub_preflight_validated_repo.json.results[0].pulp_href }}"
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200, 202, 400, 409, 500]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
+        user: "{{ bootstrap_controller_hub_pub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_pub_uri_password }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
+      register: bootstrap_controller_hub_pub_copy_attempt
+      until: (bootstrap_controller_hub_pub_copy_attempt.status | default(0) | int) in [200, 202]
+      retries: 4
+      delay: 10
+      failed_when: false
+      when:
+        - bootstrap_controller_hub_pub_should_publish | bool
+        - (bootstrap_controller_hub_pub_promote_attempt.status | default(0) | int) not in [200, 202]
+
+    - name: Publish preflight collection | Resolve pulp task href from move or copy
+      ansible.builtin.set_fact:
+        bootstrap_controller_hub_pub_async_task: >-
+          {{
+            bootstrap_controller_hub_pub_promote_attempt.json.task
+            if (
+              (bootstrap_controller_hub_pub_promote_attempt.status | default(0) | int) in [200, 202]
+              and (bootstrap_controller_hub_pub_promote_attempt.json.task is defined)
+            )
+            else (
+              bootstrap_controller_hub_pub_copy_attempt.json.task
+              if (
+                (bootstrap_controller_hub_pub_copy_attempt is defined)
+                and (bootstrap_controller_hub_pub_copy_attempt.status | default(0) | int) in [200, 202]
+                and (bootstrap_controller_hub_pub_copy_attempt.json.task is defined)
+              )
+              else ''
+            )
+          }}
+      when: bootstrap_controller_hub_pub_should_publish | bool
+
+    - name: Publish preflight collection | Wait for pulp promote/copy task
+      ansible.builtin.uri:
+        url: "{{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}{{ bootstrap_controller_hub_pub_async_task }}"
+        method: GET
+        validate_certs: "{{ controller_validate_certs | default(false) }}"
+        status_code: [200]
+        return_content: true
+        headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
+        user: "{{ bootstrap_controller_hub_pub_uri_user }}"
+        password: "{{ bootstrap_controller_hub_pub_uri_password }}"
+        force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
+      when:
+        - bootstrap_controller_hub_pub_should_publish | bool
+        - (bootstrap_controller_hub_pub_async_task | default('') | length) > 0
+      register: bootstrap_controller_hub_pub_promote_task
+      until: (bootstrap_controller_hub_pub_promote_task.json.state | default('')) in ['completed', 'failed']
+      retries: "{{ bootstrap_controller_hub_publish_verify_retries | default(36) | int }}"
+      delay: 5
+      failed_when: (bootstrap_controller_hub_pub_promote_task.json.state | default('')) == 'failed'
+
+    - name: Publish preflight collection | Re-check validated after promote/copy
       ansible.builtin.uri:
         url: "{{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}/api/galaxy/content/{{ bootstrap_controller_hub_publish_repository | default('validated') }}/v3/collections/{{ __hub_pub_item.namespace }}/{{ __hub_pub_item.collection }}/versions/{{ bootstrap_controller_hub_pub_version }}/"
         method: GET
@@ -224,41 +313,24 @@
         password: "{{ bootstrap_controller_hub_pub_uri_password }}"
         force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
       register: bootstrap_controller_hub_pub_promote_fallback
-      when:
-        - bootstrap_controller_hub_pub_should_publish | bool
-        - (bootstrap_controller_hub_pub_promote_attempt.status | default(0) | int) not in [200, 202]
+      until: (bootstrap_controller_hub_pub_promote_fallback.status | default(0) | int) == 200
+      retries: 12
+      delay: 5
+      failed_when: false
+      when: bootstrap_controller_hub_pub_should_publish | bool
 
     - name: Publish preflight collection | Fail when promote failed and version still missing
       ansible.builtin.fail:
         msg: >-
           Hub promote failed for {{ __hub_pub_item.name }} {{ bootstrap_controller_hub_pub_version }}
-          (HTTP {{ bootstrap_controller_hub_pub_promote_attempt.status | default('?') }})
-          and version is not in validated.
-          body={{ bootstrap_controller_hub_pub_promote_attempt.content | default('') }}
+          (move HTTP {{ bootstrap_controller_hub_pub_promote_attempt.status | default('?') }},
+          copy HTTP {{ bootstrap_controller_hub_pub_copy_attempt.status | default('n/a') }})
+          and version is not in validated. Unselect this collection in Hub → Collections
+          dropdown and retry, or approve it manually in Hub UI.
+          move_body={{ bootstrap_controller_hub_pub_promote_attempt.content | default('') }}
       when:
         - bootstrap_controller_hub_pub_should_publish | bool
-        - (bootstrap_controller_hub_pub_promote_attempt.status | default(0) | int) not in [200, 202]
         - (bootstrap_controller_hub_pub_promote_fallback.status | default(404) | int) != 200
-
-    - name: Publish preflight collection | Wait for pulp promote task
-      ansible.builtin.uri:
-        url: "{{ bootstrap_controller_hub_pub_api_host.rstrip('/') }}{{ bootstrap_controller_hub_pub_promote_attempt.json.task }}"
-        method: GET
-        validate_certs: "{{ controller_validate_certs | default(false) }}"
-        status_code: [200]
-        return_content: true
-        headers: "{{ bootstrap_controller_hub_pub_uri_headers }}"
-        user: "{{ bootstrap_controller_hub_pub_uri_user }}"
-        password: "{{ bootstrap_controller_hub_pub_uri_password }}"
-        force_basic_auth: "{{ bootstrap_controller_hub_pub_uri_force_basic }}"
-      when:
-        - bootstrap_controller_hub_pub_should_publish | bool
-        - bootstrap_controller_hub_pub_promote_attempt.json.task is defined
-      register: bootstrap_controller_hub_pub_promote_task
-      until: (bootstrap_controller_hub_pub_promote_task.json.state | default('')) in ['completed', 'failed']
-      retries: "{{ bootstrap_controller_hub_publish_verify_retries | default(36) | int }}"
-      delay: 5
-      failed_when: (bootstrap_controller_hub_pub_promote_task.json.state | default('')) == 'failed'
 
     - name: Publish preflight collection | Verify collection is in validated Hub repository
       ansible.builtin.uri:
