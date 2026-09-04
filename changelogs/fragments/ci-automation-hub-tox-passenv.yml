@@ -3,3 +3,6 @@ bugfixes:
   - >-
     Forward Automation Hub Galaxy server env vars through tox-ansible so sanity
     and unit jobs resolve certified collection dependencies from console.redhat.com.
+  - >-
+    Remove unused variable from verify-automation-hub.sh so ansible-test shellcheck
+    sanity passes.
