@@ -277,8 +277,16 @@
 - name: AAP 2.5+ | Ensure Hub namespace exists for ADO collection
   ansible.builtin.include_tasks: ensure_hub_namespace.yml
   when:
-    - bootstrap_controller_hub_publish_ado_collection | default(false) | bool
-    - bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
+    - >-
+      (
+        bootstrap_controller_hub_publish_ado_collection | default(false) | bool
+        and bootstrap_controller_hub_collection_artifacts | default([]) | length > 0
+      )
+      or (
+        bootstrap_controller_hub_publish_preflight_collections
+        | default(false)
+        | bool
+      )
 
 # ansible.hub.ah_collection auto_approve ALWAYS moves staging -> published
 # (hardcoded). This Hub uses validated, not published — so auto_approve crashes
