@@ -75,6 +75,15 @@
     - job_templates
     - workflows
 
+- name: AAP configs | Resolve job/workflow template overwrite mode
+  ansible.builtin.set_fact:
+    bootstrap_controller_jt_wf_force: >-
+      {{
+        bootstrap_controller_generate_aap_configs_force_job_workflows
+        | default(false)
+        | bool
+      }}
+
 - name: AAP configs | Expand patching component dependencies
   ansible.builtin.set_fact:
     bootstrap_controller_effective_components: >-
@@ -415,6 +424,12 @@
     src_dir = Path("{{ role_path }}/files/job_templates")
     dest_dir = Path("{{ playbook_dir }}/configs/job_templates")
     dest_dir.mkdir(parents=True, exist_ok=True)
+    force_overwrite = {{
+      bootstrap_controller_jt_wf_force
+      | default(false)
+      | bool
+      | ternary('True', 'False')
+    }}
 
     organization = "{{ bootstrap_controller_organization | default(controller_bootstrap_organization, true) }}"
     inventory = "{{ bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true) }}"
@@ -596,6 +611,10 @@
         text = text.replace("ADO |", f"{organization} |")
         text = text.replace(f"{organization} | ADO ", f"{organization} | ")
 
+        dest_path = dest_dir / name
+        if not force_overwrite and dest_path.exists():
+            continue
+
         data = yaml.safe_load(text)
         templates = data.get("controller_templates", []) or []
         missing_playbooks = []
@@ -639,13 +658,14 @@
                 normalize_survey_choices(question)
         text = yaml.safe_dump(data, sort_keys=False)
 
-        (dest_dir / name).write_text(text)
+        dest_path.write_text(text)
         copied.append(name)
 
     selected_set = set(selected)
-    for existing in dest_dir.glob("*.jt.yml"):
-        if existing.name not in selected_set:
-            existing.unlink()
+    if force_overwrite:
+        for existing in dest_dir.glob("*.jt.yml"):
+            if existing.name not in selected_set:
+                existing.unlink()
 
     print("Copied job templates:", len(copied))
     PYCODE
@@ -669,6 +689,7 @@
         playbook_dir
       }}/configs/workflows/ado-patching-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - >-
         'rhel' in bootstrap_controller_effective_components
@@ -684,6 +705,7 @@
         playbook_dir
       }}/configs/workflows/ado-rhel-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - >-
         'rhel' in bootstrap_controller_effective_components
@@ -701,6 +723,7 @@
         playbook_dir
       }}/configs/workflows/ado-satellite-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - >-
         'satellite_server_install' in
@@ -714,6 +737,7 @@
         playbook_dir
       }}/configs/workflows/ado-openshift-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - "'openshift' in bootstrap_controller_effective_components"
 
@@ -725,6 +749,7 @@
         playbook_dir
       }}/configs/workflows/ado-rhbk-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - "'rhbk' in bootstrap_controller_effective_components"
 
@@ -736,6 +761,7 @@
         playbook_dir
       }}/configs/workflows/ado-grafana-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - "'grafana' in bootstrap_controller_effective_components"
 
@@ -765,6 +791,7 @@
         playbook_dir
       }}/configs/workflows/ado-alt-routes-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - >-
         (
@@ -787,6 +814,7 @@
         playbook_dir
       }}/configs/workflows/ado-acs-report-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - "'acs_report' in bootstrap_controller_effective_components"
 
@@ -798,6 +826,7 @@
       }}/configs/workflows/ado-patching-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - >-
         'rhel' not in bootstrap_controller_effective_components
         or 'satellite_client_tools' not in
@@ -813,6 +842,7 @@
       }}/configs/workflows/ado-rhel-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - >-
         'rhel' not in bootstrap_controller_effective_components
         or 'satellite_client_tools' not in
@@ -830,6 +860,7 @@
       }}/configs/workflows/ado-satellite-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - >-
         'satellite_server_install' not in
         bootstrap_controller_effective_components
@@ -842,6 +873,7 @@
       }}/configs/workflows/ado-openshift-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - "'openshift' not in bootstrap_controller_effective_components"
 
 - name: AAP configs | Remove RHBK workflow when unselected
@@ -852,6 +884,7 @@
       }}/configs/workflows/ado-rhbk-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - "'rhbk' not in bootstrap_controller_effective_components"
 
 - name: AAP configs | Remove Grafana workflow when unselected
@@ -862,6 +895,7 @@
       }}/configs/workflows/ado-grafana-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - "'grafana' not in bootstrap_controller_effective_components"
 
 - name: AAP configs | Remove component auth workflows when unselected
@@ -879,6 +913,7 @@
     - { slug: netbox, component: netbox }
     - { slug: zabbix, component: zabbix }
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - item.component not in bootstrap_controller_effective_components
 
 - name: AAP configs | Remove Alt Routes workflow when unselected
@@ -889,6 +924,7 @@
       }}/configs/workflows/ado-alt-routes-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - >-
         (
           bootstrap_controller_effective_components | default([])
@@ -910,6 +946,7 @@
       }}/configs/workflows/ado-acs-report-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - "'acs_report' not in bootstrap_controller_effective_components"
 
 - name: AAP configs | Apply organization prefix to workflow templates
@@ -928,6 +965,7 @@
         playbook_dir ~ '/configs/workflows/*.wf.yml'
       )
     }}
+  when: bootstrap_controller_jt_wf_force | bool
 
 # yamllint disable rule:line-length
 - name: AAP configs | Apply generated values to workflow templates
@@ -1189,6 +1227,7 @@
   args:
     executable: /bin/bash
   changed_when: true
+  when: bootstrap_controller_jt_wf_force | bool
 
 - name: AAP configs | Attach organization label to generated templates
   ansible.builtin.shell: |
@@ -1260,4 +1299,5 @@
   args:
     executable: /bin/bash
   changed_when: true
+  when: bootstrap_controller_jt_wf_force | bool
 # yamllint enable rule:line-length

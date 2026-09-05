@@ -12,7 +12,7 @@ Automation Development Office
 | Platform | Requirements |
 |----------|--------------|
 | `openshift` (default) | `kubernetes.core`, cluster credentials, RHBK operator catalog |
-| `rhel` / `standalone` | Podman on RHEL, `registry.redhat.io` pull or pre-loaded authfile |
+| `rhel` / `standalone` | Target RHEL host with dnf (Java 21 + unzip), and one zip source: HTTP/Satellite URL, git repo, or bootstrap `files/` zip copied by Contoller |
 
 ## 📦 Role Variables
 
@@ -21,11 +21,17 @@ Automation Development Office
 | `install_rhbk_platform` | `openshift`, `rhel`, or `standalone` |
 | `name_space` | OpenShift namespace (default `keycloak`) |
 | `ocp_rhbk_hostname` | Route hostname for Keycloak |
-| `rhbk_hostname` | Standalone hostname |
+| `rhbk_hostname` | Standalone hostname (`KC_HOSTNAME`) |
 | `rhbk_admin_password` / `rhbk_db_password` | Admin and Postgres passwords |
-| `rhbk_registry_user` / `rhbk_registry_password` | Optional pull secret for standalone |
+| `install_rhbk_standalone_zip_source` | `url`, `git`, or `upload` (empty = legacy auto-detect) |
+| `install_rhbk_standalone_zip_url` | HTTP(S) URL the Keycloak host downloads (e.g. Satellite `/pub/rhbk.zip`) |
+| `install_rhbk_standalone_zip_git_repo` | Git clone URL on the Keycloak host |
+| `install_rhbk_standalone_zip_git_path` | Path to the zip inside the cloned repo |
+| `install_rhbk_standalone_zip_git_branch` | Optional branch or tag |
+| `install_rhbk_standalone_zip` | Controller/bootstrap path copied to the host (`upload` source) |
 
-Standalone image default: `registry.redhat.io/rhbk/keycloak-rhel9:26.2`.
+Standalone install unpacks the official `rhbk-*.zip` **on the Keycloak host**. Contoller
+does not unzip into the EE; upload only stages the zip into bootstrap `files/`.
 
 ## 🚀 Role Usage
 
@@ -41,7 +47,7 @@ Standalone image default: `registry.redhat.io/rhbk/keycloak-rhel9:26.2`.
         ocp_rhbk_hostname: keycloak.apps.ocp.prod.rhlab
 ```
 
-### Standalone (RHEL)
+### Standalone (RHEL) — Satellite / HTTP URL
 
 ```yaml
 - hosts: keycloak_ado
@@ -52,7 +58,8 @@ Standalone image default: `registry.redhat.io/rhbk/keycloak-rhel9:26.2`.
         install_rhbk_platform: rhel
         rhbk_hostname: keycloak-ado.server.lab
         rhbk_admin_password: "{{ vault_rhbk_admin_password }}"
-        rhbk_db_password: "{{ vault_rhbk_db_password }}"
+        install_rhbk_standalone_zip_source: url
+        install_rhbk_standalone_zip_url: http://sat.server.lab/pub/rhbk-26.6.5.zip
 ```
 
 Contoller JTs: `ado-install-rhbk-standalone-bootstrap`, RHBK deploy/configure

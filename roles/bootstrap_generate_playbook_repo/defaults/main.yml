@@ -2,7 +2,7 @@
 bootstrap_generate_playbook_repo_dest: "{{ playbook_dir }}"
 bootstrap_generate_playbook_repo_seed_src: >-
   {{ role_path }}/files/playbook_repo_seed
-bootstrap_generate_playbook_repo_force: true
+bootstrap_generate_playbook_repo_force: false
 
 bootstrap_generate_playbook_repo_git_mode: manual
 bootstrap_generate_playbook_repo_git_remote: origin
@@ -18,6 +18,7 @@ bootstrap_generate_playbook_repo_pause_after_generate: false
 # Controller project sync installs collections from Hub via requirements.yml only.
 # Collection trees are never committed into the git playbook repo.
 bootstrap_generate_playbook_repo_write_galaxy_requirements: true
+bootstrap_generate_playbook_repo_galaxy_ignore_certs: false
 
 # Leave empty so generated collections/requirements.yml has no version pin. Set only when you must pin.
 bootstrap_generate_playbook_repo_infra_ado_collection_version: ""
