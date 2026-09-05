@@ -7,3 +7,5 @@ bugfixes:
     the project had no prior successful update and git revision did not advance.
   - bootstrap_controller - Fix project sync failure collection when loop results
     omit the ``skipped`` attribute.
+  - bootstrap_controller - Split project sync tasks out of ``apply_aap_25_plus.yml``
+    to satisfy ansible-lint max-tasks and fix Hub publish URL line-length failures.
