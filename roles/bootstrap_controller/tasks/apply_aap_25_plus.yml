@@ -1587,35 +1587,27 @@
   when:
     - controller_projects | default([]) | length > 0
 
-- name: AAP 2.5+ | Skip forced sync for projects already successful on Controller
+- name: AAP 2.5+ | Record Controller project state before forced sync
   ansible.builtin.set_fact:
-    bootstrap_controller_projects_skip_sync: >-
-      {{
-        (
-          bootstrap_controller_projects_status_query.json.results
-          | default([])
-          | selectattr('summary_fields.last_job.status', 'defined')
-          | selectattr('summary_fields.last_job.status', 'equalto', 'successful')
-          | map(attribute='name')
-          | list
-        )
-        if (
-          bootstrap_controller_projects_status_query is defined
-          and not (bootstrap_controller_projects_status_query.failed | default(false) | bool)
-        )
-        else []
-      }}
+    bootstrap_controller_projects_pre_sync: >-
+      {%- set out = {} -%}
+      {%- set wanted = controller_projects | default([]) | map(attribute='name') | list -%}
+      {%- for row in bootstrap_controller_projects_status_query.json.results | default([]) -%}
+      {%- if row.name in wanted -%}
+      {%- set _ = out.update({
+        row.name: {
+          'last_job_status': row.summary_fields.last_job.status | default(''),
+          'scm_revision': row.scm_revision | default(''),
+          'last_job_finished': row.summary_fields.last_job.finished | default('')
+        }
+      }) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ out }}
   when:
     - controller_projects | default([]) | length > 0
-
-- name: AAP 2.5+ | Note skipped project sync (already successful)
-  ansible.builtin.debug:
-    msg: >-
-      Skipping forced project sync for {{
-        bootstrap_controller_projects_skip_sync | default([]) | join(', ')
-      }} — last Controller project update already succeeded.
-  when:
-    - bootstrap_controller_projects_skip_sync | default([]) | length > 0
+    - bootstrap_controller_projects_status_query is defined
+    - not (bootstrap_controller_projects_status_query.failed | default(false) | bool)
 
 - name: AAP 2.5+ | Force project sync before creating job templates
   ansible.controller.project_update:
@@ -1634,7 +1626,6 @@
   when:
     - controller_projects | default([]) | length > 0
     - item.scm_type | default('') | length > 0
-    - item.name not in (bootstrap_controller_projects_skip_sync | default([]))
 
 - name: AAP 2.5+ | Collect failed project sync items
   ansible.builtin.set_fact:
@@ -1690,7 +1681,7 @@
   when:
     - bootstrap_controller_project_sync_failures | default([]) | length > 0
 
-- name: AAP 2.5+ | Clear false-positive sync failures when Controller last job succeeded
+- name: AAP 2.5+ | Note Controller projects whose last update job succeeded after sync
   ansible.builtin.set_fact:
     bootstrap_controller_projects_last_job_ok: >-
       {{
@@ -1711,18 +1702,53 @@
   when:
     - bootstrap_controller_project_sync_failures | default([]) | length > 0
 
-- name: AAP 2.5+ | Drop project sync failures superseded by successful Controller status
+- name: AAP 2.5+ | Identify recoverable project sync failures
+  ansible.builtin.set_fact:
+    bootstrap_controller_project_sync_recoverable: >-
+      {%- set recoverable = [] -%}
+      {%- set post_results = bootstrap_controller_projects_status_requery.json.results | default([]) -%}
+      {%- for fail in bootstrap_controller_project_sync_failures | default([]) -%}
+      {%- set pname = fail.item.name -%}
+      {%- set pre = bootstrap_controller_projects_pre_sync.get(pname, {}) if bootstrap_controller_projects_pre_sync is defined else {} -%}
+      {%- set post = (post_results | selectattr('name', 'equalto', pname) | list | first) | default({}) -%}
+      {%- set pre_rev = pre.scm_revision | default('') -%}
+      {%- set post_rev = post.scm_revision | default('') -%}
+      {%- if pname in (bootstrap_controller_projects_last_job_ok | default([])) -%}
+      {%- set _ = recoverable.append(pname) -%}
+      {%- elif post_rev | length > 0 and post_rev != pre_rev -%}
+      {%- set _ = recoverable.append(pname) -%}
+      {%- elif pre.last_job_status | default('') == 'successful' -%}
+      {%- set _ = recoverable.append(pname) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ recoverable | unique | list }}
+  when:
+    - bootstrap_controller_project_sync_failures | default([]) | length > 0
+
+- name: AAP 2.5+ | Warn and continue when project sync failure is recoverable
+  ansible.builtin.debug:
+    msg: >-
+      Project sync for {{ item }} reported failure but bootstrap will continue:
+      git revision advanced, the prior sync was already successful, or Controller
+      now shows a successful project update (for example collection install failed
+      after SCM checkout). Fix Galaxy/Hub credentials or requirements.yml if
+      collection install keeps failing.
+  loop: "{{ bootstrap_controller_project_sync_recoverable | default([]) }}"
+  when:
+    - bootstrap_controller_project_sync_recoverable | default([]) | length > 0
+
+- name: AAP 2.5+ | Drop recoverable project sync failures
   ansible.builtin.set_fact:
     bootstrap_controller_project_sync_failures: >-
       {{
         bootstrap_controller_project_sync_failures
         | default([])
-        | rejectattr('item.name', 'in', bootstrap_controller_projects_last_job_ok | default([]))
+        | rejectattr('item.name', 'in', bootstrap_controller_project_sync_recoverable | default([]))
         | list
       }}
   when:
     - bootstrap_controller_project_sync_failures | default([]) | length > 0
-    - bootstrap_controller_projects_last_job_ok | default([]) | length > 0
+    - bootstrap_controller_project_sync_recoverable | default([]) | length > 0
 
 - name: AAP 2.5+ | Fetch failed project update stdout
   ansible.builtin.uri:
