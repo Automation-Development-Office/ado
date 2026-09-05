@@ -1630,25 +1630,17 @@
 - name: AAP 2.5+ | Collect failed project sync items
   ansible.builtin.set_fact:
     bootstrap_controller_project_sync_failures: >-
-      {{
-        bootstrap_controller_project_sync_result.results
-        | default([])
-        | rejectattr('skipped', 'equalto', true)
-        | selectattr('failed', 'defined')
-        | selectattr('failed', 'equalto', true)
-        | list
-        +
-        (
-          bootstrap_controller_project_sync_result.results
-          | default([])
-          | rejectattr('skipped', 'equalto', true)
-          | rejectattr('failed', 'defined')
-          | rejectattr('failed', 'equalto', true)
-          | selectattr('status', 'defined')
-          | rejectattr('status', 'equalto', 'successful')
-          | list
-        )
-      }}
+      {%- set failures = [] -%}
+      {%- for result in bootstrap_controller_project_sync_result.results | default([]) -%}
+      {%- if not (result.skipped | default(false) | bool) -%}
+      {%- if result.failed | default(false) | bool -%}
+      {%- set _ = failures.append(result) -%}
+      {%- elif result.status is defined and (result.status | string) != 'successful' -%}
+      {%- set _ = failures.append(result) -%}
+      {%- endif -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ failures }}
   when:
     - controller_projects | default([]) | length > 0
     - bootstrap_controller_project_sync_result is defined
