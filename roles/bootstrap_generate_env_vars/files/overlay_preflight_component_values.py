@@ -3091,9 +3091,29 @@ if openshift:
         if normalized_users:
             vault_data["htpasswd_users"] = normalized_users
             vault_data["htpasswd_pass"] = normalized_users[0].get("password") or ""
+            htpass_admin_vault_path = env_dir / "vault_htpass_admin.yml"
+            htpass_admin_vars_path = env_dir / "vars_htpass_admin.yml"
+            htpass_admin_vault = load_yaml(htpass_admin_vault_path)
+            htpass_admin_vars = load_yaml(htpass_admin_vars_path)
+            htpass_admin_vault["htpasswd_users"] = normalized_users
+            htpass_admin_vault["htpasswd_pass"] = normalized_users[0].get("password") or ""
+            htpass_admin_vars["htpasswd_action"] = action
+            write_yaml(htpass_admin_vault_path, htpass_admin_vault, "0600")
+            write_yaml(htpass_admin_vars_path, htpass_admin_vars, "0644")
         else:
             vault_data.pop("htpasswd_users", None)
             vault_data.pop("htpasswd_pass", None)
+            htpass_admin_vault_path = env_dir / "vault_htpass_admin.yml"
+            htpass_admin_vars_path = env_dir / "vars_htpass_admin.yml"
+            if htpass_admin_vault_path.exists():
+                htpass_admin_vault = load_yaml(htpass_admin_vault_path)
+                htpass_admin_vault.pop("htpasswd_users", None)
+                htpass_admin_vault.pop("htpasswd_pass", None)
+                write_yaml(htpass_admin_vault_path, htpass_admin_vault, "0600")
+            if htpass_admin_vars_path.exists():
+                htpass_admin_vars = load_yaml(htpass_admin_vars_path)
+                htpass_admin_vars.pop("htpasswd_action", None)
+                write_yaml(htpass_admin_vars_path, htpass_admin_vars, "0644")
     else:
         vars_data.pop("htpasswd_action", None)
         vault_data.pop("htpasswd_users", None)

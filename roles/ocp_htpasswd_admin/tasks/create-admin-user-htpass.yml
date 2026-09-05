@@ -9,6 +9,39 @@
       - ocp_htpasswd_admin_action in ['add', 'replace', 'remove']
     fail_msg: "htpasswd_action must be add, replace, or remove (got {{ htpasswd_action | default('') }})"
 
+- name: Assert htpasswd users are present for install
+  ansible.builtin.assert:
+    that:
+      - htpasswd_users | default([]) | length > 0
+      - >-
+        (
+          htpasswd_users | default([])
+          | selectattr('name', 'defined')
+          | map(attribute='name')
+          | map('string')
+          | map('trim')
+          | reject('equalto', '')
+          | list
+          | length
+        ) > 0
+      - >-
+        (
+          htpasswd_users | default([])
+          | selectattr('password', 'defined')
+          | map(attribute='password')
+          | map('string')
+          | map('trim')
+          | reject('equalto', '')
+          | list
+          | length
+        ) > 0
+    fail_msg: >-
+      No htpasswd users with name and password were loaded. Preflight should
+      write htpasswd_users to vault_openshift.yml (and vault_htpass_admin.yml)
+      when Admin HTPasswd is selected. Re-run bootstrap or pass htpasswd_users
+      via extra vars before launching this job.
+  when: state | default('present') == 'present'
+
 - name: Fetch existing htpasswd secret when merging or removing
   kubernetes.core.k8s_info:
     api_version: v1
