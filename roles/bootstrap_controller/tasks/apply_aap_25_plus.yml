@@ -742,6 +742,12 @@
     - bootstrap_generate_env_vars_preflight is defined
     - bootstrap_generate_env_vars_preflight.aap.galaxy_setup_enabled | default(false) | bool
     - >-
+      bootstrap_generate_env_vars_preflight.aap.galaxy_hub_token
+      | default('', true)
+      | string
+      | trim
+      | length > 0
+    - >-
       bootstrap_controller_hub_only_org is not defined
       or bootstrap_controller_hub_only_org is skipped
       or not (
@@ -1412,6 +1418,12 @@
     - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
     - bootstrap_generate_env_vars_preflight is defined
     - bootstrap_generate_env_vars_preflight.aap.galaxy_setup_enabled | default(false) | bool
+    - >-
+      bootstrap_generate_env_vars_preflight.aap.galaxy_hub_token
+      | default('', true)
+      | string
+      | trim
+      | length > 0
 
 - name: AAP 2.5+ | Skip existing execution environments
   ansible.builtin.include_tasks: skip_existing_execution_environments.yml
@@ -1547,6 +1559,64 @@
     - item.scm_type | default('') | length > 0
     - (item.scm_branch | default('') | length > 0) or (item.scm_url | default('') | length > 0)
 
+- name: AAP 2.5+ | Query Controller project status before forced sync
+  ansible.builtin.uri:
+    url: >-
+      {{
+        (controller_host | default(vault_controller_hostname)).rstrip('/')
+      }}/api/controller/v2/projects/?page_size=200
+    method: GET
+    return_content: true
+    status_code: [200]
+    body_format: json
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+    headers: >-
+      {{
+        {'Authorization': 'Bearer ' ~ (controller_oauthtoken | default(vault_controller_oauthtoken | default('')))}
+        if (controller_oauthtoken | default(vault_controller_oauthtoken | default('')) | string | trim | length) > 0
+        else omit
+      }}
+    user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    force_basic_auth: >-
+      {{
+        (controller_oauthtoken | default(vault_controller_oauthtoken | default('')) | string | trim | length) == 0
+      }}
+  register: bootstrap_controller_projects_status_query
+  failed_when: false
+  when:
+    - controller_projects | default([]) | length > 0
+
+- name: AAP 2.5+ | Skip forced sync for projects already successful on Controller
+  ansible.builtin.set_fact:
+    bootstrap_controller_projects_skip_sync: >-
+      {{
+        (
+          bootstrap_controller_projects_status_query.json.results
+          | default([])
+          | selectattr('summary_fields.last_job.status', 'defined')
+          | selectattr('summary_fields.last_job.status', 'equalto', 'successful')
+          | map(attribute='name')
+          | list
+        )
+        if (
+          bootstrap_controller_projects_status_query is defined
+          and not (bootstrap_controller_projects_status_query.failed | default(false) | bool)
+        )
+        else []
+      }}
+  when:
+    - controller_projects | default([]) | length > 0
+
+- name: AAP 2.5+ | Note skipped project sync (already successful)
+  ansible.builtin.debug:
+    msg: >-
+      Skipping forced project sync for {{
+        bootstrap_controller_projects_skip_sync | default([]) | join(', ')
+      }} — last Controller project update already succeeded.
+  when:
+    - bootstrap_controller_projects_skip_sync | default([]) | length > 0
+
 - name: AAP 2.5+ | Force project sync before creating job templates
   ansible.controller.project_update:
     project: "{{ item.name }}"
@@ -1564,6 +1634,7 @@
   when:
     - controller_projects | default([]) | length > 0
     - item.scm_type | default('') | length > 0
+    - item.name not in (bootstrap_controller_projects_skip_sync | default([]))
 
 - name: AAP 2.5+ | Collect failed project sync items
   ansible.builtin.set_fact:
@@ -1571,13 +1642,87 @@
       {{
         bootstrap_controller_project_sync_result.results
         | default([])
-        | selectattr('status', 'defined')
-        | rejectattr('status', 'equalto', 'successful')
+        | rejectattr('skipped', 'equalto', true)
+        | selectattr('failed', 'defined')
+        | selectattr('failed', 'equalto', true)
         | list
+        +
+        (
+          bootstrap_controller_project_sync_result.results
+          | default([])
+          | rejectattr('skipped', 'equalto', true)
+          | rejectattr('failed', 'defined')
+          | rejectattr('failed', 'equalto', true)
+          | selectattr('status', 'defined')
+          | rejectattr('status', 'equalto', 'successful')
+          | list
+        )
       }}
   when:
     - controller_projects | default([]) | length > 0
     - bootstrap_controller_project_sync_result is defined
+
+- name: AAP 2.5+ | Re-query Controller project status after sync attempts
+  ansible.builtin.uri:
+    url: >-
+      {{
+        (controller_host | default(vault_controller_hostname)).rstrip('/')
+      }}/api/controller/v2/projects/?page_size=200
+    method: GET
+    return_content: true
+    status_code: [200]
+    body_format: json
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+    headers: >-
+      {{
+        {'Authorization': 'Bearer ' ~ (controller_oauthtoken | default(vault_controller_oauthtoken | default('')))}
+        if (controller_oauthtoken | default(vault_controller_oauthtoken | default('')) | string | trim | length) > 0
+        else omit
+      }}
+    user: "{{ controller_username | default(vault_controller_username | default(omit)) }}"
+    password: "{{ controller_password | default(vault_controller_password | default(omit)) }}"
+    force_basic_auth: >-
+      {{
+        (controller_oauthtoken | default(vault_controller_oauthtoken | default('')) | string | trim | length) == 0
+      }}
+  register: bootstrap_controller_projects_status_requery
+  failed_when: false
+  when:
+    - bootstrap_controller_project_sync_failures | default([]) | length > 0
+
+- name: AAP 2.5+ | Clear false-positive sync failures when Controller last job succeeded
+  ansible.builtin.set_fact:
+    bootstrap_controller_projects_last_job_ok: >-
+      {{
+        (
+          bootstrap_controller_projects_status_requery.json.results
+          | default([])
+          | selectattr('summary_fields.last_job.status', 'defined')
+          | selectattr('summary_fields.last_job.status', 'equalto', 'successful')
+          | map(attribute='name')
+          | list
+        )
+        if (
+          bootstrap_controller_projects_status_requery is defined
+          and not (bootstrap_controller_projects_status_requery.failed | default(false) | bool)
+        )
+        else []
+      }}
+  when:
+    - bootstrap_controller_project_sync_failures | default([]) | length > 0
+
+- name: AAP 2.5+ | Drop project sync failures superseded by successful Controller status
+  ansible.builtin.set_fact:
+    bootstrap_controller_project_sync_failures: >-
+      {{
+        bootstrap_controller_project_sync_failures
+        | default([])
+        | rejectattr('item.name', 'in', bootstrap_controller_projects_last_job_ok | default([]))
+        | list
+      }}
+  when:
+    - bootstrap_controller_project_sync_failures | default([]) | length > 0
+    - bootstrap_controller_projects_last_job_ok | default([]) | length > 0
 
 - name: AAP 2.5+ | Fetch failed project update stdout
   ansible.builtin.uri:
@@ -1635,7 +1780,13 @@
         | join(', ')
       }}.
       If status is pending, the sync may still be running in AAP — wait for
-      CKTEST-project to finish, then re-run bootstrap or increase
+      {{
+        bootstrap_controller_project_sync_failures
+        | map(attribute='item.name')
+        | list
+        | join(', ')
+      }}
+      to finish, then re-run bootstrap or increase
       aap.project_sync_timeout in preflight JSON (default 600).
       For Bitbucket Server, set preflight git.username (account name) and
       git.token (HTTP access token); Controller Source Control credentials

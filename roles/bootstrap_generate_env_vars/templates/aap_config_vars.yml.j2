@@ -4,6 +4,8 @@
 {% set preflight_galaxy_setup_enabled = preflight_aap.galaxy_setup_enabled | default(false) | bool %}
 {% set preflight_galaxy_credentials = preflight_aap.galaxy_credentials | default([]) %}
 {% set preflight_galaxy_hub_token = preflight_aap.galaxy_hub_token | default('', true) %}
+{% set preflight_galaxy_hub_token_present = (preflight_galaxy_hub_token | default('', true) | string | trim | length) > 0 %}
+{% set preflight_hub_push_ee = preflight_aap.hub_push_ee | default(false) | bool %}
 {% set preflight_container_registry_credential = preflight_aap.container_registry_credential | default({}) %}
 {% set preflight_galaxy_user_account = preflight_aap.galaxy_user_account | default({}) %}
 {# Contoller org Galaxy search order: lower order number = first. #}
@@ -579,13 +581,12 @@ hub_collections:
 controller_bootstrap_controller_organizations:
   - name: "{{ bootstrap_generate_env_vars_aap_org }}"
     description: "{{ bootstrap_generate_env_vars_aap_org }}"
-{# Always emit org Galaxy credential order when attach_to_org is set — even if
-   galaxy_setup_enabled is false this run. Contoller project sync needs those
-   Hub/Galaxy credentials on the org to install Galaxy-named collections from
-   collections/requirements.yml (e.g. community.grafana). "enabled" only gates
-   creating/updating credential objects below; do not drop org attachments. #}
+{# Org Galaxy attach only when Galaxy setup is explicitly enabled and a Hub token
+   is present — hub-only collection publish must not push lab creds. #}
 {% for galaxy_credential in preflight_galaxy_credentials_ordered
-   if (galaxy_credential.attach_to_org | default(true) | bool)
+   if preflight_galaxy_setup_enabled
+   and preflight_galaxy_hub_token_present
+   and (galaxy_credential.attach_to_org | default(true) | bool)
    and (galaxy_credential.name | default('', true) | length > 0) %}
 {% if loop.first %}
     galaxy_credentials:
@@ -654,7 +655,7 @@ controller_bootstrap_controller_credentials:
       username: "{% raw %}{{ '{{ vault_satellite_service_account_username }}' }}{% endraw %}"
       password: "{% raw %}{{ '{{ vault_satellite_service_account_password }}' }}{% endraw %}"
 {% endif %}
-{% if preflight_galaxy_setup_enabled %}
+{% if preflight_galaxy_setup_enabled and preflight_galaxy_hub_token_present %}
 {% for galaxy_credential in preflight_galaxy_credentials_ordered %}
 {% if (galaxy_credential.enabled | default(true) | bool) and (galaxy_credential.name | default('', true) | length > 0) and (galaxy_credential.url | default('', true) | length > 0) %}
 {# AAP ships a platform-global "Ansible Galaxy" credential (no org). Creating an
@@ -674,7 +675,11 @@ controller_bootstrap_controller_credentials:
 {% endif %}
 {% endif %}
 {% endfor %}
-{% if (preflight_container_registry_credential.enabled | default(true) | bool) and (preflight_container_registry_credential.name | default('', true) | length > 0) and (preflight_container_registry_credential.host | default('', true) | length > 0) %}
+{% endif %}
+{% if (preflight_galaxy_setup_enabled or preflight_hub_push_ee)
+      and (preflight_container_registry_credential.enabled | default(true) | bool)
+      and (preflight_container_registry_credential.name | default('', true) | length > 0)
+      and (preflight_container_registry_credential.host | default('', true) | length > 0) %}
 
   - name: "{{ preflight_container_registry_credential.name }}"
     description: "Container registry credential for Hub EE pulls"
@@ -685,7 +690,6 @@ controller_bootstrap_controller_credentials:
       username: "{% raw %}{{ '{{ vault_galaxy_registry_username | default(vault_controller_username | default(\"admin\")) }}' }}{% endraw %}"
       password: "{% raw %}{{ '{{ vault_galaxy_registry_password | default(vault_galaxy_hub_token) }}' }}{% endraw %}"
       verify_ssl: {{ preflight_container_registry_credential.verify_ssl | default(true) | bool | lower }}
-{% endif %}
 {% endif %}
 {% for extra_credential in bootstrap_generate_env_vars_aap_additional_credentials %}
 {% if extra_credential.name | default('', true) | length > 0 %}

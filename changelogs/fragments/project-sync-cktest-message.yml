@@ -1,0 +1,6 @@
+---
+bugfixes:
+  - bootstrap_controller - Project sync failure message no longer references
+    hardcoded ``CKTEST-project``; uses the actual failing project name(s).
+  - bootstrap_controller - Do not force project sync or fail bootstrap when
+    Controller already reports the project last update as successful.

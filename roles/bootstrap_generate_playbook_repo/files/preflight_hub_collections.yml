@@ -73,6 +73,14 @@ collections:
     hub_publish: true
     force_when_exists: false
 
+  - tarball_glob: amazon-aws-*.tar.gz
+    name: amazon.aws
+    namespace: amazon
+    collection: aws
+    controller_requirements: true
+    hub_publish: true
+    force_when_exists: false
+
   - tarball_glob: community-hashi_vault-*.tar.gz
     name: community.hashi_vault
     namespace: community
