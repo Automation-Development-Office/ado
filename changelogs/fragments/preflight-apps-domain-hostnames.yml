@@ -1,7 +1,0 @@
-bugfixes:
-  - bootstrap_generate_env_vars - Map preflight hostnames to dev_hub_hostname, zabbix_hostname, and bookstack_route_host during merge_component.
-  - bootstrap_generate_env_vars - Seed vars_bookstack.yml and vars_netbox.yml with app_domain-aware defaults.
-
-minor_changes:
-  - ado-preflight-ui - Apply OpenShift apps_domain to zabbix, dev_hub, bookstack, and netbox hostnames when components are selected.
-  - ado-preflight-ui - Fix dev_hub route prefix (backstage-{instance}-rhdh) and define STALE_APP_HOSTNAME_DEFAULTS for lab hostname rewrites.

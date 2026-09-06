@@ -1,7 +1,0 @@
----
-bugfixes:
-  - >-
-    Quay Keycloak redirect URIs corrected to /oauth2/keycloak/callback paths
-    and Quay config sets PREFERRED_URL_SCHEME=https plus
-    EXTERNAL_TLS_TERMINATION so login no longer sends http redirect_uri
-    (Invalid parameter redirect_uri).

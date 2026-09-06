@@ -1,4 +1,0 @@
-doc_changes:
-  - ocp_dev_hub - Add role README (``docs/templates/role_readme_format_template.md``) required for Hub collection import.
-  - ocp_zabbix - Add role README (``docs/templates/role_readme_format_template.md``) required for Hub collection import.
-  - README - Document ``infra.ado.ocp_dev_hub`` and ``infra.ado.ocp_zabbix`` in the role documentation table.

@@ -1,5 +1,0 @@
----
-minor_changes:
-  - acs_report - Fetch Central export with ``ansible.builtin.get_url`` (no
-    ``curl``). Parser runs via ``python3`` on the downloaded NDJSON so
-    ``ee-supported-rhel9`` does not need extra OS packages.

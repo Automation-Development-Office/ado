@@ -1,9 +1,0 @@
----
-major_changes:
-  - >-
-    install_aap - Stop creating a standalone ``AutomationController`` CR.
-    Delegate ``present`` to ``infra.ado.aap_ocp_install`` (vendored
-    ``infra.aap_utilities.aap_ocp_install``, same path as Contoller bootstrap)
-    and ``absent`` to that role's ``reset_stale_database`` tasks. Callers must
-    supply ``aap_ocp_install_*`` vars instead of the old ``ocp_aap26_*`` /
-    ``AutomationController`` interface.
