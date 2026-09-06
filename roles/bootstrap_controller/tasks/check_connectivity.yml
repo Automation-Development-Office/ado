@@ -214,15 +214,15 @@
         /api/controller/v2/ping/ can succeed without auth — do not treat ping
         alone as proof that the OAuth token or password works.
       - >-
-        Use a Contoller OAuth2 token (Access Tokens in Contoller/Gateway UI),
-        not the Automation Hub / Galaxy API token. Hub publish uses the Hub
-        token separately (galaxy_hub_token / vault_galaxy_hub_token).
+        Use a Contoller OAuth2 token (Access Tokens in Contoller/Gateway UI).
+        Hub Galaxy v3 publish/namespaces on gateway AAP also use that Contoller
+        OAuth token (or admin basic auth). The Hub / Galaxy API token is only
+        for Contoller org Galaxy credentials (ansible-galaxy pulls).
       - "Error: {{ bootstrap_controller_aap_me.msg | default('unknown') }}."
   when:
     - bootstrap_controller_aap_me is defined
     - bootstrap_controller_aap_me.status | default(0) | int != 200
-    # Hub-only runs publish with Hub token first; Contoller auth is checked
-    # later only if Galaxy/org Contoller work is selected.
+    # Hub-only runs need Contoller OAuth for gateway Hub admin APIs.
     - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
 
 - name: AAP connectivity | Warn Contoller auth failed on hub-only run
@@ -233,9 +233,9 @@
         {{ bootstrap_controller_aap_me.status | default('unknown') }} —
         Contoller OAuth/password is invalid or is a Hub/Galaxy token.
       - >-
-        Hub collection publish will still use vault_galaxy_hub_token (or
-        Contoller token as fallback). Galaxy credential attach / org create
-        will fail until Contoller OAuth is fixed.
+        Hub collection publish on gateway AAP needs Contoller OAuth (or admin
+        basic auth). Galaxy credential attach / org create will also fail until
+        Contoller auth is fixed.
   when:
     - bootstrap_controller_hub_update_collection_only | default(false) | bool
     - bootstrap_controller_aap_me is defined

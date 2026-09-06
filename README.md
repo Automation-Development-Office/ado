@@ -90,7 +90,7 @@ Use this index as the starting point for operators and automation users.
 | [`infra.ado.install_elastic`](roles/install_elastic/README.md) | Deploy Elastic Cloud on Kubernetes (ECK) operator and Elasticsearch/Kibana on OpenShift. |
 | [`infra.ado.install_gitlab`](roles/install_gitlab/README.md) | Install standalone GitLab CE/EE on RHEL (Omnibus packages or offline RPM). |
 | [`infra.ado.install_postfix`](roles/install_postfix/README.md) | Deploy a Postfix relay on OpenShift with ConfigMap, Secret, and Pod resources. |
-| [`infra.ado.install_rhbk`](roles/install_rhbk/README.md) | Install or tear down Red Hat build of Keycloak (RHBK) and its PostgreSQL store on OpenShift. |
+| [`infra.ado.install_rhbk`](roles/install_rhbk/README.md) | Install or tear down Red Hat build of Keycloak (RHBK) on OpenShift or as a standalone RHEL zip install. |
 | [`infra.ado.jira`](roles/jira/README.md) | Create Jira issues and subtasks from track templates for ADO automation workflows. |
 | [`infra.ado.jira_stories`](roles/jira_stories/README.md) | Create and manage Jira stories and optional subtasks from selected track templates. |
 | [`infra.ado.kafka_install`](roles/kafka_install/README.md) | Install the AMQ Streams / Kafka operator and related resources on OpenShift. |

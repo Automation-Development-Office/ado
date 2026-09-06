@@ -12,4 +12,4 @@ interpreter_python = auto_silent
 become = False
 
 [galaxy]
-ignore_certs = True
+ignore_certs = {{ (bootstrap_generate_playbook_repo_galaxy_ignore_certs | default(generate_playbook_repo_galaxy_ignore_certs | default(ansible_dispatch_ignore_galaxy_cert | default(false))) | bool) | ternary('True', 'False') }}

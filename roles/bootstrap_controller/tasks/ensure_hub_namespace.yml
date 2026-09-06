@@ -1,0 +1,149 @@
+---
+# ansible.hub hardcodes Authorization: Token <ah_token> (never Bearer).
+# Gateway Contoller OAuth often only works as Bearer on Galaxy/Pulp URIs, while
+# Hub User Access tokens expect Token. Contoller admin basic auth works on both.
+# Try ansible.hub-compatible modes until one succeeds; remember the winner.
+# (Blocks cannot use loop — probe modes via include_tasks.)
+
+- name: Hub ansible.hub auth | Build candidate modes for Token-scheme modules
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ah_auth_candidates: >-
+      {{
+        (
+          [
+            {
+              'mode': 'hub_token',
+              'token': (
+                vault_galaxy_hub_token
+                | default('', true)
+                | string
+                | trim
+              )
+            }
+          ]
+          if (
+            vault_galaxy_hub_token
+            | default('', true)
+            | string
+            | trim
+            | length
+          ) > 0
+          else []
+        )
+        + (
+          [
+            {
+              'mode': 'controller_oauth',
+              'token': (
+                controller_oauthtoken
+                | default(
+                    vault_controller_oauthtoken
+                    | default('', true),
+                    true
+                  )
+                | string
+                | trim
+              )
+            }
+          ]
+          if (
+            (
+              controller_oauthtoken
+              | default(
+                  vault_controller_oauthtoken
+                  | default('', true),
+                  true
+                )
+              | string
+              | trim
+            )
+            | length
+          ) > 0
+          else []
+        )
+        + (
+          [{'mode': 'basic', 'token': ''}]
+          if (
+            (
+              controller_username
+              | default(
+                  vault_controller_username
+                  | default('', true),
+                  true
+                )
+              | string
+              | trim
+              | length
+            ) > 0
+            and (
+              controller_password
+              | default(
+                  vault_controller_password
+                  | default('', true),
+                  true
+                )
+              | string
+              | trim
+              | length
+            ) > 0
+          )
+          else []
+        )
+      }}
+
+- name: Hub ansible.hub auth | Fail when no Hub auth candidates exist
+  ansible.builtin.assert:
+    that:
+      - bootstrap_controller_hub_ah_auth_candidates | length > 0
+    fail_msg: >-
+      Hub publish needs a Hub / Galaxy API token, Contoller OAuth
+      token, or Contoller admin username/password for ansible.hub
+      modules.
+
+- name: Hub ansible.hub auth | Reset attempt state
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ah_auth_mode: ""
+    bootstrap_controller_hub_ah_token: ""
+    bootstrap_controller_hub_ah_use_basic: false
+    bootstrap_controller_hub_ah_auth_last_msg: ""
+
+- name: Hub ansible.hub auth | Try Ensure Hub namespace with each auth mode
+  ansible.builtin.include_tasks: ensure_hub_namespace_attempt.yml
+  loop: "{{ bootstrap_controller_hub_ah_auth_candidates }}"
+  loop_control:
+    loop_var: __hub_ah_auth
+    label: "{{ __hub_ah_auth.mode }}"
+  when: bootstrap_controller_hub_ah_auth_mode | length == 0
+
+- name: Hub ansible.hub auth | Fail when no auth mode worked for namespaces
+  ansible.builtin.fail:
+    msg:
+      - >-
+        Unable to authenticate ansible.hub.ah_namespace against
+        /api/galaxy/v3/namespaces/ (HTTP 401 / invalid credentials).
+      - >-
+        Tried modes:
+        {{
+          bootstrap_controller_hub_ah_auth_candidates
+          | map(attribute='mode')
+          | list
+        }}.
+      - >-
+        ansible.hub always sends Authorization: Token <ah_token>.
+        Contoller Gateway OAuth may only work as Bearer (URI/Pulp),
+        while Hub User Access tokens use Token. Provide a Hub /
+        Galaxy API token and/or Contoller admin password so fallback
+        can succeed.
+      - >-
+        Last error:
+        {{ bootstrap_controller_hub_ah_auth_last_msg }}
+  when: bootstrap_controller_hub_ah_auth_mode | length == 0
+
+- name: Hub ansible.hub auth | Show selected mode
+  ansible.builtin.debug:
+    msg: >-
+      Hub ansible.hub auth mode={{
+        bootstrap_controller_hub_ah_auth_mode
+      }}
+      (Token-scheme modules use Hub token or Contoller OAuth;
+      basic uses admin).

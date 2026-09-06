@@ -10,7 +10,8 @@
     component: rhbk
     install_rhbk_platform: rhel
     # Contoller survey / -e may set: state, env, rhbk_hostname, rhbk_admin_*,
-    # rhbk_standalone_zip, rhbk_standalone_zip_url (role defaults map those).
+    # rhbk_standalone_zip_source, rhbk_standalone_zip_url, rhbk_standalone_zip_git_*,
+    # rhbk_standalone_zip (upload via bootstrap files/). Role unpacks on the host.
   pre_tasks:
     - name: Load env infra config when present
       ansible.builtin.include_vars:
