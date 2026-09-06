@@ -1,7 +1,0 @@
-bugfixes:
-  - bootstrap_generate_playbook_repo - Include community.grafana in local vendored project requirements so Grafana datasource tasks resolve.
-  - install_dirsrv - Add missing LDIF bootstrap templates and fix aci-anon-read suffix variable.
-  - install_elastic - Build ECK CR definitions via set_fact to avoid YAML parse errors on integer fields.
-  - kafka_install - Build Kafka CR definitions via set_fact to avoid YAML parse errors on replica counts.
-  - ocp_quay - Auto-select cluster default StorageClass when Quay storage is unset.
-  - bootstrap_generate_playbook_repo - GitLab playbook inherits openshift_default_storage_class for persistence.

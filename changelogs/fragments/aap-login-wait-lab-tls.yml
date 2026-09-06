@@ -1,6 +1,0 @@
----
-bugfixes:
-  - aap_ocp_install_upstream - Platform/Controller/EDA/Hub route readiness waits
-    no longer require strict TLS verify + HTTP 200 only. Lab Contoller EEs often
-    fail forever on self-signed apps certs or gateway 302 to /login; accept
-    200/302 (UI) and 200/401 (API) with validate_certs default false.

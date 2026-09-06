@@ -1,8 +1,0 @@
----
-minor_changes:
-  - ocp_minio - New MinIO OpenShift component (Deployment, PVC, API/console Routes,
-    Keycloak OIDC console login with policy claim mapper).
-  - bootstrap / preflight-ui - Register MinIO in component map, env generation,
-    Controller JT, and preflight form (OIDC + console/API hostnames).
-  - bootstrap_generate_env_vars - Export dev_hub keycloak realm/client/instance and
-    MinIO OIDC/storage vars from preflight JSON.

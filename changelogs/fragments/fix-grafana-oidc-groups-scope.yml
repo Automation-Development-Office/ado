@@ -1,4 +1,0 @@
-bugfixes:
-  - grafana_install - Always request the Keycloak ``groups`` scope and map ``groups[*]`` to Grafana roles (fixes ``IdP did not return a role attribute`` when the client scope was missing).
-  - bootstrap_generate_env_vars - Auto-enable ``rhbk_client_scopes`` when any OIDC app (Grafana, Quay, OpenShift OAuth, etc.) is selected; seed ``groups`` default scope on RHBK clients.
-  - bootstrap_resolve_component - Default Grafana OIDC scopes include ``groups`` with standard ``role_map``.

@@ -1,2 +1,0 @@
-minor_changes:
-  - capsule_install - Added storage configuration by reusing ``infra.ado.satellite_install`` ``storage_config`` with Capsule LVM variables.

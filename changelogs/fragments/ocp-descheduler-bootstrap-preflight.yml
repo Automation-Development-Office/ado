@@ -1,8 +1,0 @@
----
-minor_changes:
-  - >-
-    Wire OpenShift Descheduler (`infra.ado.ocp_descheduler`) into bootstrap workflow,
-    preflight configuration (instance name, interval, profiles), and env var generation.
-  - >-
-    Restore archived kube descheduler role tasks with install/remove KubeDescheduler CR
-    support after operator subscription.

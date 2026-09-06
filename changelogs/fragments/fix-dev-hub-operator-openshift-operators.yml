@@ -1,7 +1,0 @@
----
-bugfixes:
-  - >-
-    components_defaults / dev_hub - Install the RHDH operator Subscription into
-    ``openshift-operators`` (reuse ``global-operators``) instead of a namespaced
-    AllNamespaces OperatorGroup in ``rhdh``. The latter never produced an
-    ``rhdh-operator`` CSV (Deploy Dev Hub timed out waiting for the operator).
