@@ -122,6 +122,11 @@ argument_specs:
       capsule_install_satellite_fqdn:
         type: str
         description: FQDN of the upstream Satellite server.
+      capsule_install_lifecycle_environments:
+        type: list
+        elements: str
+        description: Lifecycle environments assigned to the Capsule smart proxy.
+        default: []
       capsule_install_sync_wait_time:
         type: int
         description: Maximum wait time for synchronization operations.
@@ -130,6 +135,14 @@ argument_specs:
         type: bool
         description: Enable load-balanced Capsule registration settings.
         default: false
+      capsule_install_loadbalancer_fqdn:
+        type: str
+        description: FQDN of the Capsule load balancer host.
+        default: ""
+      capsule_install_loadbalancer_activation_key:
+        type: str
+        description: Activation key used to register the load balancer host.
+        default: ""
       capsule_install_satellite_loadbalancer_ports:
         type: list
         elements: str
@@ -169,6 +182,6 @@ argument_specs:
           - "--certs-tar-file /root/capsule_cert/{{ ansible_fqdn }}/{{ ansible_fqdn }}-capsule-certs.tar"
           - "--enable-foreman-proxy-plugin-remote-execution-script"
           - "--foreman-proxy-content-enable-docker=false"
-          - "--certs-cname {{ satellite_loadbalancer_fqdn }}"
-          - "--foreman-proxy-registration-url https://{{ satellite_loadbalancer_fqdn }}:9090"
-          - "--foreman-proxy-template-url http://{{ satellite_loadbalancer_fqdn }}:8000"
+          - "--certs-cname {{ capsule_install_loadbalancer_fqdn }}"
+          - "--foreman-proxy-registration-url https://{{ capsule_install_loadbalancer_fqdn }}:9090"
+          - "--foreman-proxy-template-url http://{{ capsule_install_loadbalancer_fqdn }}:8000"

@@ -1,0 +1,28 @@
+---
+- name: install_capsule | Check if capsule is already installed
+  ansible.builtin.shell: satellite-maintain service status > /dev/null
+  ignore_errors: true
+  register: service
+
+- name: install_capsule | Run the capsule installer
+  ansible.builtin.command: >-
+    satellite-installer -l DEBUG --scenario {{ capsule_install_scenario }}
+    {{ capsule_install_installer_options | join(' ') }}
+  register: capsule_installer_output
+  when:
+    - service.rc != 0
+    - not (capsule_install_satellite_haproxy | bool)
+
+- name: install_capsule | Run the capsule installer with load balancing
+  ansible.builtin.command: >-
+    satellite-installer --scenario {{ capsule_install_scenario }}
+    "{{ capsule_install_loadbalanced_options | join(' ') }}"
+  register: capsule_installer_output
+  when:
+    - service.rc != 0
+    - capsule_install_satellite_haproxy | bool
+
+- name: debug
+  debug:
+    var: capsule_installer_output
+...

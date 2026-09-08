@@ -55,11 +55,12 @@ capsule_install_org_id:
 capsule_install_activation_key:
 capsule_install_satellite_fqdn:
 capsule_install_sync_wait_time: 86400
+capsule_install_lifecycle_environments: []
 
 # Load Balancing
 capsule_install_satellite_haproxy: false
-# satellite_loadbalancer_fqdn:
-# satellite_loadbalancer_ak:
+capsule_install_loadbalancer_fqdn: ""
+capsule_install_loadbalancer_activation_key: ""
 capsule_install_satellite_loadbalancer_ports:
   - 80/tcp
   - 443/tcp
@@ -90,8 +91,8 @@ capsule_install_loadbalanced_options:
   - '--certs-tar-file /root/capsule_cert/{{ ansible_fqdn }}/{{ ansible_fqdn }}-capsule-certs.tar'
   - '--enable-foreman-proxy-plugin-remote-execution-script'
   - '--foreman-proxy-content-enable-docker=false'
-  - '--certs-cname {{ satellite_loadbalancer_fqdn }}'
-  - '--foreman-proxy-registration-url https://{{ satellite_loadbalancer_fqdn }}:9090'
-  - '--foreman-proxy-template-url http://{{ satellite_loadbalancer_fqdn }}:8000'
+  - '--certs-cname {{ capsule_install_loadbalancer_fqdn }}'
+  - '--foreman-proxy-registration-url https://{{ capsule_install_loadbalancer_fqdn }}:9090'
+  - '--foreman-proxy-template-url http://{{ capsule_install_loadbalancer_fqdn }}:8000'
 
 ...
