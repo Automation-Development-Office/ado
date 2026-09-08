@@ -28,3 +28,6 @@
         satellite_install_data_device_name: "{{ capsule_install_data_device_name }}"
         satellite_install_req_dirs: "{{ capsule_install_req_dirs }}"
         satellite_install_data_disk: "{{ capsule_install_data_disk }}"
+
+    - name: Install Packages
+      ansible.builtin.include_tasks: install_packages.yml
