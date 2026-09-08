@@ -1,3 +1,34 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # ---
 # defaults file for rhbk_create_client
+# Prefer preflight Hostname/URL via ocp_rhbk_hostname / hostname (set by resolve + overlay).
+rhbk_hostname: >-
+  {{
+    (
+      rhbk_hostname | default('', true)
+      | default(rhbk_standalone_hostname, true)
+      | default(install_rhbk_standalone_hostname, true)
+      | default(ocp_rhbk_hostname, true)
+      | default(hostname, true)
+      | default('', true)
+    )
+    | regex_replace('^https?://', '')
+    | regex_replace('/.*$', '')
+  }}
+rhbk_host: >-
+  {{
+    (
+      rhbk_host | default('', true)
+      | default(rhbk_hostname, true)
+      | default(rhbk_standalone_hostname, true)
+      | default(install_rhbk_standalone_hostname, true)
+      | default(ocp_rhbk_hostname, true)
+      | default(hostname, true)
+      | default('', true)
+    )
+    | regex_replace('^https?://', '')
+    | regex_replace('/.*$', '')
+  }}
+rhbk_verify_ssl: false
+rhbk_attach_default_client_scopes: true
+rhbk_default_client_scopes: "{{ rhbk_oidc_default_client_scopes | default(['groups']) }}"

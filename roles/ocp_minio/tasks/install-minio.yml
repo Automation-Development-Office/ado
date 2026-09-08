@@ -1,0 +1,350 @@
+---
+- name: Resolve MinIO console and API hostnames
+  ansible.builtin.set_fact:
+    ocp_minio_console_hostname_effective: >-
+      {{
+        minio_console_hostname
+        | default(hostname)
+        | default('minio-console-' ~ (name_space | default('minio')) ~ '.'
+          ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+      }}
+    ocp_minio_api_hostname_effective: >-
+      {{
+        minio_api_hostname
+        | default('minio-api-' ~ (name_space | default('minio')) ~ '.'
+          ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+      }}
+
+- name: Resolve MinIO console URL and OIDC discovery URL
+  ansible.builtin.set_fact:
+    ocp_minio_console_url: "https://{{ ocp_minio_console_hostname_effective }}"
+    ocp_minio_oidc_config_url_effective: >-
+      {{
+            minio_oidc_config_url
+        | default(
+            (
+              minio_oidc_issuer | default('', true)
+              | default(
+                  'https://'
+                  ~ (keycloak_hostname | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com')))))
+                  ~ '/realms/'
+                  ~ (rhbk_realm | default(ocp_rhbk_realm | default(minio_keycloak_realm | default('rhlab')))),
+                  true
+                )
+            )
+            ~ '/.well-known/openid-configuration'
+          )
+      }}
+
+
+- name: List cluster StorageClasses for MinIO when unset
+  kubernetes.core.k8s_info:
+    api_version: storage.k8s.io/v1
+    kind: StorageClass
+  register: ocp_minio_storage_classes
+  when: (storage | default('') | string | trim | length) == 0
+
+- name: Pick default StorageClass for MinIO PVC
+  ansible.builtin.set_fact:
+    ocp_minio_storage: >-
+      {{
+        (
+          ocp_minio_storage_classes.resources
+          | default([])
+          | selectattr(
+            'metadata.annotations.storageclass.kubernetes.io/is-default-class',
+            'defined'
+          )
+          | selectattr(
+            'metadata.annotations.storageclass.kubernetes.io/is-default-class',
+            'equalto',
+            'true'
+          )
+          | map(attribute='metadata.name')
+          | list
+          | first
+        )
+        | default(
+          ocp_minio_storage_classes.resources
+          | default([])
+          | map(attribute='metadata.name')
+          | list
+          | first
+          | default('')
+        )
+      }}
+  when:
+    - ocp_minio_storage_classes is defined
+    - (storage | default('') | string | trim | length) == 0
+
+- name: Assert MinIO storage class is set
+  ansible.builtin.assert:
+    that:
+      - (storage | default('') | string | trim | length) > 0
+    fail_msg: >-
+      MinIO requires a StorageClass (set storage / storage_class in preflight or
+      openshift.default_storage_class).
+
+- name: Create MinIO root credentials Secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: minio-creds
+        namespace: "{{ name_space }}"
+        labels:
+          app.kubernetes.io/name: minio
+          app.kubernetes.io/component: storage
+      type: Opaque
+      stringData:
+        MINIO_ROOT_USER: "{{ minio_root_user }}"
+        MINIO_ROOT_PASSWORD: "{{ minio_root_password }}"
+  no_log: true
+
+- name: Create MinIO OIDC Secret when enabled
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: minio-oidc
+        namespace: "{{ name_space }}"
+        labels:
+          app.kubernetes.io/name: minio
+          app.kubernetes.io/component: oidc
+      type: Opaque
+      stringData:
+        MINIO_IDENTITY_OPENID_CLIENT_ID: "{{ minio_oidc_client_id }}"
+        MINIO_IDENTITY_OPENID_CLIENT_SECRET: "{{ ocp_minio_oidc_client_secret | default('') }}"
+        MINIO_IDENTITY_OPENID_CONFIG_URL: "{{ ocp_minio_oidc_config_url_effective }}"
+        MINIO_IDENTITY_OPENID_CLAIM_NAME: "{{ minio_oidc_claim_name | default('policy') }}"
+        MINIO_IDENTITY_OPENID_DISPLAY_NAME: "{{ minio_oidc_display_name | default('Keycloak') }}"
+        MINIO_IDENTITY_OPENID_SCOPES: "{{ minio_oidc_scopes | default('openid,profile,email') }}"
+  when:
+    - minio_oidc_enabled | default(false) | bool
+    - ocp_minio_oidc_client_secret is defined
+    - (ocp_minio_oidc_client_secret | string | length) > 0
+  no_log: true
+
+- name: Build MinIO container envFrom list
+  ansible.builtin.set_fact:
+    ocp_minio_env_from:
+      - secretRef:
+          name: minio-creds
+    ocp_minio_extra_env:
+      - name: MINIO_BROWSER_REDIRECT_URL
+        value: "{{ ocp_minio_console_url }}"
+
+- name: Append MinIO OIDC envFrom when enabled
+  ansible.builtin.set_fact:
+    ocp_minio_env_from: "{{ ocp_minio_env_from + [{'secretRef': {'name': 'minio-oidc'}}] }}"
+  when:
+    - minio_oidc_enabled | default(false) | bool
+    - ocp_minio_oidc_client_secret is defined
+    - (ocp_minio_oidc_client_secret | string | length) > 0
+
+- name: Create MinIO data PVC
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: minio-data
+        namespace: "{{ name_space }}"
+        labels:
+          app.kubernetes.io/name: minio
+      spec:
+        accessModes:
+          - "{{ minio_storage_access_mode }}"
+        resources:
+          requests:
+            storage: "{{ minio_storage_size | default(storage_size | default('20Gi')) }}"
+        storageClassName: "{{ storage }}"
+
+- name: Build MinIO Deployment definition
+  ansible.builtin.set_fact:
+    ocp_minio_deployment_definition: >-
+      {{
+        {
+          'apiVersion': 'apps/v1',
+          'kind': 'Deployment',
+          'metadata': {
+            'name': minio_deployment_name,
+            'namespace': name_space,
+            'labels': {'app.kubernetes.io/name': 'minio'},
+          },
+          'spec': {
+            'replicas': 1,
+            'selector': {'matchLabels': {'app': 'minio'}},
+            'template': {
+              'metadata': {
+                'labels': {
+                  'app': 'minio',
+                  'app.kubernetes.io/name': 'minio',
+                },
+                'annotations': {
+                  'ado.infra/minio-oidc': (minio_oidc_enabled | default(false) | bool) | ternary('enabled', 'disabled'),
+                },
+              },
+              'spec': {
+                'containers': [{
+                  'name': 'minio',
+                  'image': minio_image,
+                  'imagePullPolicy': minio_image_pull_policy,
+                  'args': ['server', '/data', '--console-address', ':' ~ (minio_console_port | string)],
+                  'ports': [
+                    {'name': 'api', 'containerPort': minio_api_port | int},
+                    {'name': 'console', 'containerPort': minio_console_port | int},
+                  ],
+                  'env': ocp_minio_extra_env,
+                  'envFrom': ocp_minio_env_from,
+                  'resources': minio_resources,
+                  'volumeMounts': [{'name': 'data', 'mountPath': '/data'}],
+                }],
+                'volumes': [{
+                  'name': 'data',
+                  'persistentVolumeClaim': {'claimName': 'minio-data'},
+                }],
+              },
+            },
+          },
+        }
+      }}
+
+- name: Read existing MinIO Deployment
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ minio_deployment_name }}"
+    namespace: "{{ name_space }}"
+  register: ocp_minio_existing_deploy
+
+- name: Delete MinIO Deployment when selector labels are immutable
+  kubernetes.core.k8s:
+    state: absent
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ minio_deployment_name }}"
+    namespace: "{{ name_space }}"
+    wait: true
+    wait_timeout: 120
+  when:
+    - ocp_minio_existing_deploy.resources | default([]) | length > 0
+    - (ocp_minio_existing_deploy.resources[0].spec.selector.matchLabels | default({}))
+      != (minio_deployment_definition.spec.selector.matchLabels | default({}))
+
+- name: Deploy MinIO
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ ocp_minio_deployment_definition }}"
+
+- name: Build MinIO Service definition
+  ansible.builtin.set_fact:
+    ocp_minio_service_definition: >-
+      {{
+        {
+          'apiVersion': 'v1',
+          'kind': 'Service',
+          'metadata': {
+            'name': minio_service_name,
+            'namespace': name_space,
+            'labels': {'app.kubernetes.io/name': 'minio'},
+          },
+          'spec': {
+            'type': 'ClusterIP',
+            'selector': {'matchLabels': {'app': 'minio'}},
+            'ports': [
+              {'name': 'api', 'port': minio_api_port | int, 'targetPort': 'api'},
+              {'name': 'console', 'port': minio_console_port | int, 'targetPort': 'console'},
+            ],
+          },
+        }
+      }}
+
+- name: Create MinIO Service
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ ocp_minio_service_definition }}"
+
+- name: Wait for MinIO Service endpoints
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Endpoints
+    namespace: "{{ name_space }}"
+    name: "{{ minio_service_name }}"
+  register: ocp_minio_service_endpoints
+  until:
+    - ocp_minio_service_endpoints.resources | default([]) | length > 0
+    - (ocp_minio_service_endpoints.resources[0].subsets | default([])) | length > 0
+    - (ocp_minio_service_endpoints.resources[0].subsets[0].addresses | default([])) | length > 0
+  retries: 30
+  delay: 10
+
+- name: Create MinIO API Route
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: minio-api
+        namespace: "{{ name_space }}"
+        labels:
+          app.kubernetes.io/name: minio
+      spec:
+        host: "{{ ocp_minio_api_hostname_effective }}"
+        to:
+          kind: Service
+          name: "{{ minio_service_name }}"
+        port:
+          targetPort: api
+        tls:
+          termination: "{{ minio_route_tls_termination }}"
+          insecureEdgeTerminationPolicy: "{{ minio_route_insecure_policy }}"
+
+- name: Create MinIO Console Route
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: minio-console
+        namespace: "{{ name_space }}"
+        labels:
+          app.kubernetes.io/name: minio
+      spec:
+        host: "{{ ocp_minio_console_hostname_effective }}"
+        to:
+          kind: Service
+          name: "{{ minio_service_name }}"
+        port:
+          targetPort: console
+        tls:
+          termination: "{{ minio_route_tls_termination }}"
+          insecureEdgeTerminationPolicy: "{{ minio_route_insecure_policy }}"
+
+- name: Wait for MinIO Deployment Available
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ minio_deployment_name }}"
+    namespace: "{{ name_space }}"
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: 600
+
+- name: Report MinIO endpoints
+  ansible.builtin.debug:
+    msg: |
+      MinIO endpoints:
+      - API: https://{{ ocp_minio_api_hostname_effective }}
+      - Console: https://{{ ocp_minio_console_hostname_effective }}
+      - OIDC: {{ 'enabled (' ~ minio_oidc_display_name ~ ')' if (minio_oidc_enabled | default(false) | bool) else 'disabled' }}
+      - Root user: {{ minio_root_user }} (password in vault / minio-creds Secret)

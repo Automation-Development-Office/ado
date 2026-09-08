@@ -1,0 +1,53 @@
+---
+- name: ADO | Add alternate routes on a named ingress controller
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: routes
+  vars_files:
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_{{ component }}.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_{{ component }}.yml"
+  environment:
+    K8S_AUTH_HOST: '{{ host | default(api_host) }}'
+    K8S_AUTH_API_KEY: '{{ token }}'
+    K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'',''no'') }}'
+  pre_tasks:
+    - name: ADO | Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: infra.ado.bootstrap_resolve_component
+      failed_when: false
+    - name: ADO | Prefer apps_domain for route discovery suffixes
+      ansible.builtin.set_fact:
+        app_domain: "{{ apps_domain | default(app_domain) | default('') }}"
+        app_domain_alt: "{{ apps_domain_alt | default(app_domain_alt) | default('') }}"
+    - name: ADO | Build ingress-controller router label for alternate routes
+      ansible.builtin.set_fact:
+        ocp_alt_routes_ingress_labels: >-
+          {{
+            alt_routes_default_labels | default({})
+            | combine(
+                {
+                  'haproxy.router.openshift.io/router': (
+                    ocp_alt_routes_ingress_controller_name
+                    | default(alt_routes_ingress_controller_name | default('default'))
+                  )
+                },
+                recursive=True
+              )
+          }}
+      when: >-
+        (ocp_alt_routes_ingress_controller_name | default(alt_routes_ingress_controller_name | default('')) | length) > 0
+  roles:
+    - role: infra.ado.ocp_discover_routes
+      vars:
+        ocp_discover_routes_alt_print: false
+        ocp_discover_routes_print_one_liners: false
+        ocp_discover_routes_build_alt_candidates: true
+        ocp_discover_routes_namespaces: "{{ ocp_discover_routes_namespaces | default([]) }}"
+    - role: infra.ado.ocp_alt_routes
+      vars:
+        alt_routes_print_only: false
+        alt_routes_suffix: "{{ alt_routes_suffix | default('-alt') }}"
+        alt_routes_default_labels: "{{ ocp_alt_routes_ingress_labels | default(alt_routes_default_labels | default({})) }}"
+        alt_routes_force_replace: "{{ alt_routes_force_replace | default(false) }}"

@@ -10,7 +10,37 @@
       {{ generate_aap_configs | default(false) | bool }}
     bootstrap_controller_apply_aap_configs: >-
       {{ apply_aap_configs | default(false) | bool }}
+    bootstrap_controller_vars_only: >-
+      {{
+        bootstrap_controller_vars_only
+        | default(bootstrap_vars_only | default(false))
+        | bool
+      }}
     bootstrap_controller_aap_install_during_bootstrap: false
+
+- name: Seed hub-only flag from bootstrap extra var
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_update_collection_only: >-
+      {{
+        bootstrap_hub_update_collection_only
+        | default(bootstrap_controller_hub_update_collection_only | default(false))
+        | bool
+      }}
+
+- name: Force manual git for hub-only / standalone AAP runs
+  ansible.builtin.set_fact:
+    bootstrap_controller_generate_playbooks: false
+    bootstrap_controller_generate_aap_configs: false
+    bootstrap_controller_force_manual_git: true
+  when: bootstrap_controller_hub_update_collection_only | default(false) | bool
+
+- name: Force vars/vault-only mode (skip playbooks and Contoller apply)
+  ansible.builtin.set_fact:
+    bootstrap_controller_generate_playbooks: false
+    bootstrap_controller_generate_aap_configs: false
+    bootstrap_controller_apply_aap_configs: false
+    bootstrap_controller_generate_env_vars: true
+  when: bootstrap_controller_vars_only | default(false) | bool
 
 - name: Generate env var files
   ansible.builtin.include_role:
@@ -38,6 +68,63 @@
         else {}
       }}
   when: bootstrap_controller_generate_env_vars | default(false) | bool
+
+- name: Push group_vars after vars/vault-only generation
+  ansible.builtin.shell: |
+    set -euo pipefail
+    remote_name={{
+      bootstrap_generate_playbook_repo_git_remote
+      | default(generate_playbook_repo_git_remote | default('origin'))
+      | quote
+    }}
+    branch_name={{
+      bootstrap_generate_playbook_repo_git_branch
+      | default(generate_playbook_repo_git_branch | default('main'))
+      | quote
+    }}
+    sync_before_push={{
+      bootstrap_generate_playbook_repo_git_sync_before_push
+      | default(generate_playbook_repo_git_sync_before_push | default(true))
+      | bool
+      | ternary('true', 'false')
+      | quote
+    }}
+
+    git add -A -- group_vars || git add -A
+    git diff --cached --quiet || \
+      git commit -m "Update ADO group_vars (vars/vault only)"
+    if [ "$sync_before_push" = "true" ]; then
+      if git ls-remote \
+        --exit-code \
+        --heads \
+        "$remote_name" \
+        "$branch_name" >/dev/null; then
+        git fetch "$remote_name" "$branch_name"
+        git rebase FETCH_HEAD
+      else
+        rc=$?
+        if [ "$rc" -ne 2 ]; then
+          exit "$rc"
+        fi
+      fi
+    fi
+    git push "$remote_name" "$branch_name"
+  args:
+    chdir: "{{ playbook_dir }}"
+    executable: /bin/bash
+  changed_when: true
+  when:
+    - bootstrap_controller_vars_only | default(false) | bool
+    - bootstrap_controller_generate_env_vars | default(false) | bool
+    - >-
+      bootstrap_generate_playbook_repo_git_mode
+      | default(generate_playbook_repo_git_mode | default('manual')) == 'push'
+    - not (bootstrap_controller_force_manual_git | default(false) | bool)
+    - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
+
+- name: Stop after vars/vault-only work
+  ansible.builtin.meta: end_play
+  when: bootstrap_controller_vars_only | default(false) | bool
 
 - name: Resolve AAP install-during-bootstrap from preflight
   ansible.builtin.set_fact:
@@ -256,6 +343,11 @@
       | default(false)
     - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
+- name: Re-apply manual git after loading aap_config_vars (hub-only)
+  ansible.builtin.set_fact:
+    bootstrap_controller_force_manual_git: true
+  when: bootstrap_controller_hub_update_collection_only | default(false) | bool
+
 - name: Enable AAP apply for Hub collection update-only runs
   ansible.builtin.set_fact:
     bootstrap_controller_apply_aap_configs: true
@@ -363,6 +455,7 @@
   when:
     - bootstrap_controller_generate_playbooks | default(false) | bool
     - bootstrap_controller_apply_aap_configs | default(false) | bool
+    - not (bootstrap_controller_hub_update_collection_only | default(false) | bool)
     - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Generate AAP config files
@@ -426,6 +519,7 @@
     - bootstrap_controller_generate_aap_configs | default(false) | bool
     - bootstrap_generate_playbook_repo_git_mode
       | default(generate_playbook_repo_git_mode | default('manual')) == 'push'
+    - not (bootstrap_controller_force_manual_git | default(false) | bool)
     - not (bootstrap_controller_aap_install_during_bootstrap | default(false) | bool)
 
 - name: Apply AAP controller objects

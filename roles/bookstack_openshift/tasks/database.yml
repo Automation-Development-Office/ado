@@ -76,10 +76,16 @@
               app.kubernetes.io/name: bookstack
               app.kubernetes.io/component: database
           spec:
+            # Official mariadb:11 runs as UID 999; anyuid SCC alone leaves PVC root-owned.
+            securityContext:
+              fsGroup: 999
             containers:
               - name: mariadb
                 image: "{{ bookstack_mariadb_image }}"
                 imagePullPolicy: "{{ bookstack_image_pull_policy }}"
+                securityContext:
+                  runAsUser: 999
+                  runAsNonRoot: true
                 ports:
                   - name: mysql
                     containerPort: 3306

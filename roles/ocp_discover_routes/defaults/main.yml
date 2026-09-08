@@ -27,6 +27,11 @@ ocp_discover_routes_alt_exclude_host_regex: "(^oauth-openshift\\.|^console-opens
 
 # If true, print the computed list
 ocp_discover_routes_alt_print: true
+ocp_discover_routes_print_one_liners: true
+ocp_discover_routes_build_alt_candidates: true
+
+# Optional hard filter to specific namespaces (empty = all non-excluded)
+ocp_discover_routes_namespaces: []
 
 # Output variable name (if you want to standardize across roles)
 ocp_discover_routes_alt_output_var: "route_alt_candidates"

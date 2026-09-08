@@ -1,0 +1,22 @@
+---
+- name: Enable Grafana email/SMTP configuration
+  ansible.builtin.set_fact:
+    grafana_install_email_enabled: true
+    grafana_install_grafana_email: >-
+      {{
+        (grafana_install_grafana_email | default(email | default({})))
+        | combine({'enabled': true}, recursive=True)
+      }}
+  changed_when: false
+
+- name: Build Grafana SMTP config fragment
+  ansible.builtin.import_tasks: build-grafana-email-config.yml
+
+- name: Stage SMTP config patch payload
+  ansible.builtin.set_fact:
+    grafana_install_config_patch: "{{ grafana_install_config_smtp }}"
+  when: grafana_install_config_smtp is defined
+
+- name: Patch Grafana CR with SMTP settings
+  ansible.builtin.import_tasks: patch-grafana-cr-config.yml
+  when: grafana_install_config_smtp is defined

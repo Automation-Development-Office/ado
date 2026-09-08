@@ -1,0 +1,49 @@
+---
+- name: ADO | Deploy MinIO on OpenShift (install only)
+  hosts: localhost
+  gather_facts: false
+  vars:
+    component: minio
+  vars_files:
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_{{ component }}.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_{{ component }}.yml"
+  environment:
+    K8S_AUTH_HOST: '{{ host | default(api_host) }}'
+    K8S_AUTH_API_KEY: '{{ token }}'
+    K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'',''no'') }}'
+  pre_tasks:
+    - name: ADO | Resolve vars for component from framework defaults + env overrides
+      ansible.builtin.include_role:
+        name: infra.ado.bootstrap_resolve_component
+    - name: ADO | Normalize MinIO install vars (OIDC is a separate optional JT)
+      ansible.builtin.set_fact:
+        minio_install_scope: install
+        minio_oidc_enabled: false
+        minio_console_hostname: >-
+          {{
+            minio_console_hostname
+            | default(hostname)
+            | default('minio-console-' ~ (name_space | default('minio')) ~ '.'
+              ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+          }}
+        minio_api_hostname: >-
+          {{
+            minio_api_hostname
+            | default('minio-api-' ~ (name_space | default('minio')) ~ '.'
+              ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+          }}
+        storage: >-
+          {{
+            storage
+            | default(storage_class)
+            | default(openshift_default_storage_class)
+            | default('')
+          }}
+        storage_size: >-
+          {{ storage_size | default(minio_storage_size | default('20Gi')) }}
+  roles:
+    - role: infra.ado.ocp_namespace
+    - role: infra.ado.ocp_minio
+    - role: infra.ado.ocp_wait_pods
+    - role: infra.ado.ocp_routes

@@ -5,12 +5,28 @@
       {{ grafana_create_datasource_state | default(state | default('present')) }}
     grafana_create_datasource_name: >-
       {{ grafana_create_datasource_name | default(grafana_datasource | default('Openshift-Prod')) }}
-    grafana_create_datasource_hostname: >-
-      {{ grafana_create_datasource_hostname | default(grafana_hostname | default('')) }}
     grafana_create_datasource_admin_user: >-
-      {{ grafana_create_datasource_admin_user | default(grafana_admin_user | default('admin')) }}
+      {{
+        grafana_create_datasource_admin_user
+        | default(grafana_admin_user, true)
+        | default(grafana_install_admin_user, true)
+        | default('admin')
+      }}
     grafana_create_datasource_admin_password: >-
-      {{ grafana_create_datasource_admin_password | default(grafana_admin_password | default('')) }}
+      {{
+        grafana_create_datasource_admin_password
+        | default(grafana_admin_password, true)
+        | default(grafana_install_admin_password, true)
+        | default(install_grafana_admin_password, true)
+        | default('redhat123')
+      }}
+    grafana_create_datasource_hostname: >-
+      {{
+        grafana_create_datasource_hostname
+        | default(grafana_hostname, true)
+        | default(grafana_install_hostname, true)
+        | default('')
+      }}
     grafana_create_datasource_validate_certs: >-
       {{
         grafana_create_datasource_validate_certs

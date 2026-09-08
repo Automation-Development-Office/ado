@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: zabbix-db-init
+  namespace: {{ name_space }}
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: db-init
+          image: {{ zabbix_server_image }}
+          env:
+            - name: DB_HOST
+              value: mariadb.{{ name_space }}.svc.cluster.local
+            - name: DB_PORT
+              value: "3306"
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: zabbix-mariadb-secret
+                  key: mariadb-database
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: zabbix-mariadb-secret
+                  key: mariadb-user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zabbix-mariadb-secret
+                  key: mariadb-password
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zabbix-mariadb-secret
+                  key: mariadb-root-password
+          command: ["/bin/bash", "-ec"]
+          args:
+            - |
+              set -euo pipefail
+              until mysqladmin ping -h "${DB_HOST}" -P "${DB_PORT}" -uroot -p"${MYSQL_ROOT_PASSWORD}" --silent; do sleep 2; done
+              mysql -h "${DB_HOST}" -P "${DB_PORT}" -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;"
+              mysql -h "${DB_HOST}" -P "${DB_PORT}" -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}'; GRANT ALL ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%'; FLUSH PRIVILEGES;"
+              if mysql -h "${DB_HOST}" -P "${DB_PORT}" -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" "${MYSQL_DATABASE}" -e "SELECT 1 FROM users LIMIT 1;" >/dev/null 2>&1; then
+                echo "Schema already present"
+                exit 0
+              fi
+              # Official ubuntu server image ships a single create.sql.gz here (not
+              # the older server.sql.gz / images.sql.gz / data.sql.gz split).
+              SCHEMA=""
+              for CAND in \
+                /usr/share/doc/zabbix-server-mysql/create.sql.gz \
+                /usr/share/doc/zabbix-sql-scripts/mysql/server.sql.gz \
+                /usr/share/zabbix/sql-scripts/mysql/server.sql.gz \
+                /usr/share/doc/zabbix-sql-scripts/mysql/create.sql.gz
+              do
+                if [ -f "$CAND" ]; then SCHEMA="$CAND"; break; fi
+              done
+              [ -n "$SCHEMA" ] || { echo "Zabbix SQL schema not found in image"; find /usr/share -name '*.sql*' 2>/dev/null | head; exit 1; }
+              echo "Loading schema from ${SCHEMA}"
+              gunzip -c "${SCHEMA}" | mysql -h "${DB_HOST}" -P "${DB_PORT}" -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" "${MYSQL_DATABASE}"

@@ -1,4 +1,4 @@
 ---
-# Galaxy/Hub requirements are written only when Hub collection update is
-# requested. An empty list keeps seed copy from forcing a Hub install.
+# Seed placeholder only. bootstrap_generate_playbook_repo overwrites this with
+# requirements.yml.j2 (Hub/Galaxy collection names only; never type:dir vendoring).
 collections: []

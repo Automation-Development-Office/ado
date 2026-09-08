@@ -20,7 +20,62 @@
     remote_src: true
   when: (acs_policy_file.path | basename | regex_search('\\.json\\.j2$')) is none
 
-- name: POST ACS resource
+- name: Resolve rendered ACS JSON path
+  ansible.builtin.set_fact:
+    acs_upload_policies_rendered: >-
+      {{
+        '/tmp/acs-upload/'
+        ~ (acs_policy_file.path | basename | regex_replace('\\.j2$', ''))
+      }}
+
+- name: Load ACS JSON payload
+  ansible.builtin.set_fact:
+    acs_upload_policies_payload: >-
+      {{
+        lookup('ansible.builtin.file', acs_upload_policies_rendered) | from_json
+      }}
+
+- name: Ensure ACS security policy via rhacs_policy
+  infra.rhacs_configuration.rhacs_policy:
+    policy: >-
+      {{
+        acs_upload_policies_payload.name
+        | default(
+            acs_policy_file.path
+            | basename
+            | regex_replace('\\.json(\\.j2)?$', '')
+          )
+      }}
+    data: "{{ acs_upload_policies_payload }}"
+    state: present
+    rhacs_host: "{{ acs_upload_policies_url }}"
+    rhacs_username: "{{ acs_admin_user | default(ocp_acs_admin_user | default('admin')) }}"
+    rhacs_password: "{{ acs_admin_password | default(ocp_acs_admin_password | default('')) }}"
+    skip_validate_certs: "{{ acs_skip_validate_certs | default(true) | bool }}"
+  no_log: true
+  when:
+    - (acs_upload_policies_endpoint | default('/v1/policies')) == '/v1/policies'
+    - acs_upload_policies_payload.policies is not defined
+  register: acs_upload_policies_rhacs_policy
+  failed_when: false
+
+- name: Import ACS policy export bundle via rhacs_policy_import
+  infra.rhacs_configuration.rhacs_policy_import:
+    data: "{{ acs_upload_policies_payload }}"
+    overwrite: "{{ acs_policies_overwrite | default(true) | bool }}"
+    ignore_import_errors: true
+    rhacs_host: "{{ acs_upload_policies_url }}"
+    rhacs_username: "{{ acs_admin_user | default(ocp_acs_admin_user | default('admin')) }}"
+    rhacs_password: "{{ acs_admin_password | default(ocp_acs_admin_password | default('')) }}"
+    skip_validate_certs: "{{ acs_skip_validate_certs | default(true) | bool }}"
+  no_log: true
+  when:
+    - (acs_upload_policies_endpoint | default('/v1/policies')) == '/v1/policies'
+    - acs_upload_policies_payload.policies is defined
+  register: acs_upload_policies_rhacs_import
+  failed_when: false
+
+- name: POST ACS report configuration (no rhacs_policy equivalent)
   ansible.builtin.uri:
     url: >-
       {{
@@ -29,16 +84,7 @@
       }}
     method: POST
     body_format: json
-    body: >-
-      {{
-        lookup(
-          'ansible.builtin.file',
-          '/tmp/acs-upload/'
-          ~ (
-            acs_policy_file.path | basename | regex_replace('\\.j2$', '')
-          )
-        ) | from_json
-      }}
+    body: "{{ acs_upload_policies_payload }}"
     user: "{{ acs_admin_user | default(ocp_acs_admin_user | default('admin')) }}"
     password: "{{ acs_admin_password | default(ocp_acs_admin_password | default('')) }}"
     force_basic_auth: true
@@ -46,3 +92,4 @@
     validate_certs: false
   no_log: true
   failed_when: false
+  when: (acs_upload_policies_endpoint | default('/v1/policies')) != '/v1/policies'

@@ -1,0 +1,60 @@
+---
+# Merge catalogued RHEL system-role seeds into the playbook generator maps.
+# Catalog: files/rhel_system_roles_catalog.yml (one entry per upstream role).
+
+- name: Load RHEL system roles bootstrap catalog
+  ansible.builtin.set_fact:
+    bootstrap_generate_playbook_repo_rhel_system_roles_catalog: >-
+      {{
+        (
+          lookup(
+            'ansible.builtin.file',
+            role_path ~ '/files/rhel_system_roles_catalog.yml'
+          )
+          | from_yaml
+        ).rhel_system_roles_catalog
+        | default([])
+      }}
+
+- name: Init RHEL system roles playbook seed entries
+  ansible.builtin.set_fact:
+    bootstrap_generate_playbook_repo_rhel_system_roles_playbook_entries: []
+    bootstrap_generate_playbook_repo_rhel_system_roles_component_map:
+      rhel_system_roles: []
+
+- name: Append each RHEL system role playbook seed and map entry
+  ansible.builtin.set_fact:
+    bootstrap_generate_playbook_repo_rhel_system_roles_playbook_entries: >-
+      {{
+        bootstrap_generate_playbook_repo_rhel_system_roles_playbook_entries
+        + [
+          {
+            'src': item.playbook,
+            'dest': 'playbooks/' ~ item.playbook,
+            'target_platform': 'rhel',
+            'category': 'config',
+            'app': item.app
+          }
+        ]
+      }}
+    bootstrap_generate_playbook_repo_rhel_system_roles_component_map: >-
+      {{
+        bootstrap_generate_playbook_repo_rhel_system_roles_component_map
+        | combine({item.app: [item.app]}, recursive=False)
+      }}
+  loop: "{{ bootstrap_generate_playbook_repo_rhel_system_roles_catalog }}"
+  loop_control:
+    label: "{{ item.app }}"
+
+- name: Merge RHEL system roles into playbook generator maps
+  ansible.builtin.set_fact:
+    bootstrap_generate_playbook_repo_component_map: >-
+      {{
+        bootstrap_generate_playbook_repo_component_map
+        | combine(bootstrap_generate_playbook_repo_rhel_system_roles_component_map, recursive=False)
+      }}
+    bootstrap_generate_playbook_repo_generated_playbooks: >-
+      {{
+        bootstrap_generate_playbook_repo_generated_playbooks
+        + bootstrap_generate_playbook_repo_rhel_system_roles_playbook_entries
+      }}

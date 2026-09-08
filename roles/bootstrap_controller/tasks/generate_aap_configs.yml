@@ -75,6 +75,15 @@
     - job_templates
     - workflows
 
+- name: AAP configs | Resolve job/workflow template overwrite mode
+  ansible.builtin.set_fact:
+    bootstrap_controller_jt_wf_force: >-
+      {{
+        bootstrap_controller_generate_aap_configs_force_job_workflows
+        | default(false)
+        | bool
+      }}
+
 - name: AAP configs | Expand patching component dependencies
   ansible.builtin.set_fact:
     bootstrap_controller_effective_components: >-
@@ -144,6 +153,7 @@
         - ado-acs-report-rhsource-bootstrap.jt.yml
         - ado-acs-report-raw-bootstrap.jt.yml
         - ado-acs-report-age-bootstrap.jt.yml
+        - ado-acs-report-cve-enriched-bootstrap.jt.yml
 
       acm:
         - ado-acm-deploy-and-configure-bootstrap.jt.yml
@@ -152,12 +162,18 @@
         - ado-cert-manager-configure-idm-acme-clusterissuer.jt.yml
         - ado-cert-manager-deploy-and-configure-bootstrap.jt.yml
         - ado-cert-manager-install-and-configure-awspca-bootstrap.jt.yml
+        - ado-openshift-update-default-ingress-cert-bootstrap.jt.yml
 
       console:
         - ado-console-configure-bootstrap.jt.yml
 
       devspaces:
         - ado-devspaces-deploy-and-configure-bootstrap.jt.yml
+
+      dev_hub:
+        - ado-dev-hub-deploy-and-configure-bootstrap.jt.yml
+      dev_hub_oidc:
+        - ado-dev-hub-deploy-oidc-bootstrap.jt.yml
 
       dirsrv:
         - ado-dirsrv-deploy-and-configure-bootstrap.jt.yml
@@ -182,18 +198,37 @@
         - ado-gitops-deploy-bootstrap.jt.yml
 
       grafana:
-        - ado-grafana-create-custom-route.jt.yml
         - ado-grafana-deploy-bootstrap.jt.yml
+      grafana_oidc:
+        - ado-grafana-deploy-oidc-bootstrap.jt.yml
+      grafana_email:
+        - ado-grafana-deploy-email-bootstrap.jt.yml
+      grafana_datasources:
+        - ado-grafana-deploy-datasource-bootstrap.jt.yml
+      grafana_folders:
+        - ado-grafana-deploy-folders-bootstrap.jt.yml
+      grafana_dashboards:
         - ado-grafana-deploy-dashboards-bootstrap.jt.yml
-        - ado-install-grafana-standalone-bootstrap.jt.yml
-
+      grafana_alternate_route:
+        - ado-grafana-create-custom-route.jt.yml
       grafana_standalone:
         - ado-install-grafana-standalone-bootstrap.jt.yml
 
+      web_terminal:
+        - ado-web-terminal-deploy-bootstrap.jt.yml
+
+      zabbix:
+        - ado-zabbix-deploy-and-configure-bootstrap.jt.yml
+      zabbix_saml:
+        - ado-zabbix-configure-saml-bootstrap.jt.yml
+
       bookstack:
         - ado-deploy-bookstack-bootstrap.jt.yml
+      bookstack_oidc:
+        - ado-bookstack-deploy-oidc-bootstrap.jt.yml
 
-      netbox:
+      netbox: []
+      netbox_oidc:
         - ado-configure-netbox-oidc-bootstrap.jt.yml
 
       idm_server_install:
@@ -232,6 +267,18 @@
       oadp:
         - ado-oadp-deploy-bootstrap.jt.yml
 
+      ocp_compliance:
+        - ado-ocp-compliance-deploy-bootstrap.jt.yml
+
+      ocp_descheduler:
+        - ado-ocp-descheduler-deploy-bootstrap.jt.yml
+
+      ocp_virtualization:
+        - ado-ocp-virtualization-deploy-bootstrap.jt.yml
+
+      gitlab_runner:
+        - ado-gitlab-runner-deploy-bootstrap.jt.yml
+
       admin_htpasswd:
         - ado-openshift-create-htpass-user-bootstrap.jt.yml
       nfs_csi:
@@ -248,8 +295,14 @@
       openshift_discover_routes_print:
         - ado-openshift-deploy-discover-routes-and-print-bootstrap.jt.yml
 
-      openshift_discover_routes_alt:
-        - ado-openshift-discover-routes-bootstrap.jt.yml
+      openshift_print_alt_routes:
+        - ado-openshift-print-alt-routes-bootstrap.jt.yml
+
+      openshift_add_alt_routes:
+        - ado-openshift-add-alt-routes-bootstrap.jt.yml
+
+      openshift_add_ingress_with_route:
+        - ado-openshift-add-ingress-with-route-bootstrap.jt.yml
 
       openshift_update_pull_secret:
         - ado-openshift-update-pull-secret-bootstrap.jt.yml
@@ -259,11 +312,15 @@
       openshift_virt:
         - ado-provision-openshift-virt-vm-bootstrap.jt.yml
 
-      pega:
-        - ado-pega-install-and-configure-bootstrap.jt.yml
+      minio:
+        - ado-minio-deploy-and-configure-bootstrap.jt.yml
+      minio_oidc:
+        - ado-minio-deploy-oidc-bootstrap.jt.yml
 
       quay:
         - ado-quay-deploy-and-configure-bootstrap.jt.yml
+      quay_oidc:
+        - ado-quay-deploy-oidc-bootstrap.jt.yml
 
       rhbk:
         - ado-rhbk-deploy-and-configure-bootstrap.jt.yml
@@ -286,6 +343,9 @@
 
       rhbk_mapper:
         - ado-rhbk-setup-mapper-bootstrap.jt.yml
+
+      rhbk_client_scopes:
+        - ado-rhbk-manage-client-scope-bootstrap.jt.yml
 
       rhel:
         - ado-rhel-patch-host-bootstrap.jt.yml
@@ -316,6 +376,9 @@
       stig:
         - ado-rhel-stig-hardening-bootstrap.jt.yml
 
+- name: AAP configs | Merge RHEL system roles JT catalog
+  ansible.builtin.include_tasks: load_rhel_system_roles_jt_catalog.yml
+
 - name: AAP configs | Build selected job template file list
   ansible.builtin.set_fact:
     bootstrap_controller_job_template_files_selected: >-
@@ -339,6 +402,16 @@
       }}
   when: bootstrap_controller_aap_install_during_bootstrap | default(false) | bool
 
+- name: AAP configs | Skip default ingress JT unless update_default_ingress is enabled
+  ansible.builtin.set_fact:
+    bootstrap_controller_job_template_files_selected: >-
+      {{
+        bootstrap_controller_job_template_files_selected
+        | reject('equalto', 'ado-openshift-update-default-ingress-cert-bootstrap.jt.yml')
+        | list
+      }}
+  when: not (bootstrap_controller_update_default_ingress | default(false) | bool)
+
 # yamllint disable rule:line-length
 - name: AAP configs | Copy job templates for generated playbooks only
   ansible.builtin.shell: |
@@ -351,6 +424,12 @@
     src_dir = Path("{{ role_path }}/files/job_templates")
     dest_dir = Path("{{ playbook_dir }}/configs/job_templates")
     dest_dir.mkdir(parents=True, exist_ok=True)
+    force_overwrite = {{
+      bootstrap_controller_jt_wf_force
+      | default(false)
+      | bool
+      | ternary('True', 'False')
+    }}
 
     organization = "{{ bootstrap_controller_organization | default(controller_bootstrap_organization, true) }}"
     inventory = "{{ bootstrap_controller_inventory_name | default(controller_bootstrap_inventory_name, true) }}"
@@ -361,7 +440,7 @@
     project = "{{ bootstrap_controller_project_name | default(controller_bootstrap_project_name, true) }}"
     execution_environment = "{{ bootstrap_controller_execution_environment_name | default(controller_bootstrap_execution_environment_name, true) }}"
     credential = "{{ bootstrap_controller_creds | default(controller_bootstrap_creds, true) }}"
-    machine_credential = "{{ bootstrap_controller_machine_credential | default(controller_bootstrap_machine_credential | default('', true), true) }}"
+    machine_credential = "{{ bootstrap_controller_machine_credential | default(controller_bootstrap_machine_credential | default(bootstrap_controller_organization ~ '-machine', true), true) }}"
     state_choices_yaml = "present\nabsent"
     console_banner_state_choices_yaml = "add\nupdate\ndelete"
     default_state = "{{ bootstrap_controller_default_state | default('present', true) }}"
@@ -532,6 +611,10 @@
         text = text.replace("ADO |", f"{organization} |")
         text = text.replace(f"{organization} | ADO ", f"{organization} | ")
 
+        dest_path = dest_dir / name
+        if not force_overwrite and dest_path.exists():
+            continue
+
         data = yaml.safe_load(text)
         templates = data.get("controller_templates", []) or []
         missing_playbooks = []
@@ -575,13 +658,14 @@
                 normalize_survey_choices(question)
         text = yaml.safe_dump(data, sort_keys=False)
 
-        (dest_dir / name).write_text(text)
+        dest_path.write_text(text)
         copied.append(name)
 
     selected_set = set(selected)
-    for existing in dest_dir.glob("*.jt.yml"):
-        if existing.name not in selected_set:
-            existing.unlink()
+    if force_overwrite:
+        for existing in dest_dir.glob("*.jt.yml"):
+            if existing.name not in selected_set:
+                existing.unlink()
 
     print("Copied job templates:", len(copied))
     PYCODE
@@ -605,6 +689,7 @@
         playbook_dir
       }}/configs/workflows/ado-patching-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - >-
         'rhel' in bootstrap_controller_effective_components
@@ -620,6 +705,7 @@
         playbook_dir
       }}/configs/workflows/ado-rhel-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - >-
         'rhel' in bootstrap_controller_effective_components
@@ -637,6 +723,7 @@
         playbook_dir
       }}/configs/workflows/ado-satellite-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - >-
         'satellite_server_install' in
@@ -650,8 +737,74 @@
         playbook_dir
       }}/configs/workflows/ado-openshift-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - "'openshift' in bootstrap_controller_effective_components"
+
+- name: AAP configs | Copy RHBK workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-rhbk-workflow-bootstrap.wf.yml
+    dest: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-rhbk-workflow-bootstrap.wf.yml
+    mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
+  when:
+    - "'rhbk' in bootstrap_controller_effective_components"
+
+- name: AAP configs | Copy Grafana workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-grafana-workflow-bootstrap.wf.yml
+    dest: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-grafana-workflow-bootstrap.wf.yml
+    mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
+  when:
+    - "'grafana' in bootstrap_controller_effective_components"
+
+- name: AAP configs | Copy component auth workflows when selected
+  ansible.builtin.copy:
+    src: "workflows/ado-{{ item.slug }}-workflow-bootstrap.wf.yml"
+    dest: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-{{ item.slug }}-workflow-bootstrap.wf.yml
+    mode: "0644"
+  loop:
+    - { slug: quay, component: quay }
+    - { slug: minio, component: minio }
+    - { slug: dev-hub, component: dev_hub }
+    - { slug: bookstack, component: bookstack }
+    - { slug: netbox, component: netbox }
+    - { slug: zabbix, component: zabbix }
+  when:
+    - item.component in bootstrap_controller_effective_components
+
+- name: AAP configs | Copy Alt Routes workflow when selected
+  ansible.builtin.copy:
+    src: workflows/ado-alt-routes-workflow-bootstrap.wf.yml
+    dest: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-alt-routes-workflow-bootstrap.wf.yml
+    mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
+  when:
+    - >-
+        (
+          bootstrap_controller_effective_components | default([])
+        )
+        | intersect(
+            [
+              'openshift_print_alt_routes',
+              'openshift_add_alt_routes',
+              'openshift_add_ingress_with_route',
+            ]
+          )
+        | length > 0
 
 - name: AAP configs | Copy ACS RHACS report workflow when selected
   ansible.builtin.copy:
@@ -661,6 +814,7 @@
         playbook_dir
       }}/configs/workflows/ado-acs-report-workflow-bootstrap.wf.yml
     mode: "0644"
+    force: "{{ bootstrap_controller_jt_wf_force | bool }}"
   when:
     - "'acs_report' in bootstrap_controller_effective_components"
 
@@ -672,6 +826,7 @@
       }}/configs/workflows/ado-patching-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - >-
         'rhel' not in bootstrap_controller_effective_components
         or 'satellite_client_tools' not in
@@ -687,6 +842,7 @@
       }}/configs/workflows/ado-rhel-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - >-
         'rhel' not in bootstrap_controller_effective_components
         or 'satellite_client_tools' not in
@@ -704,6 +860,7 @@
       }}/configs/workflows/ado-satellite-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - >-
         'satellite_server_install' not in
         bootstrap_controller_effective_components
@@ -716,7 +873,70 @@
       }}/configs/workflows/ado-openshift-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - "'openshift' not in bootstrap_controller_effective_components"
+
+- name: AAP configs | Remove RHBK workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-rhbk-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - bootstrap_controller_jt_wf_force | bool
+    - "'rhbk' not in bootstrap_controller_effective_components"
+
+- name: AAP configs | Remove Grafana workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-grafana-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - bootstrap_controller_jt_wf_force | bool
+    - "'grafana' not in bootstrap_controller_effective_components"
+
+- name: AAP configs | Remove component auth workflows when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-{{ item.slug }}-workflow-bootstrap.wf.yml
+    state: absent
+  loop:
+    - { slug: quay, component: quay }
+    - { slug: minio, component: minio }
+    - { slug: dev-hub, component: dev_hub }
+    - { slug: bookstack, component: bookstack }
+    - { slug: netbox, component: netbox }
+    - { slug: zabbix, component: zabbix }
+  when:
+    - bootstrap_controller_jt_wf_force | bool
+    - item.component not in bootstrap_controller_effective_components
+
+- name: AAP configs | Remove Alt Routes workflow when unselected
+  ansible.builtin.file:
+    path: >-
+      {{
+        playbook_dir
+      }}/configs/workflows/ado-alt-routes-workflow-bootstrap.wf.yml
+    state: absent
+  when:
+    - bootstrap_controller_jt_wf_force | bool
+    - >-
+        (
+          bootstrap_controller_effective_components | default([])
+        )
+        | intersect(
+            [
+              'openshift_print_alt_routes',
+              'openshift_add_alt_routes',
+              'openshift_add_ingress_with_route',
+            ]
+          )
+        | length == 0
 
 - name: AAP configs | Remove ACS RHACS report workflow when unselected
   ansible.builtin.file:
@@ -726,6 +946,7 @@
       }}/configs/workflows/ado-acs-report-workflow-bootstrap.wf.yml
     state: absent
   when:
+    - bootstrap_controller_jt_wf_force | bool
     - "'acs_report' not in bootstrap_controller_effective_components"
 
 - name: AAP configs | Apply organization prefix to workflow templates
@@ -744,6 +965,7 @@
         playbook_dir ~ '/configs/workflows/*.wf.yml'
       )
     }}
+  when: bootstrap_controller_jt_wf_force | bool
 
 # yamllint disable rule:line-length
 - name: AAP configs | Apply generated values to workflow templates
@@ -810,6 +1032,45 @@
             if name:
                 available_templates.add(name)
 
+    for path in sorted(workflow_dir.glob("*.wf.yml")):
+        data = yaml.safe_load(path.read_text()) or {}
+        for item in data.get("controller_workflow_job_templates", []) or []:
+            name = item.get("name")
+            if name:
+                available_templates.add(name)
+
+    grafana_chain = [
+        "Deploy Grafana",
+        "Deploy Grafana OIDC",
+        "Deploy Grafana Email",
+        "Deploy Grafana Datasource",
+        "Deploy Grafana Folders",
+        "Deploy Grafana Dashboards",
+        "Deploy Grafana Alternate Route",
+    ]
+
+    alt_routes_chain = [
+        "Print Alternate Routes",
+        "Add Alternate Routes",
+        "Add Ingress with Route",
+    ]
+
+    quay_chain = ["Deploy Quay", "Deploy Quay OIDC"]
+    minio_chain = ["Deploy MinIO", "Deploy MinIO OIDC"]
+    dev_hub_chain = ["Deploy Dev Hub", "Deploy Dev Hub OIDC"]
+    bookstack_chain = ["Deploy BookStack", "Deploy BookStack OIDC"]
+    zabbix_chain = ["Deploy Zabbix", "Configure Zabbix SAML"]
+    netbox_chain = ["Configure NetBox OIDC"]
+
+    def chain_linear_nodes(kept_by_id, ordered_ids):
+        present = [node_id for node_id in ordered_ids if node_id in kept_by_id]
+        for index, node_id in enumerate(present):
+            node = kept_by_id[node_id]
+            if index + 1 < len(present):
+                node["success_nodes"] = [present[index + 1]]
+            else:
+                node.pop("success_nodes", None)
+
     edge_keys = ("success_nodes", "failure_nodes", "always_nodes")
     changed = 0
     for path in sorted(workflow_dir.glob("*.wf.yml")):
@@ -842,6 +1103,100 @@
                     if node.get("identifier") != "Configure IDM ACME ClusterIssuer"
                 ]
             kept_ids = {node.get("identifier") for node in kept_nodes}
+            kept_by_id = {node.get("identifier"): node for node in kept_nodes}
+
+            # After ACME/PCA prune, Ensure Deploy cert-manager still gates RHBK.
+            # Default Ingress alone must not unlock RHBK when cert-manager is selected.
+            cert_node = kept_by_id.get("Deploy cert-manager")
+            rhbk_workflow_id = "RHBK Workflow"
+            legacy_rhbk_id = "Deploy RHBK"
+            rhbk_target = (
+                rhbk_workflow_id
+                if rhbk_workflow_id in kept_ids
+                else legacy_rhbk_id
+            )
+            if cert_node is not None and rhbk_target in kept_ids:
+                edges = list(cert_node.get("success_nodes") or [])
+                edges = [
+                    item for item in edges
+                    if item not in (legacy_rhbk_id, rhbk_workflow_id)
+                ]
+                if rhbk_target not in edges:
+                    edges.append(rhbk_target)
+                    cert_node["success_nodes"] = edges
+
+            platform_ids = {
+                "Grafana Workflow",
+                "Quay Workflow",
+                "MinIO Workflow",
+                "Dev Hub Workflow",
+                "BookStack Workflow",
+                "NetBox Workflow",
+                "Zabbix Workflow",
+                "Deploy GitLab",
+                "Deploy Kafka",
+                "Deploy ECK",
+                "Deploy Quay",
+                "Deploy DevSpaces",
+                "Deploy Dev Hub",
+                "Deploy Zabbix",
+                "Deploy ACS",
+                "Install AAP on OpenShift",
+                "Deploy 389ds",
+                "Deploy GitOps",
+                "Deploy OADP",
+                "Deploy Pega",
+                "Deploy OpenShift Descheduler",
+            }
+            oauth_id = "Configure OAuth/RHBK in OpenShift"
+            client_id = "Deploy RHBK Client"
+            rhbk_id = rhbk_workflow_id if rhbk_workflow_id in kept_ids else legacy_rhbk_id
+            ingress_id = "Update Default Ingress Certificate"
+            cert_id = "Deploy cert-manager"
+
+            # If OIDC JT was pruned, hang platform apps off RHBK Workflow (or legacy RHBK chain).
+            if oauth_id not in kept_ids:
+                parent = (
+                    kept_by_id.get(rhbk_workflow_id)
+                    or kept_by_id.get(client_id)
+                    or kept_by_id.get(legacy_rhbk_id)
+                    or kept_by_id.get(ingress_id)
+                    or kept_by_id.get(cert_id)
+                )
+                if parent is not None:
+                    edges = list(parent.get("success_nodes") or [])
+                    for app_id in sorted(platform_ids):
+                        if app_id in kept_ids and app_id not in edges:
+                            edges.append(app_id)
+                    if edges:
+                        parent["success_nodes"] = edges
+
+            mapper_id = "RHBK LDAP Group Mapper"
+            if mapper_id not in kept_ids and client_id in kept_ids:
+                for parent_id in (
+                    "Deploy RHBK Realm",
+                    "RHBK 389ds Federation",
+                    "RHBK EntraID",
+                ):
+                    parent = kept_by_id.get(parent_id)
+                    if parent is None:
+                        continue
+                    edges = [
+                        item for item in (parent.get("success_nodes") or [])
+                        if item != mapper_id
+                    ]
+                    if client_id not in edges:
+                        edges.append(client_id)
+                    parent["success_nodes"] = edges
+
+            chain_linear_nodes(kept_by_id, grafana_chain)
+            chain_linear_nodes(kept_by_id, alt_routes_chain)
+            chain_linear_nodes(kept_by_id, quay_chain)
+            chain_linear_nodes(kept_by_id, minio_chain)
+            chain_linear_nodes(kept_by_id, dev_hub_chain)
+            chain_linear_nodes(kept_by_id, bookstack_chain)
+            chain_linear_nodes(kept_by_id, zabbix_chain)
+            chain_linear_nodes(kept_by_id, netbox_chain)
 
             for node in kept_nodes:
                 for edge_key in edge_keys:
@@ -872,6 +1227,7 @@
   args:
     executable: /bin/bash
   changed_when: true
+  when: bootstrap_controller_jt_wf_force | bool
 
 - name: AAP configs | Attach organization label to generated templates
   ansible.builtin.shell: |
@@ -943,4 +1299,5 @@
   args:
     executable: /bin/bash
   changed_when: true
+  when: bootstrap_controller_jt_wf_force | bool
 # yamllint enable rule:line-length

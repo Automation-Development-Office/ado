@@ -16,10 +16,74 @@
     - name: ADO | Resolve vars for component from framework defaults + env overrides
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component
+    - name: ADO | Normalize RHBK OpenShift install vars
+      ansible.builtin.set_fact:
+        rhbk_hostname: >-
+          {{
+            (
+              rhbk_hostname
+              | default(ocp_rhbk_hostname, true)
+              | default(hostname, true)
+              | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com'))), true)
+            )
+            | regex_replace('^https?://', '')
+            | regex_replace('/.*$', '')
+          }}
+        ocp_rhbk_hostname: >-
+          {{
+            (
+              ocp_rhbk_hostname
+              | default(rhbk_hostname, true)
+              | default(hostname, true)
+              | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com'))), true)
+            )
+            | regex_replace('^https?://', '')
+            | regex_replace('/.*$', '')
+          }}
+        # LDAP federation / IdP / mapper roles expect rhbk_host (same value as hostname/URL).
+        rhbk_host: >-
+          {{
+            (
+              rhbk_host
+              | default(rhbk_hostname, true)
+              | default(ocp_rhbk_hostname, true)
+              | default(hostname, true)
+              | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com'))), true)
+            )
+            | regex_replace('^https?://', '')
+            | regex_replace('/.*$', '')
+          }}
+        ocp_rhbk_tls_secret_name: >-
+          {{
+            ocp_rhbk_tls_secret_name
+            | default(rhbk_tls_secret_name)
+            | default('keycloak-tls-secret')
+          }}
+        cert_manager: "{{ cert_manager | default(false) | bool }}"
+        # Prefer explicit tls_mode / flags from preflight; default remains edge.
+        ocp_rhbk_use_default_ingress_cert: >-
+          {{
+            false if (cert_manager | default(false) | bool)
+            else (ocp_rhbk_use_default_ingress_cert | default(false) | bool)
+          }}
+        ocp_rhbk_http_edge: >-
+          {{
+            false if (cert_manager | default(false) | bool)
+            else (
+              false if (ocp_rhbk_use_default_ingress_cert | default(false) | bool)
+              else (ocp_rhbk_http_edge | default(true) | bool)
+            )
+          }}
+        ocp_rhbk_issuer_kind: >-
+          {{ ocp_rhbk_issuer_kind | default('ClusterIssuer') }}
+        ocp_rhbk_issuer_name: >-
+          {{ ocp_rhbk_issuer_name | default('idm-acme') }}
   roles:
     - role: infra.ado.ocp_namespace
     - role: infra.ado.ocp_operatorgroups
     - role: infra.ado.ocp_operator_subscription
+    - role: infra.ado.ocp_wait_operator
+    - role: infra.ado.install_rhbk
     - role: infra.ado.ocp_wait_pods
     - role: infra.ado.ocp_routes
     - role: infra.ado.rhbk_realm

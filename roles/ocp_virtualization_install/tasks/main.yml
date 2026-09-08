@@ -1,0 +1,103 @@
+---
+# Create HyperConverged and wait for OpenShift Virtualization to become ready.
+- name: OpenShift Virtualization | Normalize namespace
+  ansible.builtin.set_fact:
+    ocp_virtualization_install_namespace: >-
+      {{
+        operator_subscription_namespace
+        | default(name_space)
+        | default(ocp_virtualization_install_namespace)
+        | default('openshift-cnv')
+      }}
+    ocp_virtualization_install_hco_name: >-
+      {{
+        ocp_virtualization_install_hco_name
+        | default('kubevirt-hyperconverged')
+      }}
+    ocp_virtualization_install_csv_substring: >-
+      {{
+        operator_csv_contains
+        | default(operator_name_substring)
+        | default(operator_name)
+        | default('kubevirt-hyperconverged')
+      }}
+  changed_when: false
+
+- name: OpenShift Virtualization | Wait for CSV
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ ocp_virtualization_install_namespace }}"
+  register: ocp_virtualization_install_csvs
+  until: >-
+    (
+      ocp_virtualization_install_csvs.resources
+      | default([])
+      | selectattr('metadata.name', 'search', ocp_virtualization_install_csv_substring)
+      | list
+      | length
+    ) > 0
+  retries: "{{ ocp_virtualization_install_csv_retries | default(90) | int }}"
+  delay: "{{ ocp_virtualization_install_csv_delay | default(10) | int }}"
+  changed_when: false
+
+- name: OpenShift Virtualization | Create HyperConverged
+  kubernetes.core.k8s:
+    state: "{{ state | default('present') }}"
+    definition:
+      apiVersion: hco.kubevirt.io/v1beta1
+      kind: HyperConverged
+      metadata:
+        name: "{{ ocp_virtualization_install_hco_name }}"
+        namespace: "{{ ocp_virtualization_install_namespace }}"
+      spec: {}
+  when: (state | default('present')) == 'present'
+
+- name: OpenShift Virtualization | Wait for HyperConverged Available
+  kubernetes.core.k8s_info:
+    api_version: hco.kubevirt.io/v1beta1
+    kind: HyperConverged
+    name: "{{ ocp_virtualization_install_hco_name }}"
+    namespace: "{{ ocp_virtualization_install_namespace }}"
+  register: ocp_virtualization_install_hco
+  until: >-
+    (
+      ocp_virtualization_install_hco.resources
+      | default([])
+      | length
+    ) > 0
+    and
+    (
+      (
+        ocp_virtualization_install_hco.resources[0].status.conditions
+        | default([])
+        | selectattr('type', 'defined')
+        | selectattr('type', 'equalto', 'Available')
+        | selectattr('status', 'defined')
+        | selectattr('status', 'equalto', 'True')
+        | list
+        | length
+      ) > 0
+      or
+      (
+        ocp_virtualization_install_csvs.resources
+        | default([])
+        | selectattr('metadata.name', 'search', ocp_virtualization_install_csv_substring)
+        | selectattr('status.phase', 'defined')
+        | selectattr('status.phase', 'equalto', 'Succeeded')
+        | list
+        | length
+      ) > 0
+    )
+  retries: "{{ ocp_virtualization_install_hco_retries | default(90) | int }}"
+  delay: "{{ ocp_virtualization_install_hco_delay | default(10) | int }}"
+  when: (state | default('present')) == 'present'
+  changed_when: false
+
+- name: OpenShift Virtualization | Ready
+  ansible.builtin.debug:
+    msg: >-
+      OpenShift Virtualization HyperConverged ready in
+      {{ ocp_virtualization_install_namespace }}
+      ({{ ocp_virtualization_install_hco_name }}).
+  when: (state | default('present')) == 'present'

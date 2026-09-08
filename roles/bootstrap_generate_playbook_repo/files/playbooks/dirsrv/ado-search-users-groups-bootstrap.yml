@@ -6,8 +6,8 @@
     component: 389ds
   vars_files:
     - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
-    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_{{ component }}.yml"
-    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_{{ component }}.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_dirsrv.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_dirsrv.yml"
   environment:
     K8S_AUTH_HOST: '{{ host | default(api_host) }}'
     K8S_AUTH_API_KEY: '{{ token }}'

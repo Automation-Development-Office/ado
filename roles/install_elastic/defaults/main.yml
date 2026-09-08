@@ -1,3 +1,19 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
-# defaults file for advanced-cluster-management
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+# defaults file for install_elastic (ECK on OpenShift)
+
+install_elastic_eck_create_elasticsearch_cr: true
+install_elastic_eck_create_kibana_cr: true
+install_elastic_eck_create_routes: true
+install_elastic_eck_disable_http_tls: true
+install_elastic_eck_cluster_name: elasticsearch
+install_elastic_eck_kibana_name: kibana
+install_elastic_eck_replicas: 1
+install_elastic_eck_kibana_replicas: 1
+install_elastic_eck_version: "8.12.0"
+install_elastic_eck_kibana_hostname: ""
+install_elastic_eck_es_hostname: ""
+# Lab UI user created after ES Ready (security API)
+install_elastic_eck_create_lab_user: true
+install_elastic_eck_lab_user: kibana
+install_elastic_eck_lab_password: redhat123

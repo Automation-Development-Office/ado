@@ -230,8 +230,9 @@
 
 - name: Install AAP on OpenShift | Run installer / license-attach role
   ansible.builtin.include_role:
-    name: infra.ado.aap_ocp_install
+    name: infra.ado.install_aap
   vars:
+    install_aap_target: openshift
     aap_ocp_install_license_only: >-
       {{ bootstrap_controller_aap_license_only | bool }}
     aap_ocp_install_platform: >-

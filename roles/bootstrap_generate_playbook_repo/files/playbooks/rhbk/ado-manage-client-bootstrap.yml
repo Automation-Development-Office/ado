@@ -2,8 +2,6 @@
 - name: ADO | Manage RHBK client
   hosts: localhost
   gather_facts: false
-  collections:
-    - infra.ado
   vars:
     component: rhbk
   vars_files:
@@ -11,16 +9,9 @@
     - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_{{ component }}.yml"
     - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_{{ component }}.yml"
   no_log: false
-  environment:
-    ANSIBLE_COLLECTIONS_PATH: /runner/project/collections:{{ playbook_dir }}/../../collections
-    ANSIBLE_COLLECTIONS_PATHS: /runner/project/collections:{{ playbook_dir }}/../../collections
-    K8S_AUTH_HOST: '{{ host | default(api_host) }}'
-    K8S_AUTH_API_KEY: '{{ token }}'
-    K8S_AUTH_VERIFY_SSL: '{{ (verify_ssl | bool) | ternary(''yes'',''no'') }}'
   pre_tasks:
-    - name: ADO | Resolve vars for component from framework defaults + env overrides
-      ansible.builtin.include_role:
-        name: "{{ playbook_dir }}/../../collections/ansible_collections/infra/ado/roles/bootstrap_resolve_component"
+    - name: ADO | RHBK API pre_tasks
+      ansible.builtin.import_tasks: ado-rhbk-api-pre_tasks.yml
 
     - name: ADO | Build client work list from rhbk_clients dict when present
       ansible.builtin.set_fact:
@@ -37,7 +28,7 @@
   tasks:
     - name: ADO | Ensure each RHBK client
       ansible.builtin.include_role:
-        name: "{{ playbook_dir }}/../../collections/ansible_collections/infra/ado/roles/rhbk_client"
+        name: infra.ado.rhbk_client
       vars:
         rhbk_client: "{{ item.key }}"
         rhbk_client_name: "{{ item.value.rhbk_client_name | default(item.value.name | default(item.key)) }}"
@@ -52,6 +43,13 @@
         rhbk_base_url: "{{ item.value.rhbk_base_url | default(omit) }}"
         rhbk_client_secret: "{{ item.value.rhbk_client_secret | default(omit) }}"
         rhbk_protocol: "{{ item.value.rhbk_protocol | default('openid-connect') }}"
+        rhbk_default_client_scopes: >-
+          {{
+            item.value.rhbk_default_client_scopes
+            | default(rhbk_oidc_default_client_scopes | default(['groups']))
+          }}
+        rhbk_attach_default_client_scopes: >-
+          {{ item.value.rhbk_attach_default_client_scopes | default(true) }}
       loop: "{{ rhbk_client_work_items }}"
       loop_control:
         label: "{{ item.key }}"

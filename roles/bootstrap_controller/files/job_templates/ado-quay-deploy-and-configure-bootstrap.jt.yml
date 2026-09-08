@@ -3,7 +3,7 @@ controller_templates:
   - name: ADO | Deploy Quay
     description: Bootstrap - Deploy and configure Quay
     organization: '{{ bootstrap_controller_organization }}'
-    playbook: playbooks/quay/ado-deploy-and-configure-bootstrap.yml
+    playbook: playbooks/quay/ado-deploy-install-bootstrap.yml
     inventory: '{{ bootstrap_controller_inventory_name }}'
     project: '{{ bootstrap_controller_project_name }}'
     execution_environment: '{{ bootstrap_controller_execution_environment_name }}'

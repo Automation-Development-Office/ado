@@ -43,6 +43,16 @@ controller_templates:
             - NIST 800-53
             - CIS
           default: STIG
+        - question_name: ADO | STIG engine
+          question_description: >-
+            Choose DISA Compliance-as-Code (OpenSCAP) or RHEL System Roles STIG
+          required: true
+          type: multiplechoice
+          variable: stig_engine
+          choices:
+            - system_role
+            - cac
+          default: system_role
         - question_name: ADO | STIG profile
           question_description: STIG baseline to apply
           required: true
@@ -51,5 +61,16 @@ controller_templates:
           choices:
             - RHEL 9 STIG
             - RHEL 8 STIG
+            - RHEL 10 STIG
             - stig
           default: RHEL 9 STIG
+        - question_name: ADO | CaC remediate
+          question_description: >-
+            When STIG engine is cac, apply remediations (yes) or scan only (no)
+          required: true
+          type: multiplechoice
+          variable: rhel_stig_cac_remediate
+          choices:
+            - 'true'
+            - 'false'
+          default: 'true'

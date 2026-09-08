@@ -1,0 +1,24 @@
+---
+# Create Keycloak groups declared by preflight AAP Onboard tenants.
+
+- name: Onboard Keycloak | Skip when not configured
+  ansible.builtin.debug:
+    msg: No onboard Keycloak groups configured; skipping group creation.
+  when: not (aap_onboard_keycloak_configure | default(false) | bool)
+
+- name: Onboard Keycloak | Create groups for onboard tenants
+  ansible.builtin.include_role:
+    name: infra.ado.rhbk_groups
+  vars:
+    state: present
+    rhbk_group_name: "{{ item }}"
+    rhbk_hostname: "{{ aap_onboard_keycloak_base_url }}"
+    rhbk_realm: "{{ aap_onboard_keycloak_realm }}"
+    rhbk_username: "{{ aap_onboard_keycloak_admin_username }}"
+    rhbk_password: "{{ vault_aap_onboard_keycloak_admin_password }}"
+    rhbk_verify_ssl: "{{ aap_onboard_keycloak_verify_ssl | default(false) | bool }}"
+  loop: "{{ aap_onboard_keycloak_groups | default([]) }}"
+  when:
+    - aap_onboard_keycloak_configure | default(false) | bool
+    - aap_onboard_keycloak_groups | default([]) | length > 0
+    - vault_aap_onboard_keycloak_admin_password | default('') | length > 0

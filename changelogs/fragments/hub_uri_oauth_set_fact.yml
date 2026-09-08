@@ -1,0 +1,5 @@
+---
+bugfixes:
+  - bootstrap_controller - Fix undefined ``bootstrap_controller_hub_uri_oauth``
+    when publishing Hub collections (``set_fact``/block ``vars`` cannot
+    reference sibling keys in the same task).

@@ -1,0 +1,9 @@
+---
+# Optional note for execution environments running DISA STIG CaC.
+# CaC content is delivered as RPM packages on the managed host, not as an
+# Ansible collection. Ensure the RHEL EE or managed host can install:
+#   - scap-security-guide
+#   - openscap-scanner
+#   - openscap-utils
+#
+# No additional collections are required beyond infra.ado for rhel_stig_cac.

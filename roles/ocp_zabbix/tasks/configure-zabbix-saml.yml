@@ -1,0 +1,54 @@
+---
+- name: Build Zabbix API URL
+  ansible.builtin.set_fact:
+    ocp_zabbix_api_url: "https://{{ ocp_zabbix_hostname | default(zabbix_hostname) }}/api_jsonrpc.php"
+  changed_when: false
+
+- name: Login to Zabbix API
+  ansible.builtin.uri:
+    url: "{{ ocp_zabbix_api_url }}"
+    method: POST
+    validate_certs: "{{ zabbix_validate_certs | default(false) | bool }}"
+    body_format: json
+    body:
+      jsonrpc: "2.0"
+      method: user.login
+      params:
+        username: "{{ zabbix_admin_user }}"
+        password: "{{ zabbix_admin_password }}"
+      id: 1
+  register: ocp_zabbix_api_login
+  no_log: true
+
+- name: Assert Zabbix API login succeeded
+  ansible.builtin.assert:
+    that:
+      - ocp_zabbix_api_login.json.result is defined
+      - (ocp_zabbix_api_login.json.result | string | length) > 0
+    fail_msg: >-
+      Zabbix API login failed for {{ zabbix_admin_user }} at
+      {{ ocp_zabbix_api_url }}.
+
+- name: Enable SAML authentication in Zabbix
+  ansible.builtin.uri:
+    url: "{{ ocp_zabbix_api_url }}"
+    method: POST
+    validate_certs: "{{ zabbix_validate_certs | default(false) | bool }}"
+    body_format: json
+    body:
+      jsonrpc: "2.0"
+      method: authentication.update
+      params:
+        saml_auth_enabled: 1
+        saml_case_sensitive: 0
+      auth: "{{ ocp_zabbix_api_login.json.result }}"
+      id: 2
+  register: ocp_zabbix_saml_update
+
+- name: Show Zabbix SAML enable result
+  ansible.builtin.debug:
+    msg: >-
+      Zabbix SAML authentication flag updated ({{ ocp_zabbix_saml_update.json.result | default([]) }}).
+      Complete IdP setup in Administration → Authentication → SAML using metadata URL
+      {{ zabbix_saml_idp_metadata_url }} and SP entity ID
+      {{ zabbix_saml_sp_entity_id | default('https://' ~ (ocp_zabbix_hostname | default(zabbix_hostname)) ~ '/') }}.

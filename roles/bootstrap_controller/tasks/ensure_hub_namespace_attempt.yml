@@ -1,0 +1,92 @@
+---
+- name: Hub ansible.hub auth | Resolve attempt host
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ah_attempt_token: >-
+      {{ __hub_ah_auth.token | default('') }}
+    bootstrap_controller_hub_ah_attempt_host: >-
+      {{
+        (
+          'https://'
+          ~ (
+            bootstrap_controller_hub_hostname
+            | regex_replace('^https?://', '')
+            | regex_replace('/.*$', '')
+          )
+        )
+        if (
+          bootstrap_controller_hub_hostname
+          | default('')
+          | string
+          | trim
+          | length > 0
+        )
+        else (
+          controller_host
+          | default(vault_controller_hostname)
+        )
+      }}
+
+- name: Hub ansible.hub auth | Ensure infra namespace (auth attempt)
+  ansible.hub.ah_namespace:
+    name: infra
+    state: present
+    ah_host: "{{ bootstrap_controller_hub_ah_attempt_host }}"
+    ah_username: >-
+      {{
+        omit
+        if (__hub_ah_auth.mode != 'basic')
+        else (
+          controller_username
+          | default(vault_controller_username | default(omit))
+        )
+      }}
+    ah_password: >-
+      {{
+        omit
+        if (__hub_ah_auth.mode != 'basic')
+        else (
+          controller_password
+          | default(vault_controller_password | default(omit))
+        )
+      }}
+    ah_token: >-
+      {{
+        bootstrap_controller_hub_ah_attempt_token
+        if (__hub_ah_auth.mode != 'basic')
+        else omit
+      }}
+    validate_certs: "{{ controller_validate_certs | default(false) }}"
+  register: bootstrap_controller_hub_ah_ns_attempt
+  failed_when: false
+
+- name: Hub ansible.hub auth | Accept successful mode
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ah_auth_mode: "{{ __hub_ah_auth.mode }}"
+    bootstrap_controller_hub_ah_token: >-
+      {{
+        bootstrap_controller_hub_ah_attempt_token
+        if (__hub_ah_auth.mode != 'basic')
+        else ''
+      }}
+    bootstrap_controller_hub_ah_use_basic: >-
+      {{ __hub_ah_auth.mode == 'basic' }}
+  when:
+    - bootstrap_controller_hub_ah_ns_attempt is defined
+    - not (
+        bootstrap_controller_hub_ah_ns_attempt.failed
+        | default(false)
+        | bool
+      )
+
+- name: Hub ansible.hub auth | Record last failure message
+  ansible.builtin.set_fact:
+    bootstrap_controller_hub_ah_auth_last_msg: >-
+      {{
+        bootstrap_controller_hub_ah_ns_attempt.msg
+        | default(bootstrap_controller_hub_ah_ns_attempt | string)
+      }}
+  when:
+    - bootstrap_controller_hub_ah_ns_attempt is defined
+    - bootstrap_controller_hub_ah_ns_attempt.failed
+      | default(false)
+      | bool

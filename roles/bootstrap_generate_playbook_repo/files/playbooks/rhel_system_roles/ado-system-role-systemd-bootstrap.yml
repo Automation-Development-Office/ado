@@ -1,0 +1,42 @@
+---
+# Seed playbook: call redhat.rhel_system_roles.systemd directly (no infra.ado wrapper).
+- name: ADO | RHEL System Role | systemd
+  hosts: rhel_servers
+  become: true
+  gather_facts: true
+  vars:
+    component: rhel_system_roles
+    system_role_name: systemd
+  vars_files:
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/infra_config_vars.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_rhel.yml"
+    - "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vars_rhel_system_roles.yml"
+  tasks:
+    - name: ADO | Load optional RHEL vault when present
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../../group_vars/all/{{ env }}/vault_rhel.yml"
+      failed_when: false
+
+    - name: ADO | Resolve system role vars for systemd
+      ansible.builtin.set_fact:
+        system_role_vars: >-
+          {{
+            (
+              (
+                (components_env.rhel_system_roles | default({})).get(system_role_name, {})
+                | default({}, true)
+              )
+              | combine(
+                  (
+                    (rhel_system_roles | default({})).get(system_role_name, {})
+                    | default({}, true)
+                  ),
+                  recursive=True
+                )
+            )
+          }}
+
+    - name: ADO | Apply redhat.rhel_system_roles.systemd
+      ansible.builtin.include_role:
+        name: redhat.rhel_system_roles.systemd
+      vars: "{{ system_role_vars | default({}) }}"

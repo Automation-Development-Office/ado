@@ -2,8 +2,8 @@
 controller_workflow_job_templates:
   - name: ADO | ACS RHACS Report Workflow
     description: >-
-      Bootstrap workflow - generate Red Hat source, raw, and age RHACS
-      vulnerability reports in sequence
+      Bootstrap workflow - generate Red Hat source, raw, age, and CVE-enriched
+      RHACS vulnerability reports in sequence
     organization: "{{ bootstrap_controller_organization }}"
     inventory: "{{ bootstrap_controller_inventory_name }}"
     state: present
@@ -26,4 +26,10 @@ controller_workflow_job_templates:
 
       - identifier: RHACS Report Age
         unified_job_template: ADO | ACS RHACS Report (Age)
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - RHACS Report CVE Enriched
+
+      - identifier: RHACS Report CVE Enriched
+        unified_job_template: ADO | ACS RHACS Report (CVE Enriched)
         lookup_organization: "{{ bootstrap_controller_organization }}"

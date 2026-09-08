@@ -18,7 +18,7 @@
       kind: Namespace
       metadata:
         name: "{{ install_elastic_eck_operator_namespace }}"
-  when: state  default('present') == 'present'
+  when: (state | default('present')) == 'present'
 
 - name: ECK  Ensure operand namespace exists (only when creating CR)
   kubernetes.core.k8s:
@@ -29,13 +29,13 @@
       metadata:
         name: "{{ install_elastic_eck_operand_namespace }}"
   when:
-    - state  default('present') == 'present'
-    - install_elastic_eck_create_elasticsearch_cr  default(false)  bool
+    - (state | default('present')) == 'present'
+    - install_elastic_eck_create_elasticsearch_cr | default(false) | bool
 
-# Install openshift_tools_operator_groups + Subscription via your shared role
-- name: ECK  Install operator (openshift_tools_operator_groups + Subscription)
+# Install OperatorGroup + Subscription via shared OLM role
+- name: ECK  Install operator (OperatorGroup + Subscription)
   ansible.builtin.include_role:
-    name: subscription_operator
+    name: infra.ado.ocp_operator_subscription
 
 # If startingCSV not pinned, look up currentCSV for the selected channel
 - name: ECK  Lookup currentCSV for channel when operator_starting_csv not provided
@@ -45,7 +45,7 @@
     name: "{{ operator_name }}"
     namespace: "{{ operator_source_namespace | default('openshift-marketplace') }}"
   register: install_elastic_eck_pm
-  when: ((operator_starting_csv  default('')  string)  trim  length) == 0
+  when: ((operator_starting_csv | default('') | string) | trim | length) == 0
 
 - name: ECK  Derive effective starting CSV (safe)
   ansible.builtin.set_fact:
@@ -56,7 +56,7 @@
 - name: ECK  Set install_elastic_eck_operator_starting_csv_effective from provided startingCSV
   ansible.builtin.set_fact:
     install_elastic_eck_operator_starting_csv_effective: "{{ install_elastic_eck_starting_csv_clean }}"
-  when: install_elastic_eck_starting_csv_clean  length > 0
+  when: install_elastic_eck_starting_csv_clean | length > 0
   changed_when: false
 
 - name: ECK  Set install_elastic_eck_operator_starting_csv_effective from PackageManifest currentCSV
@@ -66,7 +66,7 @@
         (
           install_elastic_eck_pm.resources[0].status.channels
           | default([])
-          | selectattr('name','equalto', install_elastic_eck_channel_str)
+          | selectattr('name', 'equalto', install_elastic_eck_channel_str)
           | map(attribute='currentCSV')
           | list
           | first
@@ -74,21 +74,42 @@
         ) | string | trim
       }}
   when:
-    - install_elastic_eck_starting_csv_clean  length == 0
+    - install_elastic_eck_starting_csv_clean | length == 0
     - install_elastic_eck_pm is defined
+  changed_when: false
+
+- name: ECK  Fall back to PackageManifest defaultChannel currentCSV
+  ansible.builtin.set_fact:
+    install_elastic_eck_operator_starting_csv_effective: >-
+      {{
+        (
+          install_elastic_eck_pm.resources[0].status.channels
+          | default([])
+          | selectattr('name','equalto', (install_elastic_eck_pm.resources[0].status.defaultChannel | default('')))
+          | map(attribute='currentCSV')
+          | list
+          | first
+          | default('')
+        ) | string | trim
+      }}
+  when:
+    - install_elastic_eck_starting_csv_clean | length == 0
+    - install_elastic_eck_pm is defined
+    - (install_elastic_eck_operator_starting_csv_effective | default('') | string | trim | length) == 0
+    - (install_elastic_eck_pm.resources | default([]) | length) > 0
+    - (install_elastic_eck_pm.resources[0].status.defaultChannel | default('') | string | trim | length) > 0
   changed_when: false
 
 - name: ECK  Assert required inputs
   ansible.builtin.assert:
     that:
-      - operator_name is defined and (operator_name  string  trim  length) > 0
-      - operator_channel is defined and (operator_channel  string  trim  length) > 0
-      - operator_source is defined and (operator_source  string  trim  length) > 0
-      - operator_source_namespace is defined and (operator_source_namespace  string  trim  length) > 0
-      - install_elastic_eck_operator_namespace is defined and (install_elastic_eck_operator_namespace  string  trim  length) > 0
+      - operator_name is defined and (operator_name | string | trim | length) > 0
+      - operator_channel is defined and (operator_channel | string | trim | length) > 0
+      - operator_source is defined and (operator_source | string | trim | length) > 0
+      - operator_source_namespace is defined and (operator_source_namespace | string | trim | length) > 0
+      - install_elastic_eck_operator_namespace is defined and (install_elastic_eck_operator_namespace | string | trim | length) > 0
       - >-
-        install_elastic_eck_operator_starting_csv_effective is defined and (install_elastic_eck_operator_starting_csv_effective  string
-        trim  length) > 0
+        install_elastic_eck_operator_starting_csv_effective is defined and (install_elastic_eck_operator_starting_csv_effective | string | trim | length) > 0
     fail_msg: |
       Missing required vars for ECK.
       Need: operator_name, operator_channel, operator_source, operator_source_namespace,
@@ -100,11 +121,72 @@
     api_version: operators.coreos.com/v1alpha1
     kind: ClusterServiceVersion
     namespace: "{{ install_elastic_eck_operator_namespace }}"
-    name: "{{ install_elastic_eck_operator_starting_csv_effective }}"
-  register: install_elastic_eck_csv
-  until: install_elastic_eck_csv.resources is defined and (install_elastic_eck_csv.resources  length) > 0
+  register: install_elastic_eck_csv_list
+  until: >-
+    (
+      install_elastic_eck_csv_list.resources
+      | default([])
+      | selectattr('metadata.name', 'search', (operator_name | default('elasticsearch-eck-operator')))
+      | list
+      | length
+    ) > 0
   retries: 40
   delay: 6
+  changed_when: false
+
+- name: ECK  Select matching CSV (prefer Succeeded, else configured startingCSV, else first match)
+  ansible.builtin.set_fact:
+    install_elastic_eck_csv: >-
+      {{
+        {
+          'resources': [
+            (
+              (
+                install_elastic_eck_csv_list.resources
+                | default([])
+                | selectattr('metadata.name', 'search', (operator_name | default('elasticsearch-eck-operator')))
+                | selectattr('status.phase', 'defined')
+                | selectattr('status.phase', 'equalto', 'Succeeded')
+                | list
+              )
+              + (
+                install_elastic_eck_csv_list.resources
+                | default([])
+                | selectattr('metadata.name', 'equalto', install_elastic_eck_operator_starting_csv_effective)
+                | list
+              )
+              + (
+                install_elastic_eck_csv_list.resources
+                | default([])
+                | selectattr('metadata.name', 'search', (operator_name | default('elasticsearch-eck-operator')))
+                | list
+              )
+            ) | first
+          ]
+        }
+      }}
+    install_elastic_eck_operator_starting_csv_effective: >-
+      {{
+        (
+          (
+            install_elastic_eck_csv_list.resources
+            | default([])
+            | selectattr('metadata.name', 'search', (operator_name | default('elasticsearch-eck-operator')))
+            | selectattr('status.phase', 'defined')
+            | selectattr('status.phase', 'equalto', 'Succeeded')
+            | map(attribute='metadata.name')
+            | list
+          )
+          + (
+            install_elastic_eck_csv_list.resources
+            | default([])
+            | selectattr('metadata.name', 'search', (operator_name | default('elasticsearch-eck-operator')))
+            | map(attribute='metadata.name')
+            | list
+          )
+          + [install_elastic_eck_operator_starting_csv_effective]
+        ) | first
+      }}
   changed_when: false
 
 - name: ECK  Wait for CSV to reach Succeeded
@@ -116,8 +198,8 @@
   register: install_elastic_eck_csv_recheck
   until: >
     install_elastic_eck_csv_recheck.resources is defined and
-    (install_elastic_eck_csv_recheck.resources  length) > 0 and
-    (install_elastic_eck_csv_recheck.resources[0].status.phase  default('')) == 'Succeeded'
+    (install_elastic_eck_csv_recheck.resources | length) > 0 and
+    (install_elastic_eck_csv_recheck.resources[0].status.phase | default('')) == 'Succeeded'
   retries: 60
   delay: 6
   changed_when: false
@@ -127,10 +209,7 @@
   ansible.builtin.set_fact:
     install_elastic_eck_operator_deployments: >-
       {{
-        install_elastic_eck_csv_recheck.resources[0].spec.install.spec.deployments
-        | default([])
-        | map(attribute='name')
-        | list
+        install_elastic_eck_csv_recheck.resources[0].spec.install.spec.deployments | default([]) | map(attribute='name') | list
       }}
   changed_when: false
 
@@ -138,7 +217,7 @@
   ansible.builtin.assert:
     that:
       - install_elastic_eck_operator_deployments is defined
-      - (install_elastic_eck_operator_deployments  length) > 0
+      - (install_elastic_eck_operator_deployments | length) > 0
     fail_msg: "CSV succeeded but no deployments were found in spec.install.spec.deployments"
   changed_when: false
 
@@ -151,28 +230,224 @@
   register: install_elastic_eck_deploy
   until: >
     install_elastic_eck_deploy.resources is defined and
-    (install_elastic_eck_deploy.resources  length) > 0 and
-    (install_elastic_eck_deploy.resources[0].status.availableReplicas  default(0)  int) >= 1
+    (install_elastic_eck_deploy.resources | length) > 0 and
+    (install_elastic_eck_deploy.resources[0].status.availableReplicas | default(0) | int) >= 1
   retries: 40
   delay: 6
   changed_when: false
   loop: "{{ install_elastic_eck_operator_deployments }}"
 
 # Optional: Create minimal Elasticsearch CR to force operand pods
+- name: ECK Build Elasticsearch CR definition (optional)
+  ansible.builtin.set_fact:
+    install_elastic_eck_elasticsearch_cr_definition: >-
+      {{
+        {
+          'apiVersion': 'elasticsearch.k8s.elastic.co/v1',
+          'kind': 'Elasticsearch',
+          'metadata': {
+            'name': install_elastic_eck_cluster_name,
+            'namespace': install_elastic_eck_operand_namespace,
+          },
+          'spec': {
+            'version': install_elastic_eck_version | default('8.12.0'),
+            'http': {
+              'tls': {
+                'selfSignedCertificate': {
+                  'disabled': install_elastic_eck_disable_http_tls | default(true) | bool,
+                },
+              },
+            },
+            'nodeSets': [
+              {
+                'name': 'default',
+                'count': install_elastic_eck_replicas | default(1) | int,
+                'config': {
+                  'node.store.allow_mmap': false,
+                },
+              }
+            ],
+          },
+        }
+      }}
+  when: install_elastic_eck_create_elasticsearch_cr | default(false) | bool
+
 - name: ECK  Create Elasticsearch CR (optional)
   kubernetes.core.k8s:
     state: present
+    definition: "{{ install_elastic_eck_elasticsearch_cr_definition }}"
+  when: install_elastic_eck_create_elasticsearch_cr | default(false) | bool
+
+- name: ECK Build Kibana CR definition (optional)
+  ansible.builtin.set_fact:
+    install_elastic_eck_kibana_cr_definition: >-
+      {{
+        {
+          'apiVersion': 'kibana.k8s.elastic.co/v1',
+          'kind': 'Kibana',
+          'metadata': {
+            'name': install_elastic_eck_kibana_name | default('kibana'),
+            'namespace': install_elastic_eck_operand_namespace,
+          },
+          'spec': {
+            'version': install_elastic_eck_version | default('8.12.0'),
+            'count': install_elastic_eck_kibana_replicas | default(1) | int,
+            'elasticsearchRef': {
+              'name': install_elastic_eck_cluster_name,
+            },
+            'http': {
+              'tls': {
+                'selfSignedCertificate': {
+                  'disabled': install_elastic_eck_disable_http_tls | default(true) | bool,
+                },
+              },
+            },
+          },
+        }
+      }}
+  when:
+    - install_elastic_eck_create_elasticsearch_cr | default(false) | bool
+    - install_elastic_eck_create_kibana_cr | default(false) | bool
+
+- name: ECK  Create Kibana CR (optional)
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ install_elastic_eck_kibana_cr_definition }}"
+  when:
+    - install_elastic_eck_create_elasticsearch_cr | default(false) | bool
+    - install_elastic_eck_create_kibana_cr | default(false) | bool
+
+- name: ECK  Wait for Kibana http Service
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Service
+    namespace: "{{ install_elastic_eck_operand_namespace }}"
+    name: "{{ install_elastic_eck_kibana_name | default('kibana') }}-kb-http"
+  register: install_elastic_eck_kibana_svc
+  until: (install_elastic_eck_kibana_svc.resources | default([]) | length) > 0
+  retries: 60
+  delay: 10
+  when:
+    - install_elastic_eck_create_kibana_cr | default(false) | bool
+    - install_elastic_eck_create_routes | default(false) | bool
+
+- name: ECK  Create Kibana Route
+  kubernetes.core.k8s:
+    state: present
     definition:
-      apiVersion: elasticsearch.k8s.elastic.co/v1
-      kind: Elasticsearch
+      apiVersion: route.openshift.io/v1
+      kind: Route
       metadata:
-        name: "{{ install_elastic_eck_cluster_name }}"
+        name: "{{ install_elastic_eck_kibana_route_name | default('kibana') }}"
         namespace: "{{ install_elastic_eck_operand_namespace }}"
       spec:
-        version: "{{ install_elastic_eck_version | default('8.12.0') }}"
-        nodeSets:
-          - name: default
-            count: "{{ install_elastic_eck_replicas | default(1) | int }}"
-            config:
-              node.store.allow_mmap: false
-  when: install_elastic_eck_create_elasticsearch_cr  default(false)  bool
+        host: "{{ install_elastic_eck_kibana_hostname }}"
+        to:
+          kind: Service
+          name: "{{ install_elastic_eck_kibana_name | default('kibana') }}-kb-http"
+        port:
+          targetPort: http
+        tls:
+          termination: edge
+          insecureEdgeTerminationPolicy: Redirect
+  when:
+    - install_elastic_eck_create_kibana_cr | default(false) | bool
+    - install_elastic_eck_create_routes | default(false) | bool
+    - (install_elastic_eck_kibana_hostname | default('') | string | trim | length) > 0
+
+- name: ECK  Create Elasticsearch Route
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: "{{ install_elastic_eck_es_route_name | default('elasticsearch') }}"
+        namespace: "{{ install_elastic_eck_operand_namespace }}"
+      spec:
+        host: "{{ install_elastic_eck_es_hostname }}"
+        to:
+          kind: Service
+          name: "{{ install_elastic_eck_cluster_name }}-es-http"
+        port:
+          targetPort: http
+        tls:
+          termination: edge
+          insecureEdgeTerminationPolicy: Redirect
+  when:
+    - install_elastic_eck_create_elasticsearch_cr | default(false) | bool
+    - install_elastic_eck_create_routes | default(false) | bool
+    - (install_elastic_eck_es_hostname | default('') | string | trim | length) > 0
+
+- name: ECK  Print Kibana / Elasticsearch URLs
+  ansible.builtin.debug:
+    msg: |
+      ECK endpoints:
+      - Kibana: https://{{ install_elastic_eck_kibana_hostname | default('n/a') }}
+      - Elasticsearch: https://{{ install_elastic_eck_es_hostname | default('n/a') }}
+  when: install_elastic_eck_create_routes | default(false) | bool
+
+- name: ECK  Wait for elastic user secret
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ install_elastic_eck_operand_namespace }}"
+    name: "{{ install_elastic_eck_cluster_name }}-es-elastic-user"
+  register: install_elastic_eck_elastic_secret
+  until: >-
+    (install_elastic_eck_elastic_secret.resources | default([]) | length) > 0
+    and (
+      install_elastic_eck_elastic_secret.resources[0].data.elastic
+      | default('')
+      | length
+    ) > 0
+  retries: 60
+  delay: 5
+  when:
+    - install_elastic_eck_create_elasticsearch_cr | default(false) | bool
+    - install_elastic_eck_create_lab_user | default(true) | bool
+  no_log: true
+
+- name: ECK  Decode elastic superuser password
+  ansible.builtin.set_fact:
+    install_elastic_eck_elastic_password: >-
+      {{
+        install_elastic_eck_elastic_secret.resources[0].data.elastic
+        | b64decode
+      }}
+  when:
+    - install_elastic_eck_create_lab_user | default(true) | bool
+    - (install_elastic_eck_elastic_secret.resources | default([]) | length) > 0
+  no_log: true
+
+- name: ECK  Create lab Kibana/ES user via route security API
+  ansible.builtin.uri:
+    url: >-
+      https://{{ install_elastic_eck_es_hostname }}/_security/user/{{ install_elastic_eck_lab_user | default(eck_lab_user | default('kibana')) }}
+    method: POST
+    user: elastic
+    password: "{{ install_elastic_eck_elastic_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: [200, 201]
+    body_format: json
+    body:
+      password: "{{ install_elastic_eck_lab_password | default(eck_lab_password | default('redhat123')) }}"
+      roles:
+        - superuser
+      full_name: ADO lab Kibana user
+  when:
+    - install_elastic_eck_create_lab_user | default(true) | bool
+    - install_elastic_eck_elastic_password is defined
+    - (install_elastic_eck_es_hostname | default('') | string | trim | length) > 0
+  failed_when: false
+  no_log: true
+  register: install_elastic_eck_lab_user_result
+
+- name: ECK  Report lab login
+  ansible.builtin.debug:
+    msg: >-
+      Kibana/ES lab user '{{ install_elastic_eck_lab_user | default(eck_lab_user | default('kibana')) }}'
+      (password from eck_lab_password). Superuser 'elastic' remains in Secret
+      {{ install_elastic_eck_cluster_name }}-es-elastic-user.
+  when: install_elastic_eck_create_lab_user | default(true) | bool

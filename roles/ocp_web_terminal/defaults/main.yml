@@ -1,0 +1,6 @@
+---
+ocp_web_terminal_namespace: openshift-operators
+ocp_web_terminal_csv_retries: 60
+ocp_web_terminal_csv_delay: 10
+ocp_web_terminal_pod_retries: 60
+ocp_web_terminal_pod_delay: 10

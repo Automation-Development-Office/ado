@@ -22,3 +22,5 @@
     - role: infra.ado.ocp_devspaces
     - role: infra.ado.ocp_wait_pods
     - role: infra.ado.ocp_routes
+      vars:
+        name_space: "{{ app_namespace | default(devspaces_namespace | default('openshift-devspaces')) }}"

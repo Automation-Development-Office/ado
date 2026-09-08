@@ -108,12 +108,16 @@ Generated AAP inventories are split by purpose:
 - `<org>-RHEL-Inventory` contains RHEL managed hosts supplied through the
   preflight RHEL or Patching form fields (`component_config.rhel` /
   `component_config.patching`) or CLI vars. The inventory is also created when
-  only the Patching group is selected, because patching job templates target it.
+  only the Patching group is selected, because patching job templates target it,
+  and when Satellite ``satellite_client_tools`` is selected (for example
+  ``ADO | Register Host to Satellite``) even if dynamic inventory is disabled.
   Set ``component_config.patching.inventory_mode: existing`` with
   ``inventory_name`` to reuse an inventory that already exists in AAP instead of
-  creating ``<org>-RHEL-Inventory`` or adding static hosts. Satellite dynamic
-  inventory sources also attach to this managed-host inventory because
-  Satellite-sourced hosts are managed RHEL targets.
+  creating ``<org>-RHEL-Inventory`` or adding static hosts. When Satellite
+  dynamic inventory is enabled, the inventory source attaches to this same
+  managed-host inventory so synced Satellite hosts become managed RHEL targets;
+  when dynamic inventory is off, the inventory is still created as an empty
+  static inventory for registration jobs.
 - `<org>-IDM-Inventory` contains IDM server and replica hosts when IDM is
   selected under RHEL or Patching.
 - `<org>-Satellite-Server-Inventory` contains the Satellite server host when

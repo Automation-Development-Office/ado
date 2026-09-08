@@ -1,0 +1,19 @@
+---
+- name: Install Zabbix on OpenShift
+  ansible.builtin.import_tasks: install-zabbix.yml
+  when:
+    - state == "present"
+    - (zabbix_install_scope | default('install')) == 'install'
+
+- name: Set Zabbix Admin password
+  ansible.builtin.import_tasks: configure-admin-password.yml
+  when:
+    - state == "present"
+    - (zabbix_install_scope | default('install')) == 'install'
+    - (zabbix_admin_password | default('') | string | length) > 0
+
+- name: Configure Zabbix SSO
+  ansible.builtin.import_tasks: configure-sso.yml
+  when:
+    - state == "present"
+    - (zabbix_install_scope | default('install')) == 'saml'

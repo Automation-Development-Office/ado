@@ -9,6 +9,39 @@
       - ocp_htpasswd_admin_action in ['add', 'replace', 'remove']
     fail_msg: "htpasswd_action must be add, replace, or remove (got {{ htpasswd_action | default('') }})"
 
+- name: Assert htpasswd users are present for install
+  ansible.builtin.assert:
+    that:
+      - htpasswd_users | default([]) | length > 0
+      - >-
+        (
+          htpasswd_users | default([])
+          | selectattr('name', 'defined')
+          | map(attribute='name')
+          | map('string')
+          | map('trim')
+          | reject('equalto', '')
+          | list
+          | length
+        ) > 0
+      - >-
+        (
+          htpasswd_users | default([])
+          | selectattr('password', 'defined')
+          | map(attribute='password')
+          | map('string')
+          | map('trim')
+          | reject('equalto', '')
+          | list
+          | length
+        ) > 0
+    fail_msg: >-
+      No htpasswd users with name and password were loaded. Preflight should
+      write htpasswd_users to vault_openshift.yml (and vault_htpass_admin.yml)
+      when Admin HTPasswd is selected. Re-run bootstrap or pass htpasswd_users
+      via extra vars before launching this job.
+  when: state | default('present') == 'present'
+
 - name: Fetch existing htpasswd secret when merging or removing
   kubernetes.core.k8s_info:
     api_version: v1
@@ -249,6 +282,7 @@
         name: cluster
       spec:
         identityProviders: "{{ ocp_htpasswd_admin_updated_identity_providers }}"
+  register: ocp_htpasswd_admin_oauth_result
   when: >
     (not ocp_htpasswd_admin_htpasswd_exists and (ocp_htpasswd_admin_effective_map | length) > 0)
     or (ocp_htpasswd_admin_action == 'remove' and (ocp_htpasswd_admin_effective_map | length) == 0 and ocp_htpasswd_admin_htpasswd_exists)
@@ -262,14 +296,27 @@
   until: >
     ocp_htpasswd_admin_auth_co.resources is defined and
     ocp_htpasswd_admin_auth_co.resources | length > 0 and
-    (ocp_htpasswd_admin_auth_co.resources[0].status.conditions
-      | selectattr('type','equalto','Progressing')
-      | list | first).status | default('False')
-    == 'False'
-  retries: 20
-  delay: 10
+    (
+      (ocp_htpasswd_admin_auth_co.resources[0].status.conditions
+        | selectattr('type','equalto','Available')
+        | list | first).status | default('False')
+    ) == 'True' and
+    (
+      (ocp_htpasswd_admin_auth_co.resources[0].status.conditions
+        | selectattr('type','equalto','Progressing')
+        | list | first).status | default('False')
+    ) == 'False' and
+    (
+      (ocp_htpasswd_admin_auth_co.resources[0].status.conditions
+        | selectattr('type','equalto','Degraded')
+        | list | first).status | default('False')
+    ) == 'False'
+  retries: "{{ ocp_htpasswd_admin_auth_wait_retries | default(60) | int }}"
+  delay: "{{ ocp_htpasswd_admin_auth_wait_delay | default(10) | int }}"
   changed_when: false
+  when: ocp_htpasswd_admin_oauth_result is changed  # noqa: no-handler
 
 - name: Give the new identity providers a few seconds to propagate
   ansible.builtin.pause:
     seconds: 25
+  when: ocp_htpasswd_admin_oauth_result is changed  # noqa: no-handler

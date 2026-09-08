@@ -23,12 +23,12 @@
   roles:
     - role: infra.ado.ocp_namespace
       vars:
-        infra.ado.ocp_namespace_name_space: '{{ bootstrap_generate_playbook_repo_operator_namespace }}'
+        name_space: '{{ bootstrap_generate_playbook_repo_operator_namespace }}'
     - role: infra.ado.ocp_operator_subscription
       vars:
-        infra.ado.ocp_operator_subscription_name_space: '{{ bootstrap_generate_playbook_repo_operator_namespace }}'
+        name_space: '{{ bootstrap_generate_playbook_repo_operator_namespace }}'
     - role: infra.ado.ocp_acs
     - role: infra.ado.ocp_wait_pods
       vars:
-        infra.ado.ocp_wait_pods_name_space: '{{ bootstrap_generate_playbook_repo_acs_namespace }}'
+        name_space: '{{ bootstrap_generate_playbook_repo_acs_namespace }}'
     - role: infra.ado.acs_upload_policies

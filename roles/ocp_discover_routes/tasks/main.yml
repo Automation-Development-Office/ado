@@ -5,15 +5,55 @@
     kind: Route
   register: ocp_discover_routes__all
 
-- name: Discover Routes | Start empty candidate list
+- name: Discover Routes | Start empty lists
   ansible.builtin.set_fact:
     ocp_discover_routes__alt_candidates: []
+    ocp_discover_routes__printed: []
 
-- name: Discover Routes | Append candidates (primary domain, not already -alt)
+- name: Discover Routes | Build human-readable list (exclude platform namespaces)
   ansible.builtin.set_fact:
-    ocp_discover_routes__alt_candidates: "{{ ocp_discover_routes__alt_candidates + [_cand] }}"
+    ocp_discover_routes__printed: "{{ ocp_discover_routes__printed + [ocp_discover_routes__row] }}"
   vars:
-    _cand:
+    ocp_discover_routes__row:
+      namespace: "{{ item.metadata.namespace }}"
+      name: "{{ item.metadata.name }}"
+      host: "{{ item.spec.host | default('') }}"
+      service: "{{ item.spec.to.name | default('') }}"
+      tls: "{{ item.spec.tls.termination | default('none') }}"
+      url: >-
+        {{
+          (
+            'https://' if (item.spec.tls is defined) else 'http://'
+          )
+          ~ (item.spec.host | default(''))
+        }}
+  loop: "{{ ocp_discover_routes__all.resources | default([]) }}"
+  loop_control:
+    label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"
+  when:
+    - item.spec is defined
+    - item.spec.host is defined
+    - item.spec.host is not none
+    - (item.metadata.namespace | default('')) not in (ocp_discover_routes_exclude_namespaces | default([]))
+    - >-
+      (ocp_discover_routes_namespaces | default([]) | length) == 0
+      or (item.metadata.namespace | default('')) in (ocp_discover_routes_namespaces | default([]))
+    - >-
+      not (
+        (ocp_discover_routes_alt_exclude_name_regex | default('') | length) > 0
+        and (item.metadata.name | default('') is search(ocp_discover_routes_alt_exclude_name_regex))
+      )
+    - >-
+      not (
+        (ocp_discover_routes_alt_exclude_host_regex | default('') | length) > 0
+        and (item.spec.host | default('') is search(ocp_discover_routes_alt_exclude_host_regex))
+      )
+
+- name: Discover Routes | Append alt-route candidates (primary domain, not already -alt)
+  ansible.builtin.set_fact:
+    ocp_discover_routes__alt_candidates: "{{ ocp_discover_routes__alt_candidates + [ocp_discover_routes__cand] }}"
+  vars:
+    ocp_discover_routes__cand:
       namespace: "{{ item.metadata.namespace }}"
       name: "{{ item.metadata.name }}"
       host: "{{ item.spec.host }}"
@@ -26,28 +66,47 @@
   loop_control:
     label: "{{ item.metadata.namespace }}/{{ item.metadata.name }}"
   when:
+    - ocp_discover_routes_build_alt_candidates | default(true) | bool
     - item.spec is defined
     - item.spec.host is defined
     - item.spec.host is not none
     - (item.metadata.name is not search('-alt$'))
-    - (item.spec.host is not search(((app_domain_alt | default('')) | regex_escape) ~ '$'))
-    - (item.spec.host is search(((app_domain | default('')) | regex_escape) ~ '$'))
+    - (item.spec.host is not search(((app_domain_alt | default(ocp_discover_routes_alt_suffix) | default('')) | regex_escape) ~ '$'))
+    - >-
+      not (ocp_discover_routes_filter_primary_suffix | default(true) | bool)
+      or (item.spec.host is search(((app_domain | default(ocp_discover_routes_primary_suffix) | default('')) | regex_escape) ~ '$'))
+    - (item.metadata.namespace | default('')) not in (ocp_discover_routes_exclude_namespaces | default([]))
 
-- name: Discover Routes | Print summary
+- name: Discover Routes | Print ADO / app routes (human readable)
   ansible.builtin.debug:
     msg: |
-      Primary domain: {{ app_domain }}
-      Alt domain:     {{ app_domain_alt }}
-      Candidates:     {{ ocp_discover_routes__alt_candidates | length }}
+      ============================================================
+      ADO OpenShift Routes ({{ ocp_discover_routes__printed | length }})
+      Primary domain: {{ app_domain | default(ocp_discover_routes_primary_suffix) | default('n/a') }}
+      Alt domain:     {{ app_domain_alt | default(ocp_discover_routes_alt_suffix) | default('n/a') }}
+      ============================================================
+      {% if ocp_discover_routes__printed | length == 0 %}
+      (no application routes found — components may still be deploying)
+      {% else %}
+      {% for r in ocp_discover_routes__printed | sort(attribute='namespace') %}
+      - {{ '%-28s' | format(r.namespace) }}  {{ '%-24s' | format(r.name) }}  {{ r.url }}
+      {% endfor %}
+      {% endif %}
+      ============================================================
+  when: ocp_discover_routes_alt_print | default(true) | bool
 
-- name: Discover Routes | Print candidates (one per line)
+- name: Discover Routes | Print candidates one-liners
   ansible.builtin.debug:
-    msg: >-
-      {{ item.namespace }}/{{ item.name }} -> {{ item.host }}
-  loop: "{{ ocp_discover_routes__alt_candidates }}"
+    msg: "{{ item.namespace }}/{{ item.name }} -> {{ item.url }}"
+  loop: "{{ ocp_discover_routes__printed }}"
   loop_control:
     label: "{{ item.host }}"
+  when:
+    - ocp_discover_routes_alt_print | default(true) | bool
+    - ocp_discover_routes_print_one_liners | default(true) | bool
 
 - name: Discover Routes | Export candidates for downstream roles
   ansible.builtin.set_fact:
     ocp_discover_routes__alt_routes_candidates: "{{ ocp_discover_routes__alt_candidates }}"
+    ocp_discover_routes_alt_candidates: "{{ ocp_discover_routes__alt_candidates }}"
+    ocp_discover_routes_printed: "{{ ocp_discover_routes__printed }}"

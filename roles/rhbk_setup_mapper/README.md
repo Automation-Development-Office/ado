@@ -27,8 +27,10 @@ Automation Development Office.
 | `rhbk_admin_user` | Admin username for token retrieval. | Yes | N/A |
 | `rhbk_admin_password` | Admin password for token retrieval. | Yes | N/A |
 | `rhbk_verify_ssl` | Validate TLS certificates for API requests. | No | `true` |
-| `rhbk_federation_name` | LDAP federation component name used to resolve parent component ID (`present` flow). | Yes (`present`) | N/A |
+| `rhbk_federation_name` | LDAP federation component name used to resolve parent component ID (`present` flow). Set via preflight **Federation Name** (`component_config.rhbk.federation_name`). | Yes (`present`) | `LDAP` |
 | `ldap_group_config` | Mapper `config` payload for `group-ldap-mapper` component creation (`present` flow). | Yes (`present`) | N/A |
+| `ldap_user_mappers` | List of IdM `user-attribute-ldap-mapper` definitions (name + config). | No | From vault template |
+| `rhbk_setup_ldap_user_mappers` | When true with `state: present`, create `ldap_user_mappers` after group mapper. | No | `true` |
 
 > **Notes:**
 > `state: present` creates mapper `ldap-group-mapper` only when it does not already exist.
@@ -80,7 +82,7 @@ Automation Development Office.
 
 - **Main Task File** (`tasks/main.yml`):
   - Routes execution by `state`:
-    - `present` imports `rhbk_setup_group_mapper.yml`
+    - `present` imports `rhbk_setup_group_mapper.yml` then `rhbk_setup_ldap_user_mappers.yml`
     - `absent` imports `rhbk_remove_group_mapper.yml`
 - **Create Flow** (`tasks/rhbk_setup_group_mapper.yml`):
   - Authenticates to obtain admin token.

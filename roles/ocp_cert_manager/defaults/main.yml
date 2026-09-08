@@ -1,3 +1,26 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
-# defaults file for advanced-cluster-management
+---
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Defaults for infra.ado.ocp_cert_manager
+#
+# Resolve exports cert_manager_* from components_defaults; aliases map those
+# onto the ocp_cert_manager_* names this role consumes.
+
+state: present
+
+ocp_cert_manager_root_ca_secret_name: root-ca-secret
+ocp_cert_manager_root_ca_issuer_name: root-ca-issuer
+ocp_cert_manager_root_ca_is_cluster_issuer: true
+
+# AWS PCA path (off by default — IdM ACME / custom TLS use other playbooks)
+ocp_cert_manager_root_ca_awspca_enabled: false
+ocp_cert_manager_root_ca_awspca_region: us-gov-east-1
+ocp_cert_manager_root_ca_awspca_pca_arn: ""
+ocp_cert_manager_root_ca_awspca_domain_cn: ""
+ocp_cert_manager_root_ca_awspca_validity_days: 365
+ocp_cert_manager_root_ca_awspca_signing_algorithm: SHA384WITHRSA
+ocp_cert_manager_root_ca_awspca_template_arn: "arn:aws-us-gov:acm-pca:::template/SubordinateCACertificate_PathLen0/V1"
+ocp_cert_manager_root_ca_awspca_workdir: /tmp/cert-manager-awspca
+ocp_cert_manager_root_ca_awspca_key_file: intermediate-ca.key
+ocp_cert_manager_root_ca_awspca_csr_file: intermediate-ca.csr
+ocp_cert_manager_root_ca_awspca_cert_file: intermediate-ca.crt
+ocp_cert_manager_root_ca_awspca_chain_file: intermediate-ca.chain.crt

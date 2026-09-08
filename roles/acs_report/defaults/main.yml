@@ -31,7 +31,10 @@ acs_route_name: central
 # Export API
 acs_report_export_path: /v1/export/vuln-mgmt/workloads
 acs_report_export_timeout: 900
-acs_report_curl_max_time: 1200
+# ansible.builtin.get_url socket timeout (seconds)
+acs_report_http_timeout: 1200
+# Legacy name used by older extra-vars
+acs_report_curl_max_time: "{{ acs_report_http_timeout }}"
 acs_report_validate_certs: false
 
 # When true, also write a Grafana-friendly summary JSON next to text/CSV output
@@ -39,3 +42,16 @@ acs_report_write_summary_json: true
 
 # Copy sample Grafana dashboard JSON into acs_report_outdir
 acs_report_stage_grafana_sample: true
+
+# acs-cve-plugin enrichment (https://github.com/andykrohg/acs-cve-plugin)
+acs_report_cve_enrich: false
+acs_report_cve_enrich_pip_package: >-
+  git+https://github.com/andykrohg/acs-cve-plugin.git
+acs_report_cve_enrich_cluster: false
+acs_report_cve_enrich_security_view: false
+acs_report_cve_enrich_actionable_only: false
+acs_report_cve_enrich_rh_images_only: false
+acs_report_cve_enrich_no_collapse: false
+acs_report_cve_enrich_sort: status
+acs_report_cve_enrich_kubeconfig: ""
+acs_report_cve_enrich_context: ""

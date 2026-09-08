@@ -1,5 +1,5 @@
 ---
-- name: Derive operator namespace and openshift_tools_operator_groups name
+- name: Derive operator namespace and OperatorGroup name (DNS-1123)
   ansible.builtin.set_fact:
     # Prefer the standard framework var if present
     ocp_operatorgroups_operator_ns: >-
@@ -7,11 +7,21 @@
          | default(ocp_operatorgroups_operator_ns)
          | default( (all_namespaces_install | default(false) | bool)
                     | ternary('openshift-operators', name_space)) }}
+    # Sanitize underscores → hyphens for DNS-1123 metadata.name
     ocp_operatorgroups_name: >-
-      {{ operatorgroup
-         | default(ocp_operatorgroups_name)
-         | default( (all_namespaces_install | default(false) | bool)
-                    | ternary('global-operators', name_space ~ '-openshift_tools_operator_groups') ) }}
+      {{
+        (
+          operatorgroup
+          | default(ocp_operatorgroups_name)
+          | default(
+              (all_namespaces_install | default(false) | bool)
+              | ternary(
+                  'global-operators',
+                  (name_space | regex_replace('_', '-') ~ '-operator-group')
+                )
+            )
+        ) | regex_replace('_', '-')
+      }}
 
 - name: Guard — require name_space when not in AllNamespaces mode
   ansible.builtin.assert:
@@ -38,14 +48,15 @@
       register: ocp_operatorgroups_og_info
       when: (state | default('present')) == 'present'
 
-    - name: Guard — OLM requires exactly 0 or 1 OG in a namespace
-      ansible.builtin.fail:
+    - name: Guard — OLM prefers exactly one OG; continue if extras already exist
+      ansible.builtin.debug:
         msg: >-
-          Namespace '{{ ocp_operatorgroups_operator_ns }}' already has {{ ocp_operatorgroups_og_info.resources
-          | length }} OperatorGroups. OLM requires exactly one.
+          Namespace '{{ ocp_operatorgroups_operator_ns }}' already has
+          {{ ocp_operatorgroups_og_info.resources | length }} OperatorGroups
+          (OLM expects one). Skipping create/reconcile and reusing existing.
       when:
         - (state | default('present')) == 'present'
-        - (ocp_operator_groups_og_info.resources | length) > 1
+        - (ocp_operatorgroups_og_info.resources | length) > 1
 
     # ---- AllNamespaces mode: create when none exists; reconcile if needed -----
     - name: Create openshift_tools_operator_groups (AllNamespaces mode) when none exists
@@ -53,7 +64,7 @@
         state: present
         definition:
           apiVersion: operators.coreos.com/v1
-          kind: openshift_tools_operator_groups
+          kind: OperatorGroup
           metadata:
             name: "{{ ocp_operatorgroups_name }}"
             namespace: "{{ ocp_operatorgroups_operator_ns }}"
@@ -61,7 +72,7 @@
       when:
         - (state | default('present')) == 'present'
         - (all_namespaces_install | default(false) | bool)
-        - (ocp_operator_groups_og_info.resources | length) == 0
+        - (ocp_operatorgroups_og_info.resources | length) == 0
 
     - name: Reconcile existing OG to AllNamespaces (remove targetNamespaces) when needed
       vars:
@@ -72,7 +83,7 @@
         state: present
         definition:
           apiVersion: operators.coreos.com/v1
-          kind: openshift_tools_operator_groups
+          kind: OperatorGroup
           metadata:
             name: "{{ existing_name }}"
             namespace: "{{ ocp_operatorgroups_operator_ns }}"
@@ -80,7 +91,7 @@
       when:
         - (state | default('present')) == 'present'
         - (all_namespaces_install | default(false) | bool)
-        - (ocp_operator_groups_og_info.resources | length) == 1
+        - (ocp_operatorgroups_og_info.resources | length) == 1
         - _reconcile_all_ns
         - (current_tns | length) > 0
 
@@ -95,7 +106,7 @@
       when:
         - (state | default('present')) == 'present'
         - (all_namespaces_install | default(false) | bool)
-        - (ocp_operator_groups_og_info.resources | length) == 1
+        - (ocp_operatorgroups_og_info.resources | length) == 1
         - (current_tns | length) == 0
 
     # ---- SingleNamespace mode -------------------------------------------------
@@ -104,7 +115,7 @@
         state: present
         definition:
           apiVersion: operators.coreos.com/v1
-          kind: openshift_tools_operator_groups
+          kind: OperatorGroup
           metadata:
             name: "{{ ocp_operatorgroups_name }}"
             namespace: "{{ ocp_operatorgroups_operator_ns }}"
@@ -114,7 +125,7 @@
       when:
         - (state | default('present')) == 'present'
         - not (all_namespaces_install | default(false) | bool)
-        - (ocp_operator_groups_og_info.resources | length) == 0
+        - (ocp_operatorgroups_og_info.resources | length) == 0
 
     - name: Reconcile existing OG to SingleNamespace target (optional)
       vars:
@@ -126,7 +137,7 @@
         state: present
         definition:
           apiVersion: operators.coreos.com/v1
-          kind: openshift_tools_operator_groups
+          kind: OperatorGroup
           metadata:
             name: "{{ existing_name }}"
             namespace: "{{ ocp_operatorgroups_operator_ns }}"
@@ -135,7 +146,7 @@
       when:
         - (state | default('present')) == 'present'
         - not (all_namespaces_install | default(false) | bool)
-        - (ocp_operator_groups_og_info.resources | length) == 1
+        - (ocp_operatorgroups_og_info.resources | length) == 1
         - _reconcile_single_ns
         - current_tns != desired_tns
 
@@ -151,5 +162,5 @@
       when:
         - (state | default('present')) == 'present'
         - not (all_namespaces_install | default(false) | bool)
-        - (ocp_operator_groups_og_info.resources | length) == 1
+        - (ocp_operatorgroups_og_info.resources | length) == 1
         - current_tns == [ name_space ]

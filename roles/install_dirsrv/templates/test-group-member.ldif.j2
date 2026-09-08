@@ -1,0 +1,4 @@
+dn: cn=testgroup,ou=groups,{{ install_dirsrv_ds_suffix_effective }}
+changetype: modify
+add: member
+member: uid={{ install_dirsrv_test_user_uid_effective }},ou=people,{{ install_dirsrv_ds_suffix_effective }}

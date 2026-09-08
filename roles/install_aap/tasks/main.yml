@@ -1,8 +1,59 @@
 ---
-- name: Run present
-  ansible.builtin.include_tasks: install-aap26.yml
-  when: state == 'present'
+# Unified AAP install entry point over validated infra.aap_utilities:
+# - openshift → aap_ocp_install (+ ADO reset/license helpers)
+# - rhel → aap_setup_download / prepare / install (or aap_remove when absent)
 
-- name: Run absent
-  ansible.builtin.include_tasks: delete-aap26.yml
-  when: state == 'absent'
+- name: Resolve install_aap desired state
+  ansible.builtin.set_fact:
+    install_aap_state_effective: >-
+      {{
+        install_aap_state
+        | default(state | default('present'), true)
+        | string
+        | lower
+      }}
+
+- name: Resolve install_aap target platform
+  ansible.builtin.set_fact:
+    install_aap_target_effective: >-
+      {{
+        (
+          install_aap_target
+          | default('', true)
+          | string
+          | lower
+          | trim
+        )
+        if (
+          (install_aap_target | default('', true) | string | trim | length) > 0
+        )
+        else (
+          'openshift'
+          if (
+            (aap_ocp_install_namespace | default('') | length) > 0
+            or (aap_ocp_install_connection is defined)
+            or (aap_ocp_install_license_only | default(false) | bool)
+          )
+          else (
+            'rhel'
+            if (aap_setup_prep_inv_nodes is defined)
+            else 'openshift'
+          )
+        )
+      }}
+
+- name: Assert install_aap target is supported
+  ansible.builtin.assert:
+    that:
+      - install_aap_target_effective in ['openshift', 'rhel']
+    fail_msg: >-
+      install_aap_target must be 'openshift' or 'rhel'
+      (got '{{ install_aap_target_effective }}').
+
+- name: Install or remove AAP on OpenShift
+  ansible.builtin.include_tasks: openshift.yml
+  when: install_aap_target_effective == 'openshift'
+
+- name: Install or remove AAP on RHEL / non-OpenShift
+  ansible.builtin.include_tasks: rhel.yml
+  when: install_aap_target_effective == 'rhel'

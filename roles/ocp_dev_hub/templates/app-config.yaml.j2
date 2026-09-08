@@ -1,0 +1,54 @@
+app:
+  title: Chad Lab Developer Hub
+  baseUrl: {{ ocp_dev_hub_base_url }}
+
+backend:
+  baseUrl: {{ ocp_dev_hub_base_url }}
+  cors:
+    origin: {{ ocp_dev_hub_base_url }}
+  auth:
+    keys:
+      - secret: ${BACKEND_SECRET}
+
+signInPage: {{ 'oidc' if (dev_hub_install_include_oidc | default(false) | bool) else 'guest' }}
+
+{% if dev_hub_install_include_oidc | default(false) | bool %}
+auth:
+  environment: production
+  session:
+    secret: ${BACKEND_SECRET}
+    cookie:
+      secure: true
+      sameSite: none
+  providers:
+    oidc:
+      production:
+        issuer: {{ ocp_dev_hub_keycloak_issuer }}
+        metadataUrl: {{ ocp_dev_hub_keycloak_issuer }}/.well-known/openid-configuration
+        clientId: {{ dev_hub_keycloak_client_id | default('rhdh') }}
+        clientSecret: ${OIDC_CLIENT_SECRET}
+        callbackUrl: {{ ocp_dev_hub_base_url }}/api/auth/oidc/handler/frame
+        prompt: auto
+        signIn:
+          resolvers:
+            - resolver: preferredUsernameMatchingUserEntityName
+            - resolver: emailMatchingUserEntityProfileEmail
+{% endif %}
+
+{% if (ocp_dev_hub_gitlab_host | default('') | string | trim | length) > 0 and (dev_hub_gitlab_token | default('') | string | trim | length) > 0 %}
+integrations:
+  gitlab:
+    - host: {{ ocp_dev_hub_gitlab_host }}
+      baseUrl: https://{{ ocp_dev_hub_gitlab_host }}
+      apiBaseUrl: https://{{ ocp_dev_hub_gitlab_host }}/api/v4
+      token: ${GITLAB_TOKEN}
+{% endif %}
+
+catalog:
+  rules:
+    - allow: [Component, API, Resource, System, Domain, Location, User, Group]
+{% if (ocp_dev_hub_catalog_url | default('') | string | trim | length) > 0 %}
+  locations:
+    - type: url
+      target: {{ ocp_dev_hub_catalog_url }}
+{% endif %}

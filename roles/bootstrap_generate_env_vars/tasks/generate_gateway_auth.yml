@@ -15,12 +15,14 @@
     env_dir = Path("{{ bootstrap_generate_env_vars_env_dir }}")
     preflight_path = "{{ preflight_json | default('', true) }}"
     auth = {}
+    onboard = {}
     org = "ADO"
     if preflight_path:
         preflight = json.loads(Path(preflight_path).read_text())
         aap = preflight.get("aap") or {}
         org = str(aap.get("organization") or "ADO")
         auth = aap.get("auth") or {}
+        onboard = aap.get("onboard") or {}
 
     authenticators = []
     maps = []
@@ -83,12 +85,78 @@
                 }
             )
 
+    def add_onboard_maps(authenticator_name, onboard_cfg, default_org):
+        if not isinstance(onboard_cfg, dict):
+            return
+        for row in onboard_cfg.get("tenants") or []:
+            if not isinstance(row, dict):
+                continue
+            if row.get("enabled") is False:
+                continue
+            org_name = str(row.get("organization") or default_org).strip()
+            if not org_name:
+                continue
+            admin_groups = split_list(row.get("admin_groups"))
+            admin_role = str(row.get("admin_role") or "Organization Admin").strip()
+            if admin_groups:
+                maps.append(
+                    {
+                        "name": f"{authenticator_name} Onboard {org_name} Admin",
+                        "authenticator": authenticator_name,
+                        "revoke": True,
+                        "map_type": "organization",
+                        "organization": org_name,
+                        "role": admin_role or "Organization Admin",
+                        "triggers": {"groups": {"has_or": admin_groups}},
+                    }
+                )
+            developer_groups = split_list(row.get("developer_groups"))
+            developer_role = str(row.get("developer_role") or "Organization Member").strip()
+            if developer_groups:
+                maps.append(
+                    {
+                        "name": f"{authenticator_name} Onboard {org_name} Developer",
+                        "authenticator": authenticator_name,
+                        "revoke": True,
+                        "map_type": "organization",
+                        "organization": org_name,
+                        "role": developer_role or "Organization Member",
+                        "triggers": {"groups": {"has_or": developer_groups}},
+                    }
+                )
+                team_name = str(row.get("team_name") or "").strip()
+                team_role = str(row.get("team_role") or "Execute").strip()
+                if team_name and row.get("create_team", True) is not False:
+                    maps.append(
+                        {
+                            "name": f"{authenticator_name} Onboard {org_name} Team {team_name}",
+                            "authenticator": authenticator_name,
+                            "revoke": True,
+                            "map_type": "team",
+                            "organization": org_name,
+                            "team": team_name,
+                            "role": team_role or "Execute",
+                            "triggers": {"groups": {"has_or": developer_groups}},
+                        }
+                    )
+
     oidc = auth.get("keycloak_oidc") or {}
     if oidc.get("enabled") is True:
         name = str(oidc.get("name") or "Keycloak OIDC").strip() or "Keycloak OIDC"
         slug = str(oidc.get("slug") or "keycloak-oidc").strip() or "keycloak-oidc"
         secret = str(oidc.get("secret") or "")
         vault_updates["vault_aap_auth_keycloak_oidc_secret"] = secret
+        oidc_config = {
+            "ACCESS_TOKEN_URL": str(oidc.get("access_token_url") or ""),
+            "AUTHORIZATION_URL": str(oidc.get("authorization_url") or ""),
+            "KEY": str(oidc.get("key") or ""),
+            "SECRET": secret,
+            "PUBLIC_KEY": str(oidc.get("public_key") or ""),
+            "GROUPS_CLAIM": str(oidc.get("groups_claim") or "Group"),
+        }
+        # Default off (skip verify) for lab clusters; preflight checkbox sets verify_ssl explicitly.
+        if oidc.get("verify_ssl", False) is not True:
+            oidc_config["ADDITIONAL_UNVERIFIED_ARGS"] = {"VERIFY_SSL": False}
         authenticators.append(
             {
                 "name": name,
@@ -98,17 +166,11 @@
                 "remove_users": bool(oidc.get("remove_users", False)),
                 "order": int(oidc.get("order") or 2),
                 "type": "ansible_base.authentication.authenticator_plugins.keycloak",
-                "configuration": {
-                    "ACCESS_TOKEN_URL": str(oidc.get("access_token_url") or ""),
-                    "AUTHORIZATION_URL": str(oidc.get("authorization_url") or ""),
-                    "KEY": str(oidc.get("key") or ""),
-                    "SECRET": secret,
-                    "PUBLIC_KEY": str(oidc.get("public_key") or ""),
-                    "GROUPS_CLAIM": str(oidc.get("groups_claim") or "Group"),
-                },
+                "configuration": oidc_config,
             }
         )
         add_maps(name, oidc)
+        add_onboard_maps(name, onboard, org)
 
     ldap = auth.get("ldap") or {}
     if ldap.get("enabled") is True:
@@ -214,9 +276,12 @@
         "aap_auth_configure_gateway": bool(authenticators),
     }
     # Encrypted with other vault*.yml files when vault encryption is enabled.
-    (env_dir / "vault_gateway_auth.yml").write_text(
-        yaml.safe_dump(out, sort_keys=False, default_flow_style=False)
+    vault_gateway_auth = env_dir / "vault_gateway_auth.yml"
+    vault_gateway_auth.write_text(
+        "---\n"
+        + yaml.safe_dump(out, sort_keys=False, default_flow_style=False)
     )
+    vault_gateway_auth.chmod(0o600)
 
     vault_path = env_dir / "aap_vault.yml"
     if vault_path.exists():
@@ -262,3 +327,4 @@
     force: false
   when:
     - bootstrap_generate_env_vars_use_aap | bool
+    - bootstrap_generate_env_vars_preflight is not defined

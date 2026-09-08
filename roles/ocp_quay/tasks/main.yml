@@ -1,7 +1,17 @@
 ---
 - name: Install Quay operator
   ansible.builtin.import_tasks: install-quay-operator.yml
-  when: state == "present"
+  when:
+    - state == "present"
+    - (quay_install_scope | default('install')) != 'oidc'
+
+- name: Configure Quay OIDC (existing or fresh install)
+  ansible.builtin.import_tasks: configure-quay-oidc.yml
+  when:
+    - state == "present"
+    - (quay_install_scope | default('install')) == 'oidc'
+    - quay_oidc_enabled | default(false) | bool
+    - quay_oidc_configure_after_install | default(true) | bool
 
 - name: Delete Quay operator
   ansible.builtin.import_tasks: delete-quay-operator.yml

@@ -16,5 +16,46 @@
     - name: ADO | Resolve vars for component from framework defaults + env overrides
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component
+    - name: ADO | Normalize GitLab OpenShift install vars
+      ansible.builtin.set_fact:
+        gitlab_install_hostname: >-
+          {{
+            gitlab_install_hostname
+            | default(hostname)
+            | default('gitlab.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+          }}
+        gitlab_install_chart_version: >-
+          {{ gitlab_install_chart_version | default(chart_version) | default('10.3.1') }}
+        gitlab_install_storage_size: >-
+          {{ gitlab_install_storage_size | default(storage_size) | default('20Gi') }}
+        gitlab_install_storage_class: >-
+          {{
+            gitlab_install_storage_class
+            | default(storage)
+            | default(storage_class)
+            | default(openshift_default_storage_class)
+            | default('')
+          }}
+        gitlab_install_root_password: >-
+          {{
+            gitlab_install_root_password
+            | default(root_password)
+            | default('redhat123')
+          }}
+        gitlab_install_admin_user: >-
+          {{ gitlab_install_admin_user | default(admin_user) | default('gitlab') }}
+        gitlab_install_admin_password: >-
+          {{
+            gitlab_install_admin_password
+            | default(admin_password)
+            | default(gitlab_install_root_password)
+            | default('redhat123')
+          }}
   roles:
+    - role: infra.ado.ocp_namespace
+    - role: infra.ado.ocp_operatorgroups
+    - role: infra.ado.ocp_operator_subscription
+    - role: infra.ado.ocp_wait_operator
+    - role: infra.ado.gitlab_install
+    - role: infra.ado.ocp_wait_pods
     - role: infra.ado.ocp_routes

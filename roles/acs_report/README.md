@@ -1,32 +1,20 @@
 # Role: infra.ado.acs_report
 
 Generate Red Hat Advanced Cluster Security (RHACS) vulnerability reports from
-Central's workload export API. Ports the `rhacs-report.sh` workflow into an
-Ansible role for ADO bootstrap / Controller job templates.
+Central's workload export API. The role uses ``ansible.builtin.get_url`` (Python
+stdlib HTTP) plus the bundled parser. It does **not** require ``curl``.
 
 ## Role Author
 
 Automation Development Office
 
-## Modes
+## ✅ Role Requirements
 
-| `acs_report_mode` | Script flag | Output |
-|-------------------|-------------|--------|
-| `raw` | `--raw` | Live workloads, Critical+Important, all sources, component table |
-| `rhsource` | `--rhsource` | Same, Red Hat CVE/errata source only |
-| `age` | `--age` | Red Hat source, age buckets `>15` / `>30` / `>90` days |
-| `all` | `--all` (alone) | Scrubbed CSV of all severities/sources (live + inactive) |
+- RHACS Central API reachable from the Ansible controller
+- Bearer token (`acs_api_token`) or admin basic auth
+- Optional: cluster kubeconfig when `acs_report_cve_enrich_cluster` is enabled
 
-Scope modifiers:
-
-| Variable | Script flag | Effect |
-|----------|-------------|--------|
-| `acs_report_all_scope: true` | `--all` with raw/rhsource | Expand to all product groups |
-| `acs_report_rhsre: true` | `--rhsre` | ROSA/SRE responsibility boundary only |
-| `acs_report_component` | `--component` | Limit to one group (`acm`, `devspaces`, …) |
-| `acs_report_show_sev: true` | `--sev` | Add Critical/High columns |
-
-## Role Variables
+## 📦 Role Variables
 
 | Variable | Description |
 |----------|-------------|
@@ -36,8 +24,27 @@ Scope modifiers:
 | `acs_api_token` | Bearer token (preferred). Also accepts `ROX_API_TOKEN` env. |
 | `acs_admin_user` / `acs_admin_password` | Basic auth fallback when token unset. |
 | `acs_namespace` | Namespace for route derivation. Default `stackrox`. |
+| `acs_report_all_scope` | Expand raw/rhsource to all product groups. |
+| `acs_report_rhsre` | ROSA/SRE responsibility boundary only. |
+| `acs_report_component` | Limit to one group (`acm`, `devspaces`, …). |
+| `acs_report_show_sev` | Add Critical/High columns. |
+| `acs_report_cve_enrich` | Enable acs-cve-plugin enrichment. Default `false`. |
+| `acs_report_cve_enrich_security_view` | Write ATO-style `*-fp.csv` and `*-poam.csv`. |
+| `acs_report_cve_enrich_actionable_only` | Pass `--actionable-only`. |
+| `acs_report_cve_enrich_rh_images_only` | Pass `--rh-images-only`. |
+| `acs_report_cve_enrich_cluster` | Install `acs-cve-tool[cluster]`. |
+| `acs_report_cve_enrich_sort` | `status` \| `age` \| `severity`. Default `status`. |
 
-## Usage
+Mode summary:
+
+| `acs_report_mode` | Output |
+|-------------------|--------|
+| `raw` | Live workloads, Critical+Important, all sources |
+| `rhsource` | Red Hat CVE/errata source only |
+| `age` | Red Hat source, age buckets `>15` / `>30` / `>90` days |
+| `all` | Scrubbed CSV of all severities/sources |
+
+## 🚀 Role Usage
 
 ```yaml
 - hosts: localhost
@@ -50,11 +57,13 @@ Scope modifiers:
         acs_central_url: https://central-stackrox.apps.example.com
         acs_api_token: "{{ vault_acs_api_token }}"
         acs_report_outdir: /tmp/acs-reports
+        acs_report_cve_enrich: true
 ```
 
-Local CLI (same files the role stages). The collection copy uses
-`#!/usr/bin/env bash` and is not marked executable in git; invoke with
-`bash` or rely on the role, which copies it to `/tmp` as mode 0755:
+Bootstrap registers **ADO | ACS RHACS Report (CVE Enriched)** and appends it
+to the RHACS report workflow after the age report.
+
+Local optional wrapper (still uses ``curl``; the role does not):
 
 ```bash
 export ROX_ENDPOINT=https://central-stackrox.apps.example.com
@@ -62,44 +71,25 @@ export ROX_API_TOKEN=...
 bash roles/acs_report/files/rhacs-report.sh --rhsource --sev
 ```
 
-## Grafana sample dashboard
+## 🧪 Role Molecule Testing
 
-`files/grafana/rhacs-vulnerability-overview.json` — **RHACS Vulnerability Posture**
-dashboard (UID `ado-rhacs-vuln-posture`):
+No Molecule scenario ships with this role yet. Validate via Contoller workflow
+**ADO | ACS Report** or JT `ado-acs-report-cve-enriched-bootstrap`.
 
-- Totals: unique CVEs, Critical, Important
-- Bar charts: findings by component for `--rhsource` and `--raw`
-- Stacked Critical vs Important concentration charts
-- Daily discovery inflow + cumulative backlog growth
-
-`files/grafana/sample-prod-summary.json` — numeric views used to build that dashboard.
-
-The same dashboard is also seeded for playbook-repo copy-out next to the
-Openshift Grafana templates:
-
-`roles/bootstrap_generate_playbook_repo/files/playbook_repo_seed/templates/RHACS/dashboards/rhacs-vulnerability-overview.json`
-
-Default `grafana_folders` includes a **RHACS** folder pointing at
-`templates/RHACS` (with Openshift under `templates/Openshift`).
-
-## Artifacts
-
-- Slack-friendly text table (stdout + `RHACS_report_<mode>_<stamp>.txt`)
-- `RHACS_summary_<mode>_<stamp>.json` for raw/rhsource/age
-- `RHACS_Vulnerability_Report_SCRUBBED_<stamp>.csv` for mode `all`
-
-## Structure
+## 📁 Role Structure
 
 ```text
 roles/acs_report/
   defaults/main.yml
   meta/main.yml
   tasks/main.yml
+  tasks/cve_enrich.yml
   README.md
   files/
     rhacs-report.sh
     rhacs_report_parser.py
-    grafana/
-      rhacs-vulnerability-overview.json
-      sample-prod-summary.json
+    grafana/rhacs-vulnerability-overview.json
 ```
+
+Artifacts: Slack-friendly text table, `RHACS_summary_*.json`, scrubbed/enriched
+CSVs, optional Grafana dashboard under `files/grafana/`.

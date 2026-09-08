@@ -1,0 +1,119 @@
+---
+# Ensure Keycloak client + policy claim mapper for MinIO console OIDC.
+
+- name: Skip MinIO Keycloak client when OIDC disabled
+  ansible.builtin.meta: end_host
+  when: not (minio_oidc_enabled | default(false) | bool)
+
+- name: Resolve MinIO Keycloak admin credentials from RHBK component
+  ansible.builtin.set_fact:
+    ocp_minio_rhbk_hostname: >-
+      {{
+        rhbk_hostname
+        | default(keycloak_hostname)
+        | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+      }}
+    ocp_minio_rhbk_realm: >-
+      {{
+        rhbk_realm
+        | default(ocp_rhbk_realm)
+        | default(minio_keycloak_realm | default('rhlab'))
+      }}
+    ocp_minio_rhbk_admin_user: "{{ rhbk_admin_user | default('admin') }}"
+    ocp_minio_rhbk_admin_password: "{{ rhbk_admin_password | default('') }}"
+
+- name: Fetch Keycloak admin credentials from cluster when vault unset
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Secret
+    namespace: "{{ minio_keycloak_namespace | default(keycloak_namespace | default('keycloak')) }}"
+    name: keycloak-admin-creds
+  register: ocp_minio_keycloak_admin_secret
+  when: (ocp_minio_rhbk_admin_password | default('') | string | length) == 0
+  no_log: true
+
+- name: Decode Keycloak admin credentials for MinIO OIDC setup
+  ansible.builtin.set_fact:
+    ocp_minio_rhbk_admin_user: "{{ minio_keycloak_admin_secret.resources[0].data.username | b64decode }}"
+    ocp_minio_rhbk_admin_password: "{{ minio_keycloak_admin_secret.resources[0].data.password | b64decode }}"
+  when:
+    - minio_keycloak_admin_secret.resources | default([]) | length > 0
+    - minio_keycloak_admin_secret.resources[0].data.password is defined
+  no_log: true
+
+- name: Create MinIO Keycloak client with policy mapper
+  ansible.builtin.include_role:
+    name: infra.ado.rhbk_client
+  vars:
+    rhbk_hostname: "{{ ocp_minio_rhbk_hostname }}"
+    rhbk_realm: "{{ ocp_minio_rhbk_realm }}"
+    rhbk_admin_user: "{{ ocp_minio_rhbk_admin_user }}"
+    rhbk_admin_password: "{{ ocp_minio_rhbk_admin_password }}"
+    rhbk_client: "{{ minio_oidc_client_id }}"
+    rhbk_client_name: "MinIO"
+    rhbk_public_client: false
+    rhbk_standard_flow_enabled: true
+    rhbk_direct_access_grants_enabled: true
+    rhbk_redirect_uris:
+      - "https://{{ ocp_minio_console_hostname_effective }}/oauth_callback"
+      - "https://{{ ocp_minio_console_hostname_effective }}/*"
+    rhbk_web_origins:
+      - "https://{{ ocp_minio_console_hostname_effective }}"
+      - "+"
+    rhbk_protocol_mappers:
+      - name: minio-policy
+        protocol: openid-connect
+        protocolMapper: oidc-hardcoded-claim-mapper
+        config:
+          claim.value: "{{ minio_oidc_policy_value | default('consoleAdmin') }}"
+          claim.name: "{{ minio_oidc_claim_name | default('policy') }}"
+          jsonType.label: String
+          id.token.claim: "true"
+          access.token.claim: "true"
+          userinfo.token.claim: "true"
+  when:
+    - minio_oidc_create_keycloak_client | default(true) | bool
+    - minio_oidc_create_policy_mapper | default(true) | bool
+
+- name: Create MinIO Keycloak client (no policy mapper)
+  ansible.builtin.include_role:
+    name: infra.ado.rhbk_client
+  vars:
+    rhbk_hostname: "{{ ocp_minio_rhbk_hostname }}"
+    rhbk_realm: "{{ ocp_minio_rhbk_realm }}"
+    rhbk_admin_user: "{{ ocp_minio_rhbk_admin_user }}"
+    rhbk_admin_password: "{{ ocp_minio_rhbk_admin_password }}"
+    rhbk_client: "{{ minio_oidc_client_id }}"
+    rhbk_client_name: "MinIO"
+    rhbk_public_client: false
+    rhbk_standard_flow_enabled: true
+    rhbk_direct_access_grants_enabled: true
+    rhbk_redirect_uris:
+      - "https://{{ ocp_minio_console_hostname_effective }}/oauth_callback"
+      - "https://{{ ocp_minio_console_hostname_effective }}/*"
+    rhbk_web_origins:
+      - "https://{{ ocp_minio_console_hostname_effective }}"
+      - "+"
+  when:
+    - minio_oidc_create_keycloak_client | default(true) | bool
+    - not (minio_oidc_create_policy_mapper | default(true) | bool)
+
+- name: Fetch MinIO OIDC client secret from Keycloak when vault empty
+  ansible.builtin.include_role:
+    name: infra.ado.ocp_rhbk_client_secrets
+  vars:
+    ocp_rhbk_component_name: rhbk
+    ocp_rhbk_secret_client_id: "{{ minio_oidc_client_id }}"
+    ocp_rhbk_secret_target_var: ocp_minio_oidc_client_secret
+    ocp_rhbk_secret_optional: true
+  when: (ocp_minio_oidc_client_secret | default('') | string | length) == 0
+  no_log: true
+
+- name: Prefer fetched MinIO OIDC client secret
+  ansible.builtin.set_fact:
+    ocp_minio_oidc_client_secret: "{{ ocp_rhbk_client_secrets__value }}"
+  when:
+    - (ocp_minio_oidc_client_secret | default('') | string | length) == 0
+    - ocp_rhbk_client_secrets__value is defined
+    - (ocp_rhbk_client_secrets__value | string | length) > 0
+  no_log: true

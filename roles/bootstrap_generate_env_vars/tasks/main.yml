@@ -245,12 +245,83 @@
             )
             +
             (
-              ['openshift_discover_routes_alt']
+              ['openshift_print_alt_routes']
               if (
                 'openshift' in bootstrap_generate_env_vars_preflight_components
-                and 'discover_routes_alt' in (
-                  bootstrap_generate_env_vars_preflight.component_options.openshift
-                  | default([])
+                and (
+                  'alternate_routes' in (
+                    bootstrap_generate_env_vars_preflight.component_options.openshift
+                    | default([])
+                  )
+                  or 'discover_routes_alt' in (
+                    bootstrap_generate_env_vars_preflight.component_options.openshift
+                    | default([])
+                  )
+                )
+                and (
+                  (
+                    (bootstrap_generate_env_vars_preflight.openshift or {}).get('alternate_routes') or {}
+                  ).get('print_alt_routes', true)
+                  | bool
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['openshift_add_alt_routes']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and (
+                  'alternate_routes' in (
+                    bootstrap_generate_env_vars_preflight.component_options.openshift
+                    | default([])
+                  )
+                  or 'discover_routes_alt' in (
+                    bootstrap_generate_env_vars_preflight.component_options.openshift
+                    | default([])
+                  )
+                )
+                and (
+                  (
+                    (
+                      (bootstrap_generate_env_vars_preflight.openshift or {}).get('alternate_routes') or {}
+                    ).get('add_alt_routes')
+                    if (
+                      (bootstrap_generate_env_vars_preflight.openshift or {}).get('alternate_routes') or {}
+                    ).get('add_alt_routes') is not none
+                    else (
+                      'discover_routes_alt' in (
+                        bootstrap_generate_env_vars_preflight.component_options.openshift
+                        | default([])
+                      )
+                    )
+                  )
+                  | bool
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['openshift_add_ingress_with_route']
+              if (
+                'openshift' in bootstrap_generate_env_vars_preflight_components
+                and (
+                  'alternate_routes' in (
+                    bootstrap_generate_env_vars_preflight.component_options.openshift
+                    | default([])
+                  )
+                  or 'discover_routes_alt' in (
+                    bootstrap_generate_env_vars_preflight.component_options.openshift
+                    | default([])
+                  )
+                )
+                and (
+                  (
+                    (bootstrap_generate_env_vars_preflight.openshift or {}).get('alternate_routes') or {}
+                  ).get('add_ingress_with_route', false)
+                  | bool
                 )
               )
               else []
@@ -311,6 +382,66 @@
                 and 'federation' in (
                   bootstrap_generate_env_vars_preflight.component_options.rhbk
                   | default([])
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['rhbk_client_scopes']
+              if (
+                bootstrap_generate_env_vars_preflight_rhbk_selected
+                and (
+                  'client_scopes' in (
+                    bootstrap_generate_env_vars_preflight.component_options.rhbk
+                    | default([])
+                  )
+                  or 'oauth_rhbk' in (
+                    bootstrap_generate_env_vars_preflight.component_options.openshift
+                    | default([])
+                  )
+                  or 'oidc' in (
+                    bootstrap_generate_env_vars_preflight.component_options.grafana
+                    | default([])
+                  )
+                  or 'oidc' in (
+                    bootstrap_generate_env_vars_preflight.component_options.quay
+                    | default([])
+                  )
+                  or 'oidc' in (
+                    bootstrap_generate_env_vars_preflight.component_options.minio
+                    | default([])
+                  )
+                  or 'oidc' in (
+                    bootstrap_generate_env_vars_preflight.component_options.dev_hub
+                    | default([])
+                  )
+                  or 'oidc' in (
+                    bootstrap_generate_env_vars_preflight.component_options.bookstack
+                    | default([])
+                  )
+                  or 'oidc' in (
+                    bootstrap_generate_env_vars_preflight.component_options.netbox
+                    | default([])
+                  )
+                )
+              )
+              else []
+            )
+            +
+            (
+              ['rhbk_mapper']
+              if (
+                bootstrap_generate_env_vars_preflight_rhbk_selected
+                and (
+                  'group_mapper' in (
+                    bootstrap_generate_env_vars_preflight.component_options.rhbk
+                    | default([])
+                  )
+                  or 'client_mappers' in (
+                    bootstrap_generate_env_vars_preflight.component_options.rhbk
+                    | default([])
+                  )
                 )
               )
               else []
@@ -755,6 +886,25 @@
   ansible.builtin.debug:
     var: bootstrap_generate_env_vars_components
 
+- name: Include cert_manager when default ingress update is enabled
+  ansible.builtin.set_fact:
+    bootstrap_generate_env_vars_components: >-
+      {{
+        (
+          bootstrap_generate_env_vars_components
+          + ['cert_manager']
+        )
+        | unique
+        | list
+      }}
+  when:
+    - bootstrap_generate_env_vars_preflight is defined
+    - >-
+      (
+        bootstrap_generate_env_vars_preflight.component_config.cert_manager
+        | default({})
+      ).update_default_ingress | default(false) | bool
+
 - name: Skip Contoller API when installing AAP during bootstrap
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_use_aap: false
@@ -774,10 +924,9 @@
         ).install_during_bootstrap | default(false) | bool
       )
 
-# Expand satellite/idm/acs/aws options into keys for playbook/JT selection only.
-# Keep bootstrap_generate_env_vars_components unchanged for vars_*.yml.
-- name: >-
-    Build playbook/JT app selectors from Satellite, IdM, ACS, and AWS options
+# Expand satellite/idm/acs/aws/rhel_system_roles options into keys for playbook/JT
+# selection only. Keep bootstrap_generate_env_vars_components for vars_*.yml.
+- name: Build playbook/JT app selectors from Satellite, IdM, ACS, AWS, and system roles
   ansible.builtin.set_fact:
     bootstrap_generate_env_vars_playbook_components: >-
       {{
@@ -787,6 +936,7 @@
             | reject('equalto', 'satellite')
             | reject('equalto', 'idm')
             | reject('equalto', 'aws')
+            | reject('equalto', 'rhel_system_roles')
             | list
           )
           +
@@ -881,6 +1031,207 @@
               []
             )
           )
+          +
+          (
+            (
+              bootstrap_generate_env_vars_preflight.component_options.rhel_system_roles
+              | default([])
+              | map('lower')
+              | list
+            )
+            if (
+              'rhel_system_roles' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and (
+                bootstrap_generate_env_vars_preflight.component_options.rhel_system_roles
+                | default([])
+                | length
+              ) > 0
+            )
+            else (
+              []
+            )
+          )
+          +
+          (
+            ['grafana_oidc']
+            if (
+              'grafana' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and 'standalone' not in (
+                bootstrap_generate_env_vars_preflight.component_options.grafana
+                | default([])
+              )
+              and 'oidc' in (
+                bootstrap_generate_env_vars_preflight.component_options.grafana
+                | default([])
+              )
+            )
+            else []
+          )
+          +
+          (
+            ['grafana_email']
+            if (
+              'grafana' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and 'standalone' not in (
+                bootstrap_generate_env_vars_preflight.component_options.grafana
+                | default([])
+              )
+              and 'email' in (
+                bootstrap_generate_env_vars_preflight.component_options.grafana
+                | default([])
+              )
+            )
+            else []
+          )
+          +
+          (
+            ['grafana_datasources']
+            if (
+              'grafana' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and 'standalone' not in (
+                bootstrap_generate_env_vars_preflight.component_options.grafana
+                | default([])
+              )
+              and 'datasources' in (
+                bootstrap_generate_env_vars_preflight.component_options.grafana
+                | default([])
+              )
+            )
+            else []
+          )
+          +
+          (
+            ['grafana_folders']
+            if (
+              'grafana' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and 'standalone' not in (
+                bootstrap_generate_env_vars_preflight.component_options.grafana
+                | default([])
+              )
+              and 'folders' in (
+                bootstrap_generate_env_vars_preflight.component_options.grafana
+                | default([])
+              )
+            )
+            else []
+          )
+          +
+          (
+            ['grafana_dashboards']
+            if (
+              'grafana' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and 'standalone' not in (
+                bootstrap_generate_env_vars_preflight.component_options.grafana
+                | default([])
+              )
+              and 'dashboards' in (
+                bootstrap_generate_env_vars_preflight.component_options.grafana
+                | default([])
+              )
+            )
+            else []
+          )
+          +
+            (
+              ['grafana_alternate_route']
+              if (
+                'grafana' in bootstrap_generate_env_vars_components
+                and bootstrap_generate_env_vars_preflight is defined
+                and 'standalone' not in (
+                  bootstrap_generate_env_vars_preflight.component_options.grafana
+                  | default([])
+                )
+                and 'alternate_route' in (
+                  bootstrap_generate_env_vars_preflight.component_options.grafana
+                  | default([])
+                )
+              )
+              else []
+            )
+          +
+          (
+            ['quay_oidc']
+            if (
+              'quay' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and 'oidc' in (
+                bootstrap_generate_env_vars_preflight.component_options.quay
+                | default([])
+              )
+            )
+              else []
+            )
+          +
+          (
+            ['minio_oidc']
+            if (
+              'minio' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and 'oidc' in (
+                bootstrap_generate_env_vars_preflight.component_options.minio
+                | default([])
+              )
+            )
+              else []
+            )
+          +
+          (
+            ['dev_hub_oidc']
+            if (
+              'dev_hub' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and 'oidc' in (
+                bootstrap_generate_env_vars_preflight.component_options.dev_hub
+                | default([])
+              )
+            )
+              else []
+            )
+          +
+          (
+            ['bookstack_oidc']
+            if (
+              'bookstack' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and 'oidc' in (
+                bootstrap_generate_env_vars_preflight.component_options.bookstack
+                | default([])
+              )
+            )
+              else []
+            )
+          +
+          (
+            ['netbox_oidc']
+            if (
+              'netbox' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and 'oidc' in (
+                bootstrap_generate_env_vars_preflight.component_options.netbox
+                | default([])
+              )
+            )
+              else []
+            )
+          +
+          (
+            ['zabbix_saml']
+            if (
+              'zabbix' in bootstrap_generate_env_vars_components
+              and bootstrap_generate_env_vars_preflight is defined
+              and 'saml' in (
+                bootstrap_generate_env_vars_preflight.component_options.zabbix
+                | default([])
+              )
+            )
+              else []
+            )
         )
         | unique
         | list
@@ -940,6 +1291,7 @@
   when:
     - item.path | basename not in (
         bootstrap_generate_env_vars_components
+        | map('regex_replace', '^(389ds|dirsrv)$', 'dirsrv')
         | map('regex_replace', '^(.*)$', 'vars_\\1.yml')
         | list
       )
@@ -953,6 +1305,7 @@
     - item.path | basename not in (
         bootstrap_generate_env_vars_components
         | reject('equalto', 'ec2_ami_copy')
+        | map('regex_replace', '^(389ds|dirsrv)$', 'dirsrv')
         | map('regex_replace', '^(.*)$', 'vault_\\1.yml')
         | list
       )
@@ -970,7 +1323,7 @@
     dest: >-
       {{
         bootstrap_generate_env_vars_env_dir
-      }}/vars_{{ component_name }}.yml
+      }}/vars_{{ 'dirsrv' if component_name in ['389ds', 'dirsrv'] else component_name }}.yml
     mode: "0644"
     force: "{{ bootstrap_generate_env_vars_force | bool }}"
   loop: "{{ bootstrap_generate_env_vars_components }}"
@@ -983,7 +1336,7 @@
     dest: >-
       {{
         bootstrap_generate_env_vars_env_dir
-      }}/vault_{{ component_name }}.yml
+      }}/vault_{{ 'dirsrv' if component_name in ['389ds', 'dirsrv'] else component_name }}.yml
     mode: "0600"
     force: "{{ bootstrap_generate_env_vars_force | bool }}"
   loop: "{{ bootstrap_generate_env_vars_components }}"
@@ -998,2064 +1351,22 @@
     state: absent
   when: "'ec2_ami_copy' in bootstrap_generate_env_vars_components"
 
-# yamllint disable rule:line-length
-- name: Overlay preflight component values into generated vars/vault files  # noqa: jinja[spacing]
-  ansible.builtin.shell: |
-    set -euo pipefail
-    python3 <<'PYCODE'
-    from pathlib import Path
-    import base64
-    import binascii
-    import copy
-    import json
-    import re
-    import shutil
-    import yaml
-
-    class NoAliasDumper(yaml.SafeDumper):
-        def ignore_aliases(self, data):
-            return True
-
-    class QuotedString(str):
-        pass
-
-    def quoted_string_representer(dumper, data):
-        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
-
-    NoAliasDumper.add_representer(QuotedString, quoted_string_representer)
-
-    preflight_file = Path("{{ preflight_json }}")
-    env_dir = Path("{{ bootstrap_generate_env_vars_env_dir }}")
-    selected_components = set({{ bootstrap_generate_env_vars_components | to_json }})
-
-    preflight = json.loads(preflight_file.read_text())
-
-    def is_secret_key(key):
-        k = str(key or "").lower()
-        if k in {"hub_s3_secret", "hub_azure_secret"}:
-            return False
-        return any(
-            x in k
-            for x in [
-                "password",
-                "token",
-                "secret",
-                "vault",
-                "credential",
-                "tls_key",
-                "tls_crt",
-                "activation_key",
-                "manifest_content",
-            ]
-        )
-
-    def load_yaml(path):
-        if not path.exists():
-            return {}
-        data = yaml.safe_load(path.read_text()) or {}
-        return data if isinstance(data, dict) else {}
-
-    def write_yaml(path, data, mode="0644"):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("---\n" + yaml.dump(data, Dumper=NoAliasDumper, sort_keys=False, width=1000))
-        path.chmod(int(mode, 8))
-
-    def first_present(*values):
-        for value in values:
-            if value is not None and value != "":
-                return value
-        return None
-
-    def merge_shared_aws_vault(values):
-        aws_path = env_dir / "vault_aws.yml"
-        aws_data = load_yaml(aws_path)
-        changed = False
-        combined = {
-            str(key): value
-            for key, value in (values or {}).items()
-            if value is not None
-        }
-        access_key = first_present(
-            combined.get("access_key_id"),
-            combined.get("awspca_access_key_id"),
-        )
-        secret_key = first_present(
-            combined.get("secret_access_key"),
-            combined.get("awspca_secret_access_key"),
-        )
-        session_token = combined.get("session_token")
-        if access_key is not None:
-            aws_data["vault_aws_access_key_id"] = str(access_key)
-            changed = True
-        if secret_key is not None:
-            aws_data["vault_aws_secret_access_key"] = str(secret_key)
-            changed = True
-        if session_token is not None:
-            aws_data["vault_aws_session_token"] = str(session_token)
-            changed = True
-        if changed:
-            write_yaml(aws_path, aws_data, "0600")
-
-    def as_bool(value, default=True):
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return value
-        return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
-
-    install_aap = as_bool(
-        (preflight.get("pre_installs") or {}).get("install_aap"),
-        False,
-    )
-    attach_aap_license = as_bool(
-        (preflight.get("pre_installs") or {}).get("attach_aap_license"),
-        False,
-    ) or as_bool(
-        ((preflight.get("pre_installs") or {}).get("aap") or {}).get("license_only"),
-        False,
-    ) or as_bool(
-        ((preflight.get("component_config") or {}).get("aap") or {}).get("license_only"),
-        False,
-    )
-    # install_during_bootstrap alone must not mean full operator install when
-    # attach/license_only is set (UI sets both for license-only attach).
-    if (
-        not install_aap
-        and not attach_aap_license
-        and as_bool(
-            ((preflight.get("component_config") or {}).get("aap") or {}).get(
-                "install_during_bootstrap"
-            ),
-            False,
-        )
-    ):
-        install_aap = True
-    if install_aap or attach_aap_license:
-        selected_components.add("aap")
-        # License-only / attach must still have a component_config.aap block so
-        # merge_component runs (hostname, RHN, license_mode).
-        preflight.setdefault("component_config", {})
-        aap_cfg = preflight["component_config"].setdefault("aap", {})
-        pre_aap = ((preflight.get("pre_installs") or {}).get("aap") or {})
-        preflight_aap = preflight.get("aap") or {}
-        if install_aap:
-            aap_cfg["install_during_bootstrap"] = True
-        if attach_aap_license and not install_aap:
-            aap_cfg["install_during_bootstrap"] = True
-            aap_cfg["license_only"] = True
-        for key in (
-            "license_mode",
-            "subscription_manifest_file",
-            "subscription_manifest_content_base64",
-            "subscription_manifest_encoding",
-            "rhn_username",
-            "rhn_password",
-            "rhn_subscription_id",
-            "rhn_client_id",
-            "rhn_client_secret",
-            "admin_password",
-            "hostname",
-            "namespace",
-        ):
-            if not aap_cfg.get(key) and pre_aap.get(key):
-                aap_cfg[key] = pre_aap.get(key)
-        # Attach/license-only: General tab aap.hostname / admin_password win over
-        # stale Install AAP component_config host fields.
-        if attach_aap_license and not install_aap:
-            if preflight_aap.get("hostname"):
-                aap_cfg["hostname"] = preflight_aap.get("hostname")
-            if preflight_aap.get("admin_password"):
-                aap_cfg["admin_password"] = preflight_aap.get("admin_password")
-        else:
-            if not aap_cfg.get("hostname") and preflight_aap.get("hostname"):
-                aap_cfg["hostname"] = preflight_aap.get("hostname")
-            if not aap_cfg.get("admin_password") and preflight_aap.get("admin_password"):
-                aap_cfg["admin_password"] = preflight_aap.get("admin_password")
-
-    aap_version_dotted = {"24": "2.4", "25": "2.5", "26": "2.6", "27": "2.7"}
-    aap_version_number = {"2.4": "24", "2.5": "25", "2.6": "26", "2.7": "27"}
-
-    def aap_dotted_version(*values, default="2.7"):
-        for value in values:
-            if value is None or value == "":
-                continue
-            text = str(value).strip()
-            if text in aap_version_dotted:
-                return aap_version_dotted[text]
-            if text in aap_version_number:
-                return text
-        return default
-
-    jinja_open = "{" + "{"
-    jinja_close = "}" + "}"
-
-    def vault_ref(name):
-        return QuotedString(jinja_open + " " + name + " " + jinja_close)
-
-    def playbook_file_ref(filename):
-        return (
-            jinja_open
-            + " playbook_dir "
-            + jinja_close
-            + "/../../files/"
-            + filename
-        )
-
-    def safe_upload_filename(name, default_name):
-        candidate = Path(str(name or default_name)).name
-        candidate = re.sub(r"[^A-Za-z0-9._-]+", "-", candidate).strip(".-")
-        return candidate or default_name
-
-    def write_repo_file_from_preflight(filename, content, default_name, encoding="base64"):
-        project_dir = env_dir.parents[2] if len(env_dir.parents) >= 3 else env_dir
-        files_dir = project_dir / "files"
-        files_dir.mkdir(parents=True, exist_ok=True)
-        target = files_dir / safe_upload_filename(filename, default_name)
-        if str(encoding or "base64").lower() in ("base64", "b64"):
-            try:
-                raw = base64.b64decode(str(content), validate=True)
-            except (binascii.Error, ValueError) as exc:
-                raise SystemExit(f"Invalid base64 upload content for {target.name}: {exc}") from exc
-            target.write_bytes(raw)
-        else:
-            target.write_text(str(content), encoding="utf-8")
-        target.chmod(0o600)
-        return target
-
-    def copy_repo_file_from_path(src, filename, default_name):
-        project_dir = env_dir.parents[2] if len(env_dir.parents) >= 3 else env_dir
-        files_dir = project_dir / "files"
-        files_dir.mkdir(parents=True, exist_ok=True)
-        target = files_dir / safe_upload_filename(filename, default_name)
-        shutil.copy2(str(src), target)
-        target.chmod(0o600)
-        return target
-
-    def merge_component(component, cfg):
-        if not isinstance(cfg, dict):
-            return
-
-        vars_path = env_dir / f"vars_{component}.yml"
-        vault_path = env_dir / f"vault_{component}.yml"
-
-        vars_data = load_yaml(vars_path)
-        vault_data = load_yaml(vault_path)
-        vars_data_changed = False
-        vault_data_changed = False
-
-        public_values = {k: v for k, v in cfg.items() if not is_secret_key(k)}
-        secret_values = {k: v for k, v in cfg.items() if is_secret_key(k)}
-        passthrough_public_values = copy.deepcopy(public_values)
-
-        quoted_public_keys = {
-            "activation_key",
-            "admin_activation_key",
-            "admin_rhn_activation_key",
-            "rhn_activation_key",
-            "rhn_org_id",
-            "org_id",
-            "redhat_org_id",
-            "satellite_install_rhn_activation_key",
-            "satellite_install_rhn_org_id",
-            "satellite_admin_rhn_activation_key",
-            "satellite_rhn_org_id",
-        }
-        for quoted_key in quoted_public_keys:
-            if quoted_key in public_values and public_values[quoted_key] is not None:
-                public_values[quoted_key] = QuotedString(str(public_values[quoted_key]))
-
-        if component == "satellite":
-            satellite_role_only_keys = {
-                "activation_key",
-                "admin_activation_key",
-                "admin_rhn_activation_key",
-                "rhn_activation_key",
-                "rhn_org_id",
-                "org_id",
-                "redhat_org_id",
-                "satellite_install_rhn_activation_key",
-                "satellite_install_rhn_org_id",
-                "satellite_install_rhn_connected",
-                "satellite_install_size",
-                "satellite_install_size_profile",
-                "satellite_install_min_memory_size",
-                "satellite_install_min_cpu_count",
-                "satellite_install_vg_name",
-                "satellite_install_req_dirs",
-                "satellite_install_data_device",
-                "satellite_install_data_device_name",
-                "satellite_install_data_disk_min_size",
-                "satellite_config_manifest_file",
-                "satellite_config_manifest_src",
-                "satellite_config_manifest_path",
-                "satellite_config_manifest_organization",
-                "satellite_config_upload_manifest",
-                "satellite_config_rhn_connected",
-                "rhn_connected",
-                "satellite_install_manifest_file",
-                "satellite_install_manifest_path",
-                "satellite_install_manifest_organization",
-                "satellite_rhn_org_id",
-                "satellite_manifest_file",
-                "satellite_manifest_path",
-                "satellite_manifest_organization",
-                "manifest_file",
-                "manifest_path",
-                "manifest_filename",
-                "manifest_organization",
-                "manifest_encoding",
-                "satellite_data_device",
-                "satellite_data_device_name",
-                "satellite_data_disk_min_size",
-                "satellite_vg_name",
-                "data_device",
-                "data_device_name",
-                "data_disk_min_size",
-                "size",
-                "req_dirs",
-                "vg_name",
-                "vgname",
-                "oidc",
-                "oidc_client_id",
-                "oidc_realm",
-                "oidc_keycloak_url",
-                "oidc_issuer",
-                "keycloak_url",
-                "keycloak_admin_user",
-            }
-            satellite_stale_raw_keys = {
-                "activation_key",
-                "admin_activation_key",
-                "admin_rhn_activation_key",
-                "rhn_activation_key",
-                "rhn_org_id",
-                "org_id",
-                "redhat_org_id",
-                "satellite_install_rhn_activation_key",
-                "satellite_install_rhn_org_id",
-                "satellite_install_rhn_connected",
-                "satellite_install_size",
-                "satellite_install_size_profile",
-                "satellite_install_min_memory_size",
-                "satellite_install_min_cpu_count",
-                "satellite_install_vg_name",
-                "satellite_install_req_dirs",
-                "satellite_install_data_device",
-                "satellite_install_data_device_name",
-                "satellite_install_data_disk_min_size",
-                "satellite_config_manifest_file",
-                "satellite_config_manifest_src",
-                "satellite_config_manifest_path",
-                "satellite_config_manifest_organization",
-                "satellite_config_upload_manifest",
-                "satellite_config_rhn_connected",
-                "rhn_connected",
-                "satellite_install_manifest_file",
-                "satellite_install_manifest_path",
-                "satellite_install_manifest_organization",
-                "satellite_rhn_org_id",
-                "satellite_manifest_file",
-                "satellite_manifest_path",
-                "satellite_manifest_organization",
-                "manifest_file",
-                "manifest_path",
-                "manifest_filename",
-                "manifest_organization",
-                "manifest_encoding",
-                "satellite_data_device",
-                "satellite_data_device_name",
-                "satellite_data_disk_min_size",
-                "satellite_vg_name",
-                "data_device",
-                "data_device_name",
-                "data_disk_min_size",
-                "size",
-                "req_dirs",
-                "vg_name",
-                "vgname",
-                "oidc",
-                "oidc_client_id",
-                "oidc_realm",
-                "oidc_keycloak_url",
-                "oidc_issuer",
-                "keycloak_url",
-                "keycloak_admin_user",
-            }
-            for satellite_key in satellite_role_only_keys:
-                passthrough_public_values.pop(satellite_key, None)
-            for satellite_key in satellite_stale_raw_keys:
-                vars_data.pop(satellite_key, None)
-                vault_data.pop(satellite_key, None)
-            existing_satellite_config = copy.deepcopy(
-                vars_data.get("component_config", {}).get(component, {})
-            )
-            for satellite_key in satellite_stale_raw_keys:
-                existing_satellite_config.pop(satellite_key, None)
-            satellite_manifest_payload_keys = {
-                "satellite_manifest_content",
-                "satellite_manifest_content_base64",
-                "satellite_manifest_b64",
-                "manifest_content",
-                "manifest_content_base64",
-                "manifest_b64",
-            }
-        elif component == "aap":
-            aap_role_only_keys = {
-                "deployment_version",
-                "version",
-                "namespace",
-                "create_namespace",
-                "operator_channel",
-                "operator_approval",
-                "operator_scope",
-                "instance_name",
-                "component_deployment",
-                "minimal_footprint",
-                "admin_username",
-                "install_controller",
-                "install_hub",
-                "install_eda",
-                "install_lightspeed",
-                "controller_replicas",
-                "hub_storage_type",
-                "hub_storage_class",
-                "hub_storage_size",
-                "hub_s3_secret",
-                "hub_azure_secret",
-                "platform_manifest_overrides",
-                "controller_manifest_overrides",
-                "hub_manifest_overrides",
-                "eda_manifest_overrides",
-                "license_mode",
-                "subscription_manifest_file",
-                "subscription_manifest_content_base64",
-                "subscription_manifest_encoding",
-                "rhn_username",
-                "rhn_password",
-                "rhn_subscription_id",
-                "rhn_client_id",
-                "rhn_client_secret",
-            }
-            for aap_key in aap_role_only_keys:
-                passthrough_public_values.pop(aap_key, None)
-                vars_data.pop(aap_key, None)
-            existing_satellite_config = {}
-        elif component == "rhbk":
-            for rhbk_key in (
-                "standalone_zip_upload_path",
-                "standalone_zip_content_base64",
-            ):
-                passthrough_public_values.pop(rhbk_key, None)
-                vars_data.pop(rhbk_key, None)
-            existing_satellite_config = {}
-        elif component == "ec2_ami_copy":
-            for ec2_key in (
-                "source_region",
-                "dest_region",
-                "source_image_id",
-                "name",
-                "description",
-                "kms_key_id",
-                "wait",
-                "wait_timeout",
-                "encrypted",
-                "copy_image_tags",
-                "tag_equality",
-                "tags",
-            ):
-                passthrough_public_values.pop(ec2_key, None)
-            existing_satellite_config = {}
-        elif component == "aws":
-            for aws_key in (
-                "profile",
-                "default_region",
-                "access_key_id",
-                "secret_access_key",
-                "session_token",
-                "awspca_access_key_id",
-                "awspca_secret_access_key",
-            ):
-                passthrough_public_values.pop(aws_key, None)
-            existing_satellite_config = {}
-        else:
-            existing_satellite_config = {}
-
-        if public_values:
-            vars_data.setdefault("component_config", {})
-            existing_component_config = (
-                existing_satellite_config
-                if component == "satellite"
-                else copy.deepcopy(vars_data["component_config"].get(component, {}))
-            )
-            vars_data["component_config"][component] = {
-                **existing_component_config,
-                **copy.deepcopy(
-                    public_values
-                    if component in ("aws", "ec2_ami_copy")
-                    else passthrough_public_values
-                ),
-            }
-
-            for k, v in passthrough_public_values.items():
-                vars_data[k] = copy.deepcopy(v)
-
-            if component == "grafana":
-                vars_data.setdefault("components_env", {}).setdefault("grafana", {})
-                if public_values.get("storage"):
-                    vars_data["components_env"]["grafana"]["storage"] = public_values["storage"]
-                if public_values.get("folder_name"):
-                    vars_data["components_env"]["grafana"]["grafana_folder"] = public_values["folder_name"]
-                if public_values.get("hostname"):
-                    vars_data["components_env"]["grafana"]["hostname"] = public_values["hostname"]
-                folders = public_values.get("folders")
-                if isinstance(folders, list):
-                    vars_data["grafana_folders"] = copy.deepcopy(folders)
-                    vars_data["components_env"]["grafana"]["grafana_folders"] = copy.deepcopy(folders)
-                email = public_values.get("email") or public_values.get("grafana_email")
-                if isinstance(email, dict):
-                    vars_data["grafana_email"] = copy.deepcopy(email)
-                    vars_data["components_env"]["grafana"]["grafana_email"] = copy.deepcopy(email)
-                oidc = public_values.get("oidc")
-                if isinstance(oidc, dict):
-                    vars_data["oidc"] = copy.deepcopy(oidc)
-                    vars_data["components_env"]["grafana"]["oidc"] = copy.deepcopy(oidc)
-                if "alerts_enabled" in public_values:
-                    vars_data["grafana_alerts_enabled"] = as_bool(public_values.get("alerts_enabled"), False)
-                    vars_data["components_env"]["grafana"]["grafana_alerts_enabled"] = vars_data["grafana_alerts_enabled"]
-                if "group_cluster_dashboards" in public_values:
-                    vars_data["grafana_group_cluster_dashboards"] = as_bool(
-                        public_values.get("group_cluster_dashboards"), True
-                    )
-                    vars_data["components_env"]["grafana"]["grafana_group_cluster_dashboards"] = (
-                        vars_data["grafana_group_cluster_dashboards"]
-                    )
-                standalone_hostname = first_present(
-                    public_values.get("standalone_hostname"),
-                    public_values.get("hostname"),
-                )
-                if standalone_hostname:
-                    vars_data["grafana_hostname"] = str(standalone_hostname)
-                    vars_data["install_grafana_hostname"] = str(standalone_hostname)
-                rpm_path = first_present(public_values.get("standalone_rpm_path"))
-                if rpm_path:
-                    vars_data["grafana_rpm_path"] = str(rpm_path)
-                    vars_data["install_grafana_rpm_path"] = str(rpm_path)
-                rpm_url = first_present(public_values.get("standalone_rpm_url"))
-                if rpm_url:
-                    vars_data["grafana_rpm_url"] = str(rpm_url)
-                    vars_data["install_grafana_rpm_url"] = str(rpm_url)
-                rhn_org = first_present(public_values.get("standalone_rhn_org_id"))
-                if rhn_org:
-                    vars_data["install_grafana_rhn_org_id"] = str(rhn_org)
-                rhn_key = first_present(secret_values.get("standalone_rhn_activation_key"))
-                if rhn_key:
-                    vars_data["install_grafana_rhn_activation_key"] = vault_ref(
-                        "vault_grafana_rhn_activation_key"
-                    )
-                    vault_data["vault_grafana_rhn_activation_key"] = QuotedString(str(rhn_key))
-                    vault_data_changed = True
-
-            if component == "gitlab":
-                standalone_hostname = first_present(
-                    public_values.get("standalone_hostname"),
-                    public_values.get("hostname"),
-                )
-                if standalone_hostname:
-                    vars_data["gitlab_hostname"] = str(standalone_hostname)
-                    vars_data["install_gitlab_hostname"] = str(standalone_hostname)
-                external_url = first_present(public_values.get("standalone_external_url"))
-                if external_url:
-                    vars_data["gitlab_external_url"] = str(external_url)
-                    vars_data["install_gitlab_external_url"] = str(external_url)
-                edition = first_present(public_values.get("standalone_edition"))
-                if edition:
-                    vars_data["gitlab_edition"] = str(edition)
-                    vars_data["install_gitlab_edition"] = str(edition)
-                rpm_path = first_present(public_values.get("standalone_rpm_path"))
-                if rpm_path:
-                    vars_data["gitlab_rpm_path"] = str(rpm_path)
-                    vars_data["install_gitlab_rpm_path"] = str(rpm_path)
-                rpm_url = first_present(public_values.get("standalone_rpm_url"))
-                if rpm_url:
-                    vars_data["gitlab_rpm_url"] = str(rpm_url)
-                    vars_data["install_gitlab_rpm_url"] = str(rpm_url)
-                if secret_values.get("standalone_root_password"):
-                    vars_data["gitlab_root_password"] = vault_ref("vault_gitlab_root_password")
-                    vault_data["vault_gitlab_root_password"] = QuotedString(
-                        str(secret_values.get("standalone_root_password"))
-                    )
-                    vault_data["gitlab_root_password"] = QuotedString(
-                        str(secret_values.get("standalone_root_password"))
-                    )
-                    vault_data_changed = True
-                tls_crt = first_present(
-                    secret_values.get("standalone_tls_crt"),
-                    public_values.get("standalone_tls_crt"),
-                )
-                tls_key = first_present(secret_values.get("standalone_tls_key"))
-                if tls_crt:
-                    vars_data["gitlab_tls_crt"] = vault_ref("vault_gitlab_tls_crt")
-                    vault_data["vault_gitlab_tls_crt"] = QuotedString(str(tls_crt))
-                    vault_data["gitlab_tls_crt"] = QuotedString(str(tls_crt))
-                    vault_data_changed = True
-                if tls_key:
-                    vars_data["gitlab_tls_key"] = vault_ref("vault_gitlab_tls_key")
-                    vault_data["vault_gitlab_tls_key"] = QuotedString(str(tls_key))
-                    vault_data["gitlab_tls_key"] = QuotedString(str(tls_key))
-                    vault_data_changed = True
-                rhn_org = first_present(public_values.get("standalone_rhn_org_id"))
-                if rhn_org:
-                    vars_data["install_gitlab_rhn_org_id"] = str(rhn_org)
-                    vars_data["gitlab_rhn_org_id"] = str(rhn_org)
-                rhn_key = first_present(secret_values.get("standalone_rhn_activation_key"))
-                if rhn_key:
-                    vars_data["install_gitlab_rhn_activation_key"] = vault_ref(
-                        "vault_gitlab_rhn_activation_key"
-                    )
-                    vault_data["vault_gitlab_rhn_activation_key"] = QuotedString(str(rhn_key))
-                    vault_data_changed = True
-
-            if component == "rhbk":
-                vars_data.setdefault("components_env", {}).setdefault("rhbk", {})
-                if public_values.get("storage"):
-                    vars_data["components_env"]["rhbk"]["storage"] = public_values["storage"]
-                if public_values.get("realm"):
-                    vars_data["components_env"]["rhbk"]["rhbk_realm"] = public_values["realm"]
-                if public_values.get("hostname"):
-                    vars_data["components_env"]["rhbk"]["hostname"] = public_values["hostname"]
-                clients = public_values.get("clients")
-                if isinstance(clients, list) and clients:
-                    rhbk_clients = {}
-                    for client in clients:
-                        if not isinstance(client, dict):
-                            continue
-                        client_id = str(client.get("id") or client.get("client_id") or "").strip()
-                        if not client_id:
-                            continue
-                        def _split(value):
-                            if isinstance(value, list):
-                                return [str(v).strip() for v in value if str(v).strip()]
-                            return [part.strip() for part in str(value or "").replace("\n", ",").split(",") if part.strip()]
-                        rhbk_clients[client_id] = {
-                            "rhbk_client_name": str(client.get("name") or client_id),
-                            "rhbk_redirect_uris": _split(client.get("redirect_uris")),
-                            "rhbk_web_origins": _split(client.get("web_origins")),
-                        }
-                    if rhbk_clients:
-                        vars_data["rhbk_clients"] = rhbk_clients
-                        vars_data["components_env"]["rhbk"]["rhbk_clients"] = copy.deepcopy(rhbk_clients)
-                if public_values.get("client"):
-                    vars_data["rhbk_client"] = str(public_values.get("client"))
-                standalone_hostname = first_present(public_values.get("standalone_hostname"))
-                if standalone_hostname:
-                    vars_data["rhbk_standalone_hostname"] = str(standalone_hostname)
-                    vars_data["install_rhbk_standalone_hostname"] = str(standalone_hostname)
-                zip_url = first_present(public_values.get("standalone_zip_url"))
-                if zip_url:
-                    vars_data["rhbk_standalone_zip_url"] = str(zip_url)
-                zip_filename = first_present(
-                    public_values.get("standalone_zip_file"),
-                    Path(str(public_values.get("standalone_zip") or "")).name
-                    if public_values.get("standalone_zip")
-                    else None,
-                )
-                zip_upload = first_present(public_values.get("standalone_zip_upload_path"))
-                zip_content = first_present(secret_values.get("standalone_zip_content_base64"))
-                if zip_content:
-                    zip_target = write_repo_file_from_preflight(
-                        zip_filename,
-                        zip_content,
-                        "rhbk.zip",
-                        "base64",
-                    )
-                    vars_data["rhbk_standalone_zip"] = QuotedString(playbook_file_ref(zip_target.name))
-                elif zip_upload and Path(str(zip_upload)).is_file():
-                    zip_target = copy_repo_file_from_path(
-                        zip_upload,
-                        zip_filename,
-                        "rhbk.zip",
-                    )
-                    vars_data["rhbk_standalone_zip"] = QuotedString(playbook_file_ref(zip_target.name))
-                elif zip_filename and str(zip_filename).lower().endswith(".zip"):
-                    typed_zip = str(public_values.get("standalone_zip") or "")
-                    if typed_zip.startswith("/"):
-                        vars_data["rhbk_standalone_zip"] = typed_zip
-                    else:
-                        vars_data["rhbk_standalone_zip"] = QuotedString(
-                            playbook_file_ref(Path(str(zip_filename)).name)
-                        )
-                if public_values.get("standalone_admin_user"):
-                    vars_data["rhbk_admin_user"] = str(public_values.get("standalone_admin_user"))
-                if secret_values.get("standalone_admin_password"):
-                    vars_data["rhbk_admin_password"] = vault_ref("vault_rhbk_admin_password")
-                    vault_data["vault_rhbk_admin_password"] = QuotedString(
-                        str(secret_values.get("standalone_admin_password"))
-                    )
-                    vault_data_changed = True
-                tls_crt = first_present(
-                    secret_values.get("standalone_tls_crt"),
-                    public_values.get("standalone_tls_crt"),
-                )
-                tls_key = first_present(secret_values.get("standalone_tls_key"))
-                if tls_crt:
-                    vars_data["rhbk_standalone_tls_crt"] = vault_ref("vault_rhbk_standalone_tls_crt")
-                    vars_data["tls_crt"] = vault_ref("vault_rhbk_standalone_tls_crt")
-                    vault_data["vault_rhbk_standalone_tls_crt"] = QuotedString(str(tls_crt))
-                    vault_data_changed = True
-                if tls_key:
-                    vars_data["rhbk_standalone_tls_key"] = vault_ref("vault_rhbk_standalone_tls_key")
-                    vars_data["tls_key"] = vault_ref("vault_rhbk_standalone_tls_key")
-                    vault_data["vault_rhbk_standalone_tls_key"] = QuotedString(str(tls_key))
-                    vault_data_changed = True
-                if tls_crt and tls_key:
-                    vars_data["rhbk_standalone_https_enabled"] = True
-                    vars_data["install_rhbk_standalone_https_enabled"] = True
-                rhn_org = first_present(public_values.get("standalone_rhn_org_id"))
-                if rhn_org:
-                    vars_data["install_rhbk_rhn_org_id"] = str(rhn_org)
-                rhn_key = first_present(secret_values.get("standalone_rhn_activation_key"))
-                if rhn_key:
-                    vars_data["install_rhbk_rhn_activation_key"] = vault_ref(
-                        "vault_rhbk_rhn_activation_key"
-                    )
-                    vault_data["vault_rhbk_rhn_activation_key"] = QuotedString(str(rhn_key))
-                    vault_data_changed = True
-                for mapper_key in (
-                    "group_mapper_name",
-                    "group_mapper_claim",
-                    "group_mapper_group_path",
-                    "group_mapper_sync_mode",
-                    "federation_name",
-                    "federation_provider",
-                    "federation_ldap_url",
-                    "federation_bind_dn",
-                ):
-                    if public_values.get(mapper_key) is not None:
-                        vars_data[mapper_key] = public_values.get(mapper_key)
-
-            if component == "aap":
-                preflight_aap = preflight.get("aap") or {}
-                deployment_version = aap_dotted_version(
-                    public_values.get("deployment_version"),
-                    public_values.get("version"),
-                    preflight_aap.get("version"),
-                    default="2.7",
-                )
-                namespace = str(public_values.get("namespace") or "aap")
-                instance_name = str(
-                    public_values.get("instance_name") or namespace
-                )
-                admin_password_secret = f"{instance_name}-admin-password"
-                admin_username = str(
-                    first_present(
-                        public_values.get("admin_username"),
-                        preflight_aap.get("admin_username"),
-                        "admin",
-                    )
-                    or "admin"
-                )
-                # license_only may not be finalized until later in this block;
-                # detect attach early so General-tab password wins.
-                _attach_early = (
-                    isinstance(preflight.get("pre_installs"), dict)
-                    and as_bool(
-                        (preflight.get("pre_installs") or {}).get("attach_aap_license"),
-                        False,
-                    )
-                    and not as_bool(
-                        (preflight.get("pre_installs") or {}).get("install_aap"),
-                        False,
-                    )
-                ) or as_bool(public_values.get("license_only"), False)
-                if _attach_early:
-                    admin_password = first_present(
-                        preflight_aap.get("admin_password"),
-                        secret_values.get("admin_password"),
-                    )
-                else:
-                    admin_password = first_present(
-                        secret_values.get("admin_password"),
-                        preflight_aap.get("admin_password"),
-                    )
-                if admin_password is not None:
-                    vault_data["aap_admin_password"] = admin_password
-                    vault_data["vault_controller_password"] = admin_password
-                    vault_data_changed = True
-                vault_data["aap_admin_user"] = admin_username
-                vault_data_changed = True
-                minimal_footprint = as_bool(
-                    public_values.get("minimal_footprint"),
-                    False,
-                )
-                install_controller = as_bool(
-                    public_values.get("install_controller"),
-                    True,
-                )
-                install_hub = as_bool(public_values.get("install_hub"), True)
-                install_eda = as_bool(public_values.get("install_eda"), True)
-                install_lightspeed = as_bool(
-                    public_values.get("install_lightspeed"),
-                    False,
-                )
-                if minimal_footprint:
-                    install_hub = False
-                    install_eda = False
-                    install_lightspeed = False
-                openshift_values = preflight.get("openshift") or {}
-                api_host = first_present(
-                    openshift_values.get("api_host"),
-                    openshift_values.get("host"),
-                    preflight.get("api_host"),
-                )
-                skip_tls_verify = as_bool(
-                    openshift_values.get("skip_tls_verify"),
-                    True,
-                )
-                if openshift_values.get("token") is not None:
-                    vault_data["token"] = openshift_values["token"]
-                    vault_data_changed = True
-                vars_data["aap_ocp_install_namespace"] = namespace
-                vars_data["aap_ocp_install_create_namespace"] = as_bool(
-                    public_values.get("create_namespace"),
-                    True,
-                )
-                vars_data["aap_ocp_install_connection"] = {
-                    "host": str(api_host or ""),
-                    "api_key": vault_ref("token"),
-                    "validate_certs": not skip_tls_verify,
-                }
-                operator_scope_raw = str(
-                    public_values.get("operator_scope") or "all_namespaces"
-                ).strip().lower().replace("-", "_")
-                if operator_scope_raw in (
-                    "namespaced",
-                    "namespace",
-                    "single_namespace",
-                ):
-                    operator_scope = "namespaced"
-                    default_operator_channel = f"stable-{deployment_version}"
-                else:
-                    operator_scope = "all_namespaces"
-                    default_operator_channel = (
-                        f"stable-{deployment_version}-cluster-scoped"
-                    )
-                operator_channel = str(
-                    public_values.get("operator_channel")
-                    or default_operator_channel
-                )
-                vars_data["aap_operator_scope"] = operator_scope
-                vars_data.setdefault("component_config", {}).setdefault("aap", {})
-                vars_data["component_config"]["aap"]["operator_scope"] = operator_scope
-                vars_data["component_config"]["aap"]["operator_channel"] = (
-                    operator_channel
-                )
-                vars_data["aap_ocp_install_operator"] = {
-                    "channel": operator_channel,
-                    "approval": str(
-                        public_values.get("operator_approval") or "automatic"
-                    ),
-                }
-                vars_data["aap_ocp_install_platform"] = {
-                    "instance_name": instance_name,
-                    "namespace": namespace,
-                    "component_deployment": str(
-                        public_values.get("component_deployment") or "unified"
-                    ),
-                    "admin_user": admin_username,
-                    "admin_password_secret": admin_password_secret,
-                    "platform_manifest_overrides": copy.deepcopy(
-                        public_values.get("platform_manifest_overrides") or {}
-                    ),
-                }
-                vars_data["aap_ocp_install_controller"] = {
-                    "instance_name": f"{instance_name}-controller",
-                    "namespace": namespace,
-                    "install": install_controller,
-                    "admin_user": admin_username,
-                    "replicas": int(
-                        public_values.get("controller_replicas")
-                        or public_values.get("replicas")
-                        or 1
-                    ),
-                    "controller_manifest_overrides": copy.deepcopy(
-                        public_values.get("controller_manifest_overrides") or {}
-                    ),
-                }
-                vars_data["aap_ocp_install_hub"] = {
-                    "instance_name": f"{instance_name}-hub",
-                    "namespace": namespace,
-                    "install": install_hub,
-                    "storage_type": str(
-                        public_values.get("hub_storage_type") or "file"
-                    ),
-                    "file_storage_storage_class": str(
-                        public_values.get("hub_storage_class") or ""
-                    ),
-                    "file_storage_size": str(
-                        public_values.get("hub_storage_size") or "20Gi"
-                    ),
-                    "object_storage_s3_secret": str(
-                        public_values.get("hub_s3_secret") or ""
-                    ),
-                    "object_storage_azure_secret": str(
-                        public_values.get("hub_azure_secret") or ""
-                    ),
-                    "hub_manifest_overrides": copy.deepcopy(
-                        public_values.get("hub_manifest_overrides") or {}
-                    ),
-                }
-                vars_data["aap_ocp_install_eda"] = {
-                    "instance_name": f"{instance_name}-eda",
-                    "namespace": namespace,
-                    "install": install_eda,
-                    "eda_manifest_overrides": copy.deepcopy(
-                        public_values.get("eda_manifest_overrides") or {}
-                    ),
-                }
-                vars_data["aap_ocp_install_lightspeed"] = {
-                    "install": install_lightspeed
-                }
-                vars_data["aap_install_during_bootstrap"] = as_bool(
-                    public_values.get("install_during_bootstrap"),
-                    False,
-                )
-                vars_data["aap_minimal_footprint"] = minimal_footprint
-                pre_installs = preflight.get("pre_installs") or {}
-                if isinstance(pre_installs, dict) and as_bool(pre_installs.get("install_aap"), False):
-                    vars_data["aap_install_during_bootstrap"] = True
-                    public_values["install_during_bootstrap"] = True
-                pre_aap = pre_installs.get("aap") if isinstance(pre_installs, dict) else {}
-                if not isinstance(pre_aap, dict):
-                    pre_aap = {}
-                license_mode = str(
-                    first_present(
-                        public_values.get("license_mode"),
-                        pre_aap.get("license_mode"),
-                        "none",
-                    )
-                    or "none"
-                ).lower()
-                vars_data["aap_ocp_install_license_mode"] = license_mode
-                license_only = as_bool(
-                    first_present(
-                        public_values.get("license_only"),
-                        pre_aap.get("license_only"),
-                        pre_installs.get("attach_aap_license")
-                        if (
-                            isinstance(pre_installs, dict)
-                            and not as_bool(pre_installs.get("install_aap"), False)
-                            and as_bool(pre_installs.get("attach_aap_license"), False)
-                        )
-                        else False,
-                    ),
-                    False,
-                )
-                # Attach-only: run install path for license attach, skip operator.
-                if (
-                    isinstance(pre_installs, dict)
-                    and as_bool(pre_installs.get("attach_aap_license"), False)
-                    and not as_bool(pre_installs.get("install_aap"), False)
-                ):
-                    license_only = True
-                    vars_data["aap_install_during_bootstrap"] = True
-                    public_values["install_during_bootstrap"] = True
-                vars_data["aap_ocp_install_license_only"] = license_only
-                public_values["license_only"] = license_only
-                manifest_file = first_present(
-                    public_values.get("subscription_manifest_file"),
-                    pre_aap.get("subscription_manifest_file"),
-                )
-                if manifest_file:
-                    vars_data["aap_ocp_install_subscription_manifest_filename"] = str(manifest_file)
-                manifest_b64 = first_present(
-                    public_values.get("subscription_manifest_content_base64"),
-                    pre_aap.get("subscription_manifest_content_base64"),
-                    secret_values.get("subscription_manifest_content_base64"),
-                )
-                if manifest_b64:
-                    vault_data["aap_ocp_install_subscription_manifest_content_base64"] = manifest_b64
-                    vault_data_changed = True
-                rhn_user = first_present(
-                    public_values.get("rhn_username"),
-                    pre_aap.get("rhn_username"),
-                )
-                rhn_pass = first_present(
-                    secret_values.get("rhn_password"),
-                    public_values.get("rhn_password"),
-                    pre_aap.get("rhn_password"),
-                )
-                if rhn_user:
-                    vars_data["aap_ocp_install_rhn_username"] = str(rhn_user)
-                if rhn_pass:
-                    vault_data["aap_ocp_install_rhn_password"] = rhn_pass
-                    vars_data["aap_ocp_install_rhn_password"] = vault_ref(
-                        "aap_ocp_install_rhn_password"
-                    )
-                    vault_data_changed = True
-                rhn_subscription_id = first_present(
-                    public_values.get("rhn_subscription_id"),
-                    pre_aap.get("rhn_subscription_id"),
-                )
-                if rhn_subscription_id:
-                    vars_data["aap_ocp_install_rhn_subscription_id"] = str(
-                        rhn_subscription_id
-                    )
-                rhn_client_id = first_present(
-                    public_values.get("rhn_client_id"),
-                    pre_aap.get("rhn_client_id"),
-                )
-                rhn_client_secret = first_present(
-                    secret_values.get("rhn_client_secret"),
-                    public_values.get("rhn_client_secret"),
-                    pre_aap.get("rhn_client_secret"),
-                )
-                if rhn_client_id:
-                    vars_data["aap_ocp_install_rhn_client_id"] = str(rhn_client_id)
-                if rhn_client_secret:
-                    vault_data["aap_ocp_install_rhn_client_secret"] = rhn_client_secret
-                    vars_data["aap_ocp_install_rhn_client_secret"] = vault_ref(
-                        "aap_ocp_install_rhn_client_secret"
-                    )
-                    vault_data_changed = True
-                # License-only attach: prefer General tab aap.hostname over stale
-                # component_config.aap.hostname (e.g. default aap-aap.apps...).
-                if license_only:
-                    hostname_value = first_present(
-                        preflight_aap.get("hostname"),
-                        public_values.get("hostname"),
-                    )
-                else:
-                    hostname_value = first_present(
-                        public_values.get("hostname"),
-                        preflight_aap.get("hostname"),
-                    )
-                if hostname_value:
-                    host_clean = re.sub(
-                        r"^https?://", "", str(hostname_value)
-                    ).rstrip("/")
-                    vars_data["hostname"] = host_clean
-                    vars_data["aap_hostname"] = host_clean
-                    vars_data["aap_ocp_install_controller_route_host"] = host_clean
-                # Manifest base64 must be available to the license task as a var.
-                if manifest_b64:
-                    vars_data[
-                        "aap_ocp_install_subscription_manifest_content_base64"
-                    ] = vault_ref(
-                        "aap_ocp_install_subscription_manifest_content_base64"
-                    )
-
-            if component == "devspaces":
-                vars_data.setdefault("components_env", {}).setdefault("devspaces", {})
-                mapping = {
-                    "hostname": "hostname",
-                    "storage": "storage",
-                    "namespace": "app_namespace",
-                    "disable_default_samples": "disable_default_samples",
-                    "customize_workspace": "customize_workspace",
-                    "default_devfile_url": "default_devfile_url",
-                    "default_workspace_image": "default_workspace_image",
-                    "dashboard_image": "dashboard_image",
-                    "che_image_tag": "che_image_tag",
-                }
-                for src_key, dest_key in mapping.items():
-                    if public_values.get(src_key) is not None and public_values.get(src_key) != "":
-                        vars_data[dest_key] = public_values.get(src_key)
-                        vars_data["components_env"]["devspaces"][dest_key] = public_values.get(src_key)
-                # Role-prefixed aliases
-                for role_key in (
-                    "ocp_devspaces_disable_default_samples",
-                    "ocp_devspaces_customize_workspace",
-                    "ocp_devspaces_default_devfile_url",
-                    "ocp_devspaces_default_workspace_image",
-                    "ocp_devspaces_dashboard_image",
-                ):
-                    plain = role_key.replace("ocp_devspaces_", "", 1)
-                    if plain in public_values and public_values.get(plain) not in (None, ""):
-                        vars_data[role_key] = public_values.get(plain)
-                if "disable_default_samples" in public_values:
-                    vars_data["ocp_devspaces_disable_default_samples"] = as_bool(
-                        public_values.get("disable_default_samples"), True
-                    )
-                if "customize_workspace" in public_values:
-                    vars_data["ocp_devspaces_customize_workspace"] = as_bool(
-                        public_values.get("customize_workspace"), False
-                    )
-                if public_values.get("default_devfile_url"):
-                    vars_data["ocp_devspaces_default_devfile_url"] = public_values.get("default_devfile_url")
-                if public_values.get("default_workspace_image"):
-                    vars_data["ocp_devspaces_default_workspace_image"] = public_values.get("default_workspace_image")
-                if public_values.get("dashboard_image"):
-                    vars_data["ocp_devspaces_dashboard_image"] = public_values.get("dashboard_image")
-
-            if component == "acs":
-                for src_key in (
-                    "policies_source_type",
-                    "policies_source",
-                    "reports_source_type",
-                    "reports_source",
-                ):
-                    if public_values.get(src_key) is not None:
-                        vars_data[f"acs_{src_key}"] = public_values.get(src_key)
-                if public_values.get("namespace"):
-                    vars_data["acs_namespace"] = public_values.get("namespace")
-                    vars_data["ocp_acs_namespace"] = public_values.get("namespace")
-                if public_values.get("storage"):
-                    vars_data["storage"] = public_values.get("storage")
-
-            if component == "acm":
-                if public_values.get("namespace"):
-                    vars_data["name_space"] = public_values.get("namespace")
-                if public_values.get("channel"):
-                    vars_data["operator_channel"] = public_values.get("channel")
-                if public_values.get("storage"):
-                    vars_data["storage_class"] = public_values.get("storage")
-
-            if component == "openshift_virt":
-                openshift_values = preflight.get("openshift") or {}
-                openshift_skip_tls = as_bool(
-                    openshift_values.get("skip_tls_verify"),
-                    True,
-                )
-                virt_skip_tls = as_bool(
-                    first_present(
-                        public_values.get("skip_tls_verify"),
-                        public_values.get("provision_openshift_virt_skip_tls_verify"),
-                    ),
-                    openshift_skip_tls,
-                )
-                vars_data["provision_openshift_virt_skip_tls_verify"] = virt_skip_tls
-                vars_data["skip_tls_verify"] = openshift_skip_tls
-                vars_data["verify_ssl"] = not openshift_skip_tls
-                vars_data["validate_certs"] = not virt_skip_tls
-
-                api_host = first_present(
-                    public_values.get("api_host"),
-                    public_values.get("provision_openshift_virt_api_host"),
-                    openshift_values.get("api_host"),
-                    openshift_values.get("host"),
-                )
-                if api_host is not None:
-                    vars_data["provision_openshift_virt_api_host"] = str(api_host)
-
-                api_token = first_present(
-                    secret_values.get("api_token"),
-                    openshift_values.get("token"),
-                )
-                if api_token is not None:
-                    vault_data["provision_openshift_virt_api_token"] = api_token
-                    vault_data_changed = True
-                    secret_values.pop("api_token", None)
-
-                if "prefix_length" in public_values:
-                    try:
-                        vars_data["provision_openshift_virt_prefix_length"] = int(
-                            public_values.get("prefix_length") or 24
-                        )
-                    except (TypeError, ValueError):
-                        vars_data["provision_openshift_virt_prefix_length"] = 24
-
-                if "gateway" in public_values:
-                    vars_data["provision_openshift_virt_gateway"] = str(
-                        public_values.get("gateway") or ""
-                    )
-
-                if "dns_servers" in public_values:
-                    dns_servers = public_values.get("dns_servers")
-                    if isinstance(dns_servers, list):
-                        vars_data["provision_openshift_virt_dns_servers"] = [
-                            str(item).strip() for item in dns_servers if str(item).strip()
-                        ]
-                    else:
-                        vars_data["provision_openshift_virt_dns_servers"] = str(
-                            dns_servers or ""
-                        )
-
-                if "ip_range" in public_values:
-                    vars_data["openshift_virt_ip_range"] = str(
-                        public_values.get("ip_range") or ""
-                    )
-
-                # Static IP is chosen at job launch; preflight only seeds shared network defaults.
-                vars_data["provision_openshift_virt_static_ip"] = ""
-                vars_data["openshift_virt_network_defaults"] = {
-                    "ip_range": str(
-                        vars_data.get("openshift_virt_ip_range")
-                        or public_values.get("ip_range")
-                        or ""
-                    ),
-                    "static_ip": "",
-                    "prefix_length": int(
-                        vars_data.get("provision_openshift_virt_prefix_length") or 24
-                    ),
-                    "gateway": str(
-                        vars_data.get("provision_openshift_virt_gateway") or ""
-                    ),
-                    "dns_servers": vars_data.get(
-                        "provision_openshift_virt_dns_servers",
-                        "",
-                    ),
-                }
-
-            if component == "ec2_ami_copy":
-                ec2_ami_copy_mapping = {
-                    "source_region": "ec2_ami_copy_source_region",
-                    "dest_region": "ec2_ami_copy_dest_region",
-                    "source_image_id": "ec2_ami_copy_source_image_id",
-                    "name": "ec2_ami_copy_name",
-                    "description": "ec2_ami_copy_description",
-                    "kms_key_id": "ec2_ami_copy_kms_key_id",
-                }
-                for source_key, target_key in ec2_ami_copy_mapping.items():
-                    if source_key in public_values:
-                        vars_data[target_key] = str(public_values.get(source_key) or "")
-                        vars_data_changed = True
-
-                for flag_key, target_key in (
-                    ("wait", "ec2_ami_copy_wait"),
-                    ("encrypted", "ec2_ami_copy_encrypted"),
-                    ("copy_image_tags", "ec2_ami_copy_copy_image_tags"),
-                    ("tag_equality", "ec2_ami_copy_tag_equality"),
-                ):
-                    if flag_key in public_values:
-                        vars_data[target_key] = as_bool(public_values.get(flag_key), False)
-                        vars_data_changed = True
-
-                if "wait_timeout" in public_values:
-                    try:
-                        vars_data["ec2_ami_copy_wait_timeout"] = int(
-                            public_values.get("wait_timeout") or 600
-                        )
-                    except (TypeError, ValueError):
-                        vars_data["ec2_ami_copy_wait_timeout"] = 600
-                    vars_data_changed = True
-
-                if "tags" in public_values and isinstance(public_values.get("tags"), dict):
-                    vars_data["ec2_ami_copy_tags"] = public_values["tags"]
-                    vars_data_changed = True
-
-            if component == "aws":
-                if public_values.get("profile") is not None:
-                    vars_data["aws_profile"] = str(public_values.get("profile") or "")
-                    vars_data_changed = True
-                if public_values.get("default_region") is not None:
-                    vars_data["aws_default_region"] = str(
-                        public_values.get("default_region") or ""
-                    )
-                    vars_data_changed = True
-
-            if component == "satellite":
-                vars_data.setdefault("components_env", {}).setdefault("satellite", {})
-                vars_data["components_env"]["satellite"].pop("storage", None)
-                if public_values.get("hostname"):
-                    satellite_url = str(public_values["hostname"])
-                    if not satellite_url.startswith(("http://", "https://")):
-                        satellite_url = "https://" + satellite_url
-                    vars_data["components_env"]["satellite"]["hostname"] = public_values["hostname"]
-                    vars_data["satellite_config_server_url"] = satellite_url
-                    vars_data["rhel_sat_reg_satellite_host"] = satellite_url
-                if public_values.get("organization"):
-                    vars_data["satellite_config_organization"] = public_values["organization"]
-                    vars_data["rhel_sat_reg_satellite_org_name"] = public_values["organization"]
-                if public_values.get("service_account_username"):
-                    vars_data["satellite_config_username"] = public_values["service_account_username"]
-                    vars_data["satellite_service_account_username"] = public_values["service_account_username"]
-                    vars_data["rhel_sat_reg_org_admin_account"] = public_values["service_account_username"]
-                    vault_data["vault_satellite_service_account_username"] = public_values["service_account_username"]
-                    vault_data_changed = True
-                if "validate_certs" in public_values:
-                    vars_data["satellite_config_validate_certs"] = public_values["validate_certs"]
-                    vars_data["rhel_sat_reg_validate_certs"] = public_values["validate_certs"]
-                    vars_data["rhel_sat_reg_insecure"] = not bool(public_values["validate_certs"])
-                if public_values.get("deployment_version"):
-                    vars_data["satellite_config_satellite_deployment_version"] = public_values["deployment_version"]
-                    vars_data["satellite_install_deployment_version"] = public_values["deployment_version"]
-                if public_values.get("location"):
-                    vars_data["satellite_install_location"] = public_values["location"]
-
-                rhn_connected = as_bool(
-                    first_present(
-                        public_values.get("satellite_config_rhn_connected"),
-                        public_values.get("rhn_connected"),
-                        public_values.get("satellite_install_rhn_connected"),
-                    ),
-                    True,
-                )
-                vars_data["satellite_config_rhn_connected"] = rhn_connected
-
-                manifest_organization = first_present(
-                    public_values.get("satellite_config_manifest_organization"),
-                    public_values.get("satellite_install_manifest_organization"),
-                    public_values.get("satellite_manifest_organization"),
-                    public_values.get("manifest_organization"),
-                    public_values.get("organization"),
-                )
-                if manifest_organization is not None:
-                    vars_data["satellite_config_organization"] = str(manifest_organization)
-                    vars_data["rhel_sat_reg_satellite_org_name"] = str(manifest_organization)
-                manifest_file = first_present(
-                    public_values.get("satellite_config_manifest_file"),
-                    public_values.get("satellite_install_manifest_file"),
-                    public_values.get("satellite_manifest_file"),
-                    public_values.get("manifest_file"),
-                    public_values.get("manifest_filename"),
-                )
-                manifest_src = first_present(
-                    public_values.get("satellite_config_manifest_src"),
-                    public_values.get("satellite_install_manifest_path"),
-                    public_values.get("satellite_manifest_path"),
-                    public_values.get("manifest_path"),
-                )
-                manifest_dest = public_values.get("satellite_config_manifest_path")
-                manifest_content = first_present(
-                    secret_values.get("satellite_manifest_content_base64"),
-                    secret_values.get("manifest_content_base64"),
-                    secret_values.get("satellite_manifest_b64"),
-                    secret_values.get("manifest_b64"),
-                    secret_values.get("satellite_manifest_content"),
-                    secret_values.get("manifest_content"),
-                )
-                if manifest_content is not None:
-                    manifest_filename = first_present(
-                        manifest_file,
-                        "satellite-manifest.zip",
-                    )
-                    manifest_encoding = first_present(
-                        public_values.get("manifest_encoding"),
-                        "base64",
-                    )
-                    manifest_target = write_repo_file_from_preflight(
-                        manifest_filename,
-                        manifest_content,
-                        "satellite-manifest.zip",
-                        manifest_encoding,
-                    )
-                    vars_data["satellite_config_manifest_file"] = manifest_target.name
-                    vars_data["satellite_config_manifest_src"] = QuotedString(
-                        playbook_file_ref(manifest_target.name)
-                    )
-                    vars_data["satellite_config_manifest_path"] = str(
-                        first_present(
-                            manifest_dest,
-                            "/root/" + manifest_target.name,
-                        )
-                    )
-                    vars_data["satellite_config_upload_manifest"] = True
-                elif manifest_file is not None or manifest_src is not None:
-                    if manifest_file is not None:
-                        manifest_filename = Path(str(manifest_file)).name
-                        resolved_src = first_present(
-                            manifest_src,
-                            playbook_file_ref(manifest_filename),
-                        )
-                    else:
-                        manifest_filename = Path(str(manifest_src)).name
-                        resolved_src = str(manifest_src)
-                    vars_data["satellite_config_manifest_file"] = manifest_filename
-                    if jinja_open in str(resolved_src):
-                        vars_data["satellite_config_manifest_src"] = QuotedString(
-                            str(resolved_src)
-                        )
-                    else:
-                        vars_data["satellite_config_manifest_src"] = str(resolved_src)
-                    vars_data["satellite_config_manifest_path"] = str(
-                        first_present(
-                            manifest_dest,
-                            "/root/" + manifest_filename,
-                        )
-                    )
-                    vars_data["satellite_config_upload_manifest"] = True
-                for manifest_payload_key in satellite_manifest_payload_keys:
-                    secret_values.pop(manifest_payload_key, None)
-                vg_name = first_present(
-                    public_values.get("satellite_install_vg_name"),
-                    public_values.get("satellite_vg_name"),
-                    public_values.get("vg_name"),
-                    public_values.get("vgname"),
-                )
-                if vg_name is not None:
-                    vars_data["satellite_install_vg_name"] = vg_name
-                data_disk_min_size = first_present(
-                    public_values.get("satellite_install_data_disk_min_size"),
-                    public_values.get("satellite_data_disk_min_size"),
-                    public_values.get("data_disk_min_size"),
-                )
-                if data_disk_min_size is not None:
-                    vars_data["satellite_install_data_disk_min_size"] = QuotedString(str(data_disk_min_size))
-                data_device_name = first_present(
-                    public_values.get("satellite_install_data_device_name"),
-                    public_values.get("satellite_data_device_name"),
-                    public_values.get("data_device_name"),
-                )
-                if data_device_name is not None:
-                    vars_data["satellite_install_data_device_name"] = str(data_device_name)
-                data_device = first_present(
-                    public_values.get("satellite_install_data_device"),
-                    public_values.get("satellite_data_device"),
-                    public_values.get("data_device"),
-                )
-                if data_device is not None:
-                    vars_data["satellite_install_data_device"] = str(data_device)
-                rhn_org_id = first_present(
-                    public_values.get("satellite_install_rhn_org_id"),
-                    public_values.get("rhn_org_id"),
-                    public_values.get("org_id"),
-                    public_values.get("redhat_org_id"),
-                    public_values.get("satellite_rhn_org_id"),
-                )
-                if rhn_org_id is not None:
-                    vault_data["vault_satellite_rhn_org_id"] = QuotedString(str(rhn_org_id))
-                    vault_data["satellite_install_rhn_org_id"] = QuotedString(str(rhn_org_id))
-                    vars_data["satellite_install_rhn_org_id"] = vault_ref("vault_satellite_rhn_org_id")
-                    vars_data["satellite_install_rhn_connected"] = True
-                    vault_data_changed = True
-                rhn_activation_key = first_present(
-                    public_values.get("satellite_install_rhn_activation_key"),
-                    public_values.get("admin_rhn_activation_key"),
-                    public_values.get("satellite_admin_rhn_activation_key"),
-                    public_values.get("rhn_activation_key"),
-                    public_values.get("admin_activation_key"),
-                )
-                if rhn_activation_key is not None:
-                    vault_data["vault_satellite_rhn_activation_key"] = QuotedString(str(rhn_activation_key))
-                    vault_data["satellite_install_rhn_activation_key"] = QuotedString(str(rhn_activation_key))
-                    vars_data["satellite_install_rhn_activation_key"] = vault_ref("vault_satellite_rhn_activation_key")
-                    vars_data["satellite_install_rhn_connected"] = True
-                    vault_data_changed = True
-                client_activation_key = first_present(
-                    public_values.get("activation_key"),
-                    public_values.get("satellite_activation_key"),
-                    public_values.get("client_activation_key"),
-                    public_values.get("rhel_sat_reg_activation_key_name"),
-                )
-                if client_activation_key is not None:
-                    vars_data["satellite_activation_key"] = QuotedString(str(client_activation_key))
-                    vars_data["rhel_sat_reg_activation_key_name"] = QuotedString(str(client_activation_key))
-                    vars_data_changed = True
-                req_dirs = first_present(
-                    public_values.get("satellite_install_req_dirs"),
-                    public_values.get("req_dirs"),
-                )
-                if req_dirs:
-                    vars_data["satellite_install_req_dirs"] = copy.deepcopy(req_dirs)
-                if public_values.get("size"):
-                    vars_data["satellite_install_size"] = copy.deepcopy(public_values["size"])
-                if public_values.get("size_profile"):
-                    vars_data["satellite_install_size_profile"] = public_values["size_profile"]
-                    satellite_sizes = vars_data.get("satellite_install_size") or []
-                    selected_size = next(
-                        (
-                            item for item in satellite_sizes
-                            if isinstance(item, dict) and item.get("name") == public_values["size_profile"]
-                        ),
-                        {},
-                    )
-                    if selected_size.get("min_ram") is not None:
-                        vars_data["satellite_install_min_memory_size"] = int(selected_size["min_ram"]) * 1024
-                    if selected_size.get("min_cpu") is not None:
-                        vars_data["satellite_install_min_cpu_count"] = int(selected_size["min_cpu"])
-
-                oidc_cfg = public_values.get("oidc") if isinstance(public_values.get("oidc"), dict) else {}
-                oidc_client_id = first_present(
-                    oidc_cfg.get("client_id"),
-                    public_values.get("oidc_client_id"),
-                    public_values.get("satellite_oidc_client_id"),
-                    "ado-satellite",
-                )
-                oidc_realm = first_present(
-                    oidc_cfg.get("realm"),
-                    public_values.get("oidc_realm"),
-                    public_values.get("satellite_oidc_realm"),
-                    "rhlab",
-                )
-                oidc_keycloak_url = first_present(
-                    oidc_cfg.get("keycloak_url"),
-                    public_values.get("keycloak_url"),
-                    public_values.get("satellite_oidc_keycloak_url"),
-                    "https://keycloak.apps.ocp.prod.rhlab",
-                )
-                oidc_issuer = first_present(
-                    oidc_cfg.get("issuer"),
-                    public_values.get("oidc_issuer"),
-                    public_values.get("satellite_oidc_issuer"),
-                )
-                if oidc_issuer is None and oidc_keycloak_url and oidc_realm:
-                    oidc_issuer = str(oidc_keycloak_url).rstrip("/") + "/realms/" + str(oidc_realm)
-                oidc_hostname = str(oidc_keycloak_url or "").strip()
-                oidc_hostname = oidc_hostname.replace("https://", "").replace("http://", "")
-                oidc_hostname = oidc_hostname.split("/")[0]
-                if oidc_client_id:
-                    vars_data["satellite_oidc_client_id"] = str(oidc_client_id)
-                    vars_data["rhbk_client"] = str(oidc_client_id)
-                if oidc_realm:
-                    vars_data["satellite_oidc_realm"] = str(oidc_realm)
-                    vars_data["rhbk_realm"] = str(oidc_realm)
-                if oidc_keycloak_url:
-                    vars_data["satellite_oidc_keycloak_url"] = str(oidc_keycloak_url)
-                if oidc_hostname:
-                    vars_data["satellite_oidc_keycloak_hostname"] = oidc_hostname
-                    vars_data["rhbk_hostname"] = oidc_hostname
-                if oidc_issuer:
-                    vars_data["satellite_oidc_issuer"] = str(oidc_issuer)
-                vars_data["satellite_oidc_create_client"] = as_bool(
-                    first_present(
-                        oidc_cfg.get("create_client"),
-                        public_values.get("satellite_oidc_create_client"),
-                        True,
-                    ),
-                    True,
-                )
-                vars_data["satellite_oidc_keycloak_validate_certs"] = as_bool(
-                    first_present(
-                        oidc_cfg.get("validate_certs"),
-                        public_values.get("oidc_validate_certs"),
-                        False,
-                    ),
-                    False,
-                )
-                vars_data["rhbk_verify_ssl"] = vars_data["satellite_oidc_keycloak_validate_certs"]
-                if vars_data.get("satellite_config_server_url"):
-                    vars_data["satellite_oidc_server_url"] = vars_data["satellite_config_server_url"]
-                vars_data["satellite_oidc_validate_certs"] = vars_data.get(
-                    "satellite_config_validate_certs", False
-                )
-                oidc_client_secret = first_present(
-                    oidc_cfg.get("client_secret"),
-                    secret_values.get("oidc_client_secret"),
-                    secret_values.get("client_secret"),
-                    secret_values.get("satellite_oidc_client_secret"),
-                )
-                oidc_admin_user = first_present(
-                    oidc_cfg.get("admin_user"),
-                    oidc_cfg.get("keycloak_admin_user"),
-                    public_values.get("keycloak_admin_user"),
-                    "admin",
-                )
-                oidc_admin_password = first_present(
-                    oidc_cfg.get("admin_password"),
-                    oidc_cfg.get("keycloak_admin_password"),
-                    secret_values.get("keycloak_admin_password"),
-                    secret_values.get("rhbk_admin_password"),
-                    secret_values.get("oidc_admin_password"),
-                )
-                if oidc_admin_user:
-                    vars_data["satellite_oidc_admin_user"] = vault_ref("vault_rhbk_admin_user")
-                    vars_data["rhbk_admin_user"] = vault_ref("vault_rhbk_admin_user")
-                    vault_data["vault_rhbk_admin_user"] = QuotedString(str(oidc_admin_user))
-                    vault_data_changed = True
-                if oidc_admin_password is not None:
-                    vars_data["satellite_oidc_admin_password"] = vault_ref("vault_rhbk_admin_password")
-                    vars_data["rhbk_admin_password"] = vault_ref("vault_rhbk_admin_password")
-                    vault_data["vault_rhbk_admin_password"] = QuotedString(str(oidc_admin_password))
-                    vault_data_changed = True
-                if oidc_client_secret is not None:
-                    vars_data["satellite_oidc_client_secret"] = vault_ref(
-                        "vault_satellite_oidc_client_secret"
-                    )
-                    vault_data["vault_satellite_oidc_client_secret"] = QuotedString(
-                        str(oidc_client_secret)
-                    )
-                    vault_data_changed = True
-                vars_data.pop("oidc", None)
-
-            if component == "cert_manager":
-                if public_values.get("mode"):
-                    vars_data["ocp_cert_manager_mode"] = public_values["mode"]
-                if public_values.get("idm_acme_directory_url"):
-                    vars_data.setdefault("idm", {})
-                    vars_data["idm"]["acme_directory_url"] = public_values["idm_acme_directory_url"]
-                if public_values.get("idm_ca_bundle_file"):
-                    vars_data.setdefault("idm", {})
-                    vars_data["idm"]["ca_bundle_file"] = public_values["idm_ca_bundle_file"]
-                if public_values.get("awspca_namespace"):
-                    vars_data["ocp_awspca_namespace"] = public_values["awspca_namespace"]
-                if public_values.get("awspca_secret_name"):
-                    vars_data["ocp_awspca_secret_name"] = public_values["awspca_secret_name"]
-                if public_values.get("awspca_issuer_name"):
-                    vars_data["ocp_awspca_issuer_name"] = public_values["awspca_issuer_name"]
-                if public_values.get("awspca_region"):
-                    vars_data["ocp_awspca_region"] = public_values["awspca_region"]
-                if public_values.get("awspca_pca_arn"):
-                    vars_data["ocp_awspca_pca_arn"] = public_values["awspca_pca_arn"]
-                if public_values.get("tls_crt"):
-                    vault_data["tls_crt"] = public_values["tls_crt"]
-
-            if component == "idm":
-                vars_data.setdefault("components_env", {}).setdefault("idm", {})
-                public_values.pop("storage", None)
-                vars_data["component_config"][component].pop("storage", None)
-                vars_data.pop("storage", None)
-                vars_data["components_env"]["idm"].pop("storage", None)
-                if public_values.get("hostname"):
-                    vars_data["components_env"]["idm"]["hostname"] = public_values["hostname"]
-                    vars_data["idm_hostname"] = public_values["hostname"]
-                    vars_data["idm_server_name"] = public_values["hostname"]
-                    vars_data["idm_configure_replica_server"] = public_values["hostname"]
-                    vars_data["ipaclient_servers"] = [public_values["hostname"]]
-                    vars_data["ipaclient_no_dns_lookup"] = True
-                if public_values.get("domain"):
-                    vars_data["components_env"]["idm"]["domain"] = public_values["domain"]
-                    vars_data["idm_domain"] = public_values["domain"]
-                    vars_data["idm_configure_replica_domain"] = public_values["domain"]
-                    vars_data["ipaclient_domain"] = public_values["domain"]
-                if public_values.get("realm"):
-                    vars_data["components_env"]["idm"]["realm"] = public_values["realm"]
-                    vars_data["idm_realm"] = public_values["realm"]
-                    vars_data["idm_configure_replica_realm"] = public_values["realm"]
-                    vars_data["ipaclient_realm"] = public_values["realm"]
-                elif public_values.get("domain"):
-                    vars_data["ipaclient_realm"] = str(public_values["domain"]).upper()
-                    vars_data["idm_realm"] = str(public_values["domain"]).upper()
-                if public_values.get("replica_hostname"):
-                    vars_data["idm_replica_hostname"] = public_values["replica_hostname"]
-                    vars_data["idm_configure_replica_hostname"] = public_values["replica_hostname"]
-                if "replica_install_dns" in public_values:
-                    vars_data["idm_replica_install_dns"] = public_values["replica_install_dns"]
-                    vars_data["idm_configure_replica_setup_dns"] = public_values["replica_install_dns"]
-                if "replica_install_ca" in public_values:
-                    vars_data["idm_replica_install_ca"] = public_values["replica_install_ca"]
-                    vars_data["idm_configure_replica_setup_ca"] = public_values["replica_install_ca"]
-                if "auto_forwarders" in public_values:
-                    vars_data["idm_auto_forwarders"] = public_values["auto_forwarders"]
-                    vars_data["idm_configure_replica_auto_forwarders"] = public_values["auto_forwarders"]
-                if public_values.get("custom_cert_file"):
-                    vars_data["idm_custom_cert_file"] = public_values["custom_cert_file"]
-                if public_values.get("custom_cert_key_file"):
-                    vars_data["idm_custom_cert_key_file"] = public_values["custom_cert_key_file"]
-                if public_values.get("custom_cert_chain_file"):
-                    vars_data["idm_custom_cert_chain_file"] = public_values["custom_cert_chain_file"]
-                if public_values.get("ad_domain"):
-                    vars_data["idm_ad_trust_ad_domain"] = public_values["ad_domain"]
-                    vars_data["idm_ad_trust_ad_realm"] = str(public_values["ad_domain"]).upper()
-                if public_values.get("ad_dc_hostname"):
-                    vars_data["idm_ad_trust_ad_dc_hostname"] = public_values["ad_dc_hostname"]
-                if public_values.get("ad_dc_ip"):
-                    vars_data["idm_ad_trust_ad_dc_ip"] = public_values["ad_dc_ip"]
-                if public_values.get("ad_admin"):
-                    vars_data["idm_ad_trust_ad_admin"] = public_values["ad_admin"]
-                if "ad_two_way" in public_values:
-                    vars_data["idm_ad_trust_two_way"] = public_values["ad_two_way"]
-                if public_values.get("ad_map_group"):
-                    vars_data["idm_ad_trust_map_ad_group"] = public_values["ad_map_group"]
-                if public_values.get("ad_map_admins_group"):
-                    vars_data["idm_ad_trust_map_ad_admins_group"] = public_values["ad_map_admins_group"]
-                if "ad_configure_groups" in public_values:
-                    vars_data["idm_ad_trust_configure_groups"] = public_values["ad_configure_groups"]
-
-            if component == "rhel":
-                vars_data.setdefault("components_env", {}).setdefault("rhel", {})
-                vars_data["components_env"]["rhel"].update(public_values)
-
-            if component == "stig":
-                rhel_values = (preflight.get("component_config") or {}).get("rhel") or {}
-                if rhel_values.get("compliance_profile"):
-                    vars_data["compliance_profile"] = rhel_values["compliance_profile"]
-                if rhel_values.get("stig_profile"):
-                    vars_data["stig_profile"] = rhel_values["stig_profile"]
-                    vars_data["rhel_stig_profile"] = rhel_values["stig_profile"]
-                if public_values.get("profile"):
-                    vars_data["stig_profile"] = public_values["profile"]
-                    vars_data["rhel_stig_profile"] = public_values["profile"]
-
-            write_yaml(vars_path, vars_data, "0644")
-            if vault_data_changed:
-                write_yaml(vault_path, vault_data, "0600")
-
-        if secret_values:
-            vault_data.setdefault("component_vault_config", {})
-            vault_data["component_vault_config"][component] = {
-                **vault_data["component_vault_config"].get(component, {}),
-                **secret_values,
-            }
-
-            for k, v in secret_values.items():
-                vault_data[k] = v
-
-            if component == "aap":
-                if secret_values.get("admin_password") is not None:
-                    vault_data["aap_admin_password"] = secret_values["admin_password"]
-                    vault_data["vault_controller_password"] = secret_values["admin_password"]
-                vault_data.pop("admin_password", None)
-                vault_data_changed = True
-
-            if component == "satellite":
-                if secret_values.get("service_account_password") is not None:
-                    vault_data["vault_satellite_service_account_password"] = secret_values["service_account_password"]
-                    vault_data["satellite_config_password"] = secret_values["service_account_password"]
-                    vault_data_changed = True
-                if secret_values.get("admin_password") is not None:
-                    vault_data["vault_satellite_admin_password"] = secret_values["admin_password"]
-                    vault_data["satellite_config_admin_password"] = secret_values["admin_password"]
-                    vault_data["satellite_install_admin_password"] = secret_values["admin_password"]
-                    vault_data_changed = True
-                rhn_org_id = first_present(
-                    public_values.get("satellite_install_rhn_org_id"),
-                    public_values.get("rhn_org_id"),
-                    public_values.get("org_id"),
-                    public_values.get("redhat_org_id"),
-                    public_values.get("satellite_rhn_org_id"),
-                    public_values.get("satellite_install_rhn_org_id"),
-                    secret_values.get("rhn_org_id"),
-                    secret_values.get("org_id"),
-                    secret_values.get("redhat_org_id"),
-                    secret_values.get("satellite_rhn_org_id"),
-                    secret_values.get("satellite_install_rhn_org_id"),
-                    secret_values.get("satellite_install_rhn_org_id"),
-                )
-                if rhn_org_id is not None:
-                    vault_data["vault_satellite_rhn_org_id"] = QuotedString(str(rhn_org_id))
-                    vault_data["satellite_install_rhn_org_id"] = QuotedString(str(rhn_org_id))
-                    vars_data["satellite_install_rhn_org_id"] = vault_ref("vault_satellite_rhn_org_id")
-                    vars_data["satellite_install_rhn_connected"] = True
-                    vars_data_changed = True
-                    vault_data_changed = True
-
-                rhn_activation_key = first_present(
-                    secret_values.get("satellite_install_rhn_activation_key"),
-                    secret_values.get("admin_rhn_activation_key"),
-                    secret_values.get("satellite_admin_rhn_activation_key"),
-                    secret_values.get("satellite_install_admin_rhn_activation_key"),
-                    secret_values.get("rhn_activation_key"),
-                    secret_values.get("admin_activation_key"),
-                    public_values.get("admin_rhn_activation_key"),
-                    public_values.get("satellite_admin_rhn_activation_key"),
-                    public_values.get("satellite_install_admin_rhn_activation_key"),
-                    public_values.get("satellite_install_rhn_activation_key"),
-                    public_values.get("rhn_activation_key"),
-                    public_values.get("admin_activation_key"),
-                )
-                if rhn_activation_key is not None:
-                    vault_data["vault_satellite_rhn_activation_key"] = QuotedString(str(rhn_activation_key))
-                    vault_data["satellite_install_rhn_activation_key"] = QuotedString(str(rhn_activation_key))
-                    vars_data["satellite_install_rhn_activation_key"] = vault_ref("vault_satellite_rhn_activation_key")
-                    vars_data["satellite_install_rhn_connected"] = True
-                    vars_data_changed = True
-                    vault_data_changed = True
-
-                client_activation_key = first_present(
-                    secret_values.get("activation_key"),
-                    secret_values.get("satellite_activation_key"),
-                    secret_values.get("client_activation_key"),
-                    secret_values.get("rhel_sat_reg_activation_key_name"),
-                    public_values.get("activation_key"),
-                    public_values.get("satellite_activation_key"),
-                    public_values.get("client_activation_key"),
-                    public_values.get("rhel_sat_reg_activation_key_name"),
-                )
-                if client_activation_key is not None:
-                    vars_data["satellite_activation_key"] = QuotedString(str(client_activation_key))
-                    vars_data["rhel_sat_reg_activation_key_name"] = QuotedString(str(client_activation_key))
-                    vars_data_changed = True
-
-                if vars_data_changed:
-                    write_yaml(vars_path, vars_data, "0644")
-
-            if component == "cert_manager":
-                if secret_values.get("tls_key") is not None:
-                    vault_data["tls_key"] = secret_values["tls_key"]
-
-            if component == "idm":
-                if secret_values.get("admin_password") is not None:
-                    vault_data["vault_idm_admin_password"] = secret_values["admin_password"]
-                    vault_data["ipaadmin_password"] = secret_values["admin_password"]
-                    vault_data["idm_server_ipaadmin_password"] = secret_values["admin_password"]
-                    vault_data["idm_configure_replica_admin_password"] = secret_values["admin_password"]
-                    vault_data["idm_ad_trust_ipa_admin_password"] = secret_values["admin_password"]
-                if secret_values.get("directory_manager_password") is not None:
-                    vault_data["vault_idm_directory_manager_password"] = secret_values["directory_manager_password"]
-                    vault_data["idm_configure_replica_dm_password"] = secret_values["directory_manager_password"]
-                if secret_values.get("ad_admin_password") is not None:
-                    vault_data["vault_ad_trust_admin_password"] = secret_values["ad_admin_password"]
-                    vault_data["idm_ad_trust_ad_admin_password"] = secret_values["ad_admin_password"]
-
-            if component in ("ec2_ami_copy", "aws", "cert_manager"):
-                merge_shared_aws_vault({**public_values, **secret_values})
-
-            if component == "ec2_ami_copy":
-                if vault_path.exists():
-                    vault_path.unlink()
-            elif component != "aws":
-                write_yaml(vault_path, vault_data, "0600")
-
-    component_options = preflight.get("component_options") or {}
-    openshift_options = set(component_options.get("openshift") or [])
-    openshift = preflight.get("openshift") or {}
-    if openshift:
-        if "openshift" not in selected_components:
-            openshift = {}
-
-    if openshift:
-        vars_path = env_dir / "vars_openshift.yml"
-        vault_path = env_dir / "vault_openshift.yml"
-
-        vars_data = load_yaml(vars_path)
-        vault_data = load_yaml(vault_path)
-
-        if openshift.get("api_host") is not None:
-            vars_data["api_host"] = openshift.get("api_host")
-            vars_data["host"] = openshift.get("api_host")
-
-        if preflight.get("domain") is not None:
-            vars_data["domain"] = preflight.get("domain")
-
-        if openshift.get("apps_domain") is not None:
-            vars_data["apps_domain"] = openshift.get("apps_domain")
-            vars_data["app_domain"] = openshift.get("apps_domain")
-
-        skip_tls_verify = bool(openshift.get("skip_tls_verify", True))
-        vars_data["skip_tls_verify"] = skip_tls_verify
-        vars_data["verify_ssl"] = not skip_tls_verify
-        vars_data["validate_certs"] = not skip_tls_verify
-
-        if openshift.get("token") is not None:
-            vault_data["token"] = openshift.get("token")
-            vault_data["openshift_token"] = openshift.get("token")
-
-        use_kubeconfig = as_bool(openshift.get("use_kubeconfig"), False)
-        kubeconfig_content = first_present(
-            openshift.get("kubeconfig_content"),
-            openshift.get("kubeconfig"),
-        )
-        if use_kubeconfig and kubeconfig_content is not None:
-            vault_data["openshift_kubeconfig"] = kubeconfig_content
-            vault_data["kubeconfig_content"] = kubeconfig_content
-            vars_data["openshift_use_kubeconfig"] = True
-        else:
-            vault_data.pop("openshift_kubeconfig", None)
-            vault_data.pop("kubeconfig_content", None)
-            vars_data.pop("openshift_use_kubeconfig", None)
-
-        vars_data["openshift_install_htpasswd_during_bootstrap"] = as_bool(
-            openshift.get("install_htpasswd_during_bootstrap"),
-            False,
-        )
-        vars_data["openshift_install_nfs_during_bootstrap"] = as_bool(
-            openshift.get("install_nfs_during_bootstrap"),
-            False,
-        )
-
-        if "nfs_csi" in openshift_options:
-            nfs_server = first_present(
-                openshift.get("nfs_server"),
-                openshift.get("ocp_nfs_storage_server"),
-            )
-            nfs_share = first_present(
-                openshift.get("nfs_share"),
-                openshift.get("ocp_nfs_storage_share"),
-            )
-            if nfs_server is not None:
-                vars_data["ocp_nfs_storage_server"] = str(nfs_server)
-                vars_data["nfs_server"] = str(nfs_server)
-            if nfs_share is not None:
-                vars_data["ocp_nfs_storage_share"] = str(nfs_share)
-                vars_data["nfs_share"] = str(nfs_share)
-            vars_data["ocp_nfs_storage_class_name"] = str(
-                first_present(
-                    openshift.get("nfs_storage_class_name"),
-                    openshift.get("ocp_nfs_storage_class_name"),
-                    "synology-nfs-csi",
-                )
-            )
-            vars_data["ocp_nfs_storage_driver_version"] = str(
-                first_present(
-                    openshift.get("nfs_driver_version"),
-                    openshift.get("ocp_nfs_storage_driver_version"),
-                    "4.11.0",
-                )
-            )
-            vars_data["ocp_nfs_storage_nfs_version"] = str(
-                first_present(
-                    openshift.get("nfs_version"),
-                    openshift.get("ocp_nfs_storage_nfs_version"),
-                    "4.1",
-                )
-            )
-            vars_data["ocp_nfs_storage_create_test_namespace"] = as_bool(
-                openshift.get("nfs_create_test_namespace"),
-                True,
-            )
-            vars_data["ocp_nfs_storage_create_test_pvc"] = as_bool(
-                openshift.get("nfs_create_test_pvc"),
-                False,
-            )
-            vars_data["ocp_nfs_storage_test_namespace"] = str(
-                first_present(
-                    openshift.get("nfs_test_namespace"),
-                    "synology-nfs-pv",
-                )
-            )
-        else:
-            for nfs_key in (
-                "ocp_nfs_storage_server",
-                "nfs_server",
-                "ocp_nfs_storage_share",
-                "nfs_share",
-                "ocp_nfs_storage_class_name",
-                "ocp_nfs_storage_driver_version",
-                "ocp_nfs_storage_nfs_version",
-                "ocp_nfs_storage_create_test_namespace",
-                "ocp_nfs_storage_create_test_pvc",
-                "ocp_nfs_storage_test_namespace",
-            ):
-                vars_data.pop(nfs_key, None)
-
-        vars_data["openshift_install_iscsi_during_bootstrap"] = as_bool(
-            openshift.get("install_iscsi_during_bootstrap"),
-            False,
-        )
-
-        if "iscsi_csi" in openshift_options:
-            iscsi_host = first_present(
-                openshift.get("iscsi_dsm_host"),
-                openshift.get("ocp_iscsi_storage_dsm_host"),
-            )
-            iscsi_user = first_present(
-                openshift.get("iscsi_dsm_username"),
-                openshift.get("ocp_iscsi_storage_dsm_username"),
-            )
-            iscsi_pass = first_present(
-                openshift.get("iscsi_dsm_password"),
-                openshift.get("ocp_iscsi_storage_dsm_password"),
-            )
-            if iscsi_host is not None:
-                vars_data["ocp_iscsi_storage_dsm_host"] = str(iscsi_host)
-                vars_data["iscsi_dsm_host"] = str(iscsi_host)
-            if iscsi_user is not None:
-                vault_data["ocp_iscsi_storage_dsm_username"] = str(iscsi_user)
-                vault_data["iscsi_dsm_username"] = str(iscsi_user)
-            if iscsi_pass is not None:
-                vault_data["ocp_iscsi_storage_dsm_password"] = str(iscsi_pass)
-                vault_data["iscsi_dsm_password"] = str(iscsi_pass)
-            vars_data["ocp_iscsi_storage_dsm_port"] = int(
-                first_present(
-                    openshift.get("iscsi_dsm_port"),
-                    openshift.get("ocp_iscsi_storage_dsm_port"),
-                    5000,
-                )
-            )
-            vars_data["ocp_iscsi_storage_dsm_https"] = as_bool(
-                openshift.get("iscsi_dsm_https"),
-                False,
-            )
-            vars_data["ocp_iscsi_storage_class_name"] = str(
-                first_present(
-                    openshift.get("iscsi_storage_class_name"),
-                    openshift.get("ocp_iscsi_storage_class_name"),
-                    "synology-iscsi-storage",
-                )
-            )
-            vars_data["ocp_iscsi_storage_location"] = str(
-                first_present(
-                    openshift.get("iscsi_location"),
-                    openshift.get("ocp_iscsi_storage_location"),
-                    "/volume1",
-                )
-            )
-            vars_data["ocp_iscsi_storage_is_default"] = as_bool(
-                openshift.get("iscsi_is_default"),
-                True,
-            )
-            vars_data["ocp_iscsi_storage_install_snapshotter"] = as_bool(
-                openshift.get("iscsi_install_snapshotter"),
-                True,
-            )
-        else:
-            for iscsi_key in (
-                "ocp_iscsi_storage_dsm_host",
-                "iscsi_dsm_host",
-                "ocp_iscsi_storage_dsm_port",
-                "ocp_iscsi_storage_dsm_https",
-                "ocp_iscsi_storage_class_name",
-                "ocp_iscsi_storage_location",
-                "ocp_iscsi_storage_is_default",
-                "ocp_iscsi_storage_install_snapshotter",
-            ):
-                vars_data.pop(iscsi_key, None)
-            for iscsi_vault_key in (
-                "ocp_iscsi_storage_dsm_username",
-                "iscsi_dsm_username",
-                "ocp_iscsi_storage_dsm_password",
-                "iscsi_dsm_password",
-            ):
-                vault_data.pop(iscsi_vault_key, None)
-
-        if "admin_htpasswd" in openshift_options:
-            action = str(openshift.get("htpasswd_action") or "add").lower()
-            if action not in ("add", "replace", "remove"):
-                action = "add"
-            vars_data["htpasswd_action"] = action
-            users = openshift.get("htpasswd_users")
-            normalized_users = []
-            if isinstance(users, list):
-                for user in users:
-                    if not isinstance(user, dict):
-                        continue
-                    name = str(user.get("name") or "").strip()
-                    if not name:
-                        continue
-                    normalized_users.append(
-                        {
-                            "name": name,
-                            "password": user.get("password") or "",
-                            "role": user.get("role") or "cluster-admin",
-                        }
-                    )
-            if not normalized_users and (
-                openshift.get("admin_username") or openshift.get("admin_password")
-            ):
-                admin_username = openshift.get("admin_username") or "admin"
-                admin_password = openshift.get("admin_password") or ""
-                normalized_users = [
-                    {
-                        "name": admin_username,
-                        "password": admin_password,
-                        "role": openshift.get("admin_role") or "cluster-admin",
-                    }
-                ]
-            if normalized_users:
-                vault_data["htpasswd_users"] = normalized_users
-                vault_data["htpasswd_pass"] = normalized_users[0].get("password") or ""
-            else:
-                vault_data.pop("htpasswd_users", None)
-                vault_data.pop("htpasswd_pass", None)
-        else:
-            vars_data.pop("htpasswd_action", None)
-            vault_data.pop("htpasswd_users", None)
-            vault_data.pop("htpasswd_pass", None)
-
-        if "console_banner" in openshift_options and openshift.get("banner_text"):
-            vars_data["ocp_console_banner_text"] = openshift.get("banner_text")
-            vars_data["console_banner_text"] = openshift.get("banner_text")
-            if openshift.get("banner_location"):
-                vars_data["ocp_console_banner_location"] = openshift.get("banner_location")
-            if openshift.get("banner_background_color"):
-                vars_data["ocp_console_banner_background_color"] = openshift.get("banner_background_color")
-            if openshift.get("banner_text_color"):
-                vars_data["ocp_console_banner_text_color"] = openshift.get("banner_text_color")
-        else:
-            vars_data.pop("ocp_console_banner_text", None)
-            vars_data.pop("console_banner_text", None)
-            vars_data.pop("ocp_console_banner_location", None)
-            vars_data.pop("ocp_console_banner_background_color", None)
-            vars_data.pop("ocp_console_banner_text_color", None)
-
-        write_yaml(vars_path, vars_data, "0644")
-        write_yaml(vault_path, vault_data, "0600")
-
-    for component, cfg in (preflight.get("component_config") or {}).items():
-        if component not in selected_components:
-            continue
-        merge_component(component, cfg)
-
-    print(f"Overlayed preflight component values into {env_dir}")
-    PYCODE
+- name: Overlay preflight component values into generated vars/vault files
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ role_path }}/files/overlay_preflight_component_values.py"
+  environment:
+    ADO_PREFLIGHT_JSON: "{{ preflight_json }}"
+    ADO_ENV_DIR: "{{ bootstrap_generate_env_vars_env_dir }}"
+    ADO_SELECTED_COMPONENTS: "{{ bootstrap_generate_env_vars_components | to_json }}"
   args:
-    executable: /bin/bash
+    chdir: "{{ playbook_dir }}"
   changed_when: true
   when:
     - bootstrap_generate_env_vars_preflight is defined
     - preflight_json is defined
     - preflight_json | length > 0
-# yamllint enable rule:line-length
 
 - name: Remove legacy per-component ec2_ami_copy vault file
   ansible.builtin.file:
@@ -3294,6 +1605,11 @@
   when:
     - bootstrap_generate_env_vars_use_aap | bool
 
+- name: Generate onboard Keycloak groups from preflight
+  ansible.builtin.include_tasks: generate_onboard_keycloak.yml
+  when:
+    - bootstrap_generate_env_vars_use_aap | bool
+
 - name: Write machine credential vault vars
   ansible.builtin.template:
     src: vault_machine_cred.yml.j2
@@ -3478,7 +1794,11 @@
 - name: Encrypt generated vault files
   ansible.builtin.shell: |
     set -euo pipefail
+    # Preflight shells export ANSIBLE_VAULT_PASSWORD_FILE while this task also
+    # passes --vault-password-file; ansible-vault then sees default twice.
+    unset ANSIBLE_VAULT_PASSWORD_FILE
     ansible-vault encrypt "{{ item.item.path }}" \
+      --encrypt-vault-id default \
       --vault-password-file \
       "{{ bootstrap_generate_env_vars_effective_vault_password_file }}"
   args:

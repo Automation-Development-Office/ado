@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+galaxy_info:
+  author: Automation Development Office
+  description: Apply DISA STIG Compliance-as-Code on RHEL 8, 9, and 10 hosts.
+  license: GPL-3.0-or-later
+  min_ansible_version: "2.16.0"
+  galaxy_tags:
+    - stig
+    - compliance
+    - rhel
+    - openscap
+
+dependencies: []

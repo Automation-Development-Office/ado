@@ -1,1 +1,13 @@
-## ---
+---
+# Include install_aap against live inventory with aap_ocp_install_* (OpenShift)
+# or aap_setup_* (RHEL) vars; this file is a placeholder for role packaging.
+- name: Install AAP placeholder live test
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Document install_aap live test expectation
+      ansible.builtin.debug:
+        msg: >-
+          install_aap dispatches to infra.aap_utilities for openshift or rhel.
+          Run ado-aap-ocp-install-bootstrap.yml or ado-aap-rhel-install-bootstrap.yml
+          with full vars for a live install.

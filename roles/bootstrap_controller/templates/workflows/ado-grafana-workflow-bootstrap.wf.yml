@@ -1,0 +1,69 @@
+---
+controller_workflow_job_templates:
+  - name: ADO | Grafana Workflow
+    description: >-
+      Grafana on OpenShift — install, then optional OIDC, email/SMTP,
+      datasource/folders/dashboards, and alternate route based on preflight
+      Grafana options.
+    organization: "{{ bootstrap_controller_organization }}"
+    inventory: "{{ bootstrap_controller_inventory_name }}"
+    state: present
+    destroy_current_nodes: true
+    labels:
+      - ADO | bootstrap
+      - ADO | grafana
+    simplified_workflow_nodes:
+      - identifier: Deploy Grafana
+        unified_job_template: ADO | Deploy Grafana
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy Grafana OIDC
+          - Deploy Grafana Email
+          - Deploy Grafana Datasource
+          - Deploy Grafana Folders
+          - Deploy Grafana Dashboards
+          - Deploy Grafana Alternate Route
+
+      - identifier: Deploy Grafana OIDC
+        unified_job_template: ADO | Deploy Grafana OIDC
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy Grafana Email
+          - Deploy Grafana Datasource
+          - Deploy Grafana Folders
+          - Deploy Grafana Dashboards
+          - Deploy Grafana Alternate Route
+
+      - identifier: Deploy Grafana Email
+        unified_job_template: ADO | Deploy Grafana Email
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy Grafana Datasource
+          - Deploy Grafana Folders
+          - Deploy Grafana Dashboards
+          - Deploy Grafana Alternate Route
+
+      - identifier: Deploy Grafana Datasource
+        unified_job_template: ADO | Deploy Grafana Datasource
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy Grafana Folders
+          - Deploy Grafana Dashboards
+          - Deploy Grafana Alternate Route
+
+      - identifier: Deploy Grafana Folders
+        unified_job_template: ADO | Deploy Grafana Folders
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy Grafana Dashboards
+          - Deploy Grafana Alternate Route
+
+      - identifier: Deploy Grafana Dashboards
+        unified_job_template: ADO | Deploy Grafana Dashboards
+        lookup_organization: "{{ bootstrap_controller_organization }}"
+        success_nodes:
+          - Deploy Grafana Alternate Route
+
+      - identifier: Deploy Grafana Alternate Route
+        unified_job_template: ADO | Deploy Grafana Alternate Route
+        lookup_organization: "{{ bootstrap_controller_organization }}"

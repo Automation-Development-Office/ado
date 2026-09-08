@@ -1,0 +1,19 @@
+---
+- name: Patch BookStack app secret with OIDC client credentials
+  kubernetes.core.k8s:
+    state: present
+    merge_type: merge
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: bookstack-app
+        namespace: "{{ bookstack_namespace }}"
+      stringData:
+        oidc-client-id: "{{ bookstack_oidc_client_id | default('') }}"
+        oidc-client-secret: "{{ bookstack_oidc_client_secret | default('') }}"
+    validate_certs: "{{ bookstack_validate_certs }}"
+  no_log: true
+
+- name: Redeploy BookStack with OIDC environment
+  ansible.builtin.include_tasks: bookstack.yml

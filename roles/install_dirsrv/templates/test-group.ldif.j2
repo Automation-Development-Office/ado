@@ -1,0 +1,5 @@
+dn: cn=testgroup,ou=groups,{{ install_dirsrv_ds_suffix_effective }}
+objectClass: top
+objectClass: groupOfNames
+cn: testgroup
+member: uid={{ install_dirsrv_test_user_uid_effective }},ou=people,{{ install_dirsrv_ds_suffix_effective }}

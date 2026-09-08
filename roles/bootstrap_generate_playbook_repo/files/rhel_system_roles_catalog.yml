@@ -1,0 +1,139 @@
+---
+# Catalog of seeded RHEL system roles for bootstrap generation.
+rhel_system_roles_catalog:
+  - app: system_role_ad_integration
+    role: ad_integration
+    playbook: rhel_system_roles/ado-system-role-ad_integration-bootstrap.yml
+    job_template: ado-rhel-system-role-ad_integration-bootstrap.jt.yml
+  - app: system_role_aide
+    role: aide
+    playbook: rhel_system_roles/ado-system-role-aide-bootstrap.yml
+    job_template: ado-rhel-system-role-aide-bootstrap.jt.yml
+  - app: system_role_auditd
+    role: auditd
+    playbook: rhel_system_roles/ado-system-role-auditd-bootstrap.yml
+    job_template: ado-rhel-system-role-auditd-bootstrap.jt.yml
+  - app: system_role_bootloader
+    role: bootloader
+    playbook: rhel_system_roles/ado-system-role-bootloader-bootstrap.yml
+    job_template: ado-rhel-system-role-bootloader-bootstrap.jt.yml
+  - app: system_role_certificate
+    role: certificate
+    playbook: rhel_system_roles/ado-system-role-certificate-bootstrap.yml
+    job_template: ado-rhel-system-role-certificate-bootstrap.jt.yml
+  - app: system_role_cockpit
+    role: cockpit
+    playbook: rhel_system_roles/ado-system-role-cockpit-bootstrap.yml
+    job_template: ado-rhel-system-role-cockpit-bootstrap.jt.yml
+  - app: system_role_crypto_policies
+    role: crypto_policies
+    playbook: rhel_system_roles/ado-system-role-crypto_policies-bootstrap.yml
+    job_template: ado-rhel-system-role-crypto_policies-bootstrap.jt.yml
+  - app: system_role_fapolicyd
+    role: fapolicyd
+    playbook: rhel_system_roles/ado-system-role-fapolicyd-bootstrap.yml
+    job_template: ado-rhel-system-role-fapolicyd-bootstrap.jt.yml
+  - app: system_role_firewall
+    role: firewall
+    playbook: rhel_system_roles/ado-system-role-firewall-bootstrap.yml
+    job_template: ado-rhel-system-role-firewall-bootstrap.jt.yml
+  - app: system_role_ha_cluster
+    role: ha_cluster
+    playbook: rhel_system_roles/ado-system-role-ha_cluster-bootstrap.yml
+    job_template: ado-rhel-system-role-ha_cluster-bootstrap.jt.yml
+  - app: system_role_journald
+    role: journald
+    playbook: rhel_system_roles/ado-system-role-journald-bootstrap.yml
+    job_template: ado-rhel-system-role-journald-bootstrap.jt.yml
+  - app: system_role_kdump
+    role: kdump
+    playbook: rhel_system_roles/ado-system-role-kdump-bootstrap.yml
+    job_template: ado-rhel-system-role-kdump-bootstrap.jt.yml
+  - app: system_role_kernel_settings
+    role: kernel_settings
+    playbook: rhel_system_roles/ado-system-role-kernel_settings-bootstrap.yml
+    job_template: ado-rhel-system-role-kernel_settings-bootstrap.jt.yml
+  - app: system_role_keylime_server
+    role: keylime_server
+    playbook: rhel_system_roles/ado-system-role-keylime_server-bootstrap.yml
+    job_template: ado-rhel-system-role-keylime_server-bootstrap.jt.yml
+  - app: system_role_logging
+    role: logging
+    playbook: rhel_system_roles/ado-system-role-logging-bootstrap.yml
+    job_template: ado-rhel-system-role-logging-bootstrap.jt.yml
+  - app: system_role_metrics
+    role: metrics
+    playbook: rhel_system_roles/ado-system-role-metrics-bootstrap.yml
+    job_template: ado-rhel-system-role-metrics-bootstrap.jt.yml
+  - app: system_role_mssql
+    role: mssql
+    playbook: rhel_system_roles/ado-system-role-mssql-bootstrap.yml
+    job_template: ado-rhel-system-role-mssql-bootstrap.jt.yml
+  - app: system_role_nbde_client
+    role: nbde_client
+    playbook: rhel_system_roles/ado-system-role-nbde_client-bootstrap.yml
+    job_template: ado-rhel-system-role-nbde_client-bootstrap.jt.yml
+  - app: system_role_nbde_server
+    role: nbde_server
+    playbook: rhel_system_roles/ado-system-role-nbde_server-bootstrap.yml
+    job_template: ado-rhel-system-role-nbde_server-bootstrap.jt.yml
+  - app: system_role_network
+    role: network
+    playbook: rhel_system_roles/ado-system-role-network-bootstrap.yml
+    job_template: ado-rhel-system-role-network-bootstrap.jt.yml
+  - app: system_role_podman
+    role: podman
+    playbook: rhel_system_roles/ado-system-role-podman-bootstrap.yml
+    job_template: ado-rhel-system-role-podman-bootstrap.jt.yml
+  - app: system_role_postfix
+    role: postfix
+    playbook: rhel_system_roles/ado-system-role-postfix-bootstrap.yml
+    job_template: ado-rhel-system-role-postfix-bootstrap.jt.yml
+  - app: system_role_postgresql
+    role: postgresql
+    playbook: rhel_system_roles/ado-system-role-postgresql-bootstrap.yml
+    job_template: ado-rhel-system-role-postgresql-bootstrap.jt.yml
+  - app: system_role_rhc
+    role: rhc
+    playbook: rhel_system_roles/ado-system-role-rhc-bootstrap.yml
+    job_template: ado-rhel-system-role-rhc-bootstrap.jt.yml
+  - app: system_role_selinux
+    role: selinux
+    playbook: rhel_system_roles/ado-system-role-selinux-bootstrap.yml
+    job_template: ado-rhel-system-role-selinux-bootstrap.jt.yml
+  - app: system_role_snapshot
+    role: snapshot
+    playbook: rhel_system_roles/ado-system-role-snapshot-bootstrap.yml
+    job_template: ado-rhel-system-role-snapshot-bootstrap.jt.yml
+  - app: system_role_ssh
+    role: ssh
+    playbook: rhel_system_roles/ado-system-role-ssh-bootstrap.yml
+    job_template: ado-rhel-system-role-ssh-bootstrap.jt.yml
+  - app: system_role_storage
+    role: storage
+    playbook: rhel_system_roles/ado-system-role-storage-bootstrap.yml
+    job_template: ado-rhel-system-role-storage-bootstrap.jt.yml
+  - app: system_role_sudo
+    role: sudo
+    playbook: rhel_system_roles/ado-system-role-sudo-bootstrap.yml
+    job_template: ado-rhel-system-role-sudo-bootstrap.jt.yml
+  - app: system_role_systemd
+    role: systemd
+    playbook: rhel_system_roles/ado-system-role-systemd-bootstrap.yml
+    job_template: ado-rhel-system-role-systemd-bootstrap.jt.yml
+  - app: system_role_timesync
+    role: timesync
+    playbook: rhel_system_roles/ado-system-role-timesync-bootstrap.yml
+    job_template: ado-rhel-system-role-timesync-bootstrap.jt.yml
+  - app: system_role_tlog
+    role: tlog
+    playbook: rhel_system_roles/ado-system-role-tlog-bootstrap.yml
+    job_template: ado-rhel-system-role-tlog-bootstrap.jt.yml
+  - app: system_role_tuned
+    role: tuned
+    playbook: rhel_system_roles/ado-system-role-tuned-bootstrap.yml
+    job_template: ado-rhel-system-role-tuned-bootstrap.jt.yml
+  - app: system_role_vpn
+    role: vpn
+    playbook: rhel_system_roles/ado-system-role-vpn-bootstrap.yml
+    job_template: ado-rhel-system-role-vpn-bootstrap.jt.yml

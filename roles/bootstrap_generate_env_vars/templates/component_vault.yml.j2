@@ -15,13 +15,13 @@ aap24_admin_password: redhat123
 acs_admin_user: admin
 acs_admin_password: redhat123
 
-{% elif component_name == '389ds' %}
-components_vault:
-  389ds:
-    ds_suffix: "dc=prod,dc=rhlab"
-    dirsrv_manager_password: redhat123
-    repl_manager_password: redhat123
-    test_user_uid: testuser
+{% elif component_name == '389ds' or component_name == 'dirsrv' %}
+# install_dirsrv expects vault_dirsrv.yml with top-level key dirsrv:
+dirsrv:
+  ds_suffix: "dc=prod,dc=rhlab"
+  ocp_dirsrv_manager_password: redhat123
+  repl_manager_password: redhat123
+  test_user_uid: testuser
 
 {% elif component_name == 'grafana' %}
 grafana_admin_user: admin
@@ -101,8 +101,8 @@ rhbk_tls_cert:
 rhbk_tls_key:
 rhbk_admin_user: admin
 rhbk_admin_password: redhat123
-
-rhbk_federation_name: LDAP
+ocp_rhbk_admin_user: admin
+ocp_rhbk_admin_password: redhat123
 
 ldap_config:
   enabled: "true"
@@ -123,16 +123,135 @@ ldap_config:
   userObjectClasses: inetOrgPerson
 
 ldap_group_config:
-  groups.dn: "cn=groups,cn=accounts,dc=server,dc=lab"
-  group.name.ldap.attribute: cn
-  group.object.classes: groupOfNames
-  preserve.group.inheritance: "true"
-  ignore.missing.groups: "false"
-  membership.ldap.attribute: member
-  membership.attribute.type: DN
-  membership.user.ldap.attribute: dn
-  mode: READ_ONLY
-  user.roles.retrieve.strategy: LOAD_GROUPS_BY_MEMBER_ATTRIBUTE
+  # Keycloak Component API requires MultivaluedHashMap: each value is a list.
+  groups.dn:
+    - "cn=groups,cn=accounts,dc=server,dc=lab"
+  group.name.ldap.attribute:
+    - cn
+  group.object.classes:
+    - groupOfNames
+  preserve.group.inheritance:
+    - "true"
+  ignore.missing.groups:
+    - "false"
+  membership.ldap.attribute:
+    - member
+  membership.attribute.type:
+    - DN
+  membership.user.ldap.attribute:
+    - dn
+  mode:
+    - READ_ONLY
+  user.roles.retrieve.strategy:
+    - LOAD_GROUPS_BY_MEMBER_ATTRIBUTE
+
+# IdM user-attribute LDAP mappers (match prod rhlab federation).
+ldap_user_mappers:
+  - name: username
+    config:
+      ldap.attribute: uid
+      user.model.attribute: username
+      read.only: "true"
+      is.mandatory.in.ldap: "false"
+      attribute.force.default: "true"
+      is.binary.attribute: "false"
+      always.read.value.from.ldap: "false"
+  - name: email
+    config:
+      ldap.attribute: mail
+      user.model.attribute: email
+      read.only: "false"
+      is.mandatory.in.ldap: "false"
+      attribute.force.default: "true"
+      is.binary.attribute: "false"
+      always.read.value.from.ldap: "false"
+  - name: display name
+    config:
+      ldap.attribute: displayname
+      user.model.attribute: firstName
+      read.only: "false"
+      is.mandatory.in.ldap: "true"
+      attribute.force.default: "true"
+      is.binary.attribute: "false"
+      always.read.value.from.ldap: "false"
+  - name: common name
+    config:
+      ldap.attribute: cn
+      user.model.attribute: username
+      read.only: "false"
+      is.mandatory.in.ldap: "true"
+      attribute.force.default: "true"
+      is.binary.attribute: "false"
+      always.read.value.from.ldap: "false"
+  - name: legalname
+    config:
+      ldap.attribute: legalname
+      user.model.attribute: lastName
+      read.only: "false"
+      is.mandatory.in.ldap: "false"
+      attribute.force.default: "true"
+      is.binary.attribute: "false"
+      always.read.value.from.ldap: "false"
+  - name: gid
+    config:
+      ldap.attribute: gidnumber
+      user.model.attribute: ldap_gid
+      read.only: "false"
+      is.mandatory.in.ldap: "true"
+      attribute.force.default: "true"
+      is.binary.attribute: "false"
+      always.read.value.from.ldap: "false"
+  - name: uid
+    config:
+      ldap.attribute: uidnumber
+      user.model.attribute: ldap_uid
+      read.only: "false"
+      is.mandatory.in.ldap: "true"
+      attribute.force.default: "true"
+      is.binary.attribute: "false"
+      always.read.value.from.ldap: "false"
+  - name: homedirectory
+    config:
+      ldap.attribute: homedirectory
+      user.model.attribute: ldap_homedir
+      read.only: "false"
+      is.mandatory.in.ldap: "true"
+      attribute.force.default: "true"
+      is.binary.attribute: "false"
+      always.read.value.from.ldap: "false"
+  - name: creation date
+    config:
+      ldap.attribute: createtimestamp
+      user.model.attribute: createtimestamp
+      read.only: "true"
+      is.mandatory.in.ldap: "false"
+      attribute.force.default: "true"
+      is.binary.attribute: "false"
+      always.read.value.from.ldap: "true"
+  - name: modify date
+    config:
+      ldap.attribute: modifytimestamp
+      user.model.attribute: modifytimestamp
+      read.only: "true"
+      is.mandatory.in.ldap: "false"
+      attribute.force.default: "true"
+      is.binary.attribute: "false"
+      always.read.value.from.ldap: "true"
+
+{% elif component_name == 'dev_hub' %}
+dev_hub_backend_secret: changeme-backend-secret
+dev_hub_oidc_client_secret: ""
+dev_hub_gitlab_token: ""
+
+{% elif component_name == 'minio' %}
+minio_root_user: minioadmin
+minio_root_password: redhat123
+minio_oidc_client_secret: ""
+
+{% elif component_name == 'zabbix' %}
+zabbix_db_root_password: rootpass123!
+zabbix_db_password: zabbixpass123!
+zabbix_admin_password: zabbix
 
 {% elif component_name == 'quay' %}
 quay_admin_user: admin

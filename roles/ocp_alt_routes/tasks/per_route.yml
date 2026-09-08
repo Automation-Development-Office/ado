@@ -16,12 +16,21 @@
 
 - name: Ensure_Alt_Routes_From_List Per_Route Derive Alt Route Fields
   ansible.builtin.set_fact:
-    ocp_alt_routes_alt_name: "{{ _p.name ~ alt_routes_suffix }}"
+    ocp_alt_routes_alt_name: >-
+      {{
+        _p.alt_name
+        | default(_p.route_name | default(''))
+        | default(_p.name ~ alt_routes_suffix, true)
+      }}
     ocp_alt_routes_ns: "{{ _p.namespace }}"
     ocp_alt_routes_svc: "{{ _p.service | default('') }}"
     ocp_alt_routes_port: "{{ _p.targetPort | default('') }}"
     ocp_alt_routes_wildcard: "{{ _p.wildcard_policy | default('None') }}"
-    ocp_alt_routes_labels: "{{ _p.labels | default({}) }}"
+    ocp_alt_routes_labels: >-
+      {{
+        alt_routes_default_labels | default({})
+        | combine(_p.labels | default({}))
+      }}
     ocp_alt_routes_path: "{{ _p.path | default('') }}"
     ocp_alt_routes_alt_host: >-
       {{

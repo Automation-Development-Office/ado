@@ -62,6 +62,11 @@ Prefer **GrafanaDatasource** CRs (grafana-operator) in live clusters so the
 operator owns reconciliation; this role remains the ADO playbook path for
 API-based create/update.
 
+## 🧪 Role Molecule Testing
+
+No Molecule scenario ships with this role yet. Validate via Contoller JT
+`ado-grafana-deploy-datasource-bootstrap` or the Grafana deploy workflow.
+
 ## 📁 Role Structure
 
 ```text

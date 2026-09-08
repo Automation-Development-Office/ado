@@ -1,0 +1,82 @@
+---
+# OpenShift path: validated infra.aap_utilities.aap_ocp_install plus ADO
+# Fernet/DB reset and subscription attach helpers.
+
+- name: Validate OpenShift AAP installer inputs
+  ansible.builtin.assert:
+    that:
+      - aap_ocp_install_namespace | default('') | length > 0
+      - aap_ocp_install_connection is mapping
+      - aap_ocp_install_operator is mapping
+      - aap_ocp_install_operator.channel | default('') | length > 0
+      - aap_ocp_install_platform is mapping
+      - aap_ocp_install_platform.instance_name | default('') | length > 0
+    fail_msg: >-
+      OpenShift AAP install requires aap_ocp_install_namespace, connection,
+      operator.channel, and platform.instance_name (infra.aap_utilities.aap_ocp_install).
+  when:
+    - install_aap_state_effective == 'present'
+    - not (aap_ocp_install_license_only | default(false) | bool)
+
+- name: Validate license-only attach inputs
+  ansible.builtin.assert:
+    that:
+      - (aap_ocp_install_license_mode | default('none') | lower) not in ['', 'none', 'skip']
+      - >-
+        (
+          install_aap_controller_route_host | default('') | length > 0
+        )
+        or (hostname | default('') | length > 0)
+        or (aap_hostname | default('') | length > 0)
+    fail_msg: >-
+      License-only attach requires license_mode (manifest or rhn) and the AAP
+      hostname / controller route.
+  when:
+    - install_aap_state_effective == 'present'
+    - aap_ocp_install_license_only | default(false) | bool
+
+- name: Compute platform delete flag for AAP DB reset
+  ansible.builtin.set_fact:
+    install_aap_reset_delete_platform_effective: >-
+      {{
+        true
+        if (install_aap_state_effective == 'absent')
+        else (aap_ocp_install_reset_delete_platform | default(true) | bool)
+      }}
+  when: >-
+    (
+      install_aap_state_effective == 'absent'
+    )
+    or (
+      install_aap_state_effective == 'present'
+      and not (aap_ocp_install_license_only | default(false) | bool)
+      and (aap_ocp_install_reset_database | default(false) | bool)
+    )
+
+- name: Reset stale AAP Postgres / Fernet secrets
+  ansible.builtin.include_tasks: reset_stale_database.yml
+  when: >-
+    (
+      install_aap_state_effective == 'absent'
+    )
+    or (
+      install_aap_state_effective == 'present'
+      and not (aap_ocp_install_license_only | default(false) | bool)
+      and (aap_ocp_install_reset_database | default(false) | bool)
+    )
+  vars:
+    aap_ocp_install_reset_delete_platform: "{{ install_aap_reset_delete_platform_effective }}"
+
+- name: Install AAP on OpenShift via infra.aap_utilities.aap_ocp_install
+  ansible.builtin.include_role:
+    name: infra.aap_utilities.aap_ocp_install
+    public: true
+  when:
+    - install_aap_state_effective == 'present'
+    - not (aap_ocp_install_license_only | default(false) | bool)
+
+- name: Activate AAP subscription license when configured
+  ansible.builtin.include_tasks: activate_license.yml
+  when:
+    - install_aap_state_effective == 'present'
+    - (aap_ocp_install_license_mode | default('none') | lower) not in ['', 'none', 'skip']

@@ -1,3 +1,33 @@
-# SPDX-License-Identifier: GPL-3.0-or-later-0
-# ---
-# defaults file for advanced-cluster-management
+---
+# Desired state: present or absent. Legacy ``state`` is accepted if unset.
+install_aap_state: present
+
+# Target platform: openshift | rhel
+# Auto-detect when unset: openshift if aap_ocp_install_* connection/namespace
+# present; else rhel if aap_setup_prep_inv_nodes present; else openshift.
+install_aap_target: ""
+
+# OpenShift (infra.aap_utilities.aap_ocp_install) — pass aap_ocp_install_* vars.
+# ADO lab extras:
+aap_ocp_install_license_mode: none
+aap_ocp_install_license_only: false
+aap_ocp_install_subscription_manifest_path: ""
+aap_ocp_install_subscription_manifest_content_base64: ""
+aap_ocp_install_subscription_manifest_filename: manifest.zip
+aap_ocp_install_rhn_username: ""
+aap_ocp_install_rhn_password: ""
+aap_ocp_install_rhn_subscription_id: ""
+aap_ocp_install_rhn_client_id: ""
+aap_ocp_install_rhn_client_secret: ""
+aap_ocp_install_admin_user: admin
+aap_ocp_install_admin_password: ""
+aap_ocp_install_controller_route_host: ""
+aap_ocp_install_reset_database: true
+aap_ocp_install_reset_delete_platform: true
+
+# RHEL / VM / containerized (infra.aap_utilities.aap_setup_*)
+# Set aap_setup_prep_inv_nodes / aap_setup_prep_inv_vars / secrets as documented
+# by infra.aap_utilities. Optionally skip download when the tarball is local.
+install_aap_rhel_download: true
+install_aap_rhel_prepare: true
+install_aap_rhel_install: true

@@ -3,7 +3,7 @@ galaxy_info:
   role_name: acs_upload_policies
   namespace: infra
   author: Automation Development Office
-  description: Upload ACS policies/reports JSON from git or path
+  description: Apply ACS policies via rhacs_policy; upload report JSON via REST
   license: GPL-3.0-or-later
   min_ansible_version: "2.15"
 dependencies: []

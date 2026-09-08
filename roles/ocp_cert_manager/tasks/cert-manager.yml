@@ -1,8 +1,8 @@
 ---
 - name: AWS PCA | Prepare intermediate CA material (key/csr/cert) when enabled
   when:
-    - ocp_cert_manager_root_ca_awspca_enabled | bool
-    - state == 'present'
+    - (ocp_cert_manager_root_ca_awspca_enabled | default(false) | bool)
+    - (state | default('present')) == 'present'
   block:
     - name: AWS PCA | Ensure workdir exists
       ansible.builtin.file:
@@ -110,18 +110,33 @@
       data:
         tls.crt: "{{ ocp_cert_manager_tls_crt | b64encode }}"
         tls.key: "{{ ocp_cert_manager_tls_key | b64encode }}"
-  when: ocp_cert_manager_tls_crt is defined and ocp_cert_manager_tls_key is defined and state == 'present'
+  when:
+    - (state | default('present')) == 'present'
+    - ocp_cert_manager_tls_crt is defined
+    - ocp_cert_manager_tls_key is defined
+    - (ocp_cert_manager_tls_crt | string | trim | length) > 0
+    - (ocp_cert_manager_tls_key | string | trim | length) > 0
 
 - name: Create ClusterIssuer or Issuer
   kubernetes.core.k8s:
-    namespace: "{{ name_space if not ocp_cert_manager_root_ca_is_cluster_issuer else omit }}"
+    namespace: "{{ name_space if not (ocp_cert_manager_root_ca_is_cluster_issuer | default(true) | bool) else omit }}"
     definition:
       apiVersion: cert-manager.io/v1
-      kind: "{{ 'ClusterIssuer' if ocp_cert_manager_root_ca_is_cluster_issuer else 'Issuer' }}"
+      kind: "{{ 'ClusterIssuer' if (ocp_cert_manager_root_ca_is_cluster_issuer | default(true) | bool) else 'Issuer' }}"
       metadata:
         name: "{{ ocp_cert_manager_root_ca_issuer_name }}"
-        namespace: "{{ name_space if not ocp_cert_manager_root_ca_is_cluster_issuer else omit }}"
+        namespace: "{{ name_space if not (ocp_cert_manager_root_ca_is_cluster_issuer | default(true) | bool) else omit }}"
       spec:
         ca:
           secretName: "{{ ocp_cert_manager_root_ca_secret_name }}"
-  when: state == 'present'
+  when:
+    - (state | default('present')) == 'present'
+    # Only when CA material exists (custom TLS or AWS PCA). IdM ACME uses a separate playbook.
+    - ocp_cert_manager_tls_crt is defined
+    - ocp_cert_manager_tls_key is defined
+    - (ocp_cert_manager_tls_crt | string | trim | length) > 0
+    - (ocp_cert_manager_tls_key | string | trim | length) > 0
+
+- name: Ensure cert-manager Prometheus ServiceMonitors
+  ansible.builtin.include_tasks: servicemonitor.yml
+  when: (state | default('present')) == 'present'

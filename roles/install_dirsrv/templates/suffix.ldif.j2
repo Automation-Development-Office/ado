@@ -1,0 +1,9 @@
+dn: {{ install_dirsrv_ds_suffix_effective }}
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: ADO Directory
+{% set dc_part = install_dirsrv_ds_suffix_effective.split(',')[0] %}
+{% if dc_part.startswith('dc=') %}
+dc: {{ dc_part[3:] }}
+{% endif %}

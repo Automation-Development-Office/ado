@@ -1,14 +1,13 @@
 ---
-# Configure NetBox OIDC against Keycloak (RHLAB realm) via Helm extraConfig.
-# Does not redeploy the full NetBox stack — helm upgrade --reuse-values.
+# Wire NetBox login to Keycloak / RHBK OIDC by updating the NetBox ConfigMap.
 
 netbox_oidc_state: present
 netbox_oidc_namespace: netbox
 netbox_oidc_release: netbox
 netbox_oidc_validate_certs: "{{ validate_certs | default(true) }}"
 
-# Prod Keycloak RHLAB
-netbox_oidc_issuer: https://keycloak.apps.ocp.prod.rhlab/realms/rhlab
+# Issuer is resolved at runtime from ocp_rhbk_* / vars_rhbk.yml inside the role.
+netbox_oidc_issuer: ""
 netbox_oidc_client_id: netbox
 netbox_oidc_client_secret: ""
 netbox_oidc_login_required: false

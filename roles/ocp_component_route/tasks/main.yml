@@ -48,7 +48,7 @@
       - ocp_component_route_route_host | length > 0
     fail_msg: >-
       No hostname found for component='{{ component }}'.
-      Expected either '{{ component }}_hostname' (e.g. ocp_grafana_hostname) or generic 'hostname' to be set by resolve_component.
+      Expected either '{{ component }}_hostname' (e.g. grafana_hostname) or generic 'hostname' to be set by resolve_component.
 
 # ------------------------------------------------------------
 # 2) Resolve per-component defaults, then allow explicit overrides
@@ -103,6 +103,18 @@
         )
       }}
 
+    ocp_component_route_insecure_edge_policy: >-
+      {{
+        route_insecure_edge_policy
+        | default(ocp_component_route_cdef.insecure_edge_policy | default('Redirect'))
+      }}
+
+    ocp_component_route_wildcard_policy: >-
+      {{
+        route_wildcard_policy
+        | default(ocp_component_route_cdef.wildcard_policy | default('None'))
+      }}
+
 # ------------------------------------------------------------
 # 3) Ensure the PRIMARY route
 # ------------------------------------------------------------
@@ -110,8 +122,8 @@
   kubernetes.core.k8s_info:
     api_version: route.openshift.io/v1
     kind: Route
-    namespace: "{{ _route_namespace }}"
-    name: "{{ _route_name }}"
+    namespace: "{{ ocp_component_route_namespace }}"
+    name: "{{ ocp_component_route_name }}"
   register: ocp_component_route_existing_primary
 
 - name: Decide whether PRIMARY route must be replaced
@@ -119,10 +131,10 @@
     ocp_component_route_replace_primary: >-
       {{
         (ocp_component_route_existing_primary.resources | length) > 0 and (
-          (ocp_component_route_existing_primary.resources[0].spec.to.name | default('')) != _backend_svc or
-          (ocp_component_route_existing_primary.resources[0].spec.tls.termination | default('')) != _tls_termination or
+          (ocp_component_route_existing_primary.resources[0].spec.to.name | default('')) != ocp_component_route_backend_svc or
+          (ocp_component_route_existing_primary.resources[0].spec.tls.termination | default('')) != ocp_component_route_tls_termination or
           (ocp_component_route_existing_primary.resources[0].spec.host | default('')) != ocp_component_route_route_host or
-          (ocp_component_route_existing_primary.resources[0].spec.port.targetPort | default('')) != _backend_port
+          (ocp_component_route_existing_primary.resources[0].spec.port.targetPort | default('')) != ocp_component_route_backend_port
         )
       }}
 
@@ -131,42 +143,42 @@
     state: absent
     api_version: route.openshift.io/v1
     kind: Route
-    namespace: "{{ _route_namespace }}"
-    name: "{{ _route_name }}"
+    namespace: "{{ ocp_component_route_namespace }}"
+    name: "{{ ocp_component_route_name }}"
   when: ocp_component_route_replace_primary | bool
 
 - name: Ensure PRIMARY passthrough Route exists
   kubernetes.core.k8s:
     state: present
-    namespace: "{{ _route_namespace }}"
+    namespace: "{{ ocp_component_route_namespace }}"
     definition:
       apiVersion: route.openshift.io/v1
       kind: Route
       metadata:
-        name: "{{ _route_name }}"
+        name: "{{ ocp_component_route_name }}"
         labels: "{{ route_labels | default({}) }}"
       spec:
         host: "{{ ocp_component_route_route_host }}"
         to:
           kind: Service
-          name: "{{ _backend_svc }}"
+          name: "{{ ocp_component_route_backend_svc }}"
           weight: 100
         port:
-          targetPort: "{{ _backend_port }}"
+          targetPort: "{{ ocp_component_route_backend_port }}"
         tls:
-          termination: "{{ _tls_termination }}"
-          insecureEdgeTerminationPolicy: "{{ route_insecure_edge_policy }}"
-        wildcardPolicy: "{{ route_wildcard_policy }}"
+          termination: "{{ ocp_component_route_tls_termination }}"
+          insecureEdgeTerminationPolicy: "{{ ocp_component_route_insecure_edge_policy }}"
+        wildcardPolicy: "{{ ocp_component_route_wildcard_policy }}"
 
 # ------------------------------------------------------------
-# 4) Ensure the ALT route (only when _route_host_alt is set)
+# 4) Ensure the ALT route (only when alt host is set)
 # ------------------------------------------------------------
 - name: Get existing ALT Route (if any)
   kubernetes.core.k8s_info:
     api_version: route.openshift.io/v1
     kind: Route
-    namespace: "{{ _route_namespace }}"
-    name: "{{ _route_name_alt }}"
+    namespace: "{{ ocp_component_route_namespace }}"
+    name: "{{ ocp_component_route_name_alt }}"
   register: ocp_component_route_existing_alt
   when: ocp_component_route_route_host_alt | length > 0
 
@@ -175,10 +187,10 @@
     ocp_component_route_replace_alt: >-
       {{
         (ocp_component_route_existing_alt.resources | length) > 0 and (
-          (ocp_component_route_existing_alt.resources[0].spec.to.name | default('')) != _backend_svc or
-          (ocp_component_route_existing_alt.resources[0].spec.tls.termination | default('')) != _tls_termination or
+          (ocp_component_route_existing_alt.resources[0].spec.to.name | default('')) != ocp_component_route_backend_svc or
+          (ocp_component_route_existing_alt.resources[0].spec.tls.termination | default('')) != ocp_component_route_tls_termination or
           (ocp_component_route_existing_alt.resources[0].spec.host | default('')) != ocp_component_route_route_host_alt or
-          (ocp_component_route_existing_alt.resources[0].spec.port.targetPort | default('')) != _backend_port
+          (ocp_component_route_existing_alt.resources[0].spec.port.targetPort | default('')) != ocp_component_route_backend_port
         )
       }}
   when: ocp_component_route_route_host_alt | length > 0
@@ -188,8 +200,8 @@
     state: absent
     api_version: route.openshift.io/v1
     kind: Route
-    namespace: "{{ _route_namespace }}"
-    name: "{{ _route_name_alt }}"
+    namespace: "{{ ocp_component_route_namespace }}"
+    name: "{{ ocp_component_route_name_alt }}"
   when:
     - ocp_component_route_route_host_alt | length > 0
     - ocp_component_route_replace_alt | bool
@@ -197,25 +209,25 @@
 - name: Ensure ALT passthrough Route exists
   kubernetes.core.k8s:
     state: present
-    namespace: "{{ _route_namespace }}"
+    namespace: "{{ ocp_component_route_namespace }}"
     definition:
       apiVersion: route.openshift.io/v1
       kind: Route
       metadata:
-        name: "{{ _route_name_alt }}"
+        name: "{{ ocp_component_route_name_alt }}"
         labels: "{{ route_labels | default({}) }}"
       spec:
         host: "{{ ocp_component_route_route_host_alt }}"
         to:
           kind: Service
-          name: "{{ _backend_svc }}"
+          name: "{{ ocp_component_route_backend_svc }}"
           weight: 100
         port:
-          targetPort: "{{ _backend_port }}"
+          targetPort: "{{ ocp_component_route_backend_port }}"
         tls:
-          termination: "{{ _tls_termination }}"
-          insecureEdgeTerminationPolicy: "{{ route_insecure_edge_policy }}"
-        wildcardPolicy: "{{ route_wildcard_policy }}"
+          termination: "{{ ocp_component_route_tls_termination }}"
+          insecureEdgeTerminationPolicy: "{{ ocp_component_route_insecure_edge_policy }}"
+        wildcardPolicy: "{{ ocp_component_route_wildcard_policy }}"
   when: ocp_component_route_route_host_alt | length > 0
 
 # ------------------------------------------------------------
@@ -225,8 +237,8 @@
   ansible.builtin.debug:
     msg:
       - "component={{ component }}"
-      - "namespace={{ _route_namespace }}"
-      - "PRIMARY: route={{ _route_name }} host={{ ocp_component_route_route_host }}"
-      - "ALT: route={{ _route_name_alt }} host={{ ocp_component_route_route_host_alt | default('') }}"
-      - "backend={{ _backend_svc }}:{{ _backend_port }}"
-      - "tls_termination={{ _tls_termination }}"
+      - "namespace={{ ocp_component_route_namespace }}"
+      - "PRIMARY: route={{ ocp_component_route_name }} host={{ ocp_component_route_route_host }}"
+      - "ALT: route={{ ocp_component_route_name_alt }} host={{ ocp_component_route_route_host_alt | default('') }}"
+      - "backend={{ ocp_component_route_backend_svc }}:{{ ocp_component_route_backend_port }}"
+      - "tls_termination={{ ocp_component_route_tls_termination }}"

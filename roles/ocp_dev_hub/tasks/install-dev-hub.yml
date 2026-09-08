@@ -1,0 +1,134 @@
+---
+- name: Resolve Developer Hub hostnames and URLs
+  ansible.builtin.set_fact:
+    ocp_dev_hub_instance: "{{ dev_hub_instance_name | default('chad-lab') }}"
+    ocp_dev_hub_base_url: "https://{{ dev_hub_hostname }}"
+    ocp_dev_hub_keycloak_host: >-
+      {{
+        keycloak_hostname
+        | default(rhbk_hostname, true)
+        | default(ocp_rhbk_hostname, true)
+        | default('keycloak.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+      }}
+    ocp_dev_hub_gitlab_host: >-
+      {{
+        dev_hub_gitlab_host
+        | default('gitlab-git.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+      }}
+
+- name: Resolve Developer Hub Keycloak issuer and catalog URL
+  ansible.builtin.set_fact:
+    ocp_dev_hub_keycloak_issuer: >-
+      https://{{ ocp_dev_hub_keycloak_host }}/realms/{{ dev_hub_keycloak_realm | default(rhbk_realm | default('rhlab')) }}
+    ocp_dev_hub_catalog_url: >-
+      {{
+        dev_hub_catalog_url
+        | default(
+            'https://'
+            ~ ocp_dev_hub_gitlab_host
+            ~ '/redhat-lab/dev-hub/-/blob/main/catalog-info.yaml'
+        )
+      }}
+
+- name: Fetch Keycloak client secret for Dev Hub when vault secret empty
+  ansible.builtin.include_role:
+    name: infra.ado.ocp_rhbk_client_secrets
+  vars:
+    ocp_rhbk_secret_client_key: rhdh_client
+    ocp_rhbk_secret_client_id: "{{ dev_hub_keycloak_client_id | default('rhdh') }}"
+    ocp_rhbk_secret_target_var: ocp_dev_hub_oidc_client_secret
+  when:
+    - ocp_dev_hub_install_include_oidc | default(false) | bool
+    - (ocp_dev_hub_oidc_client_secret | default('') | string | length) == 0
+  no_log: true
+
+- name: Prefer fetched Dev Hub OIDC client secret
+  ansible.builtin.set_fact:
+    ocp_dev_hub_oidc_client_secret: "{{ ocp_rhbk_client_secrets__value }}"
+  when:
+    - ocp_dev_hub_install_include_oidc | default(false) | bool
+    - (ocp_dev_hub_oidc_client_secret | default('') | string | length) == 0
+    - ocp_rhbk_client_secrets__value is defined
+    - (ocp_rhbk_client_secrets__value | string | length) > 0
+  no_log: true
+
+- name: Fail when Dev Hub OIDC client secret is still empty
+  ansible.builtin.fail:
+    msg: >-
+      Dev Hub requires an OIDC client secret. Set dev_hub.oidc_client_secret in
+      preflight, create Keycloak client {{ dev_hub_keycloak_client_id | default('rhdh') }}
+      in realm {{ dev_hub_keycloak_realm | default(rhbk_realm | default('rhlab')) }},
+      or run RHBK client bootstrap first.
+  when:
+    - ocp_dev_hub_install_include_oidc | default(false) | bool
+    - (ocp_dev_hub_oidc_client_secret | default('') | string | length) == 0
+
+- name: Fail when Dev Hub GitLab token is empty but GitLab integration is configured
+  ansible.builtin.fail:
+    msg: >-
+      Dev Hub GitLab integration requires dev_hub_gitlab_token (or dev_hub.gitlab_token
+      in preflight vault). Set the token or clear dev_hub_gitlab_host to skip GitLab.
+  when:
+    - (ocp_dev_hub_gitlab_host | default('') | string | trim | length) > 0
+    - (dev_hub_gitlab_token | default('') | string | trim | length) == 0
+
+- name: Create Developer Hub application secrets
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: rhdh-secrets
+        namespace: "{{ name_space }}"
+      type: Opaque
+      stringData:
+        BACKEND_SECRET: "{{ dev_hub_backend_secret }}"
+        OIDC_CLIENT_SECRET: "{{ ocp_dev_hub_oidc_client_secret | default('') if (ocp_dev_hub_install_include_oidc | default(false) | bool) else '' }}"
+        GITLAB_TOKEN: "{{ dev_hub_gitlab_token | default('') }}"
+  no_log: true
+
+- name: Create Developer Hub app-config ConfigMap
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: rhdh-app-config
+        namespace: "{{ name_space }}"
+      data:
+        app-config.yaml: "{{ lookup('template', 'app-config.yaml.j2') }}"
+
+- name: Deploy Developer Hub Backstage CR
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'backstage-cr.yml.j2') | from_yaml }}"
+
+- name: Wait for Developer Hub Backstage to be available
+  kubernetes.core.k8s_info:
+    api_version: "{{ ocp_dev_hub_api_version | default('rhdh.redhat.com/v1alpha5') }}"
+    kind: Backstage
+    namespace: "{{ name_space }}"
+    name: "{{ ocp_dev_hub_instance }}"
+  register: ocp_dev_hub_backstage
+  until: >-
+    ocp_dev_hub_backstage.resources | default([]) | length > 0
+    and (
+      ocp_dev_hub_backstage.resources[0].status.conditions | default([])
+      | selectattr('type', 'equalto', 'Available')
+      | selectattr('status', 'equalto', 'True')
+      | list | length > 0
+      or (
+        ocp_dev_hub_backstage.resources[0].status.conditions | default([])
+        | selectattr('type', 'equalto', 'Deployed')
+        | selectattr('status', 'equalto', 'True')
+        | list | length > 0
+      )
+      or (
+        ocp_dev_hub_backstage.resources[0].status.stage | default('') in ['Running', 'Complete']
+      )
+    )
+  retries: 60
+  delay: 15
+  changed_when: false

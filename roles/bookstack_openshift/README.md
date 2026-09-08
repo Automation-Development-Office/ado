@@ -1,9 +1,14 @@
 # Role: infra.ado.bookstack_openshift
 
 Deploy **BookStack** (internal Confluence-style docs) on OpenShift with MariaDB,
-PVCs, Secrets, Service, Route, probes, and idempotent updates.
+PVCs, Secrets, Service, Route, probes, and idempotent updates. Optional RHBK OIDC
+is configured via `bookstack_oidc_enabled` or the split `configure-oidc` tag path.
 
-## Requirements
+## Role Author
+
+Automation Development Office
+
+## ✅ Role Requirements
 
 - Ansible 2.16+
 - Collection: `kubernetes.core`
@@ -11,39 +16,31 @@ PVCs, Secrets, Service, Route, probes, and idempotent updates.
 - Ability to pull container images (or mirrored images for disconnected)
 
 ```yaml
-# collections/requirements snippet
 collections:
   - name: kubernetes.core
 ```
 
-## What it creates
+Creates namespace `bookstack`, MariaDB + app Deployments, PVCs, Route (TLS edge),
+and Secrets for DB credentials and APP_KEY.
 
-| Object | Name |
-|--------|------|
-| Namespace | `bookstack` (configurable) |
-| Secret | `bookstack-db`, `bookstack-app` |
-| PVC | `bookstack-mariadb`, `bookstack-data` |
-| Deployment | `bookstack-mariadb`, `bookstack` |
-| Service | `bookstack-mariadb`, `bookstack` |
-| Route | `bookstack` (TLS edge + redirect) |
+## 📦 Role Variables
 
-## Important defaults (OpenShift)
+See `defaults/main.yml`. Common overrides:
 
-Default images that pull and run on this lab today:
+| Variable | Description |
+|----------|-------------|
+| `bookstack_namespace` | Target namespace (default `bookstack`) |
+| `bookstack_route_host` | Route hostname |
+| `bookstack_storage_class` | PVC StorageClass |
+| `bookstack_use_anyuid` | SCC anyuid for MariaDB on NFS (lab default `true`) |
+| `bookstack_db_password` / `bookstack_app_key` | Generated once into Secrets when empty |
+| `bookstack_oidc_enabled` | Enable RHBK OIDC (also `oidc.enabled` from registry) |
+| `bookstack_oidc_client_id` | Keycloak client id |
+| `bookstack_oidc_issuer` | OIDC issuer URL (realm) |
 
-- `docker.io/solidnerd/bookstack:24.12.1` (Apache listens on **8080**)
-- `docker.io/library/mariadb:11` (probes use `mariadb-admin`; needs `bookstack_use_anyuid: true` on many clusters)
+Default images: `solidnerd/bookstack:24.12.1` (port 8080), `mariadb:11`.
 
-PVC mounts use an initContainer + subPaths so NFS volumes are writable by `www-data` (UID 33).
-
-## Contoller / bootstrap
-
-- Playbook template: `bootstrap_generate_playbook_repo/files/playbooks/docs/ado-deploy-bookstack-bootstrap.yml`
-- JT seed: `bootstrap_controller/files/job_templates/ado-deploy-bookstack-bootstrap.jt.yml`
-- Auth: load `vault_openshift.yml` + `vars_openshift.yml` and set `K8S_AUTH_*` from `host` / `token`
-- Component registry key: `bookstack` in `bootstrap_resolve_component`
-
-## Example playbook
+## 🚀 Role Usage
 
 ```yaml
 ---
@@ -61,28 +58,44 @@ PVC mounts use an initContainer + subPaths so NFS volumes are writable by `www-d
         bookstack_apps_domain: apps.ocp.prod.rhlab
         bookstack_route_host: bookstack.apps.ocp.prod.rhlab
         bookstack_storage_class: synology-nfs-csi
-        bookstack_db_storage_class: synology-nfs-csi
         bookstack_use_anyuid: true
+        bookstack_oidc_enabled: true
 ```
 
-## Variables
+Contoller / bootstrap:
 
-See `defaults/main.yml`. Sensitive values:
+- Playbook: `bootstrap_generate_playbook_repo/files/playbooks/docs/ado-deploy-bookstack-bootstrap.yml`
+- OIDC JT: `ado-bookstack-deploy-oidc-bootstrap.jt.yml`
+- Component registry key: `bookstack` in `bootstrap_resolve_component`
 
-- `bookstack_db_password` / `bookstack_db_root_password` / `bookstack_app_key`
+Tags: `bookstack`, `bookstack_namespace`, `bookstack_database`, `bookstack_app`,
+`bookstack_route`, `bookstack_oidc`, `bookstack_configure_oidc`.
 
-If left empty, the role generates them **once** and stores them in Secrets (idempotent).
+## 🧪 Role Molecule Testing
 
-## Tags
+No Molecule scenario ships with this role yet. Validate via OpenShift workflow
+**Deploy BookStack** / **Configure BookStack OIDC** JTs after bootstrap.
 
-`bookstack`, `bookstack_namespace`, `bookstack_database`, `bookstack_app`, `bookstack_route`, `bookstack_storage`
+## 📁 Role Structure
 
-## Upgrade / backup
+```text
+roles/bookstack_openshift/
+  README.md
+  defaults/main.yml
+  meta/main.yml
+  tasks/
+    main.yml
+    namespace.yml
+    database.yml
+    bookstack.yml
+    route.yml
+    admin.yml
+    oidc.yml
+    configure-oidc.yml
+    validate.yml
+    remove.yml
+```
 
-- Re-run the role to roll Deployments; PVCs and APP_KEY are preserved.
-- Backup: snapshot/backup `bookstack-mariadb` + `bookstack-data` PVCs.
-- Absent state removes Deployments/Services/Route/Secrets but **does not** delete PVCs unless `bookstack_purge_storage: true`.
-
-## Future OIDC / Keycloak (RHBK)
-
-Placeholders exist in defaults (`bookstack_oidc_*`). Not enabled by default.
+Upgrade: re-run the role; PVCs and APP_KEY are preserved. Set `state: absent`
+to remove Deployments/Services/Route/Secrets (PVCs kept unless
+`bookstack_purge_storage: true`).

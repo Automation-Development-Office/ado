@@ -1,7 +1,7 @@
 set -euo pipefail
 
-LDAP_URI="ldap://localhost:{{ ds389_ldap_port | default(3389) }}"
-BIND_DN="{{ ds389_bind_dn }}"
+LDAP_URI="ldap://localhost:{{ ocp_search_dirsrv_ldap_port | default(3389) }}"
+BIND_DN="{{ ocp_search_dirsrv_bind_dn }}"
 
 if [ -z "${DS_DM_PASSWORD:-}" ]; then
   echo "ERROR: DS_DM_PASSWORD not set in container env" >&2
@@ -10,7 +10,7 @@ fi
 
 echo "=== Using DS_DM_PASSWORD for authenticated search ==="
 echo "=== LDAP_URI=${LDAP_URI} ==="
-echo "=== Suffix={{ ds389_suffix }} ==="
+echo "=== Suffix={{ ocp_search_dirsrv_suffix }} ==="
 
 run_exists_check () {
   local BASE="$1"
@@ -49,7 +49,7 @@ pretty_groups () {
   '
 }
 
-{% for q in ds389_queries %}
+{% for q in ocp_search_dirsrv_queries %}
 echo
 echo "=== {{ q.name }} ==="
 BASE="{{ q.base }}"
@@ -58,10 +58,10 @@ SCOPE="{{ q.scope | default('sub') }}"
 ATTRS="{{ (q.attrs | default(['dn'])) | join(' ') }}"
 
 if run_exists_check "$BASE"; then
-  if [ "{{ q.kind | default('raw') }}" = "users" ] && [ "{{ ds389_pretty_tables | bool }}" = "True" ]; then
+  if [ "{{ q.kind | default('raw') }}" = "users" ] && [ "{{ ocp_search_dirsrv_pretty_tables | bool }}" = "True" ]; then
     ldapsearch -LLL -x -o ldif-wrap=no -H "$LDAP_URI" -D "$BIND_DN" -w "$DS_DM_PASSWORD" \
       -b "$BASE" -s "$SCOPE" "$FILTER" $ATTRS | pretty_users
-  elif [ "{{ q.kind | default('raw') }}" = "groups" ] && [ "{{ ds389_pretty_tables | bool }}" = "True" ]; then
+  elif [ "{{ q.kind | default('raw') }}" = "groups" ] && [ "{{ ocp_search_dirsrv_pretty_tables | bool }}" = "True" ]; then
     ldapsearch -LLL -x -o ldif-wrap=no -H "$LDAP_URI" -D "$BIND_DN" -w "$DS_DM_PASSWORD" \
       -b "$BASE" -s "$SCOPE" "$FILTER" $ATTRS | pretty_groups
   else

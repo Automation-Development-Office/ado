@@ -1,0 +1,95 @@
+---
+# Wait for OpenShift Web Terminal Operator after OLM subscription.
+- name: Web Terminal | Normalize subscription namespace
+  ansible.builtin.set_fact:
+    ocp_web_terminal_namespace: >-
+      {{
+        operator_subscription_namespace
+        | default(name_space)
+        | default(ocp_web_terminal_namespace)
+        | default('openshift-operators')
+      }}
+    ocp_web_terminal_csv_substring: >-
+      {{
+        operator_csv_contains
+        | default(operator_name_substring)
+        | default(operator_name)
+        | default('web-terminal')
+      }}
+  changed_when: false
+
+- name: Web Terminal | Wait for CSV
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ ocp_web_terminal_namespace }}"
+  register: ocp_web_terminal_csvs
+  until: >-
+    (
+      ocp_web_terminal_csvs.resources
+      | default([])
+      | selectattr('metadata.name', 'search', ocp_web_terminal_csv_substring)
+      | list
+      | length
+    ) > 0
+  retries: "{{ ocp_web_terminal_csv_retries | default(60) | int }}"
+  delay: "{{ ocp_web_terminal_csv_delay | default(10) | int }}"
+  changed_when: false
+
+- name: Web Terminal | Wait for operator pods
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ ocp_web_terminal_namespace }}"
+    label_selectors:
+      - "operators.coreos.com/{{ operator_name | default('web-terminal') }}.{{ ocp_web_terminal_namespace }}"
+  register: ocp_web_terminal_pods
+  until: >-
+    (
+      ocp_web_terminal_pods.resources
+      | default([])
+      | selectattr('status.phase', 'defined')
+      | selectattr('status.phase', 'equalto', 'Running')
+      | list
+      | length
+    ) > 0
+    or
+    (
+      ocp_web_terminal_csvs.resources
+      | default([])
+      | selectattr('metadata.name', 'search', ocp_web_terminal_csv_substring)
+      | selectattr('status.phase', 'defined')
+      | selectattr('status.phase', 'equalto', 'Succeeded')
+      | list
+      | length
+    ) > 0
+  retries: "{{ ocp_web_terminal_pod_retries | default(60) | int }}"
+  delay: "{{ ocp_web_terminal_pod_delay | default(10) | int }}"
+  failed_when: false
+  changed_when: false
+
+- name: Web Terminal | Confirm CSV Succeeded
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: "{{ ocp_web_terminal_namespace }}"
+  register: ocp_web_terminal_csv_ready
+  until: >-
+    (
+      ocp_web_terminal_csv_ready.resources
+      | default([])
+      | selectattr('metadata.name', 'search', ocp_web_terminal_csv_substring)
+      | selectattr('status.phase', 'defined')
+      | selectattr('status.phase', 'equalto', 'Succeeded')
+      | list
+      | length
+    ) > 0
+  retries: "{{ ocp_web_terminal_csv_retries | default(60) | int }}"
+  delay: "{{ ocp_web_terminal_csv_delay | default(10) | int }}"
+  changed_when: false
+
+- name: Web Terminal | Ready
+  ansible.builtin.debug:
+    msg: >-
+      Web Terminal Operator CSV ready in {{ ocp_web_terminal_namespace }}
+      (matched {{ ocp_web_terminal_csv_substring }}).

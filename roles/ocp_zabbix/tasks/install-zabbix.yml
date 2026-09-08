@@ -1,0 +1,138 @@
+---
+- name: Resolve Zabbix hostname
+  ansible.builtin.set_fact:
+    ocp_zabbix_hostname: >-
+      {{
+        zabbix_hostname
+        | default(hostname)
+        | default('zabbix.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+      }}
+
+- name: Create Zabbix MariaDB secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: zabbix-mariadb-secret
+        namespace: "{{ name_space }}"
+      type: Opaque
+      stringData:
+        mariadb-root-password: "{{ zabbix_db_root_password }}"
+        mariadb-user: "{{ zabbix_db_user }}"
+        mariadb-password: "{{ zabbix_db_password }}"
+        mariadb-database: "{{ zabbix_db_name }}"
+
+- name: Create MariaDB PVC
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'mariadb-pvc.yml.j2') | from_yaml }}"
+
+# Jobs are largely immutable; delete a failed prior init before recreate.
+- name: Remove prior Zabbix DB init Job if present
+  kubernetes.core.k8s:
+    state: absent
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ name_space }}"
+    name: zabbix-db-init
+    wait: true
+    wait_timeout: 120
+  failed_when: false
+
+# mariadb.yml.j2 is multi-doc (Deployment + Service). from_yaml only accepts one
+# document and fails at the second --- with ComposerError.
+- name: Deploy MariaDB for Zabbix
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ item }}"
+  loop: "{{ lookup('template', 'mariadb.yml.j2') | from_yaml_all | list }}"
+  loop_control:
+    label: "{{ item.kind }}/{{ item.metadata.name | default('resource') }}"
+
+- name: Wait for MariaDB pod to be Ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ name_space }}"
+    label_selectors:
+      - app=mariadb
+  register: ocp_zabbix_mariadb_pods
+  until:
+    - ocp_zabbix_mariadb_pods.resources | default([]) | length > 0
+    - (ocp_zabbix_mariadb_pods.resources[0].status.containerStatuses | default([]) | length) > 0
+    - (ocp_zabbix_mariadb_pods.resources[0].status.containerStatuses[0].ready | default(false)) | bool
+  retries: 60
+  delay: 10
+  changed_when: false
+
+- name: Initialize Zabbix database schema
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'db-init-job.yml.j2') | from_yaml }}"
+
+- name: Wait for Zabbix DB init job to complete
+  kubernetes.core.k8s_info:
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ name_space }}"
+    name: zabbix-db-init
+  register: ocp_zabbix_db_init
+  until: >-
+    ocp_zabbix_db_init.resources | default([]) | length > 0
+    and (ocp_zabbix_db_init.resources[0].status.succeeded | default(0) | int) >= 1
+  retries: 40
+  delay: 15
+  changed_when: false
+
+- name: Deploy Zabbix server
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ item }}"
+  loop: "{{ lookup('template', 'zabbix-server.yml.j2') | from_yaml_all | list }}"
+  loop_control:
+    label: "{{ item.kind }}/{{ item.metadata.name | default('resource') }}"
+
+- name: Deploy Zabbix web
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ item }}"
+  loop: "{{ lookup('template', 'zabbix-web.yml.j2') | from_yaml_all | list }}"
+  loop_control:
+    label: "{{ item.kind }}/{{ item.metadata.name | default('resource') }}"
+
+- name: Create Zabbix web Route
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: zabbix-web
+        namespace: "{{ name_space }}"
+      spec:
+        host: "{{ ocp_zabbix_hostname }}"
+        to:
+          kind: Service
+          name: zabbix-web
+        port:
+          targetPort: http
+        tls:
+          termination: edge
+
+- name: Wait for Zabbix web pod to be Ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ name_space }}"
+    label_selectors:
+      - app=zabbix-web
+  register: ocp_zabbix_web_pods
+  until:
+    - ocp_zabbix_web_pods.resources | default([]) | length > 0
+    - (ocp_zabbix_web_pods.resources[0].status.containerStatuses | default([]) | length) > 0
+    - (ocp_zabbix_web_pods.resources[0].status.containerStatuses[0].ready | default(false)) | bool
+  retries: 60
+  delay: 10
+  changed_when: false

@@ -20,4 +20,12 @@
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component
   roles:
+    - role: infra.ado.ocp_namespace
+    - role: infra.ado.ocp_operatorgroups
+      vars:
+        operatorgroup: >-
+          {{ operatorgroup | default(name_space) | default('open-cluster-management') }}
+    - role: infra.ado.ocp_operator_subscription
+    - role: infra.ado.ocp_wait_operator
     - role: infra.ado.ocp_acm
+    - role: infra.ado.ocp_wait_pods

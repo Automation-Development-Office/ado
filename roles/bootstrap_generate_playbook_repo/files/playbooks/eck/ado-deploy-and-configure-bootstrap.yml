@@ -16,5 +16,52 @@
     - name: ADO | Resolve vars for component from framework defaults + env overrides
       ansible.builtin.include_role:
         name: infra.ado.bootstrap_resolve_component
+    - name: ADO | Do not pin a dead ECK startingCSV
+      ansible.builtin.set_fact:
+        operator_starting_csv: ""
+    - name: ADO | Enable Elasticsearch + Kibana + routes by default
+      ansible.builtin.set_fact:
+        install_elastic_eck_create_elasticsearch_cr: >-
+          {{
+            install_elastic_eck_create_elasticsearch_cr
+            | default(eck_create_elasticsearch_cr)
+            | default(true)
+            | bool
+          }}
+        install_elastic_eck_create_kibana_cr: >-
+          {{
+            install_elastic_eck_create_kibana_cr
+            | default(eck_create_kibana_cr)
+            | default(true)
+            | bool
+          }}
+        install_elastic_eck_create_routes: >-
+          {{
+            install_elastic_eck_create_routes
+            | default(eck_create_routes)
+            | default(true)
+            | bool
+          }}
+        install_elastic_eck_cluster_name: >-
+          {{ install_elastic_eck_cluster_name | default(eck_cluster_name) | default('elasticsearch') }}
+        install_elastic_eck_kibana_hostname: >-
+          {{
+            install_elastic_eck_kibana_hostname
+            | default(eck_kibana_hostname)
+            | default(kibana_hostname)
+            | default('kibana.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+          }}
+        install_elastic_eck_es_hostname: >-
+          {{
+            install_elastic_eck_es_hostname
+            | default(eck_elasticsearch_hostname)
+            | default(elasticsearch_hostname)
+            | default('elasticsearch.' ~ (apps_domain | default(app_domain | default('apps.example.com'))))
+          }}
+        install_elastic_eck_replicas: >-
+          {{ (install_elastic_eck_replicas | default(eck_replicas) | default(1)) | int }}
+        install_elastic_eck_kibana_replicas: >-
+          {{ (install_elastic_eck_kibana_replicas | default(1)) | int }}
   roles:
     - role: infra.ado.install_elastic
+    - role: infra.ado.ocp_routes
