@@ -41,3 +41,5 @@
     - name: HAProxy
       ansible.builtin.include_tasks: haproxy.yml
       when: capsule_install_satellite_haproxy | bool
+    - name: Install Packages
+      ansible.builtin.include_tasks: install_packages.yml
