@@ -1,0 +1,103 @@
+---
+- name: generate_cap_custom_cert | create dir for certs on satellite
+  ansible.builtin.file:
+    path: "/root/capsule_cert/{{ inventory_hostname }}"
+    state: directory
+  delegate_to: "{{ capsule_install_satellite_fqdn }}"
+
+- name: generate_cap_custom_cert | fetch certs from capsule
+  ansible.builtin.fetch: 
+    src: "/root/certs/{{ item }}"
+    dest: /tmp/
+    flat: true
+  loop: "{{ capsule_certs }}"
+
+- name: generate_cap_custom_cert | copy certs to satellite
+  ansible.builtin.copy: 
+    src: /tmp/{{ item }}
+    dest: /root/certs/{{ inventory_hostname }}/
+  delegate_to: "{{ capsule_install_satellite_fqdn }}"
+  loop: "{{ capsule_certs }}"
+
+- name: generate_cap_custom_cert | check for existing certs tarball
+  ansible.builtin.file:
+    path: "/root/capsule_cert/{{ ansible_fqdn }}-capsule-certs.tar"
+    state: absent
+  delegate_to: "{{ capsule_install_satellite_fqdn }}"
+  #register: existing_tarball
+
+- name: generate_cap_custom_cert | capsule-certs-generate
+  ansible.builtin.command: >- 
+    capsule-certs-generate --foreman-proxy-fqdn {{ inventory_hostname }} 
+    --certs-tar  "/root/capsule_cert/{{ ansible_fqdn }}-capsule-certs.tar"  
+    --server-cert "/root/certs/{{ ansible_fqdn }}/{{ ansible_fqdn }}_cert.pem" 
+    --server-key "/root/certs/{{ ansible_fqdn }}/{{ ansible_fqdn }}_cert_key.pem" 
+    --server-ca-cert "/root/certs/{{ ansible_fqdn }}/ca_cert_bundle.pem"   
+  register: capsule_install_cert_generate_output
+  delegate_to: "{{ capsule_install_satellite_fqdn }}"
+  #throttle: 1
+  #when:
+  #  - not (existing_tarball.stat.exists)
+
+#- name: debug certs
+#  debug:
+#    var: cert_generate_output
+
+- name: generate_cap_custom_cert | grab certs from satellite
+  ansible.builtin.fetch:
+    src: "/root/capsule_cert/{{ ansible_fqdn }}-capsule-certs.tar"
+    dest: /tmp/
+    flat: true
+  delegate_to: "{{ capsule_install_satellite_fqdn }}"
+  #when:
+  #  - not (existing_tarball.stat.exists)
+
+- name: generate_cap_custom_cert | create certs dir on capsule
+  ansible.builtin.file:
+    path: "/root/capsule_cert/{{ inventory_hostname }}"
+    state: directory
+  #when:
+  #  - not (existing_tarball.stat.exists)
+
+- name: generate_cap_custom_cert | copy certs to capsule
+  ansible.builtin.copy:
+    src: "/tmp/{{ inventory_hostname }}-capsule-certs.tar"
+    dest: "/root/capsule_cert/{{ inventory_hostname }}-capsule-certs.tar"
+  #when:
+  #  - not (existing_tarball.stat.exists)
+
+- name: generate_cap_custom_cert | Set foreman-proxy-oauth-consumer-key fact
+  ansible.builtin.set_fact:
+    foreman_proxy_oauth_consumer_key: "{{ line.split('\"')[1] | regex_replace('\"', '') }}"
+    #foreman_proxy_oauth_consumer_key: "{{ line.split('\"')[1] }}"
+  when:
+  #  - not (existing_tarball.stat.exists)
+    - line | regex_search('foreman-proxy-oauth-consumer-key')
+  loop_control:
+    loop_var: line
+  throttle: 1
+  with_items:
+    - "{{ capsule_install_cert_generate_output.stdout_lines }}"
+
+#- name: debug key
+#  debug:
+#    var: foreman_proxy_oauth_consumer_key
+
+- name: generate_cap_custom_cert | Set foreman-proxy-oauth-consumer-secret fact
+  ansible.builtin.set_fact:
+    foreman_proxy_oauth_consumer_secret: "{{ line.split('\"')[1] | regex_replace('\"', '') }}"
+    #foreman_proxy_oauth_consumer_secret: "{{ line.split('\"')[1] }}"
+  when:
+  #  - not (existing_tarball.stat.exists)
+    - line | regex_search('foreman-proxy-oauth-consumer-secret')
+  loop_control:
+    loop_var: line
+  throttle: 1
+  with_items:
+    - "{{ capsule_install_cert_generate_output.stdout_lines }}"
+
+#- name: debug secret
+#  debug:
+#    var: foreman_proxy_oauth_consumer_secret
+
+...
