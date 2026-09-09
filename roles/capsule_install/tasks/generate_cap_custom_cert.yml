@@ -13,7 +13,7 @@
     src: "/root/certs/{{ item }}"
     dest: /tmp/
     flat: true
-  loop: "{{ capsule_certs }}"
+  loop: "{{ capsule_install_certs }}"
 
 - name: generate_cap_custom_cert | Copy certs to satellite
   ansible.builtin.copy:
@@ -23,7 +23,7 @@
     owner: root
     group: root
   delegate_to: "{{ capsule_install_satellite_fqdn }}"
-  loop: "{{ capsule_certs }}"
+  loop: "{{ capsule_install_certs }}"
 
 - name: generate_cap_custom_cert | Check for existing certs tarball
   ansible.builtin.file:

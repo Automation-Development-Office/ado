@@ -3,3 +3,5 @@ minor_changes:
   - >-
     capsule_install - Added firewall, DNS, and custom Capsule certificate
     generation tasks after package installation.
+doc_changes:
+  - capsule_install - Documented firewall, DNS, and custom certificate generation tasks and DNS variables.
