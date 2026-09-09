@@ -1,32 +1,38 @@
 ---
-- name: generate_cap_custom_cert | create dir for certs on satellite
+- name: generate_cap_custom_cert | Create dir for certs on satellite
   ansible.builtin.file:
     path: "/root/capsule_cert/{{ inventory_hostname }}"
     state: directory
+    mode: '0700'
+    owner: root
+    group: root
   delegate_to: "{{ capsule_install_satellite_fqdn }}"
 
-- name: generate_cap_custom_cert | fetch certs from capsule
-  ansible.builtin.fetch: 
+- name: generate_cap_custom_cert | Fetch certs from capsule
+  ansible.builtin.fetch:
     src: "/root/certs/{{ item }}"
     dest: /tmp/
     flat: true
   loop: "{{ capsule_certs }}"
 
-- name: generate_cap_custom_cert | copy certs to satellite
-  ansible.builtin.copy: 
+- name: generate_cap_custom_cert | Copy certs to satellite
+  ansible.builtin.copy:
     src: /tmp/{{ item }}
     dest: /root/certs/{{ inventory_hostname }}/
+    mode: '0700'
+    owner: root
+    group: root
   delegate_to: "{{ capsule_install_satellite_fqdn }}"
   loop: "{{ capsule_certs }}"
 
-- name: generate_cap_custom_cert | check for existing certs tarball
+- name: generate_cap_custom_cert | Check for existing certs tarball
   ansible.builtin.file:
     path: "/root/capsule_cert/{{ ansible_fqdn }}-capsule-certs.tar"
     state: absent
   delegate_to: "{{ capsule_install_satellite_fqdn }}"
   #register: existing_tarball
 
-- name: generate_cap_custom_cert | capsule-certs-generate
+- name: generate_cap_custom_cert | Capsule-certs-generate
   ansible.builtin.command: >- 
     capsule-certs-generate --foreman-proxy-fqdn {{ inventory_hostname }} 
     --certs-tar  "/root/capsule_cert/{{ ansible_fqdn }}-capsule-certs.tar"  
@@ -43,7 +49,7 @@
 #  debug:
 #    var: cert_generate_output
 
-- name: generate_cap_custom_cert | grab certs from satellite
+- name: generate_cap_custom_cert | Grab certs from satellite
   ansible.builtin.fetch:
     src: "/root/capsule_cert/{{ ansible_fqdn }}-capsule-certs.tar"
     dest: /tmp/
@@ -52,14 +58,14 @@
   #when:
   #  - not (existing_tarball.stat.exists)
 
-- name: generate_cap_custom_cert | create certs dir on capsule
+- name: generate_cap_custom_cert | Create certs dir on capsule
   ansible.builtin.file:
     path: "/root/capsule_cert/{{ inventory_hostname }}"
     state: directory
   #when:
   #  - not (existing_tarball.stat.exists)
 
-- name: generate_cap_custom_cert | copy certs to capsule
+- name: generate_cap_custom_cert | Copy certs to capsule
   ansible.builtin.copy:
     src: "/tmp/{{ inventory_hostname }}-capsule-certs.tar"
     dest: "/root/capsule_cert/{{ inventory_hostname }}-capsule-certs.tar"
