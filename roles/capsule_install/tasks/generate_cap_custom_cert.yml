@@ -3,7 +3,7 @@
   ansible.builtin.file:
     path: "/root/capsule_cert/{{ inventory_hostname }}"
     state: directory
-    mode: '0700'
+    mode: "0700"
     owner: root
     group: root
   delegate_to: "{{ capsule_install_satellite_fqdn }}"
@@ -17,9 +17,9 @@
 
 - name: generate_cap_custom_cert | Copy certs to satellite
   ansible.builtin.copy:
-    src: /tmp/{{ item }}
-    dest: /root/certs/{{ inventory_hostname }}/
-    mode: '0700'
+    src: "/tmp/{{ item }}"
+    dest: "/root/certs/{{ inventory_hostname }}/"
+    mode: "0600"
     owner: root
     group: root
   delegate_to: "{{ capsule_install_satellite_fqdn }}"
@@ -30,24 +30,24 @@
     path: "/root/capsule_cert/{{ ansible_fqdn }}-capsule-certs.tar"
     state: absent
   delegate_to: "{{ capsule_install_satellite_fqdn }}"
-  #register: existing_tarball
 
 - name: generate_cap_custom_cert | Capsule-certs-generate
-  ansible.builtin.command: >- 
-    capsule-certs-generate --foreman-proxy-fqdn {{ inventory_hostname }} 
-    --certs-tar  "/root/capsule_cert/{{ ansible_fqdn }}-capsule-certs.tar"  
-    --server-cert "/root/certs/{{ ansible_fqdn }}/{{ ansible_fqdn }}_cert.pem" 
-    --server-key "/root/certs/{{ ansible_fqdn }}/{{ ansible_fqdn }}_cert_key.pem" 
-    --server-ca-cert "/root/certs/{{ ansible_fqdn }}/ca_cert_bundle.pem"   
+  ansible.builtin.command:
+    argv:
+      - capsule-certs-generate
+      - --foreman-proxy-fqdn
+      - "{{ inventory_hostname }}"
+      - --certs-tar
+      - "/root/capsule_cert/{{ ansible_fqdn }}-capsule-certs.tar"
+      - --server-cert
+      - "/root/certs/{{ ansible_fqdn }}/{{ ansible_fqdn }}_cert.pem"
+      - --server-key
+      - "/root/certs/{{ ansible_fqdn }}/{{ ansible_fqdn }}_cert_key.pem"
+      - --server-ca-cert
+      - "/root/certs/{{ ansible_fqdn }}/ca_cert_bundle.pem"
   register: capsule_install_cert_generate_output
+  changed_when: true
   delegate_to: "{{ capsule_install_satellite_fqdn }}"
-  #throttle: 1
-  #when:
-  #  - not (existing_tarball.stat.exists)
-
-#- name: debug certs
-#  debug:
-#    var: cert_generate_output
 
 - name: generate_cap_custom_cert | Grab certs from satellite
   ansible.builtin.fetch:
@@ -55,55 +55,37 @@
     dest: /tmp/
     flat: true
   delegate_to: "{{ capsule_install_satellite_fqdn }}"
-  #when:
-  #  - not (existing_tarball.stat.exists)
 
 - name: generate_cap_custom_cert | Create certs dir on capsule
   ansible.builtin.file:
     path: "/root/capsule_cert/{{ inventory_hostname }}"
     state: directory
-  #when:
-  #  - not (existing_tarball.stat.exists)
+    mode: "0700"
+    owner: root
+    group: root
 
 - name: generate_cap_custom_cert | Copy certs to capsule
   ansible.builtin.copy:
     src: "/tmp/{{ inventory_hostname }}-capsule-certs.tar"
     dest: "/root/capsule_cert/{{ inventory_hostname }}-capsule-certs.tar"
-  #when:
-  #  - not (existing_tarball.stat.exists)
+    mode: "0600"
+    owner: root
+    group: root
 
 - name: generate_cap_custom_cert | Set foreman-proxy-oauth-consumer-key fact
   ansible.builtin.set_fact:
-    foreman_proxy_oauth_consumer_key: "{{ line.split('\"')[1] | regex_replace('\"', '') }}"
-    #foreman_proxy_oauth_consumer_key: "{{ line.split('\"')[1] }}"
-  when:
-  #  - not (existing_tarball.stat.exists)
-    - line | regex_search('foreman-proxy-oauth-consumer-key')
+    foreman_proxy_oauth_consumer_key: "{{ capsule_install_cert_line.split('\"')[1] | regex_replace('\"', '') }}"
+  loop: "{{ capsule_install_cert_generate_output.stdout_lines }}"
   loop_control:
-    loop_var: line
+    loop_var: capsule_install_cert_line
+  when: capsule_install_cert_line | regex_search('foreman-proxy-oauth-consumer-key')
   throttle: 1
-  with_items:
-    - "{{ capsule_install_cert_generate_output.stdout_lines }}"
-
-#- name: debug key
-#  debug:
-#    var: foreman_proxy_oauth_consumer_key
 
 - name: generate_cap_custom_cert | Set foreman-proxy-oauth-consumer-secret fact
   ansible.builtin.set_fact:
-    foreman_proxy_oauth_consumer_secret: "{{ line.split('\"')[1] | regex_replace('\"', '') }}"
-    #foreman_proxy_oauth_consumer_secret: "{{ line.split('\"')[1] }}"
-  when:
-  #  - not (existing_tarball.stat.exists)
-    - line | regex_search('foreman-proxy-oauth-consumer-secret')
+    foreman_proxy_oauth_consumer_secret: "{{ capsule_install_cert_line.split('\"')[1] | regex_replace('\"', '') }}"
+  loop: "{{ capsule_install_cert_generate_output.stdout_lines }}"
   loop_control:
-    loop_var: line
+    loop_var: capsule_install_cert_line
+  when: capsule_install_cert_line | regex_search('foreman-proxy-oauth-consumer-secret')
   throttle: 1
-  with_items:
-    - "{{ capsule_install_cert_generate_output.stdout_lines }}"
-
-#- name: debug secret
-#  debug:
-#    var: foreman_proxy_oauth_consumer_secret
-
-...

@@ -16,7 +16,7 @@
   loop: "{{ capsule_install_dns_servers }}"
   when: capsule_install_dns_servers is defined
 
-- name: dns_config | Update NetworkManager DNS
+- name: dns_config | Update NetworkManager DNS search
   community.general.nmcli:
     conn_name: "{{ capsule_install_dns_device }}"
     type: ethernet

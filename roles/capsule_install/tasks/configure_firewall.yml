@@ -14,7 +14,7 @@
 
 - name: configure_firewall | Firewall Config
   when:
-    - capsule_install_satellite_haproxy is true
+    - capsule_install_satellite_haproxy | bool
     - capsule_install_loadbalancer_fqdn is defined
   block:
     - name: configure_firewall | Open ports on Proxy for load balancing
