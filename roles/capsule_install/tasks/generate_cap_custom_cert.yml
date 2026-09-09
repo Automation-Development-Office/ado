@@ -74,7 +74,7 @@
 
 - name: generate_cap_custom_cert | Set foreman-proxy-oauth-consumer-key fact
   ansible.builtin.set_fact:
-    foreman_proxy_oauth_consumer_key: "{{ capsule_install_cert_line.split('\"')[1] | regex_replace('\"', '') }}"
+    capsule_install_foreman_proxy_oauth_consumer_key: "{{ capsule_install_cert_line.split('\"')[1] | regex_replace('\"', '') }}"
   loop: "{{ capsule_install_cert_generate_output.stdout_lines }}"
   loop_control:
     loop_var: capsule_install_cert_line
@@ -83,7 +83,7 @@
 
 - name: generate_cap_custom_cert | Set foreman-proxy-oauth-consumer-secret fact
   ansible.builtin.set_fact:
-    foreman_proxy_oauth_consumer_secret: "{{ capsule_install_cert_line.split('\"')[1] | regex_replace('\"', '') }}"
+    capsule_install_foreman_proxy_oauth_consumer_secret: "{{ capsule_install_cert_line.split('\"')[1] | regex_replace('\"', '') }}"
   loop: "{{ capsule_install_cert_generate_output.stdout_lines }}"
   loop_control:
     loop_var: capsule_install_cert_line

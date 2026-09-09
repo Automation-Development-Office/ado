@@ -159,7 +159,7 @@ template presence, and README format via `scripts/verify_readme.py`.
   - When DNS variables are set, updates NetworkManager and renders `templates/resolv.conf.j2`.
 - **Generate Custom Capsule Certificate** (`generate_cap_custom_cert.yml`):
   - Copies `capsule_certs` from the Capsule host to Satellite, runs `capsule-certs-generate`, and returns the cert tarball to the Capsule.
-  - Sets `foreman_proxy_oauth_consumer_key` and `foreman_proxy_oauth_consumer_secret` from the generator output for later installer options.
+  - Sets `capsule_install_foreman_proxy_oauth_consumer_key` and `capsule_install_foreman_proxy_oauth_consumer_secret` from the generator output for later installer options.
 - **Install Capsule** (`install_capsule.yml`):
   - Checks whether Capsule services are already running.
   - Runs `satellite-installer` with `capsule_install_scenario` and `capsule_install_installer_options`, or load-balanced options when `capsule_install_satellite_haproxy` is enabled.
