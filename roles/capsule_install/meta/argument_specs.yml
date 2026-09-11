@@ -122,6 +122,28 @@ argument_specs:
       capsule_install_satellite_fqdn:
         type: str
         description: FQDN of the upstream Satellite server.
+      capsule_install_certs:
+        type: list
+        elements: str
+        description: >-
+          Certificate filenames under /root/certs/ on the Capsule host copied to
+          Satellite before capsule-certs-generate.
+        default: []
+      capsule_install_dns_device:
+        type: str
+        description: NetworkManager connection name updated by DNS configuration tasks.
+      capsule_install_dns_servers:
+        type: list
+        elements: str
+        description: DNS servers applied via NetworkManager and resolv.conf.
+      capsule_install_dns_search:
+        type: list
+        elements: str
+        description: DNS search domains applied via NetworkManager.
+      capsule_install_data_device_name:
+        type: str
+        description: Optional data disk basename for storage configuration.
+        default: ""
       capsule_install_lifecycle_environments:
         type: list
         elements: str
