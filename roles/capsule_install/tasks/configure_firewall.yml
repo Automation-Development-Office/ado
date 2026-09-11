@@ -30,6 +30,6 @@
         permanent: true
       loop: "{{ capsule_install_satellite_loadbalancer_ports }}"
       run_once: true
-      delegate_to: "{{ capsule_install_loadbalancer_fqdn }}"
+      delegate_to: "{{ capsule_install_loadbalancer_fqdn | default(omit) }}"
 
 ...
