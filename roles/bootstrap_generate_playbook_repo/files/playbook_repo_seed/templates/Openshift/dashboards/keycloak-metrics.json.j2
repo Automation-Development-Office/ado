@@ -11,27 +11,13 @@
   "links": [],
   "panels": [
     {
-      "type": "text",
-      "title": "About this dashboard",
-      "gridPos": {
-        "h": 4,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "options": {
-        "mode": "markdown",
-        "content": "RHBK scrapes **Micrometer** metrics from the management port (`/metrics`).\n\n- **Memory / CPU / HTTP**: from `jvm_*`, `process_*`, `http_server_*`\n- **Login/realm panels from community dashboard 10441 will stay empty** unless the Keycloak Metrics SPI is installed (this lab does not ship those `keycloak_*` series).\n- Select **K8S = Openshift-Prod** (or Dev on the Dev dashboard)."
-      }
-    },
-    {
       "type": "stat",
       "title": "Uptime",
       "gridPos": {
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 4
+        "y": 0
       },
       "datasource": {
         "type": "prometheus",
@@ -80,7 +66,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 4
+        "y": 0
       },
       "datasource": {
         "type": "prometheus",
@@ -129,7 +115,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 4
+        "y": 0
       },
       "datasource": {
         "type": "prometheus",
@@ -186,7 +172,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 4
+        "y": 0
       },
       "datasource": {
         "type": "prometheus",
@@ -235,7 +221,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 4
+        "y": 0
       },
       "datasource": {
         "type": "prometheus",
@@ -284,7 +270,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 4
       },
       "datasource": {
         "type": "prometheus",
@@ -326,7 +312,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 4
       },
       "datasource": {
         "type": "prometheus",
@@ -378,7 +364,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 16
+        "y": 12
       },
       "datasource": {
         "type": "prometheus",
@@ -420,7 +406,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 12
       },
       "datasource": {
         "type": "prometheus",
@@ -626,7 +612,7 @@
     {
       "type": "table",
       "title": "Failed logins by reason",
-      "description": "By error/realm/client. Username is not on keycloak_user_events_total — check Keycloak Admin → Events.",
+      "description": "Native keycloak_user_events_total (no username). See panel below for who failed.",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -797,6 +783,115 @@
         }
       ]
 
+    },
+    {
+      "type": "table",
+      "title": "Failed logins by username",
+      "description": "From Admin event store via keycloak-login-events exporter (keycloak_login_failure_events). Requires realm eventsEnabled + exporter deploy.",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          },
+          "mappings": [
+            {
+              "options": {
+                "invalid_user_credentials": {
+                  "text": "Bad password",
+                  "index": 0
+                },
+                "user_not_found": {
+                  "text": "Unknown user",
+                  "index": 1
+                },
+                "user_disabled": {
+                  "text": "User disabled",
+                  "index": 2
+                },
+                "user_temporarily_disabled": {
+                  "text": "Temporarily disabled",
+                  "index": 3
+                }
+              },
+              "type": "value"
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Count",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {}
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "namespace": true,
+              "pod": true,
+              "container": true,
+              "endpoint": true,
+              "service": true,
+              "prometheus": true,
+              "prometheus_replica": true
+            },
+            "renameByName": {
+              "username": "Username",
+              "error": "Fail reason",
+              "client_id": "client_id",
+              "realm": "realm",
+              "ip": "IP",
+              "Value": "Count"
+            },
+            "indexByName": {
+              "Username": 0,
+              "Fail reason": 1,
+              "client_id": 2,
+              "realm": 3,
+              "IP": 4,
+              "Count": 5
+            }
+          }
+        }
+      ],
+      "targets": [
+        {
+          "expr": "sum by (username, error, client_id, realm, ip) (keycloak_login_failure_events)",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ]
     }
   ],
   "refresh": "30s",
@@ -885,7 +980,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "OpenShift \u2014 Keycloak Metrics",
+  "title": "OpenShift — Keycloak Metrics",
   "uid": "ado-keycloak-metrics",
   "version": 4
 }
