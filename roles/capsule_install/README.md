@@ -112,7 +112,7 @@ Define the Capsule installation configuration in your playbook or inventory usin
       - 10.0.0.11
     capsule_install_dns_search:
       - example.com
-    capsule_certs:
+    capsule_install_certs:
       - "{{ ansible_fqdn }}_cert.pem"
       - "{{ ansible_fqdn }}_cert_key.pem"
       - ca_cert_bundle.pem
@@ -158,7 +158,7 @@ template presence, and README format via `scripts/verify_readme.py`.
   - Ensures `/etc/hosts` has the Capsule short name and FQDN.
   - When DNS variables are set, updates NetworkManager and renders `templates/resolv.conf.j2`.
 - **Generate Custom Capsule Certificate** (`generate_cap_custom_cert.yml`):
-  - Copies `capsule_certs` from the Capsule host to Satellite, runs `capsule-certs-generate`, and returns the cert tarball to the Capsule.
+  - Copies `capsule_install_certs` from the Capsule host to Satellite, runs `capsule-certs-generate`, and returns the cert tarball to the Capsule.
   - Sets `capsule_install_foreman_proxy_oauth_consumer_key` and `capsule_install_foreman_proxy_oauth_consumer_secret` from the generator output for later installer options.
 - **Install Capsule** (`install_capsule.yml`):
   - Checks whether Capsule services are already running.

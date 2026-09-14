@@ -54,6 +54,7 @@ capsule_install_setup_insights: false
 capsule_install_org_id:
 capsule_install_activation_key:
 capsule_install_satellite_fqdn:
+capsule_install_certs: []
 capsule_install_sync_wait_time: 86400
 capsule_install_lifecycle_environments: []
 
