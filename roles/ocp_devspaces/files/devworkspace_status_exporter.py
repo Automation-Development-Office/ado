@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Expose DevWorkspace phase and VS Code extensions for Grafana.
 
 Label names use dw_* so Prometheus scrape labels never collide with
