@@ -18,12 +18,12 @@ the playbook path), then create Job Templates manually.
 
 For each playbook:
 
-1. **Project** — SCM with these files under e.g. `playbooks/grafana/`.
-2. **Inventory** — `localhost` (or Contoller “localhost” inventory).
-3. **Credentials** — machine cred optional; add OpenShift token cred only if
+1. **Project** - SCM with these files under e.g. `playbooks/grafana/`.
+2. **Inventory** - `localhost` (or Contoller "localhost" inventory).
+3. **Credentials** - machine cred optional; add OpenShift token cred only if
    datasources should auto-discover thanos-querier / create SA tokens.
-4. **Playbook** — path to the file above.
-5. **Extra variables / survey** — see below.
+4. **Playbook** - path to the file above.
+5. **Extra variables / survey** - see below.
 
 Suggested JT names:
 
@@ -57,7 +57,7 @@ If the Contoller project is a bootstrap repo and you pass `env: dev` (or
 
 Set `grafana_skip_group_vars: true` to force survey/extra_vars only.
 
-## Example extra vars — datasources
+## Example extra vars - datasources
 
 ```yaml
 grafana_hostname: grafana.apps.ocp-dev.dev.rhlab
@@ -82,7 +82,7 @@ grafana_datasource_sources:
 For remote Prometheus without OpenShift API access, always set
 `prometheus_url` + `bearer_token` (do not rely on Route/SA discovery).
 
-## Example extra vars — folders / dashboards / alerts
+## Example extra vars - folders / dashboards / alerts
 
 ```yaml
 grafana_hostname: grafana.apps.ocp-dev.dev.rhlab
@@ -102,9 +102,9 @@ grafana_folders:
     alerts_path: alerts
 ```
 
-- **Folders JT** — creates named folders (skips create for General).
-- **Dashboards JT** — uploads from `dashboards_path`.
-- **Alerts JT** — uploads from `alerts_path` (forces `grafana_alerts_enabled`).
+- **Folders JT** - creates named folders (skips create for General).
+- **Dashboards JT** - uploads from `dashboards_path`.
+- **Alerts JT** - uploads from `alerts_path` (forces `grafana_alerts_enabled`).
 
 ## CLI smoke test
 
