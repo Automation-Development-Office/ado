@@ -7,7 +7,7 @@ FAKECLOUD_PORT="${FAKECLOUD_PORT:-4566}"
 FAKECLOUD_URL="http://127.0.0.1:${FAKECLOUD_PORT}"
 # Pin the installer so CI does not query GitHub's unauthenticated
 # /releases/latest API, which 403s under parallel Molecule jobs.
-FAKECLOUD_VERSION="${FAKECLOUD_VERSION:-0.44.10}"
+FAKECLOUD_VERSION="${FAKECLOUD_VERSION:-v0.44.10}"
 RUNNER_DIR="${RUNNER_TEMP:-/tmp}"
 PIDFILE="${RUNNER_DIR}/fakecloud.pid"
 LOGFILE="${RUNNER_DIR}/fakecloud.log"

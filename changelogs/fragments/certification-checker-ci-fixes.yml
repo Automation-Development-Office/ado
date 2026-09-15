@@ -5,5 +5,5 @@ minor_changes:
     import checks.
 bugfixes:
   - >-
-    ci - Pin fakecloud to a release version so Molecule jobs do not fail when
-    GitHub rate-limits unauthenticated latest-release lookups.
+    ci - Pin fakecloud to ``v0.44.10`` so Molecule jobs download the
+    tagged release asset instead of querying GitHub's latest-release API.
