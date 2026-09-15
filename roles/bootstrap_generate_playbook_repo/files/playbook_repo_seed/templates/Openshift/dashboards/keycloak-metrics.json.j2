@@ -787,7 +787,7 @@
     {
       "type": "table",
       "title": "Failed logins by username",
-      "description": "From Admin event store via keycloak-login-events exporter (keycloak_login_failure_events). Requires realm eventsEnabled + exporter deploy.",
+      "description": "From Admin event store via keycloak-login-events exporter. Sorted by newest failure. Requires realm eventsEnabled + exporter deploy.",
       "gridPos": {
         "h": 10,
         "w": 24,
@@ -829,13 +829,30 @@
             }
           ]
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last seen"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              },
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showHeader": true,
         "sortBy": [
           {
-            "displayName": "Count",
+            "displayName": "Last seen",
             "desc": true
           }
         ]
@@ -871,16 +888,31 @@
               "client_id": "client_id",
               "realm": "realm",
               "ip": "IP",
+              "Value #Count": "Count",
+              "Value #Last": "Last seen",
               "Value": "Count"
             },
             "indexByName": {
-              "Username": 0,
-              "Fail reason": 1,
-              "client_id": 2,
-              "realm": 3,
-              "IP": 4,
-              "Count": 5
+              "Last seen": 0,
+              "Username": 1,
+              "Fail reason": 2,
+              "client_id": 3,
+              "realm": 4,
+              "IP": 5,
+              "Count": 6
             }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Last seen",
+                "desc": true
+              }
+            ]
           }
         }
       ],
@@ -889,7 +921,13 @@
           "expr": "sum by (username, error, client_id, realm, ip) (keycloak_login_failure_events)",
           "format": "table",
           "instant": true,
-          "refId": "A"
+          "refId": "Count"
+        },
+        {
+          "expr": "max by (username, error, client_id, realm, ip) (keycloak_login_failure_last_timestamp)",
+          "format": "table",
+          "instant": true,
+          "refId": "Last"
         }
       ]
     }
