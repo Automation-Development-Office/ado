@@ -15,6 +15,7 @@ Ansible Galaxy publishing.
 - [Changelog requirements](#changelog-requirements)
 - [Ansible Collection CI/CD (`main.yml`)](#ansible-collection-cicd-mainyml)
 - [CI (`tests.yml`)](#ci-testsyml)
+- [Certification checker (`certification.yml`)](#certification-checker-certificationyml)
 - [Security Check (`security-check.yml`)](#security-check-security-checkyml)
 - [Molecule testing](#molecule-testing)
 - [Local development checklist](#local-development-checklist)
@@ -30,12 +31,13 @@ Ansible Galaxy publishing.
 
 ## Overview
 
-The repository uses four GitHub Actions workflows:
+The repository uses these GitHub Actions workflows:
 
 | Workflow | Primary audience | Role |
 | --- | --- | --- |
 | **Ansible Collection CI/CD** | Contributors and maintainers | Primary integration pipeline: changelog, lint, Molecule, build, dev pre-releases |
 | **CI** | Contributors | Upstream Ansible collection checks: sanity, unit, build-import, lint |
+| **Certification checker** | Contributors and maintainers | Galaxy importer, ansible-lint, and sanity checks used during Automation Hub import |
 | **Security Check** | Contributors | Role security and data-exposure scans |
 | **Release infra.ado** | Maintainers | Attach tarballs to GitHub Releases; compile changelog |
 | **Publish to Ansible Galaxy** | Maintainers | Manual Galaxy publish only (`workflow_dispatch`) |
@@ -52,6 +54,8 @@ Paths most relevant to the pipeline:
 | --- | --- |
 | [`.github/workflows/main.yml`](workflows/main.yml) | Primary CI/CD workflow |
 | [`.github/workflows/tests.yml`](workflows/tests.yml) | Upstream collection CI workflow |
+| [`.github/workflows/certification.yml`](workflows/certification.yml) | Partner certification checker (pinned reusable workflow) |
+| [`.github/dependabot.yml`](dependabot.yml) | Weekly GitHub Actions version updates, including the certification workflow pin |
 | [`.github/workflows/security-check.yml`](workflows/security-check.yml) | Standalone security scans |
 | [`.github/workflows/release.yml`](workflows/release.yml) | GitHub Release build and attach |
 | [`.github/workflows/open-changelog-pr.yml`](workflows/open-changelog-pr.yml) | Manual recovery to open a changelog PR for a release tag |
@@ -76,6 +80,7 @@ Paths most relevant to the pipeline:
 | --- | --- | --- | --- |
 | Ansible Collection CI/CD | [`main.yml`](workflows/main.yml) | `push`, `pull_request`, `workflow_dispatch` | Changelog, lint, README check, security (manual), Molecule, PR gate, build, dev release |
 | CI | [`tests.yml`](workflows/tests.yml) | PR to `main`, `workflow_dispatch` | Changelog, build-import, lint, README, sanity, unit, all_green |
+| Certification checker | [`certification.yml`](workflows/certification.yml) | PR to `main`, daily schedule, `workflow_dispatch` | Galaxy importer, production ansible-lint, ansible-core sanity matrix |
 | Security Check | [`security-check.yml`](workflows/security-check.yml) | `pull_request`, `workflow_dispatch` | Security and data-exposure scans |
 | Release infra.ado | [`release.yml`](workflows/release.yml) | GitHub Release published | Build, changelog, attach tarball |
 | Publish to Ansible Galaxy | [`publish-galaxy.yml`](workflows/publish-galaxy.yml) | Manual `workflow_dispatch` only | Publish to Galaxy |
@@ -84,6 +89,7 @@ Status badges:
 
 - [Ansible Collection CI/CD](https://github.com/Automation-Development-Office/ado/actions/workflows/main.yml)
 - [Security Check](https://github.com/Automation-Development-Office/ado/actions/workflows/security-check.yml)
+- [Certification checker](https://github.com/Automation-Development-Office/ado/actions/workflows/certification.yml)
 
 ## End-to-end pipeline
 
@@ -98,6 +104,7 @@ flowchart TD
     prOpen --> sanity[Sanity tests]
     prOpen --> unit[Unit tests]
     prOpen --> buildImport[Build-import check]
+    prOpen --> certification[Certification checker]
     changelog --> prGate[PR gate]
     lintMain --> prGate
     molecule --> prGate
@@ -138,6 +145,7 @@ The **PR gate** in `main.yml` requires these jobs to pass on pull requests:
 | Changelog | Yes, unless PR has `skip-changelog` label |
 | README format check | No (informational) |
 | Security Check (`security-check.yml`) | No (informational) |
+| Certification checker (`certification.yml`) | No (informational until added as a required check) |
 | CI workflow `all_green` | Partial (unit-galaxy and ansible-lint only) |
 
 Configure branch protection in GitHub to match the jobs you want to enforce.
@@ -327,6 +335,42 @@ reusable workflows. Runs on pull requests targeting `main` and on manual dispatc
 | `all_green` | Aggregate gate | Checks `unit-galaxy` and `ansible-lint` only |
 
 Concurrency is enabled per PR branch (`cancel-in-progress: true`).
+
+## Certification checker (`certification.yml`)
+
+Reusable [partner certification checker](https://github.com/ansible-collections/partner-certification-checker)
+workflow. It runs the same class of checks used during Ansible Automation Hub import:
+galaxy-importer, ansible-lint (`--profile=production`), and ansible-core sanity tests.
+
+This is not a substitute for unit, integration, or Molecule tests, and it does not cover
+every [partner certification requirement](https://docs.ansible.com/projects/partner-certification-requirements/).
+
+### Triggers
+
+- Pull requests targeting `main`
+- Daily schedule (`0 6 * * *`)
+- Manual `workflow_dispatch`
+
+Concurrency is enabled per PR branch (`cancel-in-progress: true`).
+
+### Inputs
+
+| Input | Value | Reason |
+| --- | --- | --- |
+| Reusable workflow pin | `certification-reusable.yml@v5.0.0` | Supply-chain pin; Dependabot opens PRs when new tags are released |
+| `ansible-core-version` | `2.18.0` | Compatible with `requires_ansible: ">=2.17.0"` (workflow default is `2.16.0`) |
+| `collection-deps` | Collections listed in [`galaxy.yml`](../galaxy.yml) | Sanity tests do not install `galaxy.yml` dependencies automatically |
+
+Unsupported sanity branches are skipped from `meta/runtime.yml` (`requires_ansible`).
+Do not set `skip-sanity-versions` unless you need to override that auto-detection.
+
+Certified Automation Hub collections are still omitted from `galaxy.yml` so public Galaxy
+installs do not fail. Leave `automation-hub` unset unless you also pass `AH_TOKEN`
+(this repository's existing secret is `AUTOMATION_HUB_TOKEN`).
+
+Dependabot is configured in [`.github/dependabot.yml`](dependabot.yml) for the
+`github-actions` ecosystem on a weekly schedule so the certification workflow pin stays
+current.
 
 ## Security Check (`security-check.yml`)
 
@@ -808,6 +852,7 @@ These provide signal but do not block the PR gate today:
 
 - README format verification
 - Security Check (`security-check.yml`)
+- Certification checker (`certification.yml`)
 - `tests.yml` `readme-format` and commented-out `changelog` in `all_green`
 
 Enable them as required checks when the team is ready to enforce them.
@@ -817,9 +862,14 @@ Enable them as required checks when the team is ready to enforce them.
 Local formatting and lint hooks are configured in [`.pre-commit-config.yaml`](../.pre-commit-config.yaml)
 (black, isort, prettier, trailing commas). Run `pre-commit run --all-files` before pushing.
 
+### Dependabot
+
+[`.github/dependabot.yml`](dependabot.yml) requests weekly pull requests for GitHub
+Actions, including the pinned partner certification checker reusable workflow.
+
 ### Future improvements
 
 - Consolidate duplicate lint and changelog jobs between `main.yml` and `tests.yml`
 - Add `galaxy-importer` validation to the release build path
-- Enforce README and security checks in the PR gate
+- Enforce README, security, and certification checks in the PR gate
 - Add Automation Hub publish support alongside Galaxy
