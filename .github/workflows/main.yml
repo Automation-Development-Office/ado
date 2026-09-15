@@ -520,6 +520,8 @@ jobs:
 
       - name: Start fakecloud
         if: steps.fakecloud.outputs.needed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: scripts/ci/fakecloud-service.sh start
 
       - name: Install AWS SDK for fakecloud scenarios

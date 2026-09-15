@@ -1,0 +1,9 @@
+---
+minor_changes:
+  - >-
+    galaxy.yml - Add the ``infrastructure`` tag required by Automation Hub
+    import checks.
+bugfixes:
+  - >-
+    ci - Pin fakecloud to a release version so Molecule jobs do not fail when
+    GitHub rate-limits unauthenticated latest-release lookups.
