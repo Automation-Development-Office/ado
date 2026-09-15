@@ -10,3 +10,6 @@ bugfixes:
   - >-
     ci - Run ansible-lint offline so the certification checker does not try
     to install Automation Hub-only dependencies such as ``ansible.platform``.
+  - >-
+    ci - Skip recursive include_role Jinja during production ansible-lint so
+    the certification checker can complete.
