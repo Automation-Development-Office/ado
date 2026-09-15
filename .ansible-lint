@@ -1,4 +1,10 @@
 ---
+# Cert checker runs `ansible-lint --profile=production` without --offline.
+# galaxy.yml depends on Hub-only transitive collections (ansible.platform via
+# infra.aap_configuration). Without a Hub token those installs fail after a
+# long retry. Existing CI already lints --offline with the mocks below.
+offline: true
+
 exclude_paths:
     - "**/.github/**"
     - .ansible-lint

@@ -7,3 +7,6 @@ bugfixes:
   - >-
     ci - Pin fakecloud to ``v0.44.10`` so Molecule jobs download the
     tagged release asset instead of querying GitHub's latest-release API.
+  - >-
+    ci - Run ansible-lint offline so the certification checker does not try
+    to install Automation Hub-only dependencies such as ``ansible.platform``.
