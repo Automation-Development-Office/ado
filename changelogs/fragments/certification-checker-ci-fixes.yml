@@ -14,5 +14,6 @@ bugfixes:
     ci - Skip recursive include_role Jinja during production ansible-lint so
     the certification checker can complete.
   - >-
-    ci - Run the partner certification checker manually (and daily) instead of
-    on every pull-request push.
+    ci - Run the partner certification checker on pushes to ``main``
+    (including merges), on a daily schedule, or manually, instead of on
+    every pull-request push.

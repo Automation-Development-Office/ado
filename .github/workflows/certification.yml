@@ -8,10 +8,8 @@
 # Use Dependabot to receive automatic PRs when
 # new versions are released.
 #
-# Do not run on every PR push. Trigger manually on the PR branch
-# (or rely on the daily schedule on main). Require the
-# "Certification" check in branch protection on main so merge
-# waits for a successful run on the current head SHA.
+# Do not run on every PR push. Run on pushes to main (including
+# merges), on a daily schedule, or manually via workflow_dispatch.
 name: Run collection certification checks
 
 permissions:
@@ -21,9 +19,12 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 6 * * *"
+  push:
+    branches:
+      - main
 
 concurrency:
-  group: cert-ver-${{ github.head_ref || github.run_id }}
+  group: cert-ver-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 # Files that are not related to the core functionality
