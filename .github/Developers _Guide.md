@@ -37,7 +37,7 @@ The repository uses these GitHub Actions workflows:
 | --- | --- | --- |
 | **Ansible Collection CI/CD** | Contributors and maintainers | Primary integration pipeline: changelog, lint, Molecule, build, dev pre-releases |
 | **CI** | Contributors | Upstream Ansible collection checks: sanity, unit, build-import, lint |
-| **Certification checker** | Contributors and maintainers | Galaxy importer, ansible-lint, and sanity checks used during Automation Hub import |
+| **Certification checker** | Maintainers | Manual (and daily) Automation Hub import checks; required before merge to `main` |
 | **Security Check** | Contributors | Role security and data-exposure scans |
 | **Release infra.ado** | Maintainers | Attach tarballs to GitHub Releases; compile changelog |
 | **Publish to Ansible Galaxy** | Maintainers | Manual Galaxy publish only (`workflow_dispatch`) |
@@ -45,6 +45,7 @@ The repository uses these GitHub Actions workflows:
 Most day-to-day development is validated by **Ansible Collection CI/CD** on pull
 requests. The **CI** workflow runs in parallel with overlapping checks. Treat both as
 signals until required status checks are configured in the repository settings.
+Run the **certification checker** manually on the PR branch before merging to `main`.
 
 ## Repository layout
 
@@ -80,7 +81,7 @@ Paths most relevant to the pipeline:
 | --- | --- | --- | --- |
 | Ansible Collection CI/CD | [`main.yml`](workflows/main.yml) | `push`, `pull_request`, `workflow_dispatch` | Changelog, lint, README check, security (manual), Molecule, PR gate, build, dev release |
 | CI | [`tests.yml`](workflows/tests.yml) | PR to `main`, `workflow_dispatch` | Changelog, build-import, lint, README, sanity, unit, all_green |
-| Certification checker | [`certification.yml`](workflows/certification.yml) | PR to `main`, daily schedule, `workflow_dispatch` | Galaxy importer, production ansible-lint, ansible-core sanity matrix |
+| Certification checker | [`certification.yml`](workflows/certification.yml) | Manual `workflow_dispatch`, daily schedule | Galaxy importer, production ansible-lint, sanity matrix, `Certification` gate |
 | Security Check | [`security-check.yml`](workflows/security-check.yml) | `pull_request`, `workflow_dispatch` | Security and data-exposure scans |
 | Release infra.ado | [`release.yml`](workflows/release.yml) | GitHub Release published | Build, changelog, attach tarball |
 | Publish to Ansible Galaxy | [`publish-galaxy.yml`](workflows/publish-galaxy.yml) | Manual `workflow_dispatch` only | Publish to Galaxy |
@@ -104,7 +105,6 @@ flowchart TD
     prOpen --> sanity[Sanity tests]
     prOpen --> unit[Unit tests]
     prOpen --> buildImport[Build-import check]
-    prOpen --> certification[Certification checker]
     changelog --> prGate[PR gate]
     lintMain --> prGate
     molecule --> prGate
@@ -145,7 +145,7 @@ The **PR gate** in `main.yml` requires these jobs to pass on pull requests:
 | Changelog | Yes, unless PR has `skip-changelog` label |
 | README format check | No (informational) |
 | Security Check (`security-check.yml`) | No (informational) |
-| Certification checker (`certification.yml`) | No (informational until added as a required check) |
+| Certification checker (`certification.yml`) | Manual. Require the `Certification` check in branch protection on `main` |
 | CI workflow `all_green` | Partial (unit-galaxy and ansible-lint only) |
 
 Configure branch protection in GitHub to match the jobs you want to enforce.
@@ -347,9 +347,20 @@ every [partner certification requirement](https://docs.ansible.com/projects/part
 
 ### Triggers
 
-- Pull requests targeting `main`
-- Daily schedule (`0 6 * * *`)
-- Manual `workflow_dispatch`
+This workflow does **not** run on every PR push.
+
+- Manual `workflow_dispatch` on the PR branch (required before merge to `main`)
+- Daily schedule (`0 6 * * *`) on `main`
+
+Run it from **Actions → Run collection certification checks → Run workflow**, and select the PR branch. Or:
+
+```bash
+gh workflow run certification.yml --ref <pr-branch>
+```
+
+After any new commit, run it again on that SHA. The daily cron does not satisfy a PR’s required check.
+
+Require the **Certification** job in branch protection on `main` (the gate job in this workflow, not the inner `call / …` jobs). GitHub lists that name after the job has run once.
 
 Concurrency is enabled per PR branch (`cancel-in-progress: true`).
 
@@ -852,7 +863,6 @@ These provide signal but do not block the PR gate today:
 
 - README format verification
 - Security Check (`security-check.yml`)
-- Certification checker (`certification.yml`)
 - `tests.yml` `readme-format` and commented-out `changelog` in `all_green`
 
 Enable them as required checks when the team is ready to enforce them.
@@ -871,5 +881,6 @@ Actions, including the pinned partner certification checker reusable workflow.
 
 - Consolidate duplicate lint and changelog jobs between `main.yml` and `tests.yml`
 - Add `galaxy-importer` validation to the release build path
-- Enforce README, security, and certification checks in the PR gate
+- Enforce README and security checks in the PR gate
+- Require the `Certification` status check on `main` after it has run once
 - Add Automation Hub publish support alongside Galaxy

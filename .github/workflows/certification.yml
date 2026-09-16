@@ -7,14 +7,17 @@
 # (e.g. @v1.2.0) for supply chain security.
 # Use Dependabot to receive automatic PRs when
 # new versions are released.
+#
+# Do not run on every PR push. Trigger manually on the PR branch
+# (or rely on the daily schedule on main). Require the
+# "Certification" check in branch protection on main so merge
+# waits for a successful run on the current head SHA.
 name: Run collection certification checks
 
 permissions:
   contents: read
 
 on:
-  pull_request:
-    branches: [main]
   workflow_dispatch:
   schedule:
     - cron: "0 6 * * *"
@@ -53,3 +56,12 @@ jobs:
     # This requires setting a repository secret called 'AH_TOKEN' which value contains a Red Hat Ansible Automation Hub token.
     # secrets:
     #   AH_TOKEN: ${{ secrets.AH_TOKEN }}
+
+  certification:
+    name: Certification
+    needs: call
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require reusable certification workflow to pass
+        run: test "${{ needs.call.result }}" = "success"
