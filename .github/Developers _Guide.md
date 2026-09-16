@@ -358,9 +358,9 @@ Run it from **Actions → Run collection certification checks → Run workflow**
 gh workflow run certification.yml --ref <pr-branch>
 ```
 
-After any new commit, run it again on that SHA. The daily cron does not satisfy a PR’s required check.
+After any new commit, run it again on that SHA. The daily cron does not satisfy a PR's required check.
 
-Require the **Certification** job in branch protection on `main` (the gate job in this workflow, not the inner `call / …` jobs). GitHub lists that name after the job has run once.
+Require the **Certification** job in branch protection on `main` (the gate job in this workflow, not the inner `call / ...` jobs). GitHub lists that name after the job has run once.
 
 Concurrency is enabled per PR branch (`cancel-in-progress: true`).
 
