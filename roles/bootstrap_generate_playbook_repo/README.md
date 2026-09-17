@@ -10,9 +10,10 @@ Automation Development Office
 ## Platform coverage
 
 Playbooks in `bootstrap_generate_playbook_repo_generated_playbooks` set
-`target_platform` to `openshift` or `linux`. See the collection
-[Bootstrap coverage](../../README.md#bootstrap-coverage-openshift-vs-rhel)
-tables for a simple OpenShift vs RHEL install/configure checklist.
+`target_platform` to `openshift`, `linux`, `aws`, or `terraform`. See the
+collection
+[Role documentation](../../README.md#role-documentation)
+index for component roles and bootstrap helpers.
 
 ## ✅ Role Requirements
 
