@@ -11,7 +11,7 @@ jobs:
     # Informational only for now; enable required status checks when ready to enforce.
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v4
