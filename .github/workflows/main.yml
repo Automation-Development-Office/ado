@@ -183,7 +183,7 @@ jobs:
 
       - name: Upload lint report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ansible-lint-report
           path: ansible-lint.xml
@@ -231,7 +231,7 @@ jobs:
 
       - name: Upload README verification report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: readme-verification-report
           path: readme-verification.txt
@@ -306,7 +306,7 @@ jobs:
 
       - name: Upload security check reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: security-check-report
           path: |
@@ -442,7 +442,7 @@ jobs:
           ANSIBLE_COLLECTIONS_PATH: ${{ runner.temp }}/ansible-collections
 
       - name: Upload collections cache
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: molecule-collections-cache
           path: ${{ runner.temp }}/ansible-collections
@@ -563,7 +563,7 @@ jobs:
 
       - name: Upload Molecule report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: molecule-report-${{ steps.scenario_meta.outputs.scenario_name }}
           path: molecule-reports/
@@ -655,7 +655,7 @@ jobs:
           COLLECTION_DIR: ${{ github.workspace }}
 
       - name: Upload collection artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: collection-build
           path: ${{ needs.prepare.outputs.namespace }}-${{ needs.prepare.outputs.name }}-*.tar.gz
