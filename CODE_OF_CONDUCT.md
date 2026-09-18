@@ -27,7 +27,7 @@ Conduct when contributing to
 
 - Open **focused** changes with a clear summary, linked issues when applicable
   (for example `Fixes #123`), and an accurate test plan as described in the
-  [pull request template](.github/pull_request_template.md).
+  [pull request template](https://github.com/redhat-cop/infra.automation-development-office/blob/main/.github/pull_request_template.md).
 - Give and accept review feedback on the **merits of the change**. Maintainers
   may request more tests or documentation; that is normal review, not a
   personal rejection.
@@ -77,6 +77,6 @@ use the reporting paths described in the
 
 ## Related guidance
 
-- [CONTRIBUTING](CONTRIBUTING)
-- [Pull request template](.github/pull_request_template.md)
+- [CONTRIBUTING](https://github.com/redhat-cop/infra.automation-development-office/blob/main/CONTRIBUTING)
+- [Pull request template](https://github.com/redhat-cop/infra.automation-development-office/blob/main/.github/pull_request_template.md)
 - [Ansible Community Code of Conduct](https://docs.ansible.com/projects/ansible/devel/community/code_of_conduct.html)
