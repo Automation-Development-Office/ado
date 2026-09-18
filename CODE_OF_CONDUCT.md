@@ -21,7 +21,7 @@ This file does not replace the Ansible Community Code of Conduct. It adds
 
 The following expectations apply in addition to the Ansible Community Code of
 Conduct when contributing to
-[Automation-Development-Office/ado](https://github.com/Automation-Development-Office/ado).
+[Automation-Development-Office/ado](https://github.com/redhat-cop/infra.automation-development-office).
 
 ### Pull requests and issues
 
@@ -67,7 +67,7 @@ For behavior related to **this repository** that you do not wish to raise
 through Ansible's community channels, contact:
 
 - **Email:** [automation-development-office@redhat.com](mailto:automation-development-office@redhat.com)
-- **GitHub:** [open an issue](https://github.com/Automation-Development-Office/ado/issues)
+- **GitHub:** [open an issue](https://github.com/redhat-cop/infra.automation-development-office/issues)
   for general concerns, or contact repository administrators directly for
   sensitive matters
 

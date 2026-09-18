@@ -88,9 +88,9 @@ Paths most relevant to the pipeline:
 
 Status badges:
 
-- [Ansible Collection CI/CD](https://github.com/Automation-Development-Office/ado/actions/workflows/main.yml)
-- [Security Check](https://github.com/Automation-Development-Office/ado/actions/workflows/security-check.yml)
-- [Certification checker](https://github.com/Automation-Development-Office/ado/actions/workflows/certification.yml)
+- [Ansible Collection CI/CD](https://github.com/redhat-cop/infra.automation-development-office/actions/workflows/main.yml)
+- [Security Check](https://github.com/redhat-cop/infra.automation-development-office/actions/workflows/security-check.yml)
+- [Certification checker](https://github.com/redhat-cop/infra.automation-development-office/actions/workflows/certification.yml)
 
 ## End-to-end pipeline
 
@@ -687,7 +687,7 @@ Install without cloning:
 
 ```bash
 ansible-galaxy collection install \
-  https://github.com/Automation-Development-Office/ado/releases/download/v1.2.0-beta1/infra-ado-1.2.0-beta1.tar.gz
+  https://github.com/redhat-cop/infra.automation-development-office/releases/download/v1.2.0-beta1/infra-ado-1.2.0-beta1.tar.gz
 ```
 
 Re-pushing a tag or re-running the workflow replaces the asset with `--clobber`.

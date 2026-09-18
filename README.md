@@ -1,8 +1,8 @@
 # infra.ado
 
-[![Ansible Collection CI/CD](https://github.com/Automation-Development-Office/ado/actions/workflows/main.yml/badge.svg)](https://github.com/Automation-Development-Office/ado/actions/workflows/main.yml)
-[![Security Check](https://github.com/Automation-Development-Office/ado/actions/workflows/security-check.yml/badge.svg)](https://github.com/Automation-Development-Office/ado/actions/workflows/security-check.yml)
-[![Certification checker](https://github.com/Automation-Development-Office/ado/actions/workflows/certification.yml/badge.svg)](https://github.com/Automation-Development-Office/ado/actions/workflows/certification.yml)
+[![Ansible Collection CI/CD](https://github.com/redhat-cop/infra.automation-development-office/actions/workflows/main.yml/badge.svg)](https://github.com/redhat-cop/infra.automation-development-office/actions/workflows/main.yml)
+[![Security Check](https://github.com/redhat-cop/infra.automation-development-office/actions/workflows/security-check.yml/badge.svg)](https://github.com/redhat-cop/infra.automation-development-office/actions/workflows/security-check.yml)
+[![Certification checker](https://github.com/redhat-cop/infra.automation-development-office/actions/workflows/certification.yml/badge.svg)](https://github.com/redhat-cop/infra.automation-development-office/actions/workflows/certification.yml)
 
 Automation Development Office (`infra.ado`) Ansible collection for building and
 operating platform automation across Ansible Automation Platform, OpenShift,
@@ -202,7 +202,7 @@ for more details.
 ## Release notes
 
 See the
-[changelog](https://github.com/automation-development-office/ado/blob/main/CHANGELOG.rst).
+[changelog](https://github.com/redhat-cop/infra.automation-development-office/blob/main/CHANGELOG.rst).
 
 ## Testing
 
